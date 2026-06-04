@@ -1,0 +1,292 @@
+"use client";
+
+import { combineReducers, configureStore, createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import {
+  FLUSH,
+  PAUSE,
+  PERSIST,
+  PURGE,
+  REGISTER,
+  REHYDRATE,
+  persistReducer,
+  persistStore
+} from "redux-persist";
+import storage from "redux-persist/lib/storage";
+import { mergeBookmarks, removeBookmark, upsertBookmark, type ReaderBookmarkItem } from "@/lib/bookmarks";
+import { mergeFollowedStories, storyToFollowItem, type FollowedStoryItem } from "@/lib/follows";
+import { mergeHistory, type ReadingHistoryItem } from "@/lib/reading-history";
+import type { StoredReaderUser } from "@/lib/identity";
+import {
+  sanitizeReaderStyleConfig,
+  type ReaderFontFamily,
+  type ReaderStyleConfig,
+  type ReaderTheme
+} from "@/lib/reader-preferences";
+
+type IdentityState = {
+  user: StoredReaderUser | null;
+  hydrated: boolean;
+};
+
+type HistoryState = {
+  items: ReadingHistoryItem[];
+  hydrated: boolean;
+};
+
+type ReaderStyleState = {
+  config: ReaderStyleConfig;
+  hydrated: boolean;
+};
+
+type FollowsState = {
+  items: FollowedStoryItem[];
+  hydrated: boolean;
+};
+
+type BookmarksState = {
+  items: ReaderBookmarkItem[];
+  hydrated: boolean;
+};
+
+const initialIdentityState: IdentityState = {
+  user: null,
+  hydrated: false
+};
+
+const initialHistoryState: HistoryState = {
+  items: [],
+  hydrated: false
+};
+
+const initialReaderStyleState: ReaderStyleState = {
+  config: sanitizeReaderStyleConfig(null),
+  hydrated: false
+};
+
+const initialFollowsState: FollowsState = {
+  items: [],
+  hydrated: false
+};
+
+const initialBookmarksState: BookmarksState = {
+  items: [],
+  hydrated: false
+};
+
+const identitySlice = createSlice({
+  name: "identity",
+  initialState: initialIdentityState,
+  reducers: {
+    setCurrentUser(state, action: PayloadAction<StoredReaderUser | null>) {
+      state.user = action.payload;
+      state.hydrated = true;
+    },
+    markIdentityHydrated(state) {
+      state.hydrated = true;
+    }
+  }
+});
+
+const historySlice = createSlice({
+  name: "history",
+  initialState: initialHistoryState,
+  reducers: {
+    setHistory(state, action: PayloadAction<ReadingHistoryItem[]>) {
+      state.items = action.payload;
+      state.hydrated = true;
+    },
+    mergeHistoryItems(state, action: PayloadAction<ReadingHistoryItem[]>) {
+      state.items = mergeHistory(state.items, action.payload);
+      state.hydrated = true;
+    },
+    upsertHistoryItem(state, action: PayloadAction<ReadingHistoryItem>) {
+      const item = action.payload;
+      const existing = state.items.find((entry) => entry.storyId === item.storyId);
+      const nextItem = {
+        ...item,
+        maxReadChapterNumber: Math.max(item.maxReadChapterNumber, existing?.maxReadChapterNumber ?? 0)
+      };
+      state.items = [nextItem, ...state.items.filter((entry) => entry.storyId !== item.storyId)].slice(0, 80);
+      state.hydrated = true;
+    },
+    markHistoryHydrated(state) {
+      state.hydrated = true;
+    }
+  }
+});
+
+const readerStyleSlice = createSlice({
+  name: "readerStyle",
+  initialState: initialReaderStyleState,
+  reducers: {
+    setReaderStyle(state, action: PayloadAction<ReaderStyleConfig>) {
+      state.config = sanitizeReaderStyleConfig(action.payload);
+      state.hydrated = true;
+    },
+    setReaderTheme(state, action: PayloadAction<ReaderTheme>) {
+      state.config.theme = action.payload;
+      state.hydrated = true;
+    },
+    setReaderFontSize(state, action: PayloadAction<number>) {
+      state.config.fontSize = sanitizeReaderStyleConfig({
+        ...state.config,
+        fontSize: action.payload
+      }).fontSize;
+      state.hydrated = true;
+    },
+    setReaderFontFamily(state, action: PayloadAction<ReaderFontFamily>) {
+      state.config.fontFamily = action.payload;
+      state.hydrated = true;
+    },
+    setReaderLineHeight(state, action: PayloadAction<number>) {
+      state.config.lineHeight = sanitizeReaderStyleConfig({
+        ...state.config,
+        lineHeight: action.payload
+      }).lineHeight;
+      state.hydrated = true;
+    },
+    setReaderParagraphSpacing(state, action: PayloadAction<number>) {
+      state.config.paragraphSpacing = sanitizeReaderStyleConfig({
+        ...state.config,
+        paragraphSpacing: action.payload
+      }).paragraphSpacing;
+      state.hydrated = true;
+    },
+    setReaderContentWidth(state, action: PayloadAction<number>) {
+      state.config.contentWidth = sanitizeReaderStyleConfig({
+        ...state.config,
+        contentWidth: action.payload
+      }).contentWidth;
+      state.hydrated = true;
+    },
+    markReaderStyleHydrated(state) {
+      state.hydrated = true;
+    }
+  }
+});
+
+const followsSlice = createSlice({
+  name: "follows",
+  initialState: initialFollowsState,
+  reducers: {
+    setFollows(state, action: PayloadAction<FollowedStoryItem[]>) {
+      state.items = action.payload;
+      state.hydrated = true;
+    },
+    mergeFollows(state, action: PayloadAction<FollowedStoryItem[]>) {
+      state.items = mergeFollowedStories(state.items, action.payload);
+      state.hydrated = true;
+    },
+    followStory(state, action: PayloadAction<FollowedStoryItem>) {
+      state.items = mergeFollowedStories(state.items, [action.payload]);
+      state.hydrated = true;
+    },
+    unfollowStory(state, action: PayloadAction<string>) {
+      state.items = state.items.filter((item) => item.storyId !== action.payload);
+      state.hydrated = true;
+    },
+    toggleFollowStory(state, action: PayloadAction<FollowedStoryItem>) {
+      const exists = state.items.some((item) => item.storyId === action.payload.storyId);
+      state.items = exists
+        ? state.items.filter((item) => item.storyId !== action.payload.storyId)
+        : mergeFollowedStories(state.items, [action.payload]);
+      state.hydrated = true;
+    },
+    syncFollowedStories(state, action: PayloadAction<Parameters<typeof storyToFollowItem>[0][]>) {
+      const followedIds = new Set(state.items.map((item) => item.storyId));
+      const incoming = action.payload.filter((story) => followedIds.has(story.id)).map((story) => storyToFollowItem(story));
+      if (incoming.length > 0) state.items = mergeFollowedStories(state.items, incoming);
+      state.hydrated = true;
+    },
+    markFollowsHydrated(state) {
+      state.hydrated = true;
+    }
+  }
+});
+
+const bookmarksSlice = createSlice({
+  name: "bookmarks",
+  initialState: initialBookmarksState,
+  reducers: {
+    setBookmarks(state, action: PayloadAction<ReaderBookmarkItem[]>) {
+      state.items = action.payload;
+      state.hydrated = true;
+    },
+    mergeBookmarkItems(state, action: PayloadAction<ReaderBookmarkItem[]>) {
+      state.items = mergeBookmarks(state.items, action.payload);
+      state.hydrated = true;
+    },
+    upsertBookmarkItem(state, action: PayloadAction<ReaderBookmarkItem>) {
+      state.items = upsertBookmark(state.items, action.payload);
+      state.hydrated = true;
+    },
+    removeBookmarkItem(state, action: PayloadAction<{ storyId: string; chapterNumber: number }>) {
+      state.items = removeBookmark(state.items, action.payload.storyId, action.payload.chapterNumber);
+      state.hydrated = true;
+    },
+    markBookmarksHydrated(state) {
+      state.hydrated = true;
+    }
+  }
+});
+
+export const { setCurrentUser, markIdentityHydrated } = identitySlice.actions;
+export const { setHistory, mergeHistoryItems, upsertHistoryItem, markHistoryHydrated } = historySlice.actions;
+export const {
+  setReaderStyle,
+  setReaderTheme,
+  setReaderFontSize,
+  setReaderFontFamily,
+  setReaderLineHeight,
+  setReaderParagraphSpacing,
+  setReaderContentWidth,
+  markReaderStyleHydrated
+} = readerStyleSlice.actions;
+export const {
+  setFollows,
+  mergeFollows,
+  followStory,
+  unfollowStory,
+  toggleFollowStory,
+  syncFollowedStories,
+  markFollowsHydrated
+} = followsSlice.actions;
+export const {
+  setBookmarks,
+  mergeBookmarkItems,
+  upsertBookmarkItem,
+  removeBookmarkItem,
+  markBookmarksHydrated
+} = bookmarksSlice.actions;
+
+const rootReducer = combineReducers({
+  identity: identitySlice.reducer,
+  history: historySlice.reducer,
+  readerStyle: readerStyleSlice.reducer,
+  follows: followsSlice.reducer,
+  bookmarks: bookmarksSlice.reducer
+});
+
+const persistedReducer = persistReducer(
+  {
+    key: "story-reader",
+    version: 1,
+    storage,
+    whitelist: ["identity", "history", "readerStyle", "follows", "bookmarks"]
+  },
+  rootReducer
+);
+
+export const store = configureStore({
+  reducer: persistedReducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER]
+      }
+    })
+});
+
+export const persistor = persistStore(store);
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;

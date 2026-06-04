@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="720" viewBox="0 0 480 720" role="img" aria-label="Default story cover">
+  <rect width="480" height="720" fill="#f6f5f4"/>
+  <rect x="88" y="76" width="304" height="568" rx="22" fill="#ffffff" stroke="#e5e3df" stroke-width="3"/>
+  <rect x="116" y="116" width="248" height="18" rx="9" fill="#c8c4be"/>
+  <rect x="116" y="154" width="168" height="12" rx="6" fill="#e5e3df"/>
+  <rect x="116" y="218" width="248" height="8" rx="4" fill="#ede9e4"/>
+  <rect x="116" y="246" width="216" height="8" rx="4" fill="#ede9e4"/>
+  <rect x="116" y="274" width="238" height="8" rx="4" fill="#ede9e4"/>
+  <rect x="116" y="302" width="184" height="8" rx="4" fill="#ede9e4"/>
+  <path d="M116 564c38-24 72-24 106 0 36-24 72-24 106 0v30c-34-22-70-22-106 0-34-22-70-22-106 0v-30Z" fill="#5645d4" opacity=".88"/>
+</svg>

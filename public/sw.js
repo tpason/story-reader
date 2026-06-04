@@ -1,0 +1,94 @@
+const CACHE_VERSION = "linh-quyen-v2";
+const STATIC_CACHE = `${CACHE_VERSION}-static`;
+const PAGE_CACHE = `${CACHE_VERSION}-pages`;
+const API_CACHE = `${CACHE_VERSION}-api`;
+const STATIC_ASSETS = ["/", "/offline.html", "/manifest.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(STATIC_CACHE)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((key) => !key.startsWith(CACHE_VERSION)).map((key) => caches.delete(key))))
+      .then(() => self.clients.claim())
+  );
+});
+
+function isChapterPayload(url) {
+  return url.pathname.startsWith("/api/stories/") && /\/chapters\/\d+$/.test(url.pathname);
+}
+
+function isStaticAsset(request, url) {
+  return request.destination === "script"
+    || request.destination === "style"
+    || request.destination === "font"
+    || request.destination === "image"
+    || url.pathname.startsWith("/icons/");
+}
+
+function isBackgroundAudio(url) {
+  return url.pathname.startsWith("/background-audio/");
+}
+
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  const network = fetch(request)
+    .then((response) => {
+      if (response.ok) cache.put(request, response.clone());
+      return response;
+    })
+    .catch(() => cached);
+  return cached || network;
+}
+
+async function networkFirst(request, cacheName, fallbackUrl) {
+  const cache = await caches.open(cacheName);
+  try {
+    const response = await fetch(request);
+    if (response.ok) cache.put(request, response.clone());
+    return response;
+  } catch {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    if (fallbackUrl) return caches.match(fallbackUrl);
+    throw new Error("offline");
+  }
+}
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET") return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  if (url.pathname.startsWith("/_next/")) {
+    return;
+  }
+
+  if (request.mode === "navigate") {
+    event.respondWith(networkFirst(request, PAGE_CACHE, "/offline.html"));
+    return;
+  }
+
+  if (isChapterPayload(url)) {
+    event.respondWith(networkFirst(request, API_CACHE));
+    return;
+  }
+
+  if (isBackgroundAudio(url)) {
+    event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
+    return;
+  }
+
+  if (isStaticAsset(request, url)) {
+    event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
+  }
+});

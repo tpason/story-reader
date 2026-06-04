@@ -1,0 +1,23 @@
+import { Pool, type QueryResultRow } from "pg";
+
+const DEFAULT_DATABASE_URL = "postgresql://betterbox:betterbox@127.0.0.1:54329/betterbox_story";
+
+declare global {
+  // eslint-disable-next-line no-var
+  var storyReaderPool: Pool | undefined;
+}
+
+export const pool =
+  globalThis.storyReaderPool ??
+  new Pool({
+    connectionString: process.env.STORY_DATABASE_URL ?? DEFAULT_DATABASE_URL
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalThis.storyReaderPool = pool;
+}
+
+export async function query<T extends QueryResultRow>(text: string, values: unknown[] = []): Promise<T[]> {
+  const result = await pool.query<T>(text, values);
+  return result.rows;
+}

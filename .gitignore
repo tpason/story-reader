@@ -1,0 +1,29 @@
+node_modules/
+.next/
+.cache/
+out/
+dist/
+*.tsbuildinfo
+.env*.local
+
+# Internal agent/design notes. Keep README.md public.
+AGENTS.md
+CLAUDE.md
+DESIGN.md
+LOCAL_SHARING.md
+UI_REFERENCE.md
+docs/
+
+# Local agent/editor artifacts
+.claude/settings.local.json
+.vscode/
+.tmp_screens/
+
+# OS/editor backup files
+*~
+*_bk.*
+*.bak
+
+# Frontend media assets are kept local/provisioned separately.
+public/assets/
+public/background-audio/
