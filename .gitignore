@@ -15,7 +15,10 @@ UI_REFERENCE.md
 docs/
 
 # Local agent/editor artifacts
-.claude/settings.local.json
+.agent/
+.agents/
+.claude/
+.codex/
 .vscode/
 .tmp_screens/
 
