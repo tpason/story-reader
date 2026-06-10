@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
-import * as THREE from "three";
+import { AnimationMixer, Color, DoubleSide, Group, Mesh, MeshStandardMaterial, SphereGeometry } from "three";
 
 const MODEL_URL = "/assets/xianxia/models/flamingo.glb";
 
@@ -54,16 +54,16 @@ export function FlyingCranes() {
   const { scene } = useThree();
   const gltf = useGLTF(MODEL_URL);
 
-  const mixersRef   = useRef<THREE.AnimationMixer[]>([]);
-  const groupsRef   = useRef<THREE.Group[]>([]);
-  const matsRef     = useRef<THREE.MeshStandardMaterial[]>([]);
+  const mixersRef   = useRef<AnimationMixer[]>([]);
+  const groupsRef   = useRef<Group[]>([]);
+  const matsRef     = useRef<MeshStandardMaterial[]>([]);
   const flockXRef   = useRef(1.5);
   const flockDirRef = useRef<1 | -1>(-1);
   const phasesRef   = useRef(OFFSETS.map(() => Math.random() * Math.PI * 2));
 
-  const lonerRef       = useRef<THREE.Group | null>(null);
-  const lonerMixerRef  = useRef<THREE.AnimationMixer | null>(null);
-  const lonerMatRef    = useRef<THREE.MeshStandardMaterial | null>(null);
+  const lonerRef       = useRef<Group | null>(null);
+  const lonerMixerRef  = useRef<AnimationMixer | null>(null);
+  const lonerMatRef    = useRef<MeshStandardMaterial | null>(null);
   const lonerXRef      = useRef(-5.0);
   const lonerDirRef    = useRef<1 | -1>(1); // flies RIGHT, opposite to flock
 
@@ -76,7 +76,7 @@ export function FlyingCranes() {
       const probe = gltf.scene.clone(true);
       let maxY = -Infinity;
       probe.traverse(node => {
-        if (node instanceof THREE.Mesh) {
+        if (node instanceof Mesh) {
           node.geometry.computeBoundingBox();
           const bb = node.geometry.boundingBox;
           if (!bb) return;
@@ -86,35 +86,35 @@ export function FlyingCranes() {
       if (maxY > 45)       geoHeadY = maxY;
     }
 
-    const crownGeo = new THREE.SphereGeometry(CROWN_RADIUS, 7, 5);
-    const crownMat = new THREE.MeshStandardMaterial({
-      color: CROWN_COLOR, emissive: new THREE.Color(CROWN_EMISSIVE),
+    const crownGeo = new SphereGeometry(CROWN_RADIUS, 7, 5);
+    const crownMat = new MeshStandardMaterial({
+      color: CROWN_COLOR, emissive: new Color(CROWN_EMISSIVE),
       emissiveIntensity: 0.28, roughness: 0.6,
     });
 
-    const groups: THREE.Group[]                  = [];
-    const mixers: THREE.AnimationMixer[]         = [];
-    const mats:   THREE.MeshStandardMaterial[]   = [];
+    const groups: Group[]                  = [];
+    const mixers: AnimationMixer[]         = [];
+    const mats:   MeshStandardMaterial[]   = [];
 
     OFFSETS.forEach(([ox, oy, oz], i) => {
       const [bodyHex, emitHex, emitInt, opacity] = BIRD_CONFIGS[i];
 
-      const mat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(bodyHex),
-        emissive: new THREE.Color(emitHex),
+      const mat = new MeshStandardMaterial({
+        color: new Color(bodyHex),
+        emissive: new Color(emitHex),
         emissiveIntensity: emitInt,
         roughness: 0.82, metalness: 0.02,
-        side: THREE.DoubleSide,
+        side: DoubleSide,
         transparent: true, opacity,
       });
       mats.push(mat);
 
-      const bird = gltf.scene.clone(true) as THREE.Group;
+      const bird = gltf.scene.clone(true) as Group;
       bird.scale.setScalar(BIRD_SCALE);
-      bird.traverse(node => { if (node instanceof THREE.Mesh) node.material = mat; });
+      bird.traverse(node => { if (node instanceof Mesh) node.material = mat; });
 
       // Red crown — counteract parent scale so world radius = CROWN_RADIUS
-      const crown = new THREE.Mesh(crownGeo, crownMat);
+      const crown = new Mesh(crownGeo, crownMat);
       crown.scale.setScalar(1 / BIRD_SCALE);
       crown.position.set(0, geoHeadY * 0.80, 0);
       bird.add(crown);
@@ -122,7 +122,7 @@ export function FlyingCranes() {
       bird.position.set(flockXRef.current + ox, FLOCK_BASE_Y + oy, FLOCK_BASE_Z - oz);
       bird.rotation.y = -Math.PI / 2; // face left (-X)
 
-      const mixer = new THREE.AnimationMixer(bird);
+      const mixer = new AnimationMixer(bird);
       mixer.clipAction(gltf.animations[0]).setDuration(0.70 + Math.random() * 0.38).play();
 
       scene.add(bird);
@@ -135,28 +135,28 @@ export function FlyingCranes() {
     matsRef.current   = mats;
 
     // ── Loner ─────────────────────────────────────────────────────────────
-    const lonerMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(0xC0BBCF),
-      emissive: new THREE.Color(0x9FE7D7),
+    const lonerMat = new MeshStandardMaterial({
+      color: new Color(0xC0BBCF),
+      emissive: new Color(0x9FE7D7),
       emissiveIntensity: 0.18,
       roughness: 0.85, metalness: 0.01,
-      side: THREE.DoubleSide,
+      side: DoubleSide,
       transparent: true, opacity: 0.62,
     });
     lonerMatRef.current = lonerMat;
 
-    const lonerCrown = new THREE.Mesh(crownGeo, crownMat);
+    const lonerCrown = new Mesh(crownGeo, crownMat);
     lonerCrown.scale.setScalar(1 / LONER_SCALE);
     lonerCrown.position.set(0, geoHeadY * 0.80, 0);
 
-    const loner = gltf.scene.clone(true) as THREE.Group;
+    const loner = gltf.scene.clone(true) as Group;
     loner.scale.setScalar(LONER_SCALE);
-    loner.traverse(node => { if (node instanceof THREE.Mesh) node.material = lonerMat; });
+    loner.traverse(node => { if (node instanceof Mesh) node.material = lonerMat; });
     loner.add(lonerCrown);
     loner.position.set(lonerXRef.current, LONER_Y, LONER_Z);
     loner.rotation.y = Math.PI / 2; // face right (+X)
 
-    const lonerMixer = new THREE.AnimationMixer(loner);
+    const lonerMixer = new AnimationMixer(loner);
     lonerMixer.clipAction(gltf.animations[0]).setDuration(1.10).play();
     lonerMixerRef.current = lonerMixer;
     lonerRef.current = loner;
@@ -170,7 +170,7 @@ export function FlyingCranes() {
       groups.forEach((g, i) => {
         mixers[i].stopAllAction();
         scene.remove(g);
-        g.traverse(node => { if (node instanceof THREE.Mesh) node.geometry.dispose(); });
+        g.traverse(node => { if (node instanceof Mesh) node.geometry.dispose(); });
       });
 
       lonerMat.dispose();
@@ -178,7 +178,7 @@ export function FlyingCranes() {
         lonerMixerRef.current?.stopAllAction();
         scene.remove(lonerRef.current);
         lonerRef.current.traverse(node => {
-          if (node instanceof THREE.Mesh) node.geometry.dispose();
+          if (node instanceof Mesh) node.geometry.dispose();
         });
         lonerRef.current = null;
       }

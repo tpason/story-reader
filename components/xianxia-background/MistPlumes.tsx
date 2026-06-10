@@ -2,7 +2,7 @@
 
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
-import * as THREE from "three";
+import { CanvasTexture, LinearFilter, NormalBlending, Sprite, SRGBColorSpace } from "three";
 
 type MistPuff = {
   x: number;
@@ -28,7 +28,7 @@ function createMistTexture() {
   canvas.width = 256;
   canvas.height = 256;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return new THREE.CanvasTexture(canvas);
+  if (!ctx) return new CanvasTexture(canvas);
 
   const gradient = ctx.createRadialGradient(128, 128, 8, 128, 128, 122);
   gradient.addColorStop(0, "rgba(255,255,255,0.42)");
@@ -49,15 +49,15 @@ function createMistTexture() {
     ctx.fillRect(0, 0, 256, 256);
   }
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  texture.minFilter = LinearFilter;
+  texture.magFilter = LinearFilter;
   return texture;
 }
 
 export function MistPlumes() {
-  const refs = useRef<Array<THREE.Sprite | null>>([]);
+  const refs = useRef<Array<Sprite | null>>([]);
   const texture = useMemo(createMistTexture, []);
 
   useFrame((state, delta) => {
@@ -97,7 +97,7 @@ export function MistPlumes() {
             transparent
             opacity={puff.opacity}
             depthWrite={false}
-            blending={THREE.NormalBlending}
+            blending={NormalBlending}
           />
         </sprite>
       ))}

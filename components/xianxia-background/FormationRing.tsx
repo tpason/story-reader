@@ -2,15 +2,15 @@
 
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
+import { AdditiveBlending, Group } from "three";
 
 // Subtle cultivation formation array — a barely-visible torus in the far background.
 // Xianxia 陣法 motif: two concentric rings (gold outer, jade inner) rotating at different rates.
 // Placed at z=-6.5 so it sits behind the mountains, barely perceptible through the mist.
 
 export function FormationRing() {
-  const outerRef = useRef<THREE.Group>(null);
-  const innerRef = useRef<THREE.Group>(null);
+  const outerRef = useRef<Group>(null);
+  const innerRef = useRef<Group>(null);
 
   useFrame((_, delta) => {
     // Outer gold ring — slow clockwise rotation
@@ -47,7 +47,7 @@ export function FormationRing() {
             color={0xf0d06a}
             transparent
             opacity={0.13}
-            blending={THREE.AdditiveBlending}
+            blending={AdditiveBlending}
             depthWrite={false}
           />
         </mesh>
@@ -58,7 +58,7 @@ export function FormationRing() {
               color={0xfff8e0}
               transparent
               opacity={0.22}
-              blending={THREE.AdditiveBlending}
+              blending={AdditiveBlending}
               depthWrite={false}
             />
           </mesh>
@@ -73,7 +73,7 @@ export function FormationRing() {
             color={0x26a882}
             transparent
             opacity={0.10}
-            blending={THREE.AdditiveBlending}
+            blending={AdditiveBlending}
             depthWrite={false}
           />
         </mesh>
@@ -84,7 +84,7 @@ export function FormationRing() {
               color={0x80ffda}
               transparent
               opacity={0.18}
-              blending={THREE.AdditiveBlending}
+              blending={AdditiveBlending}
               depthWrite={false}
             />
           </mesh>

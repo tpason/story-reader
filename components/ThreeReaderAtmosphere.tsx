@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import * as THREE from "three";
+import { AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, CanvasTexture, CircleGeometry, Color, DoubleSide, DynamicDrawUsage, Group, Material, Mesh, MeshBasicMaterial, NormalBlending, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Shape, ShapeGeometry, Sprite, SpriteMaterial, SRGBColorSpace, Texture, TorusGeometry, WebGLRenderer } from "three";
 
 type ThreeReaderAtmosphereProps = {
   chapterNumber: number;
@@ -11,12 +11,12 @@ type ThreeReaderAtmosphereProps = {
 };
 
 type XianxiaSkyRig = {
-  group: THREE.Group;
-  sky: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
-  sun: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
-  sunGlow: THREE.Sprite;
-  mountains: THREE.Mesh[];
-  clouds: THREE.Mesh[];
+  group: Group;
+  sky: Mesh<PlaneGeometry, ShaderMaterial>;
+  sun: Mesh<CircleGeometry, MeshBasicMaterial>;
+  sunGlow: Sprite;
+  mountains: Mesh[];
+  clouds: Mesh[];
 };
 
 const THEME_COLORS = {
@@ -45,7 +45,7 @@ function seededNoise(seed: number) {
   return x - Math.floor(x);
 }
 
-function makeDiscTexture(size = 128): THREE.CanvasTexture {
+function makeDiscTexture(size = 128): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
@@ -57,10 +57,10 @@ function makeDiscTexture(size = 128): THREE.CanvasTexture {
   grad.addColorStop(1, "rgba(255,255,255,0)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
-function makeMistTexture(): THREE.CanvasTexture {
+function makeMistTexture(): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 512;
   const ctx = canvas.getContext("2d")!;
@@ -78,10 +78,10 @@ function makeMistTexture(): THREE.CanvasTexture {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 512, 512);
   }
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
-function makeGlowSprite(r: number, g: number, b: number, worldSize: number, opacity: number): THREE.Sprite {
+function makeGlowSprite(r: number, g: number, b: number, worldSize: number, opacity: number): Sprite {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 256;
   const ctx = canvas.getContext("2d")!;
@@ -92,14 +92,14 @@ function makeGlowSprite(r: number, g: number, b: number, worldSize: number, opac
   grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 256, 256);
-  const mat = new THREE.SpriteMaterial({
-    map: new THREE.CanvasTexture(canvas),
+  const mat = new SpriteMaterial({
+    map: new CanvasTexture(canvas),
     transparent: true,
     opacity,
-    blending: THREE.AdditiveBlending,
+    blending: AdditiveBlending,
     depthWrite: false,
   });
-  const sprite = new THREE.Sprite(mat);
+  const sprite = new Sprite(mat);
   sprite.scale.setScalar(worldSize);
   return sprite;
 }
@@ -154,8 +154,8 @@ function createSealTexture(chapterNumber: number, primary: string, secondary: st
   context.fillStyle = secondary;
   context.fillText(String(chapterNumber), 0, 4);
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
   return texture;
 }
 
@@ -181,15 +181,15 @@ const PARTICLE_FS = `
   }
 `;
 
-function createAmbientParticles(primary: string, secondary: string, discTexture: THREE.CanvasTexture) {
+function createAmbientParticles(primary: string, secondary: string, discTexture: CanvasTexture) {
   const count = 160;
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
   const sizes = new Float32Array(count);
   const baseSizes = new Float32Array(count);
-  const primaryColor = new THREE.Color(primary);
-  const secondaryColor = new THREE.Color(secondary);
-  const jade = new THREE.Color("#26a882");
+  const primaryColor = new Color(primary);
+  const secondaryColor = new Color(secondary);
+  const jade = new Color("#26a882");
 
   for (let i = 0; i < count; i++) {
     const side = i % 2 === 0 ? -1 : 1;
@@ -207,24 +207,24 @@ function createAmbientParticles(primary: string, secondary: string, discTexture:
     sizes[i] = baseSizes[i];
   }
 
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(positions.slice(), 3));
-  geo.setAttribute("aColor", new THREE.BufferAttribute(colors, 3));
-  const sizeAttr = new THREE.BufferAttribute(sizes, 1);
-  sizeAttr.usage = THREE.DynamicDrawUsage;
+  const geo = new BufferGeometry();
+  geo.setAttribute("position", new BufferAttribute(positions.slice(), 3));
+  geo.setAttribute("aColor", new BufferAttribute(colors, 3));
+  const sizeAttr = new BufferAttribute(sizes, 1);
+  sizeAttr.usage = DynamicDrawUsage;
   geo.setAttribute("size", sizeAttr);
 
-  const mat = new THREE.ShaderMaterial({
+  const mat = new ShaderMaterial({
     uniforms: { pointTexture: { value: discTexture } },
     vertexShader: PARTICLE_VS,
     fragmentShader: PARTICLE_FS,
-    blending: THREE.AdditiveBlending,
+    blending: AdditiveBlending,
     depthWrite: false,
     transparent: true,
   });
 
   return {
-    points: new THREE.Points(geo, mat),
+    points: new Points(geo, mat),
     originalPositions: positions.slice(),
     sizes,
     baseSizes,
@@ -232,14 +232,14 @@ function createAmbientParticles(primary: string, secondary: string, discTexture:
   };
 }
 
-function createStarParticles(discTexture: THREE.CanvasTexture) {
+function createStarParticles(discTexture: CanvasTexture) {
   const count = 240;
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
   const warmPalette = [
-    new THREE.Color(1.0, 0.97, 0.88),
-    new THREE.Color(1.0, 0.94, 0.72),
-    new THREE.Color(0.90, 0.96, 1.0),
+    new Color(1.0, 0.97, 0.88),
+    new Color(1.0, 0.94, 0.72),
+    new Color(0.90, 0.96, 1.0),
   ];
 
   for (let i = 0; i < count; i++) {
@@ -255,12 +255,12 @@ function createStarParticles(discTexture: THREE.CanvasTexture) {
     colors[i * 3 + 2] = col.b;
   }
 
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-  return new THREE.Points(
+  const geo = new BufferGeometry();
+  geo.setAttribute("position", new BufferAttribute(positions, 3));
+  geo.setAttribute("color", new BufferAttribute(colors, 3));
+  return new Points(
     geo,
-    new THREE.PointsMaterial({
+    new PointsMaterial({
       size: 0.018,
       sizeAttenuation: true,
       vertexColors: true,
@@ -273,19 +273,19 @@ function createStarParticles(discTexture: THREE.CanvasTexture) {
   );
 }
 
-function createMistSprites(mistTexture: THREE.CanvasTexture, theme: ThreeReaderAtmosphereProps["theme"]) {
-  const sprites: { sprite: THREE.Sprite; dx: number; phase: number }[] = [];
+function createMistSprites(mistTexture: CanvasTexture, theme: ThreeReaderAtmosphereProps["theme"]) {
+  const sprites: { sprite: Sprite; dx: number; phase: number }[] = [];
   const baseOpacity = theme === "dark" ? 0.07 : 0.06;
 
   for (let i = 0; i < 6; i++) {
-    const mat = new THREE.SpriteMaterial({
+    const mat = new SpriteMaterial({
       map: mistTexture,
       transparent: true,
       opacity: baseOpacity + seededNoise(i + 200) * 0.04,
-      blending: THREE.NormalBlending,
+      blending: NormalBlending,
       depthWrite: false,
     });
-    const sprite = new THREE.Sprite(mat);
+    const sprite = new Sprite(mat);
     sprite.scale.set(
       5 + seededNoise(i + 201) * 4,
       1.4 + seededNoise(i + 202) * 1.6,
@@ -302,7 +302,7 @@ function createMistSprites(mistTexture: THREE.CanvasTexture, theme: ThreeReaderA
 }
 
 function createMountainLayer(color: string, seed: number, width: number, height: number, baseY: number) {
-  const shape = new THREE.Shape();
+  const shape = new Shape();
   shape.moveTo(-width / 2, baseY);
   const points = 14;
   for (let i = 0; i <= points; i++) {
@@ -315,48 +315,48 @@ function createMountainLayer(color: string, seed: number, width: number, height:
   shape.lineTo(-width / 2, baseY - 0.7);
   shape.lineTo(-width / 2, baseY);
 
-  return new THREE.Mesh(
-    new THREE.ShapeGeometry(shape),
-    new THREE.MeshBasicMaterial({
+  return new Mesh(
+    new ShapeGeometry(shape),
+    new MeshBasicMaterial({
       color,
       transparent: true,
       opacity: 0.22,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false,
-      side: THREE.DoubleSide
+      side: DoubleSide
     })
   );
 }
 
 function createXianxiaSky(primary: string, secondary: string, paper: string, theme: ThreeReaderAtmosphereProps["theme"]): XianxiaSkyRig {
-  const group = new THREE.Group();
-  const sky = new THREE.Mesh(
-    new THREE.PlaneGeometry(9.4, 5.6, 1, 1),
-    new THREE.ShaderMaterial({
+  const group = new Group();
+  const sky = new Mesh(
+    new PlaneGeometry(9.4, 5.6, 1, 1),
+    new ShaderMaterial({
       transparent: true,
       depthWrite: false,
       uniforms: {
         uPhase: { value: 0 },
         uTime: { value: 0 },
         uDawn: {
-          value: new THREE.Color(
+          value: new Color(
             theme === "dark" ? "#0d1520" : theme === "sepia" ? "#f6a86a" : "#ffc97a"
           )
         },
         uNoon: {
-          value: new THREE.Color(
+          value: new Color(
             theme === "dark" ? "#0f2038" : theme === "sepia" ? "#c9d4c0" : "#c2e4ff"
           )
         },
         uDusk: {
-          value: new THREE.Color(
+          value: new Color(
             theme === "dark" ? "#251530" : theme === "sepia" ? "#e89a60" : "#ffa070"
           )
         },
         uAurora: {
-          value: new THREE.Color(theme === "dark" ? "#1a4040" : "#9ad4b8")
+          value: new Color(theme === "dark" ? "#1a4040" : "#9ad4b8")
         },
-        uPaper: { value: new THREE.Color(paper) }
+        uPaper: { value: new Color(paper) }
       },
       vertexShader: `
         varying vec2 vUv;
@@ -398,15 +398,15 @@ function createXianxiaSky(primary: string, secondary: string, paper: string, the
   );
   sky.position.set(0, 0.18, -2.7);
 
-  const sun = new THREE.Mesh(
-    new THREE.CircleGeometry(0.16, 48),
-    new THREE.MeshBasicMaterial({
+  const sun = new Mesh(
+    new CircleGeometry(0.16, 48),
+    new MeshBasicMaterial({
       color: secondary,
       transparent: true,
       opacity: theme === "dark" ? 0.28 : 0.5,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false,
-      side: THREE.DoubleSide
+      side: DoubleSide
     })
   );
 
@@ -437,15 +437,15 @@ function createXianxiaSky(primary: string, secondary: string, paper: string, the
   });
 
   const clouds = Array.from({ length: 14 }).map((_, i) => {
-    const cloud = new THREE.Mesh(
-      new THREE.CircleGeometry(0.22 + seededNoise(i + 811) * 0.18, 24),
-      new THREE.MeshBasicMaterial({
+    const cloud = new Mesh(
+      new CircleGeometry(0.22 + seededNoise(i + 811) * 0.18, 24),
+      new MeshBasicMaterial({
         color: theme === "dark" ? "#b0c8e8" : "#ffffff",
         transparent: true,
         opacity: theme === "dark" ? 0.1 : 0.16,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false,
-        side: THREE.DoubleSide
+        side: DoubleSide
       })
     );
     cloud.scale.set(2.2 + seededNoise(i + 821) * 2.0, 0.36 + seededNoise(i + 827) * 0.24, 1);
@@ -463,49 +463,49 @@ function createXianxiaSky(primary: string, secondary: string, paper: string, the
 }
 
 function createChapterSeal(chapterNumber: number, primary: string, secondary: string) {
-  const group = new THREE.Group();
+  const group = new Group();
   const texture = createSealTexture(chapterNumber, primary, secondary);
-  const seal = new THREE.Mesh(
-    new THREE.CircleGeometry(0.58, 80),
-    new THREE.MeshBasicMaterial({
+  const seal = new Mesh(
+    new CircleGeometry(0.58, 80),
+    new MeshBasicMaterial({
       color: "#ffffff",
       map: texture,
       transparent: true,
       opacity: 0.52,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false,
-      side: THREE.DoubleSide
+      side: DoubleSide
     })
   );
-  const outer = new THREE.Mesh(
-    new THREE.TorusGeometry(0.72, 0.006, 8, 128),
-    new THREE.MeshBasicMaterial({
+  const outer = new Mesh(
+    new TorusGeometry(0.72, 0.006, 8, 128),
+    new MeshBasicMaterial({
       color: secondary,
       transparent: true,
       opacity: 0.32,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false
     })
   );
-  const inner = new THREE.Mesh(
-    new THREE.TorusGeometry(0.44, 0.004, 8, 96),
-    new THREE.MeshBasicMaterial({
+  const inner = new Mesh(
+    new TorusGeometry(0.44, 0.004, 8, 96),
+    new MeshBasicMaterial({
       color: primary,
       transparent: true,
       opacity: 0.28,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false
     })
   );
 
   // Formation ring (outer decorative, slower rotation)
-  const formationRing = new THREE.Mesh(
-    new THREE.TorusGeometry(0.96, 0.003, 8, 160),
-    new THREE.MeshBasicMaterial({
+  const formationRing = new Mesh(
+    new TorusGeometry(0.96, 0.003, 8, 160),
+    new MeshBasicMaterial({
       color: secondary,
       transparent: true,
       opacity: 0.14,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false
     })
   );
@@ -521,26 +521,26 @@ function createChapterSeal(chapterNumber: number, primary: string, secondary: st
 }
 
 function createAutoScrollCurrent(primary: string, secondary: string) {
-  const group = new THREE.Group();
-  const left = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.035, 4.6, 1, 1),
-    new THREE.MeshBasicMaterial({
+  const group = new Group();
+  const left = new Mesh(
+    new PlaneGeometry(0.035, 4.6, 1, 1),
+    new MeshBasicMaterial({
       color: primary,
       transparent: true,
       opacity: 0,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false,
-      side: THREE.DoubleSide
+      side: DoubleSide
     })
   );
   const right = left.clone();
-  right.material = new THREE.MeshBasicMaterial({
+  right.material = new MeshBasicMaterial({
     color: secondary,
     transparent: true,
     opacity: 0,
-    blending: THREE.AdditiveBlending,
+    blending: AdditiveBlending,
     depthWrite: false,
-    side: THREE.DoubleSide
+    side: DoubleSide
   });
   left.position.x = -2.45;
   right.position.x = 2.45;
@@ -549,37 +549,37 @@ function createAutoScrollCurrent(primary: string, secondary: string) {
 }
 
 function createReadingLine(primary: string, secondary: string) {
-  const group = new THREE.Group();
-  const line = new THREE.Mesh(
-    new THREE.PlaneGeometry(2.6, 0.016, 1, 1),
-    new THREE.MeshBasicMaterial({
+  const group = new Group();
+  const line = new Mesh(
+    new PlaneGeometry(2.6, 0.016, 1, 1),
+    new MeshBasicMaterial({
       color: secondary,
       transparent: true,
       opacity: 0.18,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false,
-      side: THREE.DoubleSide
+      side: DoubleSide
     })
   );
-  const head = new THREE.Mesh(
-    new THREE.CircleGeometry(0.048, 24),
-    new THREE.MeshBasicMaterial({
+  const head = new Mesh(
+    new CircleGeometry(0.048, 24),
+    new MeshBasicMaterial({
       color: primary,
       transparent: true,
       opacity: 0.32,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false,
-      side: THREE.DoubleSide
+      side: DoubleSide
     })
   );
   const tail = head.clone();
-  tail.material = new THREE.MeshBasicMaterial({
+  tail.material = new MeshBasicMaterial({
     color: secondary,
     transparent: true,
     opacity: 0.24,
-    blending: THREE.AdditiveBlending,
+    blending: AdditiveBlending,
     depthWrite: false,
-    side: THREE.DoubleSide
+    side: DoubleSide
   });
   head.position.x = 1.34;
   tail.position.x = -1.34;
@@ -589,18 +589,18 @@ function createReadingLine(primary: string, secondary: string) {
 }
 
 function createPageWisps(secondary: string) {
-  const group = new THREE.Group();
+  const group = new Group();
   const wisps = Array.from({ length: 12 }).map((_, i) => {
     const isGold = i % 3 === 0;
-    const wisp = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.24 + seededNoise(i + 701) * 0.2, 0.38 + seededNoise(i + 709) * 0.24, 1, 1),
-      new THREE.MeshBasicMaterial({
+    const wisp = new Mesh(
+      new PlaneGeometry(0.24 + seededNoise(i + 701) * 0.2, 0.38 + seededNoise(i + 709) * 0.24, 1, 1),
+      new MeshBasicMaterial({
         color: isGold ? secondary : "#ffffff",
         transparent: true,
         opacity: 0.07,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false,
-        side: THREE.DoubleSide
+        side: DoubleSide
       })
     );
     const side = i % 2 === 0 ? -1 : 1;
@@ -617,17 +617,17 @@ function createPageWisps(secondary: string) {
 }
 
 function createParagraphMarkers(primary: string, secondary: string) {
-  const group = new THREE.Group();
+  const group = new Group();
   const markers = Array.from({ length: 16 }).map((_, i) => {
     const side = i % 2 === 0 ? -1 : 1;
     const isGold = i % 4 === 0;
-    const marker = new THREE.Mesh(
-      new THREE.BoxGeometry(0.016, 0.18 + seededNoise(i + 901) * 0.2, 0.016),
-      new THREE.MeshBasicMaterial({
+    const marker = new Mesh(
+      new BoxGeometry(0.016, 0.18 + seededNoise(i + 901) * 0.2, 0.016),
+      new MeshBasicMaterial({
         color: isGold ? secondary : primary,
         transparent: true,
         opacity: 0.09,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false
       })
     );
@@ -644,36 +644,36 @@ function createParagraphMarkers(primary: string, secondary: string) {
 }
 
 function createStepPulse(primary: string, secondary: string) {
-  const group = new THREE.Group();
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(0.46, 0.006, 8, 96),
-    new THREE.MeshBasicMaterial({
+  const group = new Group();
+  const ring = new Mesh(
+    new TorusGeometry(0.46, 0.006, 8, 96),
+    new MeshBasicMaterial({
       color: secondary,
       transparent: true,
       opacity: 0,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false
     })
   );
-  const outerRing = new THREE.Mesh(
-    new THREE.TorusGeometry(0.68, 0.004, 8, 96),
-    new THREE.MeshBasicMaterial({
+  const outerRing = new Mesh(
+    new TorusGeometry(0.68, 0.004, 8, 96),
+    new MeshBasicMaterial({
       color: primary,
       transparent: true,
       opacity: 0,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false
     })
   );
-  const disc = new THREE.Mesh(
-    new THREE.CircleGeometry(0.32, 48),
-    new THREE.MeshBasicMaterial({
+  const disc = new Mesh(
+    new CircleGeometry(0.32, 48),
+    new MeshBasicMaterial({
       color: primary,
       transparent: true,
       opacity: 0,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false,
-      side: THREE.DoubleSide
+      side: DoubleSide
     })
   );
   group.position.set(0, -1.95, -0.12);
@@ -700,11 +700,11 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
     if (!host) return;
     const el: HTMLDivElement = host;
     const colors = THEME_COLORS[theme];
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40);
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(34, 1, 0.1, 40);
     camera.position.set(0, 0, 6.4);
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
+    const renderer = new WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.domElement.className = "reader-atmosphere-canvas";
@@ -723,7 +723,7 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
     const pageWisps = createPageWisps(colors.secondary);
     const paragraphMarkers = createParagraphMarkers(colors.primary, colors.secondary);
     const stepPulse = createStepPulse(colors.primary, colors.secondary);
-    const glow = new THREE.PointLight(new THREE.Color(colors.secondary), 1.2, 7);
+    const glow = new PointLight(new Color(colors.secondary), 1.2, 7);
     glow.position.set(1.8, 1.4, 2.2);
 
     mistSprites.forEach(({ sprite }) => scene.add(sprite));
@@ -785,7 +785,7 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
 
       xianxiaSky.mountains.forEach((m, i) => {
         m.position.x += Math.sin(t * (0.032 + i * 0.007) + i) * 0.0006;
-        (m.material as THREE.MeshBasicMaterial).opacity =
+        (m.material as MeshBasicMaterial).opacity =
           (theme === "dark" ? 0.14 : 0.18) + i * 0.022 + Math.sin(progressValue * Math.PI) * 0.04;
       });
       xianxiaSky.clouds.forEach((c, i) => {
@@ -793,7 +793,7 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
         if (c.position.x > 5.2) c.position.x = -5.2;
         if (c.position.x < -5.2) c.position.x = 5.2;
         c.position.y += Math.sin(t * 0.16 + i) * 0.0007;
-        (c.material as THREE.MeshBasicMaterial).opacity =
+        (c.material as MeshBasicMaterial).opacity =
           (theme === "dark" ? 0.07 : 0.12) + Math.sin(t * 0.32 + i) * 0.02;
       });
 
@@ -801,7 +801,7 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
       const starOpacity = theme === "dark"
         ? 0.55 + Math.sin(t * 0.06) * 0.08
         : Math.max(0, (progressValue - 0.65) * 2.2) * 0.42;
-      (stars.material as THREE.PointsMaterial).opacity = starOpacity;
+      (stars.material as PointsMaterial).opacity = starOpacity;
       stars.rotation.y += 0.00008;
 
       // Mist
@@ -812,7 +812,7 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
       }
 
       // Particles — pulsing shader sizes
-      const posAttr = particles.points.geometry.getAttribute("position") as THREE.BufferAttribute;
+      const posAttr = particles.points.geometry.getAttribute("position") as BufferAttribute;
       const pos = posAttr.array as Float32Array;
       for (let i = 0; i < pos.length; i += 3) {
         const pi = i / 3;
@@ -859,7 +859,7 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
         w.mesh.position.y += Math.sin(drift) * 0.0009 + autoScrollOn * 0.002;
         w.mesh.position.x += Math.cos(drift * 0.65) * 0.0008 * w.side;
         w.mesh.rotation.z += 0.0007 * w.side;
-        (w.mesh.material as THREE.MeshBasicMaterial).opacity =
+        (w.mesh.material as MeshBasicMaterial).opacity =
           0.04 + autoScrollOn * 0.07 + Math.max(0, Math.sin(drift)) * 0.02;
         if (w.mesh.position.y > 2.4) w.mesh.position.y = -2.3;
       });
@@ -872,7 +872,7 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
         m.mesh.scale.y = 0.8 + near * 1.5 + autoScrollOn * 0.22;
         m.mesh.position.x = m.side * (1.52 + near * 0.2 + Math.sin(phase) * 0.026);
         m.mesh.rotation.z = m.side * (0.08 + near * 0.18);
-        (m.mesh.material as THREE.MeshBasicMaterial).opacity =
+        (m.mesh.material as MeshBasicMaterial).opacity =
           0.045 + near * 0.18 + autoScrollOn * 0.04;
       });
 
@@ -908,18 +908,18 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
         sprite.material.dispose();
         sprite.geometry.dispose();
       });
-      scene.traverse((obj: THREE.Object3D) => {
-        if (obj instanceof THREE.Mesh || obj instanceof THREE.Points) {
+      scene.traverse((obj: Object3D) => {
+        if (obj instanceof Mesh || obj instanceof Points) {
           obj.geometry.dispose();
           const mat = obj.material;
           if (Array.isArray(mat)) {
             mat.forEach((m) => { m.map?.dispose(); m.dispose(); });
           } else {
-            (mat as THREE.Material & { map?: THREE.Texture }).map?.dispose();
+            (mat as Material & { map?: Texture }).map?.dispose();
             mat.dispose();
           }
         }
-        if (obj instanceof THREE.Sprite) {
+        if (obj instanceof Sprite) {
           obj.material.map?.dispose();
           obj.material.dispose();
         }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import * as THREE from "three";
+import { AdditiveBlending, AmbientLight, BoxGeometry, CanvasTexture, DirectionalLight, DoubleSide, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, Scene, SRGBColorSpace, TextureLoader, TorusGeometry, WebGLRenderer } from "three";
 
 type ThreeStoryStageProps = {
   coverImageUrl?: string | null;
@@ -45,21 +45,21 @@ function createTitleTexture(title: string) {
     context.fillText(text, canvas.width / 2, 280 + index * 56);
   });
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
   return texture;
 }
 
 function createPageFan() {
-  const group = new THREE.Group();
+  const group = new Group();
   for (let index = 0; index < 9; index += 1) {
-    const page = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.15, 1.72, 6, 8),
-      new THREE.MeshBasicMaterial({
+    const page = new Mesh(
+      new PlaneGeometry(1.15, 1.72, 6, 8),
+      new MeshBasicMaterial({
         color: index % 2 === 0 ? "#fffefa" : "#f2ead8",
         transparent: true,
         opacity: 0.22 - index * 0.012,
-        side: THREE.DoubleSide,
+        side: DoubleSide,
         depthWrite: false
       })
     );
@@ -72,15 +72,15 @@ function createPageFan() {
 }
 
 function createMandala() {
-  const group = new THREE.Group();
+  const group = new Group();
   for (let index = 0; index < 5; index += 1) {
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.86 + index * 0.22, 0.006, 8, 128),
-      new THREE.MeshBasicMaterial({
+    const ring = new Mesh(
+      new TorusGeometry(0.86 + index * 0.22, 0.006, 8, 128),
+      new MeshBasicMaterial({
         color: index % 2 === 0 ? "#f5d75e" : "#0066cc",
         transparent: true,
         opacity: 0.15,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false
       })
     );
@@ -103,18 +103,18 @@ export function ThreeStoryStage({ coverImageUrl, title, progressPercent = 0 }: T
     const host = hostRef.current;
     if (!host) return;
     const container = host;
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 40);
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(32, 1, 0.1, 40);
     camera.position.set(0, 0, 5.8);
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
+    const renderer = new WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.domElement.className = "story-stage-canvas";
     container.appendChild(renderer.domElement);
 
     const texture = createTitleTexture(title);
-    const coverMaterial = new THREE.MeshStandardMaterial({
+    const coverMaterial = new MeshStandardMaterial({
       color: "#ffffff",
       map: texture,
       roughness: 0.42,
@@ -122,10 +122,10 @@ export function ThreeStoryStage({ coverImageUrl, title, progressPercent = 0 }: T
     });
 
     if (coverImageUrl) {
-      new THREE.TextureLoader().load(
+      new TextureLoader().load(
         coverImageUrl,
         (loadedTexture) => {
-          loadedTexture.colorSpace = THREE.SRGBColorSpace;
+          loadedTexture.colorSpace = SRGBColorSpace;
           coverMaterial.map?.dispose();
           coverMaterial.map = loadedTexture;
           coverMaterial.needsUpdate = true;
@@ -135,11 +135,11 @@ export function ThreeStoryStage({ coverImageUrl, title, progressPercent = 0 }: T
       );
     }
 
-    const bookGroup = new THREE.Group();
-    const cover = new THREE.Mesh(new THREE.BoxGeometry(1.26, 1.84, 0.11), coverMaterial);
-    const spine = new THREE.Mesh(
-      new THREE.BoxGeometry(0.12, 1.86, 0.18),
-      new THREE.MeshStandardMaterial({
+    const bookGroup = new Group();
+    const cover = new Mesh(new BoxGeometry(1.26, 1.84, 0.11), coverMaterial);
+    const spine = new Mesh(
+      new BoxGeometry(0.12, 1.86, 0.18),
+      new MeshStandardMaterial({
         color: "#dd5b00",
         emissive: "#f5d75e",
         emissiveIntensity: 0.08,
@@ -156,9 +156,9 @@ export function ThreeStoryStage({ coverImageUrl, title, progressPercent = 0 }: T
     bookGroup.rotation.x = 0.08;
     scene.add(bookGroup, mandala);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 1.7);
-    const key = new THREE.DirectionalLight(0xffffff, 2.4);
-    const glow = new THREE.PointLight(0xf5d75e, 1.7, 6);
+    const ambient = new AmbientLight(0xffffff, 1.7);
+    const key = new DirectionalLight(0xffffff, 2.4);
+    const glow = new PointLight(0xf5d75e, 1.7, 6);
     key.position.set(2, 3, 4);
     glow.position.set(-1.6, 1.2, 2.4);
     scene.add(ambient, key, glow);
@@ -205,8 +205,8 @@ export function ThreeStoryStage({ coverImageUrl, title, progressPercent = 0 }: T
       window.cancelAnimationFrame(frameId);
       container.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("resize", resize);
-      scene.traverse((object: THREE.Object3D) => {
-        if (object instanceof THREE.Mesh) {
+      scene.traverse((object: Object3D) => {
+        if (object instanceof Mesh) {
           object.geometry.dispose();
           const material = object.material;
           if (Array.isArray(material)) {

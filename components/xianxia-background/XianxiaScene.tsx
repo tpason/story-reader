@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { EffectComposer, Bloom, Vignette, Noise, GodRays } from "@react-three/postprocessing";
 import { Sky } from "@react-three/drei";
 import { BlendFunction, KernelSize } from "postprocessing";
-import * as THREE from "three";
+import { AdditiveBlending, MathUtils, Mesh, Vector3 } from "three";
 import { ImageLayer } from "./ImageLayer";
 import { MovingLayer } from "./MovingLayer";
 import { FlyingCranes } from "./FlyingCranes";
@@ -46,14 +46,14 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
   const preset = scenePresets[timeOfDay];
 
   // GodRays: callback ref so state updates when mesh mounts
-  const [sunMesh, setSunMesh] = useState<THREE.Mesh | null>(null);
+  const [sunMesh, setSunMesh] = useState<Mesh | null>(null);
 
   // sunPosition for <Sky> — derived from elevation/azimuth
   const sunPosition = useMemo((): [number, number, number] => {
     if (!preset.sky) return [0, 1, 0];
-    const phi = THREE.MathUtils.degToRad(90 - preset.sky.elevation);
-    const theta = THREE.MathUtils.degToRad(preset.sky.azimuth);
-    const v = new THREE.Vector3().setFromSphericalCoords(1, phi, theta);
+    const phi = MathUtils.degToRad(90 - preset.sky.elevation);
+    const theta = MathUtils.degToRad(preset.sky.azimuth);
+    const v = new Vector3().setFromSphericalCoords(1, phi, theta);
     return [v.x, v.y, v.z];
   }, [preset.sky?.elevation, preset.sky?.azimuth]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -90,7 +90,7 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
           position={[0.8, 1.0, -9]}
           scale={[13, 13, 1]}
           opacity={0.20}
-          blendMode={THREE.AdditiveBlending}
+          blendMode={AdditiveBlending}
         />
       )}
 
@@ -154,7 +154,7 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
         opacity={0.28}
         speedX={0.014}
         drift={0.022}
-        blendMode={THREE.AdditiveBlending}
+        blendMode={AdditiveBlending}
       />
 
       {/* ── z=-4.0: Valley mist B ── opposite direction, full cover ─────── */}
@@ -165,7 +165,7 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
         opacity={0.18}
         speedX={-0.009}
         drift={0.028}
-        blendMode={THREE.AdditiveBlending}
+        blendMode={AdditiveBlending}
       />
 
       {/* ── z=-4.8 → -3.3: Linh khí orbs — immortal energy pools ───────── */}
@@ -185,7 +185,7 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
         opacity={0.28}
         speedX={0.018}
         drift={0.04}
-        blendMode={THREE.AdditiveBlending}
+        blendMode={AdditiveBlending}
       />
 
       {/* ── z=-3.2: Hero cloud ── right-edge accent, additive ────────────── */}
@@ -196,7 +196,7 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
         opacity={0.22}
         speedX={-0.013}
         drift={0.045}
-        blendMode={THREE.AdditiveBlending}
+        blendMode={AdditiveBlending}
       />
 
       {/* ── z=-2.8: Fog wisp rising ── wind-blown upward ─────────────────── */}
@@ -208,7 +208,7 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
         speedX={0.022}
         speedY={0.016}
         drift={0.03}
-        blendMode={THREE.AdditiveBlending}
+        blendMode={AdditiveBlending}
       />
 
       {/* ── z=-2.3: Near mountains ── solid base layer ───────────────────── */}
@@ -229,7 +229,7 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
         speedX={-0.015}
         speedY={0.020}
         drift={0.025}
-        blendMode={THREE.AdditiveBlending}
+        blendMode={AdditiveBlending}
       />
 
       {/* ── z=-3.1: Crane flock + loner ────────────────────────────────── */}
@@ -282,7 +282,7 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
           position={[0, 0, -0.1]}
           scale={[6, 6, 1]}
           opacity={0.035}
-          blendMode={THREE.AdditiveBlending}
+          blendMode={AdditiveBlending}
         />
       )}
 

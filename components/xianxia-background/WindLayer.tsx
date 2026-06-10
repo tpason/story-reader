@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
+import { Group } from "three";
 import { ImageLayer } from "./ImageLayer";
 
 type WindLayerProps = {
@@ -34,7 +34,7 @@ export function WindLayer({
   driftAmpY = 0.012,
   phase = 0,
 }: WindLayerProps) {
-  const groupRef = useRef<THREE.Group>(null);
+  const groupRef = useRef<Group>(null);
 
   useFrame((state) => {
     const group = groupRef.current;

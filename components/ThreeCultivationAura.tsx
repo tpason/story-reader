@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import * as THREE from "three";
+import { AdditiveBlending, DoubleSide, Group, Mesh, MeshBasicMaterial, Object3D, PerspectiveCamera, PlaneGeometry, Scene, TorusGeometry, WebGLRenderer } from "three";
 
 type ThreeCultivationAuraProps = {
   realm: string;
@@ -36,26 +36,26 @@ export function ThreeCultivationAura({ realm, level, progressPercent }: ThreeCul
     if (!host) return;
     const container = host;
     const [primary, secondary] = colorsForRealm(realm);
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 30);
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(34, 1, 0.1, 30);
     camera.position.set(0, 0, 5.2);
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
+    const renderer = new WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.4));
     renderer.domElement.className = "cultivation-aura-canvas";
     container.appendChild(renderer.domElement);
 
-    const group = new THREE.Group();
+    const group = new Group();
     const ringCount = Math.min(8, Math.max(3, Math.floor(level / 4) + 3));
     const rings = Array.from({ length: ringCount }).map((_, index) => {
-      const mesh = new THREE.Mesh(
-        new THREE.TorusGeometry(0.58 + index * 0.18, 0.006, 8, 96),
-        new THREE.MeshBasicMaterial({
+      const mesh = new Mesh(
+        new TorusGeometry(0.58 + index * 0.18, 0.006, 8, 96),
+        new MeshBasicMaterial({
           color: index % 2 === 0 ? primary : secondary,
           transparent: true,
           opacity: 0.16,
-          blending: THREE.AdditiveBlending,
+          blending: AdditiveBlending,
           depthWrite: false
         })
       );
@@ -66,14 +66,14 @@ export function ThreeCultivationAura({ realm, level, progressPercent }: ThreeCul
     });
 
     const spokes = Array.from({ length: 12 }).map((_, index) => {
-      const spoke = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.018, 1.1, 1, 1),
-        new THREE.MeshBasicMaterial({
+      const spoke = new Mesh(
+        new PlaneGeometry(0.018, 1.1, 1, 1),
+        new MeshBasicMaterial({
           color: index % 3 === 0 ? secondary : primary,
           transparent: true,
           opacity: 0.1,
-          blending: THREE.AdditiveBlending,
-          side: THREE.DoubleSide,
+          blending: AdditiveBlending,
+          side: DoubleSide,
           depthWrite: false
         })
       );
@@ -103,7 +103,7 @@ export function ThreeCultivationAura({ realm, level, progressPercent }: ThreeCul
       rings.forEach((ring, index) => {
         ring.rotation.z += (index % 2 === 0 ? 0.006 : -0.004) * (1 + progress);
         ring.scale.setScalar(0.88 + progress * 0.22 + Math.sin(time * 1.3 + index) * 0.025);
-        (ring.material as THREE.MeshBasicMaterial).opacity = 0.11 + progress * 0.1;
+        (ring.material as MeshBasicMaterial).opacity = 0.11 + progress * 0.1;
       });
       spokes.forEach((spoke, index) => {
         spoke.scale.y = 0.78 + progress * 0.52 + Math.sin(time * 1.8 + index) * 0.08;
@@ -120,8 +120,8 @@ export function ThreeCultivationAura({ realm, level, progressPercent }: ThreeCul
       disposed = true;
       window.cancelAnimationFrame(frameId);
       window.removeEventListener("resize", resize);
-      scene.traverse((object: THREE.Object3D) => {
-        if (object instanceof THREE.Mesh) {
+      scene.traverse((object: Object3D) => {
+        if (object instanceof Mesh) {
           object.geometry.dispose();
           const material = object.material;
           if (Array.isArray(material)) material.forEach((item) => item.dispose());

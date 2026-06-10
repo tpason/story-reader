@@ -2,7 +2,7 @@
 
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
-import * as THREE from "three";
+import { AdditiveBlending, BufferGeometry, Color, Line, LineBasicMaterial, Vector3 } from "three";
 
 type CurrentLine = {
   y: number;
@@ -32,7 +32,7 @@ const LINES: CurrentLine[] = [
 
 function createCurrentGeometry(width: number, phase: number) {
   const steps = 42;
-  const pts: THREE.Vector3[] = [];
+  const pts: Vector3[] = [];
   for (let i = 0; i < steps; i++) {
     const t = i / (steps - 1);
     const x = (t - 0.5) * width;
@@ -40,25 +40,25 @@ function createCurrentGeometry(width: number, phase: number) {
       Math.sin(t * Math.PI * 2.4 + phase) * 0.068 +
       Math.sin(t * Math.PI * 5.2 + phase * 1.3) * 0.022 +
       Math.sin(t * Math.PI * 8.8 + phase * 0.7) * 0.009;
-    pts.push(new THREE.Vector3(x, y, 0));
+    pts.push(new Vector3(x, y, 0));
   }
-  return new THREE.BufferGeometry().setFromPoints(pts);
+  return new BufferGeometry().setFromPoints(pts);
 }
 
 export function WindCurrentLines() {
-  const refs = useRef<Array<THREE.Line | null>>([]);
+  const refs = useRef<Array<Line | null>>([]);
 
   const objects = useMemo(() =>
     LINES.map((line) => {
       const geometry = createCurrentGeometry(line.width, line.phase);
-      const material = new THREE.LineBasicMaterial({
-        color:       new THREE.Color(line.color),
+      const material = new LineBasicMaterial({
+        color:       new Color(line.color),
         transparent: true,
         opacity:     line.opacity,
-        blending:    THREE.AdditiveBlending,
+        blending:    AdditiveBlending,
         depthWrite:  false,
       });
-      return new THREE.Line(geometry, material);
+      return new Line(geometry, material);
     }),
   []);
 
@@ -77,7 +77,7 @@ export function WindCurrentLines() {
       const gustPhase = Math.sin(t * 0.44) * Math.sin(t * 0.17 + 1.3);
       const gust = Math.max(0, gustPhase) * line.gustAmp;
 
-      const mat = mesh.material as THREE.LineBasicMaterial;
+      const mat = mesh.material as LineBasicMaterial;
       mat.opacity = line.opacity * (0.52 + 0.30 * Math.sin(t * 0.9) + 0.18) + gust;
     });
   });
@@ -88,7 +88,7 @@ export function WindCurrentLines() {
         <primitive
           key={index}
           object={objects[index]}
-          ref={(node: THREE.Line | null) => { refs.current[index] = node; }}
+          ref={(node: Line | null) => { refs.current[index] = node; }}
           position={[0, line.y, line.z]}
         />
       ))}

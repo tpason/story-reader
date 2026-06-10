@@ -33,7 +33,7 @@ import { ChapterTransition } from "@/components/ChapterTransition";
 import { AmbientSoundPlayer } from "@/components/AmbientSoundPlayer";
 import { FloatingTooltip } from "@/components/FloatingTooltip";
 import { formatNovelContent } from "@/lib/formatNovelContent";
-import { isMobile, prefersReducedMotion } from "@/lib/browser";
+import { isMobile, prefersReducedMotion, shouldReduceReaderBackgroundWork } from "@/lib/browser";
 import { countReadableWords, estimateReadingMinutes } from "@/lib/reading-estimate";
 import { isTodayLocal } from "@/lib/date";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -530,6 +530,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, [activePayload, queryClient]);
 
   useEffect(() => {
+    if (shouldReduceReaderBackgroundWork()) return;
     if (!navigator.onLine) return;
     const connection = (navigator as Navigator & { connection?: { effectiveType?: string; saveData?: boolean } }).connection;
     if (connection?.saveData || connection?.effectiveType === "2g" || connection?.effectiveType === "slow-2g") return;
@@ -737,6 +738,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, [desktopSidebarOpen, desktopSidebarWidth]);
 
   const refreshOfflineCache = useCallback((surfaceErrors = false) => {
+    if (!surfaceErrors && shouldReduceReaderBackgroundWork()) return;
     setOfflineError(null);
     setOfflineLoading(true);
     // useLiveQuery handles the reactive read — only trigger the preload here
@@ -804,6 +806,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
 
     function animateStep(from: number, to: number, startedAt: number) {
+      if (document.visibilityState === "hidden") {
+        autoScrollFrameRef.current = null;
+        scheduleNextStep(2000);
+        return;
+      }
+
       const elapsed = performance.now() - startedAt;
       const progress = Math.min(1, elapsed / AUTO_SCROLL_STEP_DURATION_MS);
       const eased = 1 - Math.pow(1 - progress, 3);
@@ -1193,7 +1201,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         }
 
         const nextChapterToWarm = activePayload.nextChapter;
-        if (current >= 78 && nextChapterToWarm && warmedNextAudioChapterRef.current !== nextChapterToWarm.id) {
+        if (
+          current >= 78 &&
+          audioPanelOpen &&
+          !shouldReduceReaderBackgroundWork() &&
+          nextChapterToWarm &&
+          warmedNextAudioChapterRef.current !== nextChapterToWarm.id
+        ) {
           warmedNextAudioChapterRef.current = nextChapterToWarm.id;
           const warmNextChapter = () => {
             queryClient
@@ -1256,7 +1270,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       persistProgress(window.scrollY, progressRef.current, true);
       window.removeEventListener("scroll", onScroll);
     };
-  }, [activePayload.chapter, activePayload.nextChapter, activePayload.story, dispatch, paragraphPositionKey, storageKey, totalReadingMinutes]);
+  }, [activePayload.chapter, activePayload.nextChapter, activePayload.story, audioPanelOpen, dispatch, paragraphPositionKey, queryClient, storageKey, totalReadingMinutes]);
 
   // Sync continue button DOM state after any React re-render so the class isn't lost
   useLayoutEffect(() => {
@@ -1877,7 +1891,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           {chapter.chapterNumber}. {chapter.title}
         </span>
         <span className="chapter-status-row">
-          {isRead ? <span className="chapter-status chapter-status-read">Đã đọc</span> : <span className="chapter-status">Chưa đọc</span>}
+          {isRead ? <span className="chapter-status chapter-status-read">Đã đọc</span> : maxReadChapter > 0 ? <span className="chapter-status">Chưa đọc</span> : null}
           {isNew ? <span className="chapter-status chapter-status-new">New</span> : null}
           {addedToday ? <span className="chapter-status chapter-status-today">Hôm nay</span> : null}
           {chapter.textSource === "polished" ? <span className="chapter-status chapter-status-polished">Polish</span> : null}

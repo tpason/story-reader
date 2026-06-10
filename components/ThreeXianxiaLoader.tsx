@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import * as THREE from "three";
+import { ACESFilmicToneMapping, AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, Color, DynamicDrawUsage, FogExp2, Group, Material, Mesh, MeshBasicMaterial, NormalBlending, PerspectiveCamera, Points, PointsMaterial, Scene, ShaderMaterial, SphereGeometry, Sprite, SpriteMaterial, Texture, TorusGeometry, WebGLRenderer } from "three";
 import { EffectComposer, BloomEffect, RenderPass, EffectPass } from "postprocessing";
 
 // ── Canvas texture helpers ────────────────────────────────────────────────────
 
-function makeDiscTexture(size = 128, sharp = false): THREE.CanvasTexture {
+function makeDiscTexture(size = 128, sharp = false): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
@@ -24,10 +24,10 @@ function makeDiscTexture(size = 128, sharp = false): THREE.CanvasTexture {
   }
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
-function makeMistTexture(): THREE.CanvasTexture {
+function makeMistTexture(): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 512;
   const ctx = canvas.getContext("2d")!;
@@ -45,12 +45,12 @@ function makeMistTexture(): THREE.CanvasTexture {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 512, 512);
   }
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
 function makeGlowSprite(
   r: number, g: number, b: number, worldSize: number, opacity: number
-): THREE.Sprite {
+): Sprite {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 256;
   const ctx = canvas.getContext("2d")!;
@@ -61,20 +61,20 @@ function makeGlowSprite(
   grad.addColorStop(1,    `rgba(${r},${g},${b},0)`);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 256, 256);
-  const mat = new THREE.SpriteMaterial({
-    map: new THREE.CanvasTexture(canvas),
+  const mat = new SpriteMaterial({
+    map: new CanvasTexture(canvas),
     transparent: true,
     opacity,
-    blending: THREE.AdditiveBlending,
+    blending: AdditiveBlending,
     depthWrite: false,
   });
-  const sprite = new THREE.Sprite(mat);
+  const sprite = new Sprite(mat);
   sprite.scale.setScalar(worldSize);
   return sprite;
 }
 
 // Tall vertical pillar of heavenly qi — camera-facing sprite
-function makePillarTexture(): THREE.CanvasTexture {
+function makePillarTexture(): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = 64;
   canvas.height = 512;
@@ -97,11 +97,11 @@ function makePillarTexture(): THREE.CanvasTexture {
   vGrad.addColorStop(1,    "rgba(0,0,0,0)");
   ctx.fillStyle = vGrad;
   ctx.fillRect(0, 0, 64, 512);
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
 // Elliptical petal — soft cream-gold
-function makePetalTexture(): THREE.CanvasTexture {
+function makePetalTexture(): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 64;
   const ctx = canvas.getContext("2d")!;
@@ -113,7 +113,7 @@ function makePetalTexture(): THREE.CanvasTexture {
   ctx.beginPath();
   ctx.ellipse(32, 32, 18, 26, 0.3, 0, Math.PI * 2);
   ctx.fill();
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
 // ── Formation ring config ─────────────────────────────────────────────────────
@@ -156,34 +156,34 @@ export function ThreeXianxiaLoader() {
     if (!mount) return;
 
     // ── Renderer (opaque — EffectComposer needs it) ───────────────────────
-    const renderer = new THREE.WebGLRenderer({
+    const renderer = new WebGLRenderer({
       antialias: true,
       powerPreference: "low-power",
     });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.setClearColor(0x080508, 1);
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMapping = ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.95;
     mount.appendChild(renderer.domElement);
 
     // ── Scene / Camera ────────────────────────────────────────────────────
-    const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x080508, 0.10);
-    const camera = new THREE.PerspectiveCamera(
+    const scene = new Scene();
+    scene.fog = new FogExp2(0x080508, 0.10);
+    const camera = new PerspectiveCamera(
       55, mount.clientWidth / mount.clientHeight, 0.1, 50
     );
     camera.position.set(0, 0, 5.5);
 
     // Disposables registry
-    const geos: THREE.BufferGeometry[] = [];
-    const mats: THREE.Material[] = [];
-    const textures: THREE.Texture[] = [];
+    const geos: BufferGeometry[] = [];
+    const mats: Material[] = [];
+    const textures: Texture[] = [];
 
     function track<T extends { dispose(): void }>(item: T): T {
-      if ("isBufferGeometry" in item) geos.push(item as unknown as THREE.BufferGeometry);
-      else if ("isTexture" in item) textures.push(item as unknown as THREE.Texture);
-      else mats.push(item as unknown as THREE.Material);
+      if ("isBufferGeometry" in item) geos.push(item as unknown as BufferGeometry);
+      else if ("isTexture" in item) textures.push(item as unknown as Texture);
+      else mats.push(item as unknown as Material);
       return item;
     }
 
@@ -214,26 +214,26 @@ export function ThreeXianxiaLoader() {
       const col = warmPalette[colIdx];
       starColors[i*3] = col[0]; starColors[i*3+1] = col[1]; starColors[i*3+2] = col[2];
     }
-    const starGeo = track(new THREE.BufferGeometry());
-    starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
-    starGeo.setAttribute("color", new THREE.BufferAttribute(starColors, 3));
-    const starMat = track(new THREE.PointsMaterial({
+    const starGeo = track(new BufferGeometry());
+    starGeo.setAttribute("position", new BufferAttribute(starPos, 3));
+    starGeo.setAttribute("color", new BufferAttribute(starColors, 3));
+    const starMat = track(new PointsMaterial({
       size: 0.028, sizeAttenuation: true,
       vertexColors: true, transparent: true, opacity: 0.82,
       map: sharpDiscTex, alphaTest: 0.25, depthWrite: false,
     }));
-    const stars = new THREE.Points(starGeo, starMat);
+    const stars = new Points(starGeo, starMat);
     scene.add(stars);
 
     // ── Mist wisps ────────────────────────────────────────────────────────
-    const mistSprites: { sprite: THREE.Sprite; dx: number; wrap: number }[] = [];
+    const mistSprites: { sprite: Sprite; dx: number; wrap: number }[] = [];
     for (let i = 0; i < 7; i++) {
-      const mat = track(new THREE.SpriteMaterial({
+      const mat = track(new SpriteMaterial({
         map: mistTex, transparent: true,
         opacity: 0.045 + Math.random() * 0.065,
-        blending: THREE.NormalBlending, depthWrite: false,
+        blending: NormalBlending, depthWrite: false,
       }));
-      const sprite = new THREE.Sprite(mat);
+      const sprite = new Sprite(mat);
       sprite.scale.set(4.5 + Math.random() * 4, 1.4 + Math.random() * 1.6, 1);
       sprite.position.set(
         (Math.random() - 0.5) * 10,
@@ -246,35 +246,35 @@ export function ThreeXianxiaLoader() {
     }
 
     // ── Heavenly qi pillar ────────────────────────────────────────────────
-    const pillarMat = track(new THREE.SpriteMaterial({
+    const pillarMat = track(new SpriteMaterial({
       map: pillarTex,
       transparent: true,
       opacity: 0.16,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false,
     }));
-    const pillar = new THREE.Sprite(pillarMat);
+    const pillar = new Sprite(pillarMat);
     pillar.scale.set(0.38, 7.2, 1);
     pillar.position.set(0, 0, 0.5);
     scene.add(pillar);
 
     // Wider diffuse pillar glow
-    const pillarWideMat = track(new THREE.SpriteMaterial({
+    const pillarWideMat = track(new SpriteMaterial({
       map: pillarTex,
       transparent: true,
       opacity: 0.06,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false,
     }));
-    const pillarWide = new THREE.Sprite(pillarWideMat);
+    const pillarWide = new Sprite(pillarWideMat);
     pillarWide.scale.set(1.4, 7.5, 1);
     pillarWide.position.set(0, 0, 0.3);
     scene.add(pillarWide);
 
     // ── Falling petals ────────────────────────────────────────────────────
     type Petal = {
-      sprite: THREE.Sprite;
-      mat: THREE.SpriteMaterial;
+      sprite: Sprite;
+      mat: SpriteMaterial;
       dy: number;
       phase: number;
       freq: number;
@@ -283,15 +283,15 @@ export function ThreeXianxiaLoader() {
     const PETAL_COUNT = 24;
     const petals: Petal[] = [];
     for (let i = 0; i < PETAL_COUNT; i++) {
-      const mat = track(new THREE.SpriteMaterial({
+      const mat = track(new SpriteMaterial({
         map: petalTex,
         transparent: true,
         opacity: 0.12 + Math.random() * 0.22,
-        blending: THREE.NormalBlending,
+        blending: NormalBlending,
         depthWrite: false,
         rotation: Math.random() * Math.PI * 2,
       }));
-      const sprite = new THREE.Sprite(mat);
+      const sprite = new Sprite(mat);
       const sz = 0.14 + Math.random() * 0.18;
       sprite.scale.set(sz * 0.7, sz, 1);
       sprite.position.set(
@@ -311,28 +311,28 @@ export function ThreeXianxiaLoader() {
     }
 
     // ── Formation rings ───────────────────────────────────────────────────
-    const nodeGeo = track(new THREE.SphereGeometry(0.032, 7, 7));
+    const nodeGeo = track(new SphereGeometry(0.032, 7, 7));
     // Each ring uses its own color for nodes
     const nodeMats = RING_DEFS.map(def =>
-      track(new THREE.MeshBasicMaterial({ color: def.color }))
+      track(new MeshBasicMaterial({ color: def.color }))
     );
 
-    type RingGroup = { group: THREE.Group; speed: readonly [number, number, number] };
+    type RingGroup = { group: Group; speed: readonly [number, number, number] };
     const ringGroups: RingGroup[] = [];
 
     RING_DEFS.forEach((def, di) => {
-      const group = new THREE.Group();
+      const group = new Group();
       group.rotation.set(...(def.initRot as [number, number, number]));
 
-      const torusGeo = track(new THREE.TorusGeometry(def.r, def.tube, 8, def.seg));
-      const torusMat = track(new THREE.MeshBasicMaterial({
+      const torusGeo = track(new TorusGeometry(def.r, def.tube, 8, def.seg));
+      const torusMat = track(new MeshBasicMaterial({
         color: def.color, transparent: true, opacity: 0.88,
       }));
-      group.add(new THREE.Mesh(torusGeo, torusMat));
+      group.add(new Mesh(torusGeo, torusMat));
 
       for (let i = 0; i < def.nodes; i++) {
         const angle = (i / def.nodes) * Math.PI * 2;
-        const node = new THREE.Mesh(nodeGeo, nodeMats[di]);
+        const node = new Mesh(nodeGeo, nodeMats[di]);
         node.position.set(Math.cos(angle) * def.r, Math.sin(angle) * def.r, 0);
         group.add(node);
       }
@@ -345,18 +345,18 @@ export function ThreeXianxiaLoader() {
     const glowGold = makeGlowSprite(240, 208, 106, 2.8, 0.48);
     const glowJade = makeGlowSprite(38,  168, 130, 1.6, 0.34);
     const glowOuter = makeGlowSprite(200, 150, 80, 5.5, 0.14);
-    track((glowGold.material as THREE.SpriteMaterial).map!);
-    track((glowJade.material as THREE.SpriteMaterial).map!);
-    track((glowOuter.material as THREE.SpriteMaterial).map!);
-    track(glowGold.material as THREE.SpriteMaterial);
-    track(glowJade.material as THREE.SpriteMaterial);
-    track(glowOuter.material as THREE.SpriteMaterial);
+    track((glowGold.material as SpriteMaterial).map!);
+    track((glowJade.material as SpriteMaterial).map!);
+    track((glowOuter.material as SpriteMaterial).map!);
+    track(glowGold.material as SpriteMaterial);
+    track(glowJade.material as SpriteMaterial);
+    track(glowOuter.material as SpriteMaterial);
     scene.add(glowOuter, glowGold, glowJade);
 
     // ── Center orb ────────────────────────────────────────────────────────
-    const orbGeo = track(new THREE.SphereGeometry(0.12, 16, 16));
-    const orbMat = track(new THREE.MeshBasicMaterial({ color: 0xfffef0 }));
-    const orb = new THREE.Mesh(orbGeo, orbMat);
+    const orbGeo = track(new SphereGeometry(0.12, 16, 16));
+    const orbMat = track(new MeshBasicMaterial({ color: 0xfffef0 }));
+    const orb = new Mesh(orbGeo, orbMat);
     scene.add(orb);
 
     // ── Qi particles ──────────────────────────────────────────────────────
@@ -364,7 +364,7 @@ export function ThreeXianxiaLoader() {
     const JADE_COUNT = 65;
 
     function makeParticleSystem(
-      count: number, color: THREE.Color, discTex: THREE.Texture
+      count: number, color: Color, discTex: Texture
     ) {
       const positions  = new Float32Array(count * 3);
       const sizes      = new Float32Array(count);
@@ -386,29 +386,29 @@ export function ThreeXianxiaLoader() {
         freq[i]      = 1.2 + Math.random() * 1.4;
       }
 
-      const geo = track(new THREE.BufferGeometry());
-      geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-      const sizeAttr = new THREE.BufferAttribute(sizes, 1).setUsage(THREE.DynamicDrawUsage);
+      const geo = track(new BufferGeometry());
+      geo.setAttribute("position", new BufferAttribute(positions, 3));
+      const sizeAttr = new BufferAttribute(sizes, 1).setUsage(DynamicDrawUsage);
       geo.setAttribute("size", sizeAttr);
 
-      const mat = track(new THREE.ShaderMaterial({
+      const mat = track(new ShaderMaterial({
         uniforms: {
           pointTexture: { value: discTex },
           diffuse: { value: color },
         },
         vertexShader: PARTICLE_VS,
         fragmentShader: PARTICLE_FS,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false,
         transparent: true,
       }));
 
-      const points = new THREE.Points(geo, mat);
+      const points = new Points(geo, mat);
       return { points, geo, sizeAttr, sizes, baseSizes, spdY, spdX, phase, freq };
     }
 
-    const gold = makeParticleSystem(GOLD_COUNT, new THREE.Color(0xf0d06a), softDiscTex);
-    const jade = makeParticleSystem(JADE_COUNT, new THREE.Color(0x26a882), softDiscTex);
+    const gold = makeParticleSystem(GOLD_COUNT, new Color(0xf0d06a), softDiscTex);
+    const jade = makeParticleSystem(JADE_COUNT, new Color(0x26a882), softDiscTex);
     scene.add(gold.points, jade.points);
 
     // ── Post-processing (Bloom) ───────────────────────────────────────────
@@ -444,7 +444,7 @@ export function ThreeXianxiaLoader() {
         sizeArr[i] = sys.baseSizes[i] * (0.55 + 0.45 * Math.sin(i * 0.38 + tLocal * sys.freq[i]));
       }
 
-      (sys.geo.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+      (sys.geo.attributes.position as BufferAttribute).needsUpdate = true;
       sys.sizeAttr.needsUpdate = true;
     };
 

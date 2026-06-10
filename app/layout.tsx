@@ -30,9 +30,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Literata only — used on homepage (XianxiaPoetryColumn) and reader default serif */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600;7..72,700&family=Merriweather:wght@400;700&family=Noto+Serif:wght@400;500;600;700&family=Sora:wght@400;500;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600;7..72,700&display=swap"
         />
       </head>
       <body>

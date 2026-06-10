@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
+import { AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, Group, Points, PointsMaterial } from "three";
 
 // Soft disc texture for star glow (shared across groups)
-function makeStarTex(size = 64): THREE.CanvasTexture {
+function makeStarTex(size = 64): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
@@ -16,7 +16,7 @@ function makeStarTex(size = 64): THREE.CanvasTexture {
   grad.addColorStop(1,   "rgba(255,255,255,0)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
 // Xianxia star palette: mostly warm white, some gold, rare cool blue
@@ -35,14 +35,14 @@ function starColor(seed: number, i: number): [number, number, number] {
   return PALETTE[3];
 }
 
-// Build a single THREE.Points group of stars distributed in upper hemisphere
+// Build a single Points group of stars distributed in upper hemisphere
 function buildStarPoints(
   count: number,
   size: number,
-  tex: THREE.CanvasTexture,
+  tex: CanvasTexture,
   opacity: number,
   seed: number
-): { points: THREE.Points; mat: THREE.PointsMaterial; geo: THREE.BufferGeometry } {
+): { points: Points; mat: PointsMaterial; geo: BufferGeometry } {
   const pos = new Float32Array(count * 3);
   const col = new Float32Array(count * 3);
 
@@ -63,11 +63,11 @@ function buildStarPoints(
     col[i * 3 + 2] = cb;
   }
 
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  geo.setAttribute("color",    new THREE.BufferAttribute(col, 3));
+  const geo = new BufferGeometry();
+  geo.setAttribute("position", new BufferAttribute(pos, 3));
+  geo.setAttribute("color",    new BufferAttribute(col, 3));
 
-  const mat = new THREE.PointsMaterial({
+  const mat = new PointsMaterial({
     size,
     sizeAttenuation: true,
     vertexColors: true,
@@ -76,10 +76,10 @@ function buildStarPoints(
     map: tex,
     alphaTest: 0.04,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: AdditiveBlending,
   });
 
-  return { points: new THREE.Points(geo, mat), mat, geo };
+  return { points: new Points(geo, mat), mat, geo };
 }
 
 // Three groups twinkle at different phases — produces convincing varied sparkle
@@ -90,8 +90,8 @@ const GROUPS = [
 ];
 
 export function NightSky() {
-  const groupRef = useRef<THREE.Group>(null);
-  const starData = useRef<Array<{ mat: THREE.PointsMaterial; geo: THREE.BufferGeometry; baseOpacity: number; freq: number; phase: number }>>([]);
+  const groupRef = useRef<Group>(null);
+  const starData = useRef<Array<{ mat: PointsMaterial; geo: BufferGeometry; baseOpacity: number; freq: number; phase: number }>>([]);
 
   const tex = useMemo(() => makeStarTex(64), []);
 
@@ -108,7 +108,7 @@ export function NightSky() {
 
     return () => {
       built.forEach(({ mat, geo }) => {
-        group.children.forEach((c) => { if ((c as THREE.Points).material === mat) group.remove(c); });
+        group.children.forEach((c) => { if ((c as Points).material === mat) group.remove(c); });
         geo.dispose();
         mat.dispose();
       });

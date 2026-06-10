@@ -39,7 +39,7 @@ const MAX_VISIBLE_SKILL_EFFECTS = 2;
 const MOBILE_MAX_VISIBLE_SKILL_EFFECTS = 1;
 const MOBILE_SKILL_DURATION_CAP_MS = 3600;
 const DESKTOP_SKILL_POLL_MS = 4200;
-const MOBILE_SKILL_POLL_MS = 8000;
+const MOBILE_SKILL_POLL_MS = 30000;
 const HIDDEN_SKILL_POLL_MS = 60000;
 
 function isMobileSkillDevice() {
@@ -50,6 +50,7 @@ export function SkillEffectLayer({ storyId, chapterId }: { storyId: string; chap
   const [effects, setEffects] = useState<EffectState[]>([]);
   const latestSeenRef = useRef(new Date().toISOString());
   const seenIdsRef = useRef(new Set<string>());
+  const cleanupTimersRef = useRef(new Set<number>());
 
   function play(event: SkillCastEvent) {
     const reduceMotion = prefersReducedMotion();
@@ -59,9 +60,11 @@ export function SkillEffectLayer({ storyId, chapterId }: { storyId: string; chap
     const durationMs = mobileOptimized ? Math.min(event.durationMs, MOBILE_SKILL_DURATION_CAP_MS) : event.durationMs;
     const visibleLimit = mobileOptimized ? MOBILE_MAX_VISIBLE_SKILL_EFFECTS : MAX_VISIBLE_SKILL_EFFECTS;
     setEffects((current) => [...current.slice(-(visibleLimit - 1)), { ...event, durationMs, mobileOptimized, startedAt: Date.now(), reduceMotion }]);
-    window.setTimeout(() => {
+    const timer = window.setTimeout(() => {
+      cleanupTimersRef.current.delete(timer);
       setEffects((current) => current.filter((item) => item.id !== event.id));
     }, Math.min(10000, Math.max(2200, durationMs + 400)));
+    cleanupTimersRef.current.add(timer);
   }
 
   useEffect(() => {
@@ -72,6 +75,13 @@ export function SkillEffectLayer({ storyId, chapterId }: { storyId: string; chap
 
     window.addEventListener("reader-skill-cast", onLocalCast);
     return () => window.removeEventListener("reader-skill-cast", onLocalCast);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      cleanupTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      cleanupTimersRef.current.clear();
+    };
   }, []);
 
   useEffect(() => {
@@ -104,7 +114,11 @@ export function SkillEffectLayer({ storyId, chapterId }: { storyId: string; chap
       }, delay);
     }
 
-    void poll().finally(scheduleNextPoll);
+    if (compactQuery.matches || isMobileSkillDevice()) {
+      scheduleNextPoll();
+    } else {
+      void poll().finally(scheduleNextPoll);
+    }
     return () => {
       cancelled = true;
       if (timer) window.clearTimeout(timer);

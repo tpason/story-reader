@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import * as THREE from "three";
+import { AdditiveBlending, AmbientLight, BoxGeometry, BufferAttribute, BufferGeometry, CapsuleGeometry, CircleGeometry, Color, ConeGeometry, CylinderGeometry, DirectionalLight, DoubleSide, Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, SphereGeometry, TorusGeometry, Vector2, WebGLRenderer } from "three";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
@@ -24,93 +24,93 @@ type SkillPalette = {
 };
 
 type BeanSoldierRig = {
-  root: THREE.Group;
-  body: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
-  leftLeg: THREE.Mesh;
-  rightLeg: THREE.Mesh;
-  spear: THREE.Mesh;
-  banner: THREE.Mesh;
+  root: Group;
+  body: Mesh<BufferGeometry, MeshStandardMaterial>;
+  leftLeg: Mesh;
+  rightLeg: Mesh;
+  spear: Mesh;
+  banner: Mesh;
   phase: number;
   lane: number;
 };
 
 type BeanSoldierParade = {
-  group: THREE.Group;
+  group: Group;
   soldiers: BeanSoldierRig[];
 };
 
 type SwordFlightRig = {
-  group: THREE.Group;
-  blade: THREE.Mesh;
-  trail: THREE.Mesh;
-  afterimages: THREE.Mesh[];
+  group: Group;
+  blade: Mesh;
+  trail: Mesh;
+  afterimages: Mesh[];
 };
 
 type WindBladeRig = {
-  group: THREE.Group;
-  blades: THREE.Mesh[];
+  group: Group;
+  blades: Mesh[];
 };
 
 type RainRippleRig = {
-  plane: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
-  drops: THREE.Points<THREE.BufferGeometry, THREE.PointsMaterial>;
-  veils: THREE.Mesh[];
-  runes: THREE.Mesh[];
+  plane: Mesh<PlaneGeometry, ShaderMaterial>;
+  drops: Points<BufferGeometry, PointsMaterial>;
+  veils: Mesh[];
+  runes: Mesh[];
 };
 
 type WaterDragonRig = {
-  group: THREE.Group;
-  beads: THREE.Mesh[];
-  whiskers: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>[];
+  group: Group;
+  beads: Mesh[];
+  whiskers: LineSegments<BufferGeometry, LineBasicMaterial>[];
 };
 
 type LightningRig = {
-  group: THREE.Group;
-  branches: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>[];
+  group: Group;
+  branches: LineSegments<BufferGeometry, LineBasicMaterial>[];
 };
 
 type LotusDomainRig = {
-  group: THREE.Group;
-  petals: THREE.Mesh[];
-  rings: THREE.Mesh[];
-  dome: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
+  group: Group;
+  petals: Mesh[];
+  rings: Mesh[];
+  dome: Mesh<SphereGeometry, MeshBasicMaterial>;
 };
 
 type StarfallRig = {
-  group: THREE.Group;
-  meteors: THREE.Mesh[];
+  group: Group;
+  meteors: Mesh[];
 };
 
 type FireDragonRig = {
-  group: THREE.Group;
-  bodyBeads: THREE.Mesh[];
-  mane: THREE.Mesh[];
-  fireParticles: THREE.Points;
+  group: Group;
+  bodyBeads: Mesh[];
+  mane: Mesh[];
+  fireParticles: Points;
 };
 
 type SwordRainRig = {
-  group: THREE.Group;
+  group: Group;
   swords: Array<{
-    group: THREE.Group;
-    blade: THREE.Mesh;
-    guard: THREE.Mesh;
-    glow: THREE.Mesh;
+    group: Group;
+    blade: Mesh;
+    guard: Mesh;
+    glow: Mesh;
     speed: number;
     phase: number;
   }>;
 };
 
 type PetalCascadeRig = {
-  group: THREE.Group;
-  petals: THREE.Mesh[];
+  group: Group;
+  petals: Mesh[];
 };
 
 type DivineSealRig = {
-  group: THREE.Group;
-  rings: THREE.Mesh[];
-  runes: THREE.Mesh[];
-  beams: THREE.Mesh[];
-  core: THREE.Mesh;
+  group: Group;
+  rings: Mesh[];
+  runes: Mesh[];
+  beams: Mesh[];
+  core: Mesh;
 };
 
 const SKILL_PALETTES: Record<string, SkillPalette> = {
@@ -254,7 +254,7 @@ function seededNoise(seed: number) {
 }
 
 function createParticleField(skillId: string, palette: SkillPalette) {
-  const geometry = new THREE.BufferGeometry();
+  const geometry = new BufferGeometry();
   const positions = new Float32Array(palette.particleCount * 3);
   const seeds = new Float32Array(palette.particleCount);
 
@@ -269,33 +269,33 @@ function createParticleField(skillId: string, palette: SkillPalette) {
     seeds[index] = c;
   }
 
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute("seed", new THREE.BufferAttribute(seeds, 1));
+  geometry.setAttribute("position", new BufferAttribute(positions, 3));
+  geometry.setAttribute("seed", new BufferAttribute(seeds, 1));
 
-  const material = new THREE.PointsMaterial({
-    color: new THREE.Color(palette.primary),
+  const material = new PointsMaterial({
+    color: new Color(palette.primary),
     size: isRainSkill(skillId) ? 0.034 : 0.06,
     sizeAttenuation: true,
     transparent: true,
     opacity: skillId === "heaven_thunder" ? 0.92 : 0.72,
-    blending: THREE.AdditiveBlending,
+    blending: AdditiveBlending,
     depthWrite: false
   });
 
-  return new THREE.Points(geometry, material);
+  return new Points(geometry, material);
 }
 
 function createSealRings(palette: SkillPalette) {
   return Array.from({ length: palette.ringCount }).map((_, index) => {
-    const geometry = new THREE.TorusGeometry(0.72 + index * 0.38, 0.006 + index * 0.002, 8, 132);
-    const material = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(index % 2 === 0 ? palette.primary : palette.secondary),
+    const geometry = new TorusGeometry(0.72 + index * 0.38, 0.006 + index * 0.002, 8, 132);
+    const material = new MeshBasicMaterial({
+      color: new Color(index % 2 === 0 ? palette.primary : palette.secondary),
       transparent: true,
       opacity: 0.28 - index * 0.026,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false
     });
-    const mesh = new THREE.Mesh(geometry, material);
+    const mesh = new Mesh(geometry, material);
     mesh.rotation.x = Math.PI / 2.7 + index * 0.15;
     mesh.rotation.y = index * 0.42;
     return mesh;
@@ -303,7 +303,7 @@ function createSealRings(palette: SkillPalette) {
 }
 
 function createSkillBeam(skillId: string, palette: SkillPalette) {
-  const color = new THREE.Color(
+  const color = new Color(
     skillId === "heaven_thunder" ? palette.hot :
     skillId === "hoa_long" ? palette.primary :
     skillId === "thien_dia_an" ? palette.hot :
@@ -311,16 +311,16 @@ function createSkillBeam(skillId: string, palette: SkillPalette) {
   );
   const width = isRainSkill(skillId) ? (skillId === "celestial_rain" ? 5.2 : 4.4) : skillId === "lotus_domain" ? 2.8 : skillId === "heaven_thunder" ? 0.075 : skillId === "sword_flight" ? 0.045 : skillId === "hoa_long" ? 0.058 : skillId === "van_kiem" ? 2.0 : skillId === "dao_hoa_tan" ? 5.0 : skillId === "thien_dia_an" ? 5.8 : 0.025;
   const height = isRainSkill(skillId) ? 5.4 : skillId === "lotus_domain" ? 0.022 : skillId === "heaven_thunder" ? 4.4 : skillId === "van_kiem" ? 5.8 : skillId === "dao_hoa_tan" ? 5.8 : skillId === "thien_dia_an" ? 5.8 : 6.2;
-  const geometry = new THREE.PlaneGeometry(height, width, 1, 1);
-  const material = new THREE.MeshBasicMaterial({
+  const geometry = new PlaneGeometry(height, width, 1, 1);
+  const material = new MeshBasicMaterial({
     color,
     transparent: true,
     opacity: isRainSkill(skillId) ? 0.13 : skillId === "lotus_domain" ? 0.16 : skillId === "van_kiem" ? 0.18 : skillId === "dao_hoa_tan" ? 0.1 : skillId === "thien_dia_an" ? 0.22 : 0.48,
-    blending: THREE.AdditiveBlending,
+    blending: AdditiveBlending,
     depthWrite: false,
-    side: THREE.DoubleSide
+    side: DoubleSide
   });
-  const beam = new THREE.Mesh(geometry, material);
+  const beam = new Mesh(geometry, material);
 
   if (isRainSkill(skillId)) {
     beam.position.set(0, 0.12, -0.7);
@@ -347,17 +347,17 @@ function createSkillBeam(skillId: string, palette: SkillPalette) {
 }
 
 function createWindBladeRig(palette: SkillPalette): WindBladeRig {
-  const group = new THREE.Group();
+  const group = new Group();
   group.position.set(-5.4, 0.12, 0.15);
 
   const blades = Array.from({ length: 5 }).map((_, index) => {
-    const blade = new THREE.Mesh(
-      new THREE.TorusGeometry(0.42 + index * 0.055, 0.012 + index * 0.002, 8, 72, Math.PI * 0.86),
-      new THREE.MeshBasicMaterial({
+    const blade = new Mesh(
+      new TorusGeometry(0.42 + index * 0.055, 0.012 + index * 0.002, 8, 72, Math.PI * 0.86),
+      new MeshBasicMaterial({
         color: index % 2 === 0 ? palette.primary : palette.secondary,
         transparent: true,
         opacity: 0.4 - index * 0.035,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false
       })
     );
@@ -372,15 +372,15 @@ function createWindBladeRig(palette: SkillPalette): WindBladeRig {
 }
 
 function createSwordFlightRig(palette: SkillPalette): SwordFlightRig {
-  const group = new THREE.Group();
+  const group = new Group();
   group.position.set(-5.2, 0.72, 0.18);
   group.rotation.z = -0.1;
 
-  const blade = new THREE.Mesh(
-    new THREE.ConeGeometry(0.08, 1.42, 4, 1),
-    new THREE.MeshStandardMaterial({
+  const blade = new Mesh(
+    new ConeGeometry(0.08, 1.42, 4, 1),
+    new MeshStandardMaterial({
       color: "#f8fbff",
-      emissive: new THREE.Color(palette.secondary),
+      emissive: new Color(palette.secondary),
       emissiveIntensity: 0.55,
       roughness: 0.2,
       metalness: 0.6,
@@ -391,21 +391,21 @@ function createSwordFlightRig(palette: SkillPalette): SwordFlightRig {
   blade.rotation.z = -Math.PI / 2;
   blade.scale.x = 1.8;
 
-  const spine = new THREE.Mesh(
-    new THREE.BoxGeometry(1.52, 0.026, 0.026),
-    new THREE.MeshBasicMaterial({
+  const spine = new Mesh(
+    new BoxGeometry(1.52, 0.026, 0.026),
+    new MeshBasicMaterial({
       color: palette.hot,
       transparent: true,
       opacity: 0.84,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false
     })
   );
   spine.position.x = -0.1;
 
-  const guard = new THREE.Mesh(
-    new THREE.BoxGeometry(0.08, 0.34, 0.035),
-    new THREE.MeshStandardMaterial({
+  const guard = new Mesh(
+    new BoxGeometry(0.08, 0.34, 0.035),
+    new MeshStandardMaterial({
       color: palette.primary,
       emissive: palette.primary,
       emissiveIntensity: 0.2,
@@ -415,9 +415,9 @@ function createSwordFlightRig(palette: SkillPalette): SwordFlightRig {
   );
   guard.position.x = -0.78;
 
-  const handle = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.035, 0.035, 0.48, 10),
-    new THREE.MeshStandardMaterial({
+  const handle = new Mesh(
+    new CylinderGeometry(0.035, 0.035, 0.48, 10),
+    new MeshStandardMaterial({
       color: "#3b1d63",
       emissive: palette.primary,
       emissiveIntensity: 0.12,
@@ -427,14 +427,14 @@ function createSwordFlightRig(palette: SkillPalette): SwordFlightRig {
   handle.rotation.z = Math.PI / 2;
   handle.position.x = -1.06;
 
-  const trail = new THREE.Mesh(
-    new THREE.PlaneGeometry(2.8, 0.34, 1, 1),
-    new THREE.MeshBasicMaterial({
+  const trail = new Mesh(
+    new PlaneGeometry(2.8, 0.34, 1, 1),
+    new MeshBasicMaterial({
       color: palette.secondary,
       transparent: true,
       opacity: 0.34,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
+      blending: AdditiveBlending,
+      side: DoubleSide,
       depthWrite: false
     })
   );
@@ -442,14 +442,14 @@ function createSwordFlightRig(palette: SkillPalette): SwordFlightRig {
   trail.rotation.z = 0.04;
 
   const afterimages = Array.from({ length: 3 }).map((_, index) => {
-    const image = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.8 + index * 0.42, 0.045, 1, 1),
-      new THREE.MeshBasicMaterial({
+    const image = new Mesh(
+      new PlaneGeometry(1.8 + index * 0.42, 0.045, 1, 1),
+      new MeshBasicMaterial({
         color: index % 2 === 0 ? palette.primary : palette.secondary,
         transparent: true,
         opacity: 0.24 - index * 0.045,
-        blending: THREE.AdditiveBlending,
-        side: THREE.DoubleSide,
+        blending: AdditiveBlending,
+        side: DoubleSide,
         depthWrite: false
       })
     );
@@ -462,17 +462,17 @@ function createSwordFlightRig(palette: SkillPalette): SwordFlightRig {
 }
 
 function createWaterDragonRig(palette: SkillPalette, majestic = false): WaterDragonRig {
-  const group = new THREE.Group();
+  const group = new Group();
   const count = majestic ? 36 : 22;
-  const beadGeometry = new THREE.SphereGeometry(majestic ? 0.07 : 0.048, 14, 10);
+  const beadGeometry = new SphereGeometry(majestic ? 0.07 : 0.048, 14, 10);
   const beads = Array.from({ length: count }).map((_, index) => {
-    const bead = new THREE.Mesh(
+    const bead = new Mesh(
       beadGeometry,
-      new THREE.MeshBasicMaterial({
+      new MeshBasicMaterial({
         color: index % 3 === 0 ? palette.hot : index % 2 === 0 ? palette.primary : palette.secondary,
         transparent: true,
         opacity: majestic ? 0.46 : 0.34,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false
       })
     );
@@ -481,15 +481,15 @@ function createWaterDragonRig(palette: SkillPalette, majestic = false): WaterDra
   });
 
   const whiskers = Array.from({ length: majestic ? 4 : 2 }).map((_, index) => {
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.Float32BufferAttribute(new Array(18).fill(0), 3));
-    const line = new THREE.LineSegments(
+    const geometry = new BufferGeometry();
+    geometry.setAttribute("position", new Float32BufferAttribute(new Array(18).fill(0), 3));
+    const line = new LineSegments(
       geometry,
-      new THREE.LineBasicMaterial({
+      new LineBasicMaterial({
         color: index % 2 === 0 ? palette.hot : palette.secondary,
         transparent: true,
         opacity: 0.28,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false
       })
     );
@@ -502,16 +502,16 @@ function createWaterDragonRig(palette: SkillPalette, majestic = false): WaterDra
 }
 
 function createRainRippleRig(palette: SkillPalette, majestic = false): RainRippleRig {
-  const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(9.2, 4.8, 1, 1),
-    new THREE.ShaderMaterial({
+  const plane = new Mesh(
+    new PlaneGeometry(9.2, 4.8, 1, 1),
+    new ShaderMaterial({
       transparent: true,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       uniforms: {
         uTime: { value: 0 },
         uProgress: { value: 0 },
-        uColor: { value: new THREE.Color(palette.secondary) }
+        uColor: { value: new Color(palette.secondary) }
       },
       vertexShader: `
         varying vec2 vUv;
@@ -558,16 +558,16 @@ function createRainRippleRig(palette: SkillPalette, majestic = false): RainRippl
     positions[offset + 1] = -2.2 + seededNoise(index + 307) * 4.8;
     positions[offset + 2] = -0.8 + seededNoise(index + 313) * 1.2;
   }
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  const drops = new THREE.Points(
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new BufferAttribute(positions, 3));
+  const drops = new Points(
     geometry,
-    new THREE.PointsMaterial({
+    new PointsMaterial({
       color: palette.primary,
       size: 0.032,
       transparent: true,
       opacity: 0.64,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false
     })
   );
@@ -576,15 +576,15 @@ function createRainRippleRig(palette: SkillPalette, majestic = false): RainRippl
   const veils = Array.from({ length: veilCount }).map((_, index) => {
     const width = 0.018 + seededNoise(index + 711) * 0.018;
     const height = 4.8 + seededNoise(index + 719) * 1.2;
-    const veil = new THREE.Mesh(
-      new THREE.PlaneGeometry(width, height, 1, 1),
-      new THREE.MeshBasicMaterial({
+    const veil = new Mesh(
+      new PlaneGeometry(width, height, 1, 1),
+      new MeshBasicMaterial({
         color: index % 2 === 0 ? palette.primary : palette.secondary,
         transparent: true,
         opacity: majestic ? 0.28 : 0.2,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false,
-        side: THREE.DoubleSide
+        side: DoubleSide
       })
     );
     veil.position.set(-4.2 + (index / Math.max(1, veilCount - 1)) * 8.4, 0.1 + seededNoise(index + 727) * 0.8, -0.6 - seededNoise(index + 733) * 1.1);
@@ -593,13 +593,13 @@ function createRainRippleRig(palette: SkillPalette, majestic = false): RainRippl
   });
 
   const runes = Array.from({ length: majestic ? 5 : 3 }).map((_, index) => {
-    const rune = new THREE.Mesh(
-      new THREE.TorusGeometry(0.38 + index * 0.18, 0.004, 8, 96),
-      new THREE.MeshBasicMaterial({
+    const rune = new Mesh(
+      new TorusGeometry(0.38 + index * 0.18, 0.004, 8, 96),
+      new MeshBasicMaterial({
         color: index % 2 === 0 ? palette.secondary : palette.hot,
         transparent: true,
         opacity: 0.22,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false
       })
     );
@@ -631,21 +631,21 @@ function createLightningBranchGeometry(branchIndex: number) {
     y = nextY;
   }
 
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.Float32BufferAttribute(segments, 3));
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute(segments, 3));
   return geometry;
 }
 
 function createLightningRig(palette: SkillPalette): LightningRig {
-  const group = new THREE.Group();
+  const group = new Group();
   const branches = Array.from({ length: 4 }).map((_, index) => {
-    const line = new THREE.LineSegments(
+    const line = new LineSegments(
       createLightningBranchGeometry(index),
-      new THREE.LineBasicMaterial({
+      new LineBasicMaterial({
         color: index % 2 === 0 ? palette.secondary : palette.primary,
         transparent: true,
         opacity: 0,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false
       })
     );
@@ -659,15 +659,15 @@ function createLightningRig(palette: SkillPalette): LightningRig {
 }
 
 function createLotusDomainRig(palette: SkillPalette): LotusDomainRig {
-  const group = new THREE.Group();
-  const dome = new THREE.Mesh(
-    new THREE.SphereGeometry(1.64, 48, 18, 0, Math.PI * 2, 0, Math.PI / 2),
-    new THREE.MeshBasicMaterial({
+  const group = new Group();
+  const dome = new Mesh(
+    new SphereGeometry(1.64, 48, 18, 0, Math.PI * 2, 0, Math.PI / 2),
+    new MeshBasicMaterial({
       color: palette.secondary,
       transparent: true,
       opacity: 0.08,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
+      blending: AdditiveBlending,
+      side: DoubleSide,
       depthWrite: false,
       wireframe: true
     })
@@ -676,14 +676,14 @@ function createLotusDomainRig(palette: SkillPalette): LotusDomainRig {
   dome.rotation.x = Math.PI;
 
   const petals = Array.from({ length: 18 }).map((_, index) => {
-    const petal = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.16, 0.38, 1, 1),
-      new THREE.MeshBasicMaterial({
+    const petal = new Mesh(
+      new PlaneGeometry(0.16, 0.38, 1, 1),
+      new MeshBasicMaterial({
         color: index % 3 === 0 ? palette.hot : palette.primary,
         transparent: true,
         opacity: 0.42,
-        blending: THREE.AdditiveBlending,
-        side: THREE.DoubleSide,
+        blending: AdditiveBlending,
+        side: DoubleSide,
         depthWrite: false
       })
     );
@@ -695,13 +695,13 @@ function createLotusDomainRig(palette: SkillPalette): LotusDomainRig {
   });
 
   const rings = Array.from({ length: 4 }).map((_, index) => {
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.74 + index * 0.28, 0.006, 8, 128),
-      new THREE.MeshBasicMaterial({
+    const ring = new Mesh(
+      new TorusGeometry(0.74 + index * 0.28, 0.006, 8, 128),
+      new MeshBasicMaterial({
         color: index % 2 === 0 ? palette.primary : palette.secondary,
         transparent: true,
         opacity: 0.22 - index * 0.025,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false
       })
     );
@@ -716,16 +716,16 @@ function createLotusDomainRig(palette: SkillPalette): LotusDomainRig {
 }
 
 function createStarfallRig(palette: SkillPalette): StarfallRig {
-  const group = new THREE.Group();
+  const group = new Group();
   const meteors = Array.from({ length: 11 }).map((_, index) => {
-    const meteor = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.15 + seededNoise(index + 1201) * 0.9, 0.035, 1, 1),
-      new THREE.MeshBasicMaterial({
+    const meteor = new Mesh(
+      new PlaneGeometry(1.15 + seededNoise(index + 1201) * 0.9, 0.035, 1, 1),
+      new MeshBasicMaterial({
         color: index % 2 === 0 ? palette.hot : palette.secondary,
         transparent: true,
         opacity: 0.34,
-        blending: THREE.AdditiveBlending,
-        side: THREE.DoubleSide,
+        blending: AdditiveBlending,
+        side: DoubleSide,
         depthWrite: false
       })
     );
@@ -738,15 +738,15 @@ function createStarfallRig(palette: SkillPalette): StarfallRig {
 }
 
 function createFireDragonRig(palette: SkillPalette): FireDragonRig {
-  const group = new THREE.Group();
+  const group = new Group();
 
   const bodyBeads = Array.from({ length: 22 }).map((_, index) => {
     const radius = Math.max(0.042, 0.16 - index * 0.005);
-    const bead = new THREE.Mesh(
-      new THREE.SphereGeometry(radius, 12, 8),
-      new THREE.MeshStandardMaterial({
-        color: new THREE.Color(index < 4 ? palette.hot : index < 10 ? palette.primary : palette.secondary),
-        emissive: new THREE.Color(index < 8 ? "#ff4400" : palette.primary),
+    const bead = new Mesh(
+      new SphereGeometry(radius, 12, 8),
+      new MeshStandardMaterial({
+        color: new Color(index < 4 ? palette.hot : index < 10 ? palette.primary : palette.secondary),
+        emissive: new Color(index < 8 ? "#ff4400" : palette.primary),
         emissiveIntensity: 0.72 - index * 0.024,
         roughness: 0.3,
         metalness: 0.1,
@@ -759,13 +759,13 @@ function createFireDragonRig(palette: SkillPalette): FireDragonRig {
   });
 
   const mane = Array.from({ length: 8 }).map((_, index) => {
-    const m = new THREE.Mesh(
-      new THREE.ConeGeometry(0.056, 0.28, 4),
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color(index % 2 === 0 ? palette.hot : palette.primary),
+    const m = new Mesh(
+      new ConeGeometry(0.056, 0.28, 4),
+      new MeshBasicMaterial({
+        color: new Color(index % 2 === 0 ? palette.hot : palette.primary),
         transparent: true,
         opacity: 0.78,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false
       })
     );
@@ -780,14 +780,14 @@ function createFireDragonRig(palette: SkillPalette): FireDragonRig {
     positions[i * 3 + 1] = (seededNoise(i + 509) - 0.5) * 4.8;
     positions[i * 3 + 2] = (seededNoise(i + 513) - 0.5) * 2.4;
   }
-  const fireParticles = new THREE.Points(
-    new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(positions, 3)),
-    new THREE.PointsMaterial({
-      color: new THREE.Color(palette.primary),
+  const fireParticles = new Points(
+    new BufferGeometry().setAttribute("position", new BufferAttribute(positions, 3)),
+    new PointsMaterial({
+      color: new Color(palette.primary),
       size: 0.072,
       transparent: true,
       opacity: 0.82,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false
     })
   );
@@ -796,16 +796,16 @@ function createFireDragonRig(palette: SkillPalette): FireDragonRig {
 }
 
 function createSwordRainRig(palette: SkillPalette): SwordRainRig {
-  const group = new THREE.Group();
+  const group = new Group();
 
   const swords = Array.from({ length: 18 }).map((_, index) => {
-    const sg = new THREE.Group();
+    const sg = new Group();
 
-    const blade = new THREE.Mesh(
-      new THREE.ConeGeometry(0.036, 1.0, 4),
-      new THREE.MeshStandardMaterial({
+    const blade = new Mesh(
+      new ConeGeometry(0.036, 1.0, 4),
+      new MeshStandardMaterial({
         color: "#f0f8ff",
-        emissive: new THREE.Color(palette.secondary),
+        emissive: new Color(palette.secondary),
         emissiveIntensity: 0.5,
         roughness: 0.12,
         metalness: 0.82,
@@ -815,26 +815,26 @@ function createSwordRainRig(palette: SkillPalette): SwordRainRig {
     );
     blade.position.y = 0.12;
 
-    const guard = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.12, 0.12, 0.024, 8),
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color(palette.primary),
+    const guard = new Mesh(
+      new CylinderGeometry(0.12, 0.12, 0.024, 8),
+      new MeshBasicMaterial({
+        color: new Color(palette.primary),
         transparent: true,
         opacity: 0.84,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false
       })
     );
     guard.position.y = -0.38;
 
-    const glow = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.06, 1.4, 1, 1),
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color(palette.secondary),
+    const glow = new Mesh(
+      new PlaneGeometry(0.06, 1.4, 1, 1),
+      new MeshBasicMaterial({
+        color: new Color(palette.secondary),
         transparent: true,
         opacity: 0.58,
-        blending: THREE.AdditiveBlending,
-        side: THREE.DoubleSide,
+        blending: AdditiveBlending,
+        side: DoubleSide,
         depthWrite: false
       })
     );
@@ -862,19 +862,19 @@ function createSwordRainRig(palette: SkillPalette): SwordRainRig {
 }
 
 function createPetalCascadeRig(palette: SkillPalette): PetalCascadeRig {
-  const group = new THREE.Group();
+  const group = new Group();
 
   const petals = Array.from({ length: 42 }).map((_, index) => {
     const w = 0.13 + seededNoise(index + 1101) * 0.11;
     const h = 0.19 + seededNoise(index + 1107) * 0.09;
-    const petal = new THREE.Mesh(
-      new THREE.PlaneGeometry(w, h, 1, 1),
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color(index % 4 === 0 ? palette.hot : index % 3 === 0 ? "#fce7f3" : index % 2 === 0 ? palette.primary : palette.secondary),
+    const petal = new Mesh(
+      new PlaneGeometry(w, h, 1, 1),
+      new MeshBasicMaterial({
+        color: new Color(index % 4 === 0 ? palette.hot : index % 3 === 0 ? "#fce7f3" : index % 2 === 0 ? palette.primary : palette.secondary),
         transparent: true,
         opacity: 0.58,
-        blending: THREE.AdditiveBlending,
-        side: THREE.DoubleSide,
+        blending: AdditiveBlending,
+        side: DoubleSide,
         depthWrite: false
       })
     );
@@ -896,27 +896,27 @@ function createPetalCascadeRig(palette: SkillPalette): PetalCascadeRig {
 }
 
 function createDivineSealRig(palette: SkillPalette): DivineSealRig {
-  const group = new THREE.Group();
+  const group = new Group();
 
-  const core = new THREE.Mesh(
-    new THREE.CircleGeometry(0.36, 48),
-    new THREE.MeshBasicMaterial({
-      color: new THREE.Color(palette.hot),
+  const core = new Mesh(
+    new CircleGeometry(0.36, 48),
+    new MeshBasicMaterial({
+      color: new Color(palette.hot),
       transparent: true,
       opacity: 0.92,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false
     })
   );
 
   const rings = Array.from({ length: 6 }).map((_, index) => {
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.9 + index * 0.52, 0.013 + index * 0.004, 8, 200),
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color(index % 2 === 0 ? palette.hot : palette.primary),
+    const ring = new Mesh(
+      new TorusGeometry(0.9 + index * 0.52, 0.013 + index * 0.004, 8, 200),
+      new MeshBasicMaterial({
+        color: new Color(index % 2 === 0 ? palette.hot : palette.primary),
         transparent: true,
         opacity: 0.44 - index * 0.032,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false
       })
     );
@@ -927,14 +927,14 @@ function createDivineSealRig(palette: SkillPalette): DivineSealRig {
 
   const runes = Array.from({ length: 8 }).map((_, index) => {
     const angle = (index / 8) * Math.PI * 2;
-    const rune = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.22, 0.44, 1, 1),
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color(index % 2 === 0 ? palette.secondary : palette.hot),
+    const rune = new Mesh(
+      new PlaneGeometry(0.22, 0.44, 1, 1),
+      new MeshBasicMaterial({
+        color: new Color(index % 2 === 0 ? palette.secondary : palette.hot),
         transparent: true,
         opacity: 0.72,
-        blending: THREE.AdditiveBlending,
-        side: THREE.DoubleSide,
+        blending: AdditiveBlending,
+        side: DoubleSide,
         depthWrite: false
       })
     );
@@ -946,14 +946,14 @@ function createDivineSealRig(palette: SkillPalette): DivineSealRig {
 
   const beams = Array.from({ length: 8 }).map((_, index) => {
     const angle = (index / 8) * Math.PI * 2;
-    const beam = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.034, 4.8, 1, 1),
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color(index % 2 === 0 ? palette.hot : palette.primary),
+    const beam = new Mesh(
+      new PlaneGeometry(0.034, 4.8, 1, 1),
+      new MeshBasicMaterial({
+        color: new Color(index % 2 === 0 ? palette.hot : palette.primary),
         transparent: true,
         opacity: 0.28,
-        blending: THREE.AdditiveBlending,
-        side: THREE.DoubleSide,
+        blending: AdditiveBlending,
+        side: DoubleSide,
         depthWrite: false
       })
     );
@@ -969,7 +969,7 @@ function createDivineSealRig(palette: SkillPalette): DivineSealRig {
 }
 
 function createMorphBeanBodyGeometry() {
-  const geometry = new THREE.SphereGeometry(0.24, 18, 14);
+  const geometry = new SphereGeometry(0.24, 18, 14);
   const basePositions = geometry.attributes.position.array as Float32Array;
   const squashPositions = new Float32Array(basePositions.length);
 
@@ -979,22 +979,22 @@ function createMorphBeanBodyGeometry() {
     squashPositions[index + 2] = basePositions[index + 2] * 1.08;
   }
 
-  geometry.morphAttributes.position = [new THREE.Float32BufferAttribute(squashPositions, 3)];
+  geometry.morphAttributes.position = [new Float32BufferAttribute(squashPositions, 3)];
   return geometry;
 }
 
 function createBeanSoldier(index: number, palette: SkillPalette): BeanSoldierRig {
-  const root = new THREE.Group();
+  const root = new Group();
   const lane = index % 3;
   const phase = index * 0.72;
   root.position.set(-5.8 - index * 0.72, -1.95 + lane * 0.18, 0.9 - lane * 0.22);
   root.rotation.y = -0.1;
 
-  const body = new THREE.Mesh(
+  const body = new Mesh(
     createMorphBeanBodyGeometry(),
-    new THREE.MeshStandardMaterial({
-      color: new THREE.Color(index % 2 === 0 ? palette.primary : "#f59e0b"),
-      emissive: new THREE.Color(palette.primary),
+    new MeshStandardMaterial({
+      color: new Color(index % 2 === 0 ? palette.primary : "#f59e0b"),
+      emissive: new Color(palette.primary),
       emissiveIntensity: 0.16,
       roughness: 0.48,
       metalness: 0.08,
@@ -1005,9 +1005,9 @@ function createBeanSoldier(index: number, palette: SkillPalette): BeanSoldierRig
   body.scale.set(0.82, 1.18, 0.62);
   body.position.y = 0.38;
 
-  const helmet = new THREE.Mesh(
-    new THREE.ConeGeometry(0.23, 0.16, 5),
-    new THREE.MeshStandardMaterial({
+  const helmet = new Mesh(
+    new ConeGeometry(0.23, 0.16, 5),
+    new MeshStandardMaterial({
       color: "#7c2d12",
       emissive: "#f59e0b",
       emissiveIntensity: 0.08,
@@ -1017,27 +1017,27 @@ function createBeanSoldier(index: number, palette: SkillPalette): BeanSoldierRig
   helmet.position.y = 0.72;
   helmet.rotation.y = Math.PI / 5;
 
-  const eyeMaterial = new THREE.MeshBasicMaterial({ color: "#2f1606" });
-  const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.024, 8, 6), eyeMaterial);
+  const eyeMaterial = new MeshBasicMaterial({ color: "#2f1606" });
+  const leftEye = new Mesh(new SphereGeometry(0.024, 8, 6), eyeMaterial);
   const rightEye = leftEye.clone();
   leftEye.position.set(-0.07, 0.48, 0.15);
   rightEye.position.set(0.07, 0.48, 0.15);
 
-  const limbMaterial = new THREE.MeshStandardMaterial({
+  const limbMaterial = new MeshStandardMaterial({
     color: "#7c2d12",
     emissive: "#f59e0b",
     emissiveIntensity: 0.06,
     roughness: 0.56
   });
-  const legGeometry = new THREE.CapsuleGeometry(0.03, 0.18, 5, 8);
-  const leftLeg = new THREE.Mesh(legGeometry, limbMaterial);
-  const rightLeg = new THREE.Mesh(legGeometry, limbMaterial);
+  const legGeometry = new CapsuleGeometry(0.03, 0.18, 5, 8);
+  const leftLeg = new Mesh(legGeometry, limbMaterial);
+  const rightLeg = new Mesh(legGeometry, limbMaterial);
   leftLeg.position.set(-0.08, 0.02, 0.02);
   rightLeg.position.set(0.08, 0.02, 0.02);
 
-  const spear = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.012, 0.012, 0.92, 8),
-    new THREE.MeshStandardMaterial({
+  const spear = new Mesh(
+    new CylinderGeometry(0.012, 0.012, 0.92, 8),
+    new MeshStandardMaterial({
       color: "#fef3c7",
       emissive: "#fde047",
       emissiveIntensity: 0.2,
@@ -1047,21 +1047,21 @@ function createBeanSoldier(index: number, palette: SkillPalette): BeanSoldierRig
   spear.position.set(0.25, 0.45, 0);
   spear.rotation.z = -0.1;
 
-  const blade = new THREE.Mesh(
-    new THREE.ConeGeometry(0.045, 0.14, 4),
-    new THREE.MeshBasicMaterial({ color: "#fff7ed", transparent: true, opacity: 0.9 })
+  const blade = new Mesh(
+    new ConeGeometry(0.045, 0.14, 4),
+    new MeshBasicMaterial({ color: "#fff7ed", transparent: true, opacity: 0.9 })
   );
   blade.position.set(0.25, 0.98, 0);
   blade.rotation.y = Math.PI / 4;
 
-  const banner = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.26, 0.18, 4, 1),
-    new THREE.MeshBasicMaterial({
-      color: new THREE.Color(index % 2 === 0 ? palette.secondary : palette.hot),
+  const banner = new Mesh(
+    new PlaneGeometry(0.26, 0.18, 4, 1),
+    new MeshBasicMaterial({
+      color: new Color(index % 2 === 0 ? palette.secondary : palette.hot),
       transparent: true,
       opacity: 0.78,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
+      blending: AdditiveBlending,
+      side: DoubleSide,
       depthWrite: false
     })
   );
@@ -1073,7 +1073,7 @@ function createBeanSoldier(index: number, palette: SkillPalette): BeanSoldierRig
 }
 
 function createBeanSoldierParade(palette: SkillPalette): BeanSoldierParade {
-  const group = new THREE.Group();
+  const group = new Group();
   group.position.set(0, -0.15, 0);
   group.rotation.x = -0.08;
   const soldiers = Array.from({ length: 8 }).map((_, index) => createBeanSoldier(index, palette));
@@ -1091,11 +1091,11 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
 
     const palette = getPalette(skillId);
     const effectPower = Math.max(1, Math.min(2.6, 0.78 + intensity * 0.32));
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(38, 1, 0.1, 100);
     camera.position.set(0, 0, 7.4);
 
-    const renderer = new THREE.WebGLRenderer({
+    const renderer = new WebGLRenderer({
       alpha: false,
       antialias: true,
       powerPreference: "high-performance"
@@ -1107,7 +1107,7 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
 
     const bloomCfg = getBloomConfig(skillId, effectPower);
     const bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(container.clientWidth, container.clientHeight),
+      new Vector2(container.clientWidth, container.clientHeight),
       bloomCfg.strength,
       bloomCfg.radius,
       bloomCfg.threshold
@@ -1134,9 +1134,9 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
     const swordRainRig = skillId === "van_kiem" ? createSwordRainRig(palette) : null;
     const petalRig = skillId === "dao_hoa_tan" ? createPetalCascadeRig(palette) : null;
     const divineSealRig = skillId === "thien_dia_an" ? createDivineSealRig(palette) : null;
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.5 + effectPower * 0.28);
-    const keyLight = new THREE.DirectionalLight(new THREE.Color(palette.hot), 1.75 + effectPower * 0.35);
-    const glow = new THREE.PointLight(new THREE.Color(palette.hot), 1.1 + effectPower * 0.5, 6 + effectPower * 1.6);
+    const ambientLight = new AmbientLight(0xffffff, 1.5 + effectPower * 0.28);
+    const keyLight = new DirectionalLight(new Color(palette.hot), 1.75 + effectPower * 0.35);
+    const glow = new PointLight(new Color(palette.hot), 1.1 + effectPower * 0.5, 6 + effectPower * 1.6);
     keyLight.position.set(2.8, 4.2, 3.8);
     glow.position.set(0, 0.2, 2);
 
@@ -1154,7 +1154,7 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
     if (petalRig) scene.add(petalRig.group);
     if (divineSealRig) scene.add(divineSealRig.group);
 
-    const particlePositions = particleField.geometry.getAttribute("position") as THREE.BufferAttribute;
+    const particlePositions = particleField.geometry.getAttribute("position") as BufferAttribute;
     const originalPositions = new Float32Array(particlePositions.array as Float32Array);
     const startedAt = performance.now();
     let frameId = 0;
@@ -1223,13 +1223,13 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
 
       particleField.rotation.z = time * 0.08;
       particleField.rotation.y = Math.sin(time * 0.32) * 0.12;
-      (particleField.material as THREE.PointsMaterial).opacity = Math.min(0.96, (skillId === "heaven_thunder" ? 0.86 : 0.58 + effectPower * 0.08) * pulse);
+      (particleField.material as PointsMaterial).opacity = Math.min(0.96, (skillId === "heaven_thunder" ? 0.86 : 0.58 + effectPower * 0.08) * pulse);
 
       rings.forEach((ring, index) => {
         ring.rotation.z += (0.004 + index * 0.002) * palette.speed;
         ring.rotation.x += index % 2 === 0 ? 0.0018 : -0.0016;
         ring.scale.setScalar(0.78 + pulse * (0.28 + effectPower * 0.12) + index * 0.08);
-        (ring.material as THREE.MeshBasicMaterial).opacity = Math.max(0, (0.2 + effectPower * 0.04 - index * 0.026) * pulse);
+        (ring.material as MeshBasicMaterial).opacity = Math.max(0, (0.2 + effectPower * 0.04 - index * 0.026) * pulse);
       });
 
       if (isRainSkill(skillId)) {
@@ -1258,7 +1258,7 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
         skillId === "dao_hoa_tan" ? 0.1 :
         skillId === "thien_dia_an" ? 0.22 :
         0.38;
-      (beam.material as THREE.MeshBasicMaterial).opacity = Math.min(0.9, beamBaseOpacity * pulse * effectPower);
+      (beam.material as MeshBasicMaterial).opacity = Math.min(0.9, beamBaseOpacity * pulse * effectPower);
       glow.intensity = 0.45 + pulse * 1.42 * effectPower;
 
       if (windBladeRig) {
@@ -1270,7 +1270,7 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
           blade.rotation.z += (0.055 + index * 0.01) * effectPower;
           blade.rotation.y = 0.24 + Math.sin(time * 2 + index) * 0.22;
           blade.scale.x = 1.4 + pulse * 0.7 + index * 0.13;
-          (blade.material as THREE.MeshBasicMaterial).opacity = Math.max(0, (0.28 + effectPower * 0.08 - index * 0.032) * pulse);
+          (blade.material as MeshBasicMaterial).opacity = Math.max(0, (0.28 + effectPower * 0.08 - index * 0.032) * pulse);
         });
       }
 
@@ -1300,10 +1300,10 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
         swordRig.group.position.y = 0.68 + Math.sin(time * 4.2) * 0.18;
         swordRig.group.rotation.z = -0.14 + Math.sin(time * 5.2) * 0.08;
         swordRig.blade.rotation.x = time * 1.8;
-        (swordRig.trail.material as THREE.MeshBasicMaterial).opacity = 0.44 * pulse;
+        (swordRig.trail.material as MeshBasicMaterial).opacity = 0.44 * pulse;
         swordRig.afterimages.forEach((image, index) => {
           image.position.x = -1.2 - index * 0.55 - Math.sin(time * 3 + index) * 0.18;
-          (image.material as THREE.MeshBasicMaterial).opacity = Math.max(0, (0.28 - index * 0.06) * pulse);
+          (image.material as MeshBasicMaterial).opacity = Math.max(0, (0.28 - index * 0.06) * pulse);
         });
       }
 
@@ -1311,7 +1311,7 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
         rainRipple.plane.material.uniforms.uTime.value = time;
         rainRipple.plane.material.uniforms.uProgress.value = progress;
         rainRipple.drops.rotation.z = Math.sin(time * 0.2) * (skillId === "celestial_rain" ? 0.08 : 0.04);
-        const dropPositions = rainRipple.drops.geometry.getAttribute("position") as THREE.BufferAttribute;
+        const dropPositions = rainRipple.drops.geometry.getAttribute("position") as BufferAttribute;
         const dropArray = dropPositions.array as Float32Array;
         for (let index = 0; index < dropArray.length; index += 3) {
           dropArray[index + 1] -= (skillId === "celestial_rain" ? 0.07 : 0.048) + seededNoise(index + 613) * 0.026;
@@ -1322,12 +1322,12 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
         rainRipple.veils.forEach((veil, index) => {
           veil.position.y = 0.1 + Math.sin(time * (0.7 + index * 0.04) + index) * 0.18;
           veil.scale.y = 0.86 + pulse * 0.24 + Math.sin(time * 1.8 + index) * 0.04;
-          (veil.material as THREE.MeshBasicMaterial).opacity = Math.min(0.58, (skillId === "celestial_rain" ? 0.2 : 0.14) * pulse * effectPower * (0.72 + seededNoise(index + 751) * 0.32));
+          (veil.material as MeshBasicMaterial).opacity = Math.min(0.58, (skillId === "celestial_rain" ? 0.2 : 0.14) * pulse * effectPower * (0.72 + seededNoise(index + 751) * 0.32));
         });
         rainRipple.runes.forEach((rune, index) => {
           rune.rotation.z += (index % 2 === 0 ? 0.006 : -0.005) * (skillId === "celestial_rain" ? 1.8 : 1);
           rune.scale.setScalar(0.78 + pulse * (skillId === "celestial_rain" ? 0.38 : 0.24) * effectPower + index * 0.05);
-          (rune.material as THREE.MeshBasicMaterial).opacity = Math.max(0, (skillId === "celestial_rain" ? 0.26 : 0.18) * pulse * effectPower - index * 0.018);
+          (rune.material as MeshBasicMaterial).opacity = Math.max(0, (skillId === "celestial_rain" ? 0.26 : 0.18) * pulse * effectPower - index * 0.018);
         });
       }
 
@@ -1345,12 +1345,12 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
           bead.position.y = -0.22 + Math.sin(angle) * radius * 0.34 * taper;
           bead.position.z = Math.cos(angle) * radius * 0.42 * taper;
           bead.scale.setScalar((majestic ? 0.92 : 0.74) + pulse * (majestic ? 0.72 : 0.42) + Math.sin(angle) * 0.08);
-          (bead.material as THREE.MeshBasicMaterial).opacity = Math.min(0.82, (majestic ? 0.34 : 0.24) * effectPower * pulse * (0.78 + taper * 0.24));
+          (bead.material as MeshBasicMaterial).opacity = Math.min(0.82, (majestic ? 0.34 : 0.24) * effectPower * pulse * (0.78 + taper * 0.24));
         });
 
         const head = waterDragonRig.beads[waterDragonRig.beads.length - 1];
         waterDragonRig.whiskers.forEach((whisker, index) => {
-          const positions = whisker.geometry.getAttribute("position") as THREE.BufferAttribute;
+          const positions = whisker.geometry.getAttribute("position") as BufferAttribute;
           const array = positions.array as Float32Array;
           for (let segment = 0; segment < 3; segment += 1) {
             const offset = segment * 6;
@@ -1378,12 +1378,12 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
           petal.position.z = Math.sin(angle) * (0.58 + pulse * 0.12);
           petal.position.y = -1.04 + Math.sin(time * 1.8 + index) * 0.08;
           petal.rotation.z = angle + Math.sin(time + index) * 0.12;
-          (petal.material as THREE.MeshBasicMaterial).opacity = (0.22 + pulse * 0.34) * (index % 2 === 0 ? 1 : 0.76);
+          (petal.material as MeshBasicMaterial).opacity = (0.22 + pulse * 0.34) * (index % 2 === 0 ? 1 : 0.76);
         });
         lotusDomain.rings.forEach((ring, index) => {
           ring.rotation.z += (index % 2 === 0 ? 0.006 : -0.005);
           ring.scale.setScalar(0.88 + pulse * 0.32 + index * 0.08);
-          (ring.material as THREE.MeshBasicMaterial).opacity = Math.max(0, (0.2 - index * 0.025) * pulse);
+          (ring.material as MeshBasicMaterial).opacity = Math.max(0, (0.2 - index * 0.025) * pulse);
         });
       }
 
@@ -1407,7 +1407,7 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
             meteor.position.y = 2.2 + seededNoise(index + 1321) * 2.2;
           }
           meteor.scale.x = 0.8 + pulse * 0.6 + Math.sin(time * 3 + index) * 0.08;
-          (meteor.material as THREE.MeshBasicMaterial).opacity = Math.min(0.9, (0.16 + pulse * 0.32 * effectPower) * (0.75 + seededNoise(index + 1331) * 0.25));
+          (meteor.material as MeshBasicMaterial).opacity = Math.min(0.9, (0.16 + pulse * 0.32 * effectPower) * (0.75 + seededNoise(index + 1331) * 0.25));
         });
       }
 
@@ -1422,8 +1422,8 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
           bead.position.z = Math.cos(tLocal * 0.7) * 0.28;
           const sc = Math.max(0.1, (1 - t * 0.6) * (0.6 + pulse * 0.58));
           bead.scale.setScalar(sc);
-          (bead.material as THREE.MeshStandardMaterial).emissiveIntensity = (0.7 - t * 0.02) * (0.5 + pulse * 0.9);
-          (bead.material as THREE.MeshStandardMaterial).opacity = Math.min(0.98, (1 - t * 0.42) * pulse);
+          (bead.material as MeshStandardMaterial).emissiveIntensity = (0.7 - t * 0.02) * (0.5 + pulse * 0.9);
+          (bead.material as MeshStandardMaterial).opacity = Math.min(0.98, (1 - t * 0.42) * pulse);
         });
         const headBead = fireDragonRig.bodyBeads[0];
         fireDragonRig.mane.forEach((m, index) => {
@@ -1433,9 +1433,9 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
           m.position.z = headBead.position.z + 0.08;
           m.rotation.z = mAngle + Math.PI;
           m.scale.setScalar(0.48 + pulse * 0.82);
-          (m.material as THREE.MeshBasicMaterial).opacity = 0.52 + pulse * 0.48;
+          (m.material as MeshBasicMaterial).opacity = 0.52 + pulse * 0.48;
         });
-        const fPos = fireDragonRig.fireParticles.geometry.getAttribute("position") as THREE.BufferAttribute;
+        const fPos = fireDragonRig.fireParticles.geometry.getAttribute("position") as BufferAttribute;
         const fArr = fPos.array as Float32Array;
         for (let i = 0; i < fArr.length; i += 3) {
           fArr[i + 1] += 0.022 + seededNoise(i + 503) * 0.016;
@@ -1445,7 +1445,7 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
           }
         }
         fPos.needsUpdate = true;
-        (fireDragonRig.fireParticles.material as THREE.PointsMaterial).opacity = 0.68 * pulse * effectPower;
+        (fireDragonRig.fireParticles.material as PointsMaterial).opacity = 0.68 * pulse * effectPower;
       }
 
       if (swordRainRig) {
@@ -1456,9 +1456,9 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
             sword.group.position.y = 4.2 + seededNoise(Math.floor(sword.phase * 100)) * 1.8;
           }
           const impactGlow = sword.group.position.y < -1.8 ? Math.max(0, 1 - (sword.group.position.y + 3.6) / 1.8) * 0.6 : 0;
-          (sword.blade.material as THREE.MeshStandardMaterial).opacity = Math.min(0.96, (0.58 + impactGlow) * pulse);
-          (sword.glow.material as THREE.MeshBasicMaterial).opacity = (0.44 + impactGlow * 0.5) * pulse;
-          (sword.guard.material as THREE.MeshBasicMaterial).opacity = (0.7 + impactGlow) * pulse;
+          (sword.blade.material as MeshStandardMaterial).opacity = Math.min(0.96, (0.58 + impactGlow) * pulse);
+          (sword.glow.material as MeshBasicMaterial).opacity = (0.44 + impactGlow * 0.5) * pulse;
+          (sword.guard.material as MeshBasicMaterial).opacity = (0.7 + impactGlow) * pulse;
         });
       }
 
@@ -1476,7 +1476,7 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
           petal.rotation.x += (0.006 + seed * 0.004) * (index % 2 === 0 ? 1 : -1);
           petal.rotation.y += 0.009 + seed * 0.005;
           petal.rotation.z += 0.004 + seed * 0.003;
-          (petal.material as THREE.MeshBasicMaterial).opacity = (0.3 + pulse * 0.3) * (0.68 + seed * 0.32);
+          (petal.material as MeshBasicMaterial).opacity = (0.3 + pulse * 0.3) * (0.68 + seed * 0.32);
         });
       }
 
@@ -1486,26 +1486,26 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
         const sealScale = 0.18 + sealPulse * (1.62 + effectPower * 0.44);
         divineSealRig.group.scale.setScalar(sealScale);
         divineSealRig.group.rotation.z = time * 0.18;
-        (divineSealRig.core.material as THREE.MeshBasicMaterial).opacity = Math.min(0.96, sealPulse * effectPower * 0.88);
+        (divineSealRig.core.material as MeshBasicMaterial).opacity = Math.min(0.96, sealPulse * effectPower * 0.88);
         divineSealRig.core.scale.setScalar(1 + Math.sin(time * 3.6) * 0.14 * sealPulse);
         divineSealRig.rings.forEach((ring, index) => {
           ring.rotation.z += (0.01 + index * 0.003) * (index % 2 === 0 ? 1 : -1) * effectPower;
           ring.scale.setScalar(0.88 + sealPulse * (0.26 + index * 0.04));
-          (ring.material as THREE.MeshBasicMaterial).opacity = Math.max(0, (0.38 - index * 0.03) * sealPulse * effectPower);
+          (ring.material as MeshBasicMaterial).opacity = Math.max(0, (0.38 - index * 0.03) * sealPulse * effectPower);
         });
         divineSealRig.runes.forEach((rune, index) => {
           const angle = (index / 8) * Math.PI * 2 + time * 0.38;
           const radius = 1.56 + sealPulse * 0.22;
           rune.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius, 0);
           rune.rotation.z = angle + Math.PI / 2 + time * 0.2;
-          (rune.material as THREE.MeshBasicMaterial).opacity = (0.52 + sealPulse * 0.48) * (0.7 + seededNoise(index + 1401) * 0.3);
+          (rune.material as MeshBasicMaterial).opacity = (0.52 + sealPulse * 0.48) * (0.7 + seededNoise(index + 1401) * 0.3);
         });
         divineSealRig.beams.forEach((beam, index) => {
           const angle = (index / 8) * Math.PI * 2 + time * 0.18;
           beam.position.set(Math.cos(angle) * 2.4, Math.sin(angle) * 2.4, -0.1);
           beam.rotation.z = angle + Math.PI / 2;
           beam.scale.y = 0.72 + sealPulse * (0.52 + effectPower * 0.22) + Math.sin(time * 2.8 + index) * 0.06;
-          (beam.material as THREE.MeshBasicMaterial).opacity = Math.min(0.54, (0.22 + sealPulse * 0.34 * effectPower) * (0.6 + seededNoise(index + 1411) * 0.4));
+          (beam.material as MeshBasicMaterial).opacity = Math.min(0.54, (0.22 + sealPulse * 0.34 * effectPower) * (0.6 + seededNoise(index + 1411) * 0.4));
         });
       }
 
@@ -1528,8 +1528,8 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
       window.cancelAnimationFrame(frameId);
       window.removeEventListener("resize", resize);
       composer.dispose();
-      scene.traverse((object: THREE.Object3D) => {
-        if (object instanceof THREE.Mesh || object instanceof THREE.Points || object instanceof THREE.LineSegments) {
+      scene.traverse((object: Object3D) => {
+        if (object instanceof Mesh || object instanceof Points || object instanceof LineSegments) {
           object.geometry.dispose();
           const material = object.material;
           if (Array.isArray(material)) {

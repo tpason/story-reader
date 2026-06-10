@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
+import { AdditiveBlending, CanvasTexture, Mesh } from "three";
 import type { TimeOfDay } from "./sceneConfig";
 
 // Time-of-day tint for cloud procedural texture
@@ -13,7 +13,7 @@ const CLOUD_TINTS: Record<TimeOfDay, [number, number, number]> = {
   night: [175, 198, 242],   // cool blue-silver
 };
 
-function makeCloudTex(seed: number, tint: [number, number, number], size = 512): THREE.CanvasTexture {
+function makeCloudTex(seed: number, tint: [number, number, number], size = 512): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
@@ -42,7 +42,7 @@ function makeCloudTex(seed: number, tint: [number, number, number], size = 512):
     ctx.fillRect(0, 0, size, size);
   }
 
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
 type CloudDef = {
@@ -77,7 +77,7 @@ type FloatingCloudsProps = {
 };
 
 export function FloatingClouds({ timeOfDay = "day" }: FloatingCloudsProps) {
-  const meshRefs = useRef<(THREE.Mesh | null)[]>([]);
+  const meshRefs = useRef<(Mesh | null)[]>([]);
 
   const textures = useMemo(() => {
     const tint = CLOUD_TINTS[timeOfDay];
@@ -112,7 +112,7 @@ export function FloatingClouds({ timeOfDay = "day" }: FloatingCloudsProps) {
             transparent
             opacity={def.opacity}
             depthWrite={false}
-            blending={THREE.AdditiveBlending}
+            blending={AdditiveBlending}
           />
         </mesh>
       ))}

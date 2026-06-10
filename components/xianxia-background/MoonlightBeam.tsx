@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
+import { AdditiveBlending, CanvasTexture, MeshBasicMaterial } from "three";
 
 // Tall canvas gradient — bright at top (moon), fades downward + edges
-function makeMoonlightTex(w = 256, h = 512): THREE.CanvasTexture {
+function makeMoonlightTex(w = 256, h = 512): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width  = w;
   canvas.height = h;
@@ -31,11 +31,11 @@ function makeMoonlightTex(w = 256, h = 512): THREE.CanvasTexture {
   ctx.fillStyle = hGrad;
   ctx.fillRect(0, 0, w, h);
 
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
 // Moonlight shimmer reflection on ground/water level
-function makeMoonReflectTex(size = 256): THREE.CanvasTexture {
+function makeMoonReflectTex(size = 256): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
@@ -47,16 +47,16 @@ function makeMoonReflectTex(size = 256): THREE.CanvasTexture {
   grad.addColorStop(1,   "rgba(145, 165, 220, 0)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
 // Moon is at preset.celestialPos ≈ [1.6, 2.4, -8.5]
 // Beam planes at shallower z so they appear in-scene, roughly tracing the moon's direction
 export function MoonlightBeam() {
-  const mat1Ref  = useRef<THREE.MeshBasicMaterial>(null);
-  const mat2Ref  = useRef<THREE.MeshBasicMaterial>(null);
-  const mat3Ref  = useRef<THREE.MeshBasicMaterial>(null);
-  const reflRef  = useRef<THREE.MeshBasicMaterial>(null);
+  const mat1Ref  = useRef<MeshBasicMaterial>(null);
+  const mat2Ref  = useRef<MeshBasicMaterial>(null);
+  const mat3Ref  = useRef<MeshBasicMaterial>(null);
+  const reflRef  = useRef<MeshBasicMaterial>(null);
 
   const { beamTex, reflTex } = useMemo(() => ({
     beamTex: makeMoonlightTex(),
@@ -88,7 +88,7 @@ export function MoonlightBeam() {
           map={beamTex}
           transparent
           opacity={0.16}
-          blending={THREE.AdditiveBlending}
+          blending={AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
@@ -101,7 +101,7 @@ export function MoonlightBeam() {
           map={beamTex}
           transparent
           opacity={0.10}
-          blending={THREE.AdditiveBlending}
+          blending={AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
@@ -114,7 +114,7 @@ export function MoonlightBeam() {
           map={beamTex}
           transparent
           opacity={0.07}
-          blending={THREE.AdditiveBlending}
+          blending={AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
@@ -127,7 +127,7 @@ export function MoonlightBeam() {
           map={reflTex}
           transparent
           opacity={0.12}
-          blending={THREE.AdditiveBlending}
+          blending={AdditiveBlending}
           depthWrite={false}
         />
       </mesh>

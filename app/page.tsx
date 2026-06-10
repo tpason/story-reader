@@ -87,7 +87,7 @@ export default async function Home({ searchParams }: HomeProps) {
       <div className="page-wrap">
         <section className="library-header">
           <XianxiaPoetryColumn />
-          <div className="library-hero-shell" style={{backdropFilter: "blur(1px)"}}>
+          <div className="library-hero-shell">
             <HeroCloudClient />
             {/* SVG filter — organic cloud edge via feTurbulence displacement */}
             <svg aria-hidden="true" style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }}>
@@ -101,8 +101,8 @@ export default async function Home({ searchParams }: HomeProps) {
             <div className="xi-hero-cloud">
               <div className="xi-hero-cloud-bg" aria-hidden="true" />
               <div className="library-hero-content">
-                <p className="eyebrow" style={{ textAlign: "center", paddingLeft: "20px" }}>Linh quyển các</p>
-                <h1 className="library-title" style={{ textAlign: "center", }}>Tu tiên từng chương. Vươn tới đỉnh trời.</h1>
+                <p className="eyebrow library-hero-eyebrow">Linh quyển các</p>
+                <h1 className="library-title library-title-centered">Tu tiên từng chương. Vươn tới đỉnh trời.</h1>
                 <p className="library-subtitle">
                   Tán tu du đạo — đọc ngay, không cần nhập môn. Kết bái đạo hữu để định danh linh hồn và lưu hành trình tu luyện vào Thiên Thư.
                 </p>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import * as THREE from "three";
+import { AdditiveBlending, AmbientLight, BoxGeometry, CanvasTexture, DirectionalLight, DoubleSide, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, Scene, SRGBColorSpace, TorusGeometry, WebGLRenderer } from "three";
 
 type ThreeHomeLibraryStageProps = {
   storyCount: number;
@@ -41,26 +41,26 @@ function createBookTexture(index: number) {
   context.lineWidth = 3;
   context.strokeRect(11, 12, canvas.width - 22, canvas.height - 24);
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
   return texture;
 }
 
 function createFloatingBook(index: number) {
   const texture = createBookTexture(index);
-  const book = new THREE.Group();
-  const cover = new THREE.Mesh(
-    new THREE.BoxGeometry(0.42, 0.74, 0.08),
-    new THREE.MeshStandardMaterial({
+  const book = new Group();
+  const cover = new Mesh(
+    new BoxGeometry(0.42, 0.74, 0.08),
+    new MeshStandardMaterial({
       color: "#ffffff",
       map: texture,
       roughness: 0.48,
       metalness: 0.04
     })
   );
-  const pages = new THREE.Mesh(
-    new THREE.BoxGeometry(0.38, 0.7, 0.05),
-    new THREE.MeshStandardMaterial({
+  const pages = new Mesh(
+    new BoxGeometry(0.38, 0.7, 0.05),
+    new MeshStandardMaterial({
       color: "#fffefa",
       roughness: 0.62
     })
@@ -72,17 +72,17 @@ function createFloatingBook(index: number) {
 }
 
 function createShelfLine() {
-  const group = new THREE.Group();
+  const group = new Group();
   for (let index = 0; index < 3; index += 1) {
-    const line = new THREE.Mesh(
-      new THREE.PlaneGeometry(5.6 - index * 0.64, 0.018, 1, 1),
-      new THREE.MeshBasicMaterial({
+    const line = new Mesh(
+      new PlaneGeometry(5.6 - index * 0.64, 0.018, 1, 1),
+      new MeshBasicMaterial({
         color: index % 2 === 0 ? "#0066cc" : "#f5d75e",
         transparent: true,
         opacity: 0.2 - index * 0.04,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false,
-        side: THREE.DoubleSide
+        side: DoubleSide
       })
     );
     line.position.y = -1.1 - index * 0.24;
@@ -99,11 +99,11 @@ export function ThreeHomeLibraryStage({ storyCount, categoryCount }: ThreeHomeLi
     const host = hostRef.current;
     if (!host) return;
     const container = host;
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40);
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(34, 1, 0.1, 40);
     camera.position.set(0, 0, 6.8);
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
+    const renderer = new WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.domElement.className = "home-library-stage-canvas";
@@ -120,16 +120,16 @@ export function ThreeHomeLibraryStage({ storyCount, categoryCount }: ThreeHomeLi
       return { book, phase: seededNoise(index + 41) * Math.PI * 2, speed: 0.35 + seededNoise(index + 47) * 0.4 };
     });
 
-    const categoryRings = new THREE.Group();
+    const categoryRings = new Group();
     const ringCount = Math.min(8, Math.max(3, categoryCount));
     for (let index = 0; index < ringCount; index += 1) {
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(0.54 + index * 0.18, 0.005, 8, 96),
-        new THREE.MeshBasicMaterial({
+      const ring = new Mesh(
+        new TorusGeometry(0.54 + index * 0.18, 0.005, 8, 96),
+        new MeshBasicMaterial({
           color: index % 2 === 0 ? "#0066cc" : "#dd5b00",
           transparent: true,
           opacity: 0.09,
-          blending: THREE.AdditiveBlending,
+          blending: AdditiveBlending,
           depthWrite: false
         })
       );
@@ -142,9 +142,9 @@ export function ThreeHomeLibraryStage({ storyCount, categoryCount }: ThreeHomeLi
     const shelf = createShelfLine();
     scene.add(categoryRings, shelf);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 1.5);
-    const key = new THREE.DirectionalLight(0xffffff, 2);
-    const glow = new THREE.PointLight(0xf5d75e, 1.3, 7);
+    const ambient = new AmbientLight(0xffffff, 1.5);
+    const key = new DirectionalLight(0xffffff, 2);
+    const glow = new PointLight(0xf5d75e, 1.3, 7);
     key.position.set(2.2, 3.4, 4);
     glow.position.set(1.4, 0.8, 2.2);
     scene.add(ambient, key, glow);
@@ -193,8 +193,8 @@ export function ThreeHomeLibraryStage({ storyCount, categoryCount }: ThreeHomeLi
       window.cancelAnimationFrame(frameId);
       container.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("resize", resize);
-      scene.traverse((object: THREE.Object3D) => {
-        if (object instanceof THREE.Mesh) {
+      scene.traverse((object: Object3D) => {
+        if (object instanceof Mesh) {
           object.geometry.dispose();
           const material = object.material;
           if (Array.isArray(material)) {

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
+import { AdditiveBlending, CanvasTexture, Group, Sprite, SpriteMaterial } from "three";
 
 // Large, very-soft glow orbs that represent pools of immortal energy (linh khí).
 // They drift slowly and pulse — giving the scene an alive, breathing quality.
@@ -40,7 +40,7 @@ const ORB_COLORS: [number, number, number][] = [
   [ 26, 107,  90],   // jade-dark
 ];
 
-function makeGlowTex(r: number, g: number, b: number, size = 256): THREE.CanvasTexture {
+function makeGlowTex(r: number, g: number, b: number, size = 256): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
@@ -53,12 +53,12 @@ function makeGlowTex(r: number, g: number, b: number, size = 256): THREE.CanvasT
   grad.addColorStop(1,    `rgba(${r},${g},${b},0)`);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
 export function LingQiOrbs() {
-  const groupRef = useRef<THREE.Group>(null);
-  const orbData  = useRef<{ sprite: THREE.Sprite; def: OrbDef }[]>([]);
+  const groupRef = useRef<Group>(null);
+  const orbData  = useRef<{ sprite: Sprite; def: OrbDef }[]>([]);
 
   const textures = useMemo(
     () => ORB_COLORS.map(([r, g, b]) => makeGlowTex(r, g, b)),
@@ -70,14 +70,14 @@ export function LingQiOrbs() {
     if (!group) return;
 
     const built = ORBS.map((def, i) => {
-      const mat = new THREE.SpriteMaterial({
+      const mat = new SpriteMaterial({
         map:       textures[i],
         transparent: true,
         opacity:   def.baseOpacity,
-        blending:  THREE.AdditiveBlending,
+        blending:  AdditiveBlending,
         depthWrite: false,
       });
-      const sprite = new THREE.Sprite(mat);
+      const sprite = new Sprite(mat);
       sprite.position.set(def.x, def.y, def.z);
       sprite.scale.setScalar(def.scale);
       group.add(sprite);
@@ -87,7 +87,7 @@ export function LingQiOrbs() {
 
     return () => {
       built.forEach(({ sprite }) => {
-        (sprite.material as THREE.SpriteMaterial).dispose();
+        (sprite.material as SpriteMaterial).dispose();
         group.remove(sprite);
       });
     };
@@ -107,7 +107,7 @@ export function LingQiOrbs() {
       sprite.position.y = def.y + Math.sin(t * 0.12 + def.phase) * 0.22;
 
       // Opacity breathing
-      const mat = sprite.material as THREE.SpriteMaterial;
+      const mat = sprite.material as SpriteMaterial;
       mat.opacity = def.baseOpacity * (0.48 + 0.52 * Math.sin(t * def.freqOp + def.phase));
     });
   });

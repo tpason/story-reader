@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
+import { AdditiveBlending, CanvasTexture, MeshBasicMaterial, NormalBlending } from "three";
 import type { TimeOfDay } from "./sceneConfig";
 
 // Soft radial glow — used for sun corona and moon silver halo
-function makeGlowTex(r: number, g: number, b: number, size = 256): THREE.CanvasTexture {
+function makeGlowTex(r: number, g: number, b: number, size = 256): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
@@ -19,11 +19,11 @@ function makeGlowTex(r: number, g: number, b: number, size = 256): THREE.CanvasT
   grad.addColorStop(1,    `rgba(${r},${g},${b},0)`);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
 // Moon surface with subtle crater detail
-function makeMoonTex(size = 256): THREE.CanvasTexture {
+function makeMoonTex(size = 256): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
@@ -46,7 +46,7 @@ function makeMoonTex(size = 256): THREE.CanvasTexture {
     ctx.fillStyle = s;
     ctx.fillRect(0, 0, size, size);
   }
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
 // Per-preset appearance config
@@ -71,7 +71,7 @@ type SunMoonProps = {
 
 export function SunMoon({ timeOfDay, position }: SunMoonProps) {
   const cfg = CFG[timeOfDay];
-  const glowMatRef = useRef<THREE.MeshBasicMaterial>(null);
+  const glowMatRef = useRef<MeshBasicMaterial>(null);
 
   const { coreTex, glowTex } = useMemo(() => {
     const [r, g, b] = cfg.coreRGB;
@@ -105,7 +105,7 @@ export function SunMoon({ timeOfDay, position }: SunMoonProps) {
           map={glowTex}
           transparent
           opacity={cfg.glowBase}
-          blending={THREE.AdditiveBlending}
+          blending={AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
@@ -117,7 +117,7 @@ export function SunMoon({ timeOfDay, position }: SunMoonProps) {
           map={coreTex}
           transparent
           opacity={cfg.isMoon ? 0.90 : 0.96}
-          blending={cfg.isMoon ? THREE.NormalBlending : THREE.AdditiveBlending}
+          blending={cfg.isMoon ? NormalBlending : AdditiveBlending}
           depthWrite={false}
         />
       </mesh>

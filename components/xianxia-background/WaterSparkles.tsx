@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
+import { AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, DynamicDrawUsage, Points, ShaderMaterial } from "three";
 
 // Moonlight dancing on water — small bright points flickering on the lake surface.
 // Each particle pulses independently via ShaderMaterial size attribute.
@@ -29,7 +29,7 @@ const FS = `
   }
 `;
 
-function makeSharpDiscTex(size = 64): THREE.CanvasTexture {
+function makeSharpDiscTex(size = 64): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
@@ -40,11 +40,11 @@ function makeSharpDiscTex(size = 64): THREE.CanvasTexture {
   grad.addColorStop(1,   "rgba(255,255,255,0)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
 export function WaterSparkles() {
-  const pointsRef = useRef<THREE.Points>(null);
+  const pointsRef = useRef<Points>(null);
 
   const { geo, mat, sizeAttr, baseSizes, phases, discTex } = useMemo(() => {
     const discTex  = makeSharpDiscTex(64);
@@ -64,17 +64,17 @@ export function WaterSparkles() {
       phases[i]    = Math.random() * Math.PI * 2;
     }
 
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    const sizeAttr = new THREE.BufferAttribute(sizes, 1);
-    sizeAttr.setUsage(THREE.DynamicDrawUsage);
+    const geo = new BufferGeometry();
+    geo.setAttribute("position", new BufferAttribute(positions, 3));
+    const sizeAttr = new BufferAttribute(sizes, 1);
+    sizeAttr.setUsage(DynamicDrawUsage);
     geo.setAttribute("size", sizeAttr);
 
-    const mat = new THREE.ShaderMaterial({
+    const mat = new ShaderMaterial({
       uniforms:       { pointTexture: { value: discTex } },
       vertexShader:   VS,
       fragmentShader: FS,
-      blending:       THREE.AdditiveBlending,
+      blending:       AdditiveBlending,
       depthWrite:     false,
       transparent:    true,
     });

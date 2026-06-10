@@ -3,7 +3,7 @@
 import { useTexture } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
-import * as THREE from "three";
+import { ClampToEdgeWrapping, FrontSide, LinearFilter, Mesh, NormalBlending, SRGBColorSpace } from "three";
 
 type CloudBankProps = {
   sources: string[];
@@ -31,16 +31,16 @@ const CLOUD_LAYERS: CloudLayer[] = [
 ];
 
 export function DriftingCloudBank({ sources }: CloudBankProps) {
-  const refs = useRef<Array<THREE.Mesh | null>>([]);
+  const refs = useRef<Array<Mesh | null>>([]);
   const textures = useTexture(sources);
 
   const preparedTextures = useMemo(() => {
     return textures.map((texture) => {
-      texture.colorSpace = THREE.SRGBColorSpace;
-      texture.minFilter = THREE.LinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-      texture.wrapS = THREE.ClampToEdgeWrapping;
-      texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.colorSpace = SRGBColorSpace;
+      texture.minFilter = LinearFilter;
+      texture.magFilter = LinearFilter;
+      texture.wrapS = ClampToEdgeWrapping;
+      texture.wrapT = ClampToEdgeWrapping;
       return texture;
     });
   }, [textures]);
@@ -81,9 +81,9 @@ export function DriftingCloudBank({ sources }: CloudBankProps) {
               transparent
               opacity={layer.opacity}
               depthWrite={false}
-              blending={THREE.NormalBlending}
+              blending={NormalBlending}
               alphaTest={0.02}
-              side={THREE.FrontSide}
+              side={FrontSide}
             />
           </mesh>
         );

@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
+import { CanvasTexture, Mesh, NormalBlending } from "three";
 
-function makeShadowBlobTexture(): THREE.CanvasTexture {
+function makeShadowBlobTexture(): CanvasTexture {
   const size = 128;
   const canvas = document.createElement("canvas");
   canvas.width = size;
@@ -24,13 +24,13 @@ function makeShadowBlobTexture(): THREE.CanvasTexture {
   ctx.fillStyle = grad;
   ctx.fill();
   ctx.restore();
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
 export function CloudShadow() {
-  const mesh1 = useRef<THREE.Mesh>(null);
-  const mesh2 = useRef<THREE.Mesh>(null);
-  const [tex, setTex] = useState<THREE.CanvasTexture | null>(null);
+  const mesh1 = useRef<Mesh>(null);
+  const mesh2 = useRef<Mesh>(null);
+  const [tex, setTex] = useState<CanvasTexture | null>(null);
 
   useEffect(() => {
     const t = makeShadowBlobTexture();
@@ -58,7 +58,7 @@ export function CloudShadow() {
           map={tex}
           transparent
           opacity={0.07}
-          blending={THREE.NormalBlending}
+          blending={NormalBlending}
           depthWrite={false}
           color={0x000000}
         />
@@ -69,7 +69,7 @@ export function CloudShadow() {
           map={tex}
           transparent
           opacity={0.055}
-          blending={THREE.NormalBlending}
+          blending={NormalBlending}
           depthWrite={false}
           color={0x000000}
         />

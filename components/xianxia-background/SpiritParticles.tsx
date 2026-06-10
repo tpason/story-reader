@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
+import { AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, DynamicDrawUsage, Points, ShaderMaterial } from "three";
 
 const COUNT = 220;
 
@@ -29,7 +29,7 @@ const FS = `
   }
 `;
 
-function makeDiscTex(size = 128): THREE.CanvasTexture {
+function makeDiscTex(size = 128): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
@@ -41,7 +41,7 @@ function makeDiscTex(size = 128): THREE.CanvasTexture {
   grad.addColorStop(1,    "rgba(255,255,255,0)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
 // Xianxia linh khí palette
@@ -61,7 +61,7 @@ function pickColor(i: number): [number, number, number] {
 }
 
 export function SpiritParticles() {
-  const pointsRef = useRef<THREE.Points>(null);
+  const pointsRef = useRef<Points>(null);
 
   const { geo, mat, positions, velocities, baseSizes, phases, sizeAttr, discTex } = useMemo(() => {
     const discTex = makeDiscTex(128);
@@ -90,18 +90,18 @@ export function SpiritParticles() {
       colors[i3] = r; colors[i3 + 1] = g; colors[i3 + 2] = b;
     }
 
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    geo.setAttribute("color",    new THREE.BufferAttribute(colors, 3));
-    const sizeAttr = new THREE.BufferAttribute(sizes, 1);
-    sizeAttr.setUsage(THREE.DynamicDrawUsage);
+    const geo = new BufferGeometry();
+    geo.setAttribute("position", new BufferAttribute(positions, 3));
+    geo.setAttribute("color",    new BufferAttribute(colors, 3));
+    const sizeAttr = new BufferAttribute(sizes, 1);
+    sizeAttr.setUsage(DynamicDrawUsage);
     geo.setAttribute("size", sizeAttr);
 
-    const mat = new THREE.ShaderMaterial({
+    const mat = new ShaderMaterial({
       uniforms:       { pointTexture: { value: discTex } },
       vertexShader:   VS,
       fragmentShader: FS,
-      blending:       THREE.AdditiveBlending,
+      blending:       AdditiveBlending,
       depthWrite:     false,
       transparent:    true,
     });
@@ -117,7 +117,7 @@ export function SpiritParticles() {
 
   useFrame(({ clock }, delta) => {
     const t = clock.elapsedTime;
-    const posAttr = pointsRef.current?.geometry.attributes.position as THREE.BufferAttribute | undefined;
+    const posAttr = pointsRef.current?.geometry.attributes.position as BufferAttribute | undefined;
     if (!posAttr) return;
 
     for (let i = 0; i < COUNT; i++) {

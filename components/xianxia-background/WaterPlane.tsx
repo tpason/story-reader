@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
+import { AdditiveBlending, MeshBasicMaterial } from "three";
 import type { TimeOfDay } from "./sceneConfig";
 
 const WATER_TINTS: Record<TimeOfDay, string> = {
@@ -25,8 +25,8 @@ type WaterPlaneProps = {
 };
 
 export function WaterPlane({ timeOfDay, compact = false }: WaterPlaneProps) {
-  const shimmer1 = useRef<THREE.MeshBasicMaterial>(null);
-  const shimmer2 = useRef<THREE.MeshBasicMaterial>(null);
+  const shimmer1 = useRef<MeshBasicMaterial>(null);
+  const shimmer2 = useRef<MeshBasicMaterial>(null);
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
@@ -61,7 +61,7 @@ export function WaterPlane({ timeOfDay, compact = false }: WaterPlaneProps) {
           color="#c8962e"
           transparent
           opacity={0.055}
-          blending={THREE.AdditiveBlending}
+          blending={AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
@@ -74,7 +74,7 @@ export function WaterPlane({ timeOfDay, compact = false }: WaterPlaneProps) {
           color="#f0d06a"
           transparent
           opacity={0.032}
-          blending={THREE.AdditiveBlending}
+          blending={AdditiveBlending}
           depthWrite={false}
         />
       </mesh>

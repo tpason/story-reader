@@ -1,7 +1,8 @@
 "use client";
 
 import { useTexture } from "@react-three/drei";
-import * as THREE from "three";
+import type { Blending } from "three";
+import { FrontSide, LinearFilter, NormalBlending, SRGBColorSpace } from "three";
 
 type ImageLayerProps = {
   src: string;
@@ -10,7 +11,7 @@ type ImageLayerProps = {
   opacity?: number;
   transparent?: boolean;
   depthWrite?: boolean;
-  blendMode?: THREE.Blending;
+  blendMode?: Blending;
   alphaTest?: number;
 };
 
@@ -21,13 +22,13 @@ export function ImageLayer({
   opacity = 1,
   transparent = true,
   depthWrite = false,
-  blendMode = THREE.NormalBlending,
+  blendMode = NormalBlending,
   alphaTest = 0,
 }: ImageLayerProps) {
   const texture = useTexture(src, (tex) => {
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.minFilter = THREE.LinearFilter;
-    tex.magFilter = THREE.LinearFilter;
+    tex.colorSpace = SRGBColorSpace;
+    tex.minFilter = LinearFilter;
+    tex.magFilter = LinearFilter;
   });
 
   // texture.image is typed as {} in three@0.184 — cast to access pixel dimensions.
@@ -40,12 +41,12 @@ export function ImageLayer({
       <planeGeometry args={[aspect, 1]} />
       <meshBasicMaterial
         map={texture}
-        transparent={transparent || blendMode !== THREE.NormalBlending}
+        transparent={transparent || blendMode !== NormalBlending}
         opacity={opacity}
         depthWrite={depthWrite}
         blending={blendMode}
         alphaTest={alphaTest}
-        side={THREE.FrontSide}
+        side={FrontSide}
       />
     </mesh>
   );

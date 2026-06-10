@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
-import * as THREE from "three";
+import { AnimationClip, AnimationMixer, DoubleSide, Group, Material, Mesh, MeshStandardMaterial, Scene } from "three";
 
 // ── Stork (cò) ─────────────────────────────────────────────────────────────
 // 2 storks flying independently, original GLTF colors, deeper than cranes
@@ -39,32 +39,32 @@ type AnimalConfig = {
 };
 
 type AnimalInstance = {
-  group:  THREE.Group;
-  mixer:  THREE.AnimationMixer;
+  group:  Group;
+  mixer:  AnimationMixer;
   xRef:   { current: number };
   dirRef: { current: 1 | -1 };
   cfg:    AnimalConfig;
 };
 
 function setupAnimals(
-  gltf: { scene: THREE.Group; animations: THREE.AnimationClip[] },
+  gltf: { scene: Group; animations: AnimationClip[] },
   cfgs: AnimalConfig[],
   scale: number,
-  scene: THREE.Scene,
+  scene: Scene,
   keepOriginalColors = true,
 ): AnimalInstance[] {
   return cfgs.map(cfg => {
-    const group = gltf.scene.clone(true) as THREE.Group;
+    const group = gltf.scene.clone(true) as Group;
     group.scale.setScalar(scale);
 
     if (keepOriginalColors) {
       // Keep GLTF colors — only add DoubleSide so the mesh renders both faces
       // when the bird flips direction.
       group.traverse(node => {
-        if (node instanceof THREE.Mesh) {
-          const orig = node.material as THREE.Material;
-          const mat  = orig.clone() as THREE.MeshStandardMaterial;
-          mat.side = THREE.DoubleSide;
+        if (node instanceof Mesh) {
+          const orig = node.material as Material;
+          const mat  = orig.clone() as MeshStandardMaterial;
+          mat.side = DoubleSide;
           node.material = mat;
         }
       });
@@ -73,7 +73,7 @@ function setupAnimals(
     group.position.set(cfg.startX, cfg.y, cfg.z);
     group.rotation.y = cfg.speed < 0 ? -Math.PI / 2 : Math.PI / 2;
 
-    const mixer = new THREE.AnimationMixer(group);
+    const mixer = new AnimationMixer(group);
     mixer.clipAction(gltf.animations[0]).setDuration(cfg.dur).play();
 
     scene.add(group);
@@ -87,14 +87,14 @@ function setupAnimals(
   });
 }
 
-function cleanupAnimals(animals: AnimalInstance[], scene: THREE.Scene) {
+function cleanupAnimals(animals: AnimalInstance[], scene: Scene) {
   animals.forEach(({ group, mixer }) => {
     mixer.stopAllAction();
     scene.remove(group);
     group.traverse(node => {
-      if (node instanceof THREE.Mesh) {
+      if (node instanceof Mesh) {
         node.geometry.dispose();
-        (node.material as THREE.Material).dispose();
+        (node.material as Material).dispose();
       }
     });
   });
@@ -117,9 +117,9 @@ export function WildAnimals() {
       !horseGltf.animations.length
     ) return;
 
-    storksRef.current  = setupAnimals(storkGltf  as typeof storkGltf & { scene: THREE.Group },  STORK_CFG,  STORK_SCALE,  scene);
-    parrotsRef.current = setupAnimals(parrotGltf as typeof parrotGltf & { scene: THREE.Group }, PARROT_CFG, PARROT_SCALE, scene);
-    horsesRef.current  = setupAnimals(horseGltf  as typeof horseGltf & { scene: THREE.Group },  HORSE_CFG,  HORSE_SCALE,  scene);
+    storksRef.current  = setupAnimals(storkGltf  as typeof storkGltf & { scene: Group },  STORK_CFG,  STORK_SCALE,  scene);
+    parrotsRef.current = setupAnimals(parrotGltf as typeof parrotGltf & { scene: Group }, PARROT_CFG, PARROT_SCALE, scene);
+    horsesRef.current  = setupAnimals(horseGltf  as typeof horseGltf & { scene: Group },  HORSE_CFG,  HORSE_SCALE,  scene);
 
     return () => {
       cleanupAnimals(storksRef.current,  scene);

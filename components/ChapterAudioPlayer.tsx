@@ -54,6 +54,8 @@ export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoSta
   const hlsInstanceRef = useRef<HlsType | null>(null);
   const autoStartSeenRef = useRef(0);
   const playRequestedRef = useRef(false);
+  const timeoutIdsRef = useRef(new Set<number>());
+  const generationRunRef = useRef(0);
   const [readyHlsUrl, setReadyHlsUrl] = useState<string | null>(null);
   const [segmentAudioUrl, setSegmentAudioUrl] = useState<string | null>(null);
 
@@ -72,6 +74,25 @@ export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoSta
   // Stable ref for seekBy so MediaSession handlers always call the latest version.
   const seekByRef = useRef<(delta: number) => void>(() => undefined);
 
+  const clearManagedTimeout = useCallback((id: number) => {
+    window.clearTimeout(id);
+    timeoutIdsRef.current.delete(id);
+  }, []);
+
+  const clearManagedTimeouts = useCallback(() => {
+    timeoutIdsRef.current.forEach((id) => window.clearTimeout(id));
+    timeoutIdsRef.current.clear();
+  }, []);
+
+  const scheduleManagedTimeout = useCallback((callback: () => void, delayMs: number) => {
+    const id = window.setTimeout(() => {
+      timeoutIdsRef.current.delete(id);
+      callback();
+    }, delayMs);
+    timeoutIdsRef.current.add(id);
+    return id;
+  }, []);
+
   const [status, setStatus] = useState<"idle" | "loading" | "streaming" | "fallback" | "warming" | "generating" | "busy" | "segment" | "error">(
     audioUrl ? "loading" : "idle"
   );
@@ -86,10 +107,12 @@ export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoSta
   // Revoke pre-fetched blob URL on unmount.
   useEffect(() => {
     return () => {
+      generationRunRef.current += 1;
+      clearManagedTimeouts();
       const p = preloadedNextRef.current;
       if (p) URL.revokeObjectURL(p.blobUrl);
     };
-  }, []);
+  }, [clearManagedTimeouts]);
 
   // MediaSession metadata (track title for lock-screen / OS media overlay).
   useEffect(() => {
@@ -150,6 +173,7 @@ export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoSta
     const statusUrl = hlsUrl.replace(/\/master\.m3u8(?:$|\?)/, "");
 
     async function checkStatus() {
+      if (document.visibilityState === "hidden") return false;
       try {
         const response = await fetch(statusUrl, { cache: "no-store" });
         if (!response.ok || cancelled) return false;
@@ -179,17 +203,17 @@ export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoSta
         if (cancelled || remaining <= 0) return;
         const isReady = await checkStatus();
         if (isReady) return;
-        window.setTimeout(() => void poll(remaining - 1), 2500);
+        if (!cancelled) scheduleManagedTimeout(() => void poll(remaining - 1), 2500);
       };
-      window.setTimeout(() => void poll(8), 2500);
+      scheduleManagedTimeout(() => void poll(8), 2500);
     }
 
-    const timer = window.setTimeout(() => void warm(), 700);
+    const timer = scheduleManagedTimeout(() => void warm(), 700);
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
+      clearManagedTimeout(timer);
     };
-  }, [hlsUrl]);
+  }, [clearManagedTimeout, hlsUrl, scheduleManagedTimeout]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -280,6 +304,8 @@ export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoSta
   }, [audioUrl, playbackRate, primaryUrl, segmentAudioUrl]);
 
   const startSegmentGeneration = useCallback(async () => {
+    const runId = generationRunRef.current + 1;
+    generationRunRef.current = runId;
     setStatus("generating");
     setSegmentNotice(null);
     setSegmentProgress(null);
@@ -315,9 +341,28 @@ export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoSta
     }
 
     const poll = async (remaining: number) => {
+      if (generationRunRef.current !== runId) return;
       if (remaining <= 0) return;
+      if (document.visibilityState === "hidden") {
+        // Tab hidden — fetch at a slow rate without consuming `remaining` attempts,
+        // so we discover the first ready segment even with the screen off.
+        try {
+          const data = await fetchSegmentStatus({ waitMs: 0, afterReadyCount: 0 });
+          if (generationRunRef.current !== runId) return;
+          const firstReady = data.segments?.find((segment) => segment.url);
+          if (firstReady?.url) {
+            playSegment(firstReady.index, firstReady.url, true);
+            return;
+          }
+        } catch {
+          // ignore — reschedule below
+        }
+        scheduleManagedTimeout(() => void poll(remaining), 3000);
+        return;
+      }
       try {
         const data = await fetchSegmentStatus({ waitMs: 12000, afterReadyCount: 0 });
+        if (generationRunRef.current !== runId) return;
         if (data.busy) {
           setStatus("busy");
           setSegmentNotice(data.gate?.message ?? "Máy đang bận, vui lòng đợi rồi thử lại.");
@@ -331,11 +376,11 @@ export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoSta
       } catch {
         setStatus("generating");
       }
-      window.setTimeout(() => void poll(remaining - 1), 350);
+      if (generationRunRef.current === runId) scheduleManagedTimeout(() => void poll(remaining - 1), 350);
     };
 
     void poll(30);
-  }, [chapterId, fetchSegmentStatus, playSegment]);
+  }, [chapterId, fetchSegmentStatus, playSegment, scheduleManagedTimeout]);
 
   useEffect(() => {
     if (!autoStartToken || autoStartSeenRef.current === autoStartToken) return;
@@ -357,6 +402,12 @@ export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoSta
 
     let cancelled = false;
     const poll = async () => {
+      if (cancelled) return;
+      if (document.visibilityState === "hidden" && !segmentAutoplayRef.current) {
+        // Tab hidden and no active autoplay — defer at low rate instead of aborting.
+        scheduleManagedTimeout(() => void poll(), 3000);
+        return;
+      }
       try {
         const data = await fetchSegmentStatus({ waitMs: 12000, afterReadyCount: segmentStatus?.readyCount ?? 0 });
         if (cancelled) return;
@@ -366,19 +417,19 @@ export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoSta
           return;
         }
         if (!nextReady && data.processing) {
-          window.setTimeout(() => void poll(), audioRef.current?.paused ? 700 : 250);
+          scheduleManagedTimeout(() => void poll(), audioRef.current?.paused ? 700 : 250);
         }
       } catch {
-        if (!cancelled) window.setTimeout(() => void poll(), 1200);
+        if (!cancelled) scheduleManagedTimeout(() => void poll(), 1200);
       }
     };
 
-    const timer = window.setTimeout(() => void poll(), 900);
+    const timer = scheduleManagedTimeout(() => void poll(), 900);
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
+      clearManagedTimeout(timer);
     };
-  }, [chapterId, currentSegmentIndex, fetchSegmentStatus, playSegment, readySegmentAfter, segmentQueueActive, segmentStatus]);
+  }, [chapterId, clearManagedTimeout, currentSegmentIndex, fetchSegmentStatus, playSegment, readySegmentAfter, scheduleManagedTimeout, segmentQueueActive, segmentStatus]);
 
   function playNextReadySegment() {
     if (currentSegmentIndex === null) return false;
@@ -457,6 +508,8 @@ export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoSta
 
   function warmNextSegment() {
     if (!segmentQueueActive || currentSegmentIndex === null) return;
+    // Only skip warmup when hidden AND audio is not actively playing — never block during active playback.
+    if (document.visibilityState === "hidden" && (audioRef.current?.paused ?? true)) return;
     const nextSegment = segmentStatus?.segments?.find((s) => s.index > currentSegmentIndex && s.url);
 
     if (nextSegment?.url) {

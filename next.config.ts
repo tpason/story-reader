@@ -5,17 +5,15 @@ const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "tr
 
 const nextConfig: NextConfig = {
   typedRoutes: true,
+  experimental: {
+    cpus: 1
+  },
   images: {
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       { protocol: "https", hostname: "**" },
       { protocol: "http", hostname: "**" }
     ]
-  },
-  experimental: {
-    cpus: 1,
-    workerThreads: false,
-    staticGenerationMaxConcurrency: 1,
-    staticGenerationMinPagesPerWorker: 1
   }
 };
 

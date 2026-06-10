@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import * as THREE from "three";
+import { AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, Color, DoubleSide, Material, Mesh, MeshBasicMaterial, NormalBlending, Object3D, PerspectiveCamera, PlaneGeometry, Points, PointsMaterial, Scene, Sprite, SpriteMaterial, SRGBColorSpace, WebGLRenderer } from "three";
 
 type ThreePageMotionProps = {
   variant: "library" | "reader" | "error";
 };
 
 type FloatingPanel = {
-  mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  mesh: Mesh<PlaneGeometry, MeshBasicMaterial>;
   baseX: number;
   baseY: number;
   baseZ: number;
@@ -105,8 +105,8 @@ function createScrollPanelTexture(gold: string, jade: string, variant: ThreePage
   ctx.stroke();
   ctx.setLineDash([]);
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
   return texture;
 }
 
@@ -114,8 +114,8 @@ function createAmbientDust(gold: string, jade: string) {
   const count = 80;
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
-  const goldColor = new THREE.Color(gold);
-  const jadeColor = new THREE.Color(jade);
+  const goldColor = new Color(gold);
+  const jadeColor = new Color(jade);
 
   for (let i = 0; i < count; i++) {
     positions[i * 3] = (seededNoise(i * 3 + 1) - 0.5) * 10;
@@ -127,19 +127,19 @@ function createAmbientDust(gold: string, jade: string) {
     colors[i * 3 + 2] = col.b;
   }
 
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  const geo = new BufferGeometry();
+  geo.setAttribute("position", new BufferAttribute(positions, 3));
+  geo.setAttribute("color", new BufferAttribute(colors, 3));
   return {
-    points: new THREE.Points(
+    points: new Points(
       geo,
-      new THREE.PointsMaterial({
+      new PointsMaterial({
         size: 0.022,
         sizeAttenuation: true,
         vertexColors: true,
         transparent: true,
         opacity: 0.32,
-        blending: THREE.AdditiveBlending,
+        blending: AdditiveBlending,
         depthWrite: false,
       })
     ),
@@ -147,7 +147,7 @@ function createAmbientDust(gold: string, jade: string) {
   };
 }
 
-function makeMistTexture(): THREE.CanvasTexture {
+function makeMistTexture(): CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 512;
   const ctx = canvas.getContext("2d")!;
@@ -163,7 +163,7 @@ function makeMistTexture(): THREE.CanvasTexture {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 512, 512);
   }
-  return new THREE.CanvasTexture(canvas);
+  return new CanvasTexture(canvas);
 }
 
 function createPanels(variant: ThreePageMotionProps["variant"]) {
@@ -174,17 +174,17 @@ function createPanels(variant: ThreePageMotionProps["variant"]) {
   for (let i = 0; i < config.count; i++) {
     const width = variant === "reader" ? 0.58 : 0.5 + seededNoise(i + 2) * 0.22;
     const height = variant === "reader" ? 0.82 : 0.66 + seededNoise(i + 7) * 0.26;
-    const geo = new THREE.PlaneGeometry(width, height, 8, 8);
+    const geo = new PlaneGeometry(width, height, 8, 8);
     const isAccent = i % 5 === 0;
-    const mat = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(isAccent ? config.jade : "#f8eed2"),
+    const mat = new MeshBasicMaterial({
+      color: new Color(isAccent ? config.jade : "#f8eed2"),
       map: texture,
       transparent: true,
       opacity: config.opacity,
       depthWrite: false,
-      side: THREE.DoubleSide
+      side: DoubleSide
     });
-    const mesh = new THREE.Mesh(geo, mat);
+    const mesh = new Mesh(geo, mat);
     const column = i % 6;
     const row = Math.floor(i / 6);
     const baseX = -4.8 + column * 1.92 + seededNoise(i + 13) * 0.48;
@@ -210,11 +210,11 @@ export function ThreePageMotion({ variant }: ThreePageMotionProps) {
     if (!host) return;
     const el: HTMLDivElement = host;
     const config = VARIANT_CONFIG[variant];
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(36, 1, 0.1, 100);
     camera.position.set(0, 0, config.cameraZ);
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
+    const renderer = new WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.4));
     renderer.domElement.className = "page-webgl-canvas";
@@ -225,16 +225,16 @@ export function ThreePageMotion({ variant }: ThreePageMotionProps) {
     const panels = createPanels(variant);
 
     // 3 drifting mist sprites
-    const mistSprites: { sprite: THREE.Sprite; dx: number }[] = [];
+    const mistSprites: { sprite: Sprite; dx: number }[] = [];
     for (let i = 0; i < 4; i++) {
-      const mat = new THREE.SpriteMaterial({
+      const mat = new SpriteMaterial({
         map: mistTexture,
         transparent: true,
         opacity: 0.04 + seededNoise(i + 300) * 0.03,
-        blending: THREE.NormalBlending,
+        blending: NormalBlending,
         depthWrite: false,
       });
-      const sprite = new THREE.Sprite(mat);
+      const sprite = new Sprite(mat);
       sprite.scale.set(6 + seededNoise(i + 301) * 4, 1.6 + seededNoise(i + 302) * 1.4, 1);
       sprite.position.set(
         (seededNoise(i + 303) - 0.5) * 12,
@@ -282,7 +282,7 @@ export function ThreePageMotion({ variant }: ThreePageMotionProps) {
       });
 
       // Dust particles drift upward slowly
-      const posAttr = dust.points.geometry.getAttribute("position") as THREE.BufferAttribute;
+      const posAttr = dust.points.geometry.getAttribute("position") as BufferAttribute;
       const pos = posAttr.array as Float32Array;
       for (let i = 0; i < pos.length; i += 3) {
         const pi = i / 3;
@@ -312,14 +312,14 @@ export function ThreePageMotion({ variant }: ThreePageMotionProps) {
       window.removeEventListener("resize", resize);
       window.removeEventListener("pointermove", onPointerMove);
       mistTexture.dispose();
-      scene.traverse((obj: THREE.Object3D) => {
-        if (obj instanceof THREE.Mesh || obj instanceof THREE.Points) {
+      scene.traverse((obj: Object3D) => {
+        if (obj instanceof Mesh || obj instanceof Points) {
           obj.geometry.dispose();
           const mat = obj.material;
-          if ((mat as THREE.MeshBasicMaterial).map) (mat as THREE.MeshBasicMaterial).map!.dispose();
-          (mat as THREE.Material).dispose();
+          if ((mat as MeshBasicMaterial).map) (mat as MeshBasicMaterial).map!.dispose();
+          (mat as Material).dispose();
         }
-        if (obj instanceof THREE.Sprite) {
+        if (obj instanceof Sprite) {
           obj.material.map?.dispose();
           obj.material.dispose();
         }

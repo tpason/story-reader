@@ -2,7 +2,8 @@
 
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
-import * as THREE from "three";
+import type { Blending } from "three";
+import { Group, NormalBlending } from "three";
 import { ImageLayer } from "./ImageLayer";
 
 type MovingLayerProps = {
@@ -13,7 +14,7 @@ type MovingLayerProps = {
   speedX?: number;
   speedY?: number;
   drift?: number;
-  blendMode?: THREE.Blending;
+  blendMode?: Blending;
   alphaTest?: number;
 };
 
@@ -25,10 +26,10 @@ export function MovingLayer({
   speedX = 0.02,
   speedY = 0,
   drift = 0.05,
-  blendMode = THREE.NormalBlending,
+  blendMode = NormalBlending,
   alphaTest = 0,
 }: MovingLayerProps) {
-  const groupRef = useRef<THREE.Group>(null);
+  const groupRef = useRef<Group>(null);
   const initialY = position[1];
 
   useFrame((state, delta) => {
