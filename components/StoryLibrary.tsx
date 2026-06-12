@@ -2,17 +2,18 @@
 
 import { BookOpen, BookOpenCheck, ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useMemo } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { CursorPage, StorySummary } from "@/lib/types";
-import { fetchReadingProgress } from "@/lib/api-client";
 import { StoryCover } from "@/components/StoryCover";
 import { storyHref } from "@/lib/urls";
 import { CultivationPanel } from "@/components/CultivationPanel";
 import { storyDisplayDescription, storyCategoryLabel } from "@/lib/story-description";
-import { mergeHistoryItems, syncFollowedStories } from "@/lib/store";
-import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
+import { useAppSelector } from "@/lib/store-hooks";
+import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
+import { useStoryLibraryAdminEdit, type AdminStoryListEditField, type AdminStoryListEditState } from "@/hooks/useStoryLibraryAdminEdit";
+import { useStoryLibraryFeed } from "@/hooks/useStoryLibraryFeed";
 
 type StoryLibraryProps = {
   initialPage: CursorPage<StorySummary>;
@@ -28,29 +29,6 @@ type StoryLibraryProps = {
     sort?: string;
   };
 };
-
-type AdminStoryListEditField = "storyTitle" | "author" | "description";
-type AdminStoryListEditState = {
-  storyId: string;
-  field: AdminStoryListEditField;
-  value: string;
-} | null;
-
-function apiUrl(cursor: string | null, query: StoryLibraryProps["query"]) {
-  const params = new URLSearchParams();
-  params.set("limit", "24");
-  if (cursor) params.set("cursor", cursor);
-  if (query.q) params.set("q", query.q);
-  if (query.hot) params.set("hot", query.hot);
-  if (query.completed) params.set("completed", query.completed);
-  if (query.category) params.set("category", query.category);
-  if (query.minChapters) params.set("minChapters", query.minChapters);
-  if (query.maxChapters) params.set("maxChapters", query.maxChapters);
-  if (query.hasPolished) params.set("hasPolished", query.hasPolished);
-  if (query.hasAudio) params.set("hasAudio", query.hasAudio);
-  if (query.sort) params.set("sort", query.sort);
-  return `/api/stories?${params.toString()}`;
-}
 
 function updateCardTilt(event: ReactPointerEvent<HTMLElement>) {
   const card = event.currentTarget;
@@ -234,71 +212,16 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
 
 export function StoryLibrary({ initialPage, query }: StoryLibraryProps) {
   const queryClient = useQueryClient();
-  const [items, setItems] = useState(initialPage.items);
-  const [nextCursor, setNextCursor] = useState(initialPage.nextCursor);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const dispatch = useAppDispatch();
+  const { items, setItems, nextCursor, loading, error, sentinelRef } = useStoryLibraryFeed(initialPage, query);
   const currentUser = useAppSelector((state) => state.identity.user);
   const history = useAppSelector((state) => state.history.items);
-  const [adminEdit, setAdminEdit] = useState<AdminStoryListEditState>(null);
-  const [adminEditSaving, setAdminEditSaving] = useState(false);
-  const [adminEditError, setAdminEditError] = useState<string | null>(null);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const adminEditSavingRef = useRef(false);
-  adminEditSavingRef.current = adminEditSaving;
-
-  const startAdminEdit = useCallback((story: StorySummary, field: AdminStoryListEditField, value: string | null | undefined) => {
-    if (!currentUser?.isAdmin || adminEditSavingRef.current) return;
-    setAdminEdit({ storyId: story.id, field, value: value ?? "" });
-    setAdminEditError(null);
-  }, [currentUser]);
-
-  useEffect(() => {
-    setItems(initialPage.items);
-    setNextCursor(initialPage.nextCursor);
-    setError(null);
-  }, [initialPage]);
-
-  useEffect(() => {
-    if (items.length > 0) dispatch(syncFollowedStories(items));
-  }, [dispatch, items]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchReadingProgress(controller.signal)
-      .then((progressItems) => dispatch(mergeHistoryItems(progressItems)))
-      .catch(() => undefined);
-    return () => controller.abort();
-  }, [dispatch]);
-
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel || !nextCursor) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting || loading) return;
-        setLoading(true);
-        fetch(apiUrl(nextCursor, query))
-          .then((response) => {
-            if (!response.ok) throw new Error("Không tải được danh sách truyện");
-            return response.json() as Promise<CursorPage<StorySummary>>;
-          })
-          .then((page) => {
-            setItems((current) => [...current, ...page.items]);
-            setNextCursor(page.nextCursor);
-            setError(null);
-          })
-          .catch((fetchError: Error) => setError(fetchError.message))
-          .finally(() => setLoading(false));
-      },
-      { rootMargin: "180px 0px" }
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [loading, nextCursor, query]);
+  const { adminEdit, adminEditSaving, adminEditError, setAdminEdit, startAdminEdit, saveAdminEdit } = useStoryLibraryAdminEdit({
+    isAdmin: !!currentUser?.isAdmin,
+    items,
+    setItems,
+    queryClient
+  });
+  useReadingProgressSync();
 
   const historyByStory = useMemo(() => new Map(history.map((item) => [item.storyId, item])), [history]);
   const recentItems = useMemo(() => history.slice(0, 6), [history]);
@@ -313,55 +236,6 @@ export function StoryLibrary({ initialPage, query }: StoryLibraryProps) {
         </div>
       </div>
     );
-  }
-
-  async function saveAdminEdit() {
-    if (!adminEdit || !currentUser?.isAdmin) return;
-    setAdminEditSaving(true);
-    setAdminEditError(null);
-    const previousItems = items;
-    setItems((current) =>
-      current.map((story) =>
-        story.id === adminEdit.storyId
-          ? {
-              ...story,
-              title: adminEdit.field === "storyTitle" ? adminEdit.value : story.title,
-              author: adminEdit.field === "author" ? adminEdit.value : story.author,
-              description: adminEdit.field === "description" ? adminEdit.value : story.description
-            }
-          : story
-      )
-    );
-    const editing = adminEdit;
-    setAdminEdit(null);
-
-    try {
-      const response = await fetch("/api/admin/reader-content", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          storyId: editing.storyId,
-          ...(editing.field === "storyTitle" ? { storyTitle: editing.value } : {}),
-          ...(editing.field === "author" ? { author: editing.value } : {}),
-          ...(editing.field === "description" ? { description: editing.value } : {})
-        })
-      });
-      if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(data?.error ?? "Không lưu được chỉnh sửa.");
-      }
-      const refreshedResponse = await fetch(`/api/stories/${editing.storyId}`, { cache: "no-store" });
-      if (refreshedResponse.ok) {
-        const refreshed = (await refreshedResponse.json()) as StorySummary;
-        setItems((current) => current.map((story) => (story.id === refreshed.id ? refreshed : story)));
-        queryClient.setQueryData(["story", refreshed.id], refreshed);
-      }
-    } catch (saveError) {
-      setItems(previousItems);
-      setAdminEditError(saveError instanceof Error ? saveError.message : "Không lưu được chỉnh sửa.");
-    } finally {
-      setAdminEditSaving(false);
-    }
   }
 
   return (

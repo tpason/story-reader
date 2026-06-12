@@ -10608,3 +10608,72 @@ button:focus-visible .bookmark-jade-icon {
     opacity: 1;
   }
 }
+
+/* Mobile reader low-power mode.
+   Chapter detail still had several infinite paint-heavy effects after WebGL was
+   disabled: conic border spins, blur/backdrop filters, orbital audio accents,
+   skill button auras, and pulsing background-audio rings. On mobile, keep the
+   hierarchy static so reading does not keep the GPU busy while the page is idle. */
+@media (max-width: 839px) {
+  .reader-selection-actions,
+  .reader-audio-jump,
+  .reader-continue-fab-active,
+  .reader-continue-fab-active::after,
+  .reader-content::before,
+  .audio-panel,
+  .audio-panel::before,
+  .chapter-audio-aura,
+  .chapter-audio-orbit,
+  .chapter-audio-wave,
+  .skill-caster::before,
+  .skill-caster::after,
+  .skill-button::before,
+  .skill-button-aura,
+  .skill-button-glow,
+  .skill-spark,
+  .background-audio-pulse,
+  .comment-editor-shell::before,
+  .comment-editor-shell::after,
+  .chapter-comments::before {
+    animation: none !important;
+  }
+
+  .reader-selection-actions,
+  .reader-audio-jump,
+  .reader-swipe-notice,
+  .background-audio-panel,
+  .reader-mobile-sheet-panel {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .reader-continue-fab-active {
+    background:
+      var(--reader-bg) padding-box,
+      linear-gradient(135deg, rgba(216, 166, 63, 0.72), rgba(85, 199, 255, 0.46), rgba(216, 166, 63, 0.72)) border-box !important;
+    transform: none !important;
+  }
+
+  .reader-audio-jump,
+  .reader-selection-actions {
+    background:
+      color-mix(in srgb, var(--reader-bg) 92%, white 8%) padding-box,
+      linear-gradient(135deg, rgba(216, 166, 63, 0.56), rgba(91, 199, 255, 0.38)) border-box !important;
+  }
+
+  .chapter-audio-orbit,
+  .chapter-audio-aura,
+  .skill-button-aura,
+  .skill-button-glow,
+  .skill-spark,
+  .background-audio-pulse {
+    opacity: 0 !important;
+  }
+
+  .skill-button::before,
+  .skill-caster::before,
+  .skill-caster::after,
+  .chapter-comments::before {
+    opacity: 0 !important;
+  }
+}

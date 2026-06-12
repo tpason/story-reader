@@ -46,6 +46,14 @@ function isMobileSkillDevice() {
   return isMobile || (typeof window !== "undefined" && window.matchMedia("(max-width: 839px)").matches);
 }
 
+function isMobileSkillPollingEnabled() {
+  try {
+    return window.localStorage.getItem("reader:mobile-skill-poll") === "true";
+  } catch {
+    return false;
+  }
+}
+
 export function SkillEffectLayer({ storyId, chapterId }: { storyId: string; chapterId: string }) {
   const [effects, setEffects] = useState<EffectState[]>([]);
   const latestSeenRef = useRef(new Date().toISOString());
@@ -78,9 +86,10 @@ export function SkillEffectLayer({ storyId, chapterId }: { storyId: string; chap
   }, []);
 
   useEffect(() => {
+    const cleanupTimers = cleanupTimersRef.current;
     return () => {
-      cleanupTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-      cleanupTimersRef.current.clear();
+      cleanupTimers.forEach((timer) => window.clearTimeout(timer));
+      cleanupTimers.clear();
     };
   }, []);
 
@@ -88,6 +97,12 @@ export function SkillEffectLayer({ storyId, chapterId }: { storyId: string; chap
     let cancelled = false;
     const compactQuery = window.matchMedia("(max-width: 839px)");
     let timer: number | null = null;
+
+    if ((compactQuery.matches || isMobileSkillDevice()) && !isMobileSkillPollingEnabled()) {
+      return () => {
+        cancelled = true;
+      };
+    }
 
     async function poll() {
       if (document.visibilityState === "hidden") return;

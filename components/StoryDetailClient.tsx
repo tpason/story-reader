@@ -4,7 +4,6 @@ import { BookOpenCheck, Clock3, Sparkles } from "lucide-react";
 import { CharMapBlock } from "@/components/CharMapBlock";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MotionFX } from "@/components/MotionFX";
 import { ReaderLogo } from "@/components/ReaderLogo";
@@ -12,14 +11,15 @@ import { StoryCover } from "@/components/StoryCover";
 import { UserIdentity } from "@/components/UserIdentity";
 import { FollowButton } from "@/components/FollowButton";
 import { NotificationBell } from "@/components/NotificationBell";
-import { fetchReadingProgress } from "@/lib/api-client";
 import { storyDisplayDescription } from "@/lib/story-description";
-import type { ChapterSummary, CursorPage, StorySummary } from "@/lib/types";
+import type { ChapterSummary, StorySummary } from "@/lib/types";
 import { storyHref } from "@/lib/urls";
-import { mergeHistoryItems } from "@/lib/store";
-import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
+import { useAppSelector } from "@/lib/store-hooks";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
-import { ChapterList, CHAPTER_PAGE_SIZE } from "@/components/reader/ChapterList";
+import { ChapterList } from "@/components/reader/ChapterList";
+import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
+import { useStoryChapterPagination } from "@/hooks/useStoryChapterPagination";
+import { useStoryDetailAdminEdit } from "@/hooks/useStoryDetailAdminEdit";
 
 const ThreeStoryStage = dynamic(() => import("@/components/ThreeStoryStage").then((mod) => mod.ThreeStoryStage), {
   ssr: false
@@ -32,165 +32,41 @@ type StoryDetailClientProps = {
   recommendations: StorySummary[];
 };
 
-type AdminStoryEditField = "storyTitle" | "author" | "description";
-type AdminStoryEditState = { field: AdminStoryEditField; value: string } | null;
-
 export function StoryDetailClient({ story, chapters, totalChapters, recommendations }: StoryDetailClientProps) {
-  const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const decorativeWebglEnabled = useDecorativeWebglEnabled();
   const currentUser = useAppSelector((state) => state.identity.user);
-  const [currentStory, setCurrentStory] = useState(story);
-  const [chapterPage, setChapterPage] = useState(chapters);
-  const [chapterPageStart, setChapterPageStart] = useState(chapters[0]?.chapterNumber ?? 1);
-  const [isLoadingChapters, setIsLoadingChapters] = useState(false);
-  const [chapterLoadError, setChapterLoadError] = useState<string | null>(null);
-  const [chapterSearch, setChapterSearch] = useState("");
-  const [activeChapterSearch, setActiveChapterSearch] = useState("");
-  const [adminEdit, setAdminEdit] = useState<AdminStoryEditState>(null);
-  const [adminEditSaving, setAdminEditSaving] = useState(false);
-  const [adminEditError, setAdminEditError] = useState<string | null>(null);
+  const { currentStory, adminEdit, adminEditSaving, adminEditError, setAdminEdit, startAdminEdit, saveAdminEdit } = useStoryDetailAdminEdit({
+    story,
+    isAdmin: !!currentUser?.isAdmin,
+    queryClient
+  });
+  const {
+    chapterPage,
+    chapterPageStart,
+    isLoadingChapters,
+    chapterLoadError,
+    chapterSearch,
+    activeChapterSearch,
+    pageFirstChapter,
+    pageLastChapter,
+    isSearchingChapters,
+    hasPreviousChapterPage,
+    hasNextChapterPage,
+    chapterRangeLabel,
+    currentChapterPage,
+    totalChapterPages,
+    setChapterSearch,
+    loadChapterPage,
+    searchChapterList,
+    clearChapterSearch
+  } = useStoryChapterPagination({ storyId: currentStory.id, initialChapters: chapters, totalChapters });
   const history = useAppSelector((state) => state.history.items.find((item) => item.storyId === currentStory.id));
   const firstChapter = chapterPage[0] ?? null;
   const continueChapter = history?.chapterNumber ?? firstChapter?.chapterNumber ?? null;
   const maxReadChapter = history?.maxReadChapterNumber ?? 0;
   const updatedLabel = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(currentStory.updatedAt));
-  const pageFirstChapter = chapterPage[0]?.chapterNumber ?? 0;
-  const pageLastChapter = chapterPage.at(-1)?.chapterNumber ?? 0;
-  const isSearchingChapters = Boolean(activeChapterSearch);
-  const hasPreviousChapterPage = pageFirstChapter > 1;
-  const hasNextChapterPage = !isSearchingChapters && pageLastChapter > 0 && pageLastChapter < totalChapters;
-  const chapterRangeLabel = isSearchingChapters ? `${chapterPage.length} kết quả` : chapterPage.length > 0 ? `${pageFirstChapter}-${pageLastChapter}/${totalChapters}` : `0/${totalChapters}`;
-  const currentChapterPage = useMemo(() => Math.max(1, Math.ceil(Math.max(1, pageFirstChapter) / CHAPTER_PAGE_SIZE)), [pageFirstChapter]);
-  const totalChapterPages = Math.max(1, Math.ceil(Math.max(0, totalChapters) / CHAPTER_PAGE_SIZE));
-
-  useEffect(() => {
-    fetchReadingProgress()
-      .then((progressItems) => dispatch(mergeHistoryItems(progressItems)))
-      .catch(() => undefined);
-  }, [dispatch]);
-
-  useEffect(() => {
-    setCurrentStory(story);
-  }, [story]);
-
-  function startAdminEdit(field: AdminStoryEditField, value: string | null | undefined) {
-    if (!currentUser?.isAdmin || adminEditSaving) return;
-    setAdminEdit({ field, value: value ?? "" });
-    setAdminEditError(null);
-  }
-
-  async function saveAdminEdit() {
-    if (!adminEdit || !currentUser?.isAdmin) return;
-    setAdminEditSaving(true);
-    setAdminEditError(null);
-    const previousStory = currentStory;
-    const optimistic = {
-      ...currentStory,
-      title: adminEdit.field === "storyTitle" ? adminEdit.value : currentStory.title,
-      author: adminEdit.field === "author" ? adminEdit.value : currentStory.author,
-      description: adminEdit.field === "description" ? adminEdit.value : currentStory.description
-    };
-    setCurrentStory(optimistic);
-    setAdminEdit(null);
-
-    try {
-      const response = await fetch("/api/admin/reader-content", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          storyId: currentStory.id,
-          ...(adminEdit.field === "storyTitle" ? { storyTitle: adminEdit.value } : {}),
-          ...(adminEdit.field === "author" ? { author: adminEdit.value } : {}),
-          ...(adminEdit.field === "description" ? { description: adminEdit.value } : {})
-        })
-      });
-      if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(data?.error ?? "Không lưu được chỉnh sửa.");
-      }
-      const refreshedResponse = await fetch(`/api/stories/${currentStory.id}`, { cache: "no-store" });
-      if (refreshedResponse.ok) {
-        const refreshed = (await refreshedResponse.json()) as StorySummary;
-        setCurrentStory(refreshed);
-        queryClient.setQueryData(["story", currentStory.id], refreshed);
-      }
-    } catch (error) {
-      setCurrentStory(previousStory);
-      setAdminEditError(error instanceof Error ? error.message : "Không lưu được chỉnh sửa.");
-    } finally {
-      setAdminEditSaving(false);
-    }
-  }
-
-  async function loadChapterPage(targetChapter: number) {
-    const cleanTarget = Math.min(Math.max(1, Math.floor(targetChapter)), Math.max(1, totalChapters));
-    setIsLoadingChapters(true);
-    setChapterLoadError(null);
-    try {
-      const params = new URLSearchParams({
-        chapterNumber: String(cleanTarget),
-        limit: String(CHAPTER_PAGE_SIZE)
-      });
-      const response = await fetch(`/api/stories/${currentStory.id}/chapters?${params.toString()}`);
-      if (!response.ok) throw new Error("Không thể tải danh sách chương.");
-      const data = (await response.json()) as CursorPage<ChapterSummary>;
-      setChapterPage(data.items);
-      setChapterPageStart(data.items[0]?.chapterNumber ?? cleanTarget);
-      setActiveChapterSearch("");
-      window.requestAnimationFrame(() => {
-        document.getElementById("story-chapters")?.scrollIntoView({ block: "start", behavior: "smooth" });
-      });
-    } catch (error) {
-      setChapterLoadError(error instanceof Error ? error.message : "Không thể tải danh sách chương.");
-    } finally {
-      setIsLoadingChapters(false);
-    }
-  }
-
-  async function searchChapterList(event?: FormEvent<HTMLFormElement>) {
-    event?.preventDefault();
-    const searchText = chapterSearch.trim();
-    if (!searchText) {
-      setActiveChapterSearch("");
-      await loadChapterPage(pageFirstChapter || 1);
-      return;
-    }
-
-    const chapterNumber = Number(searchText);
-    if (/^\d+$/.test(searchText) && Number.isFinite(chapterNumber)) {
-      await loadChapterPage(chapterNumber);
-      return;
-    }
-
-    setIsLoadingChapters(true);
-    setChapterLoadError(null);
-    try {
-      const params = new URLSearchParams({
-        q: searchText,
-        limit: String(CHAPTER_PAGE_SIZE)
-      });
-      const response = await fetch(`/api/stories/${currentStory.id}/chapters?${params.toString()}`);
-      if (!response.ok) throw new Error("Không thể tìm chương.");
-      const data = (await response.json()) as CursorPage<ChapterSummary>;
-      setChapterPage(data.items);
-      setChapterPageStart(data.items[0]?.chapterNumber ?? 1);
-      setActiveChapterSearch(searchText);
-      window.requestAnimationFrame(() => {
-        document.getElementById("story-chapters")?.scrollIntoView({ block: "start", behavior: "smooth" });
-      });
-    } catch (error) {
-      setChapterLoadError(error instanceof Error ? error.message : "Không thể tìm chương.");
-    } finally {
-      setIsLoadingChapters(false);
-    }
-  }
-
-  async function clearChapterSearch() {
-    setChapterSearch("");
-    setActiveChapterSearch("");
-    await loadChapterPage(1);
-  }
+  useReadingProgressSync();
 
   return (
     <main className="app-shell story-detail-shell">

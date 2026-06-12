@@ -97,6 +97,12 @@ const AUTO_SCROLL_READ_PAUSE_MS = 4200;
 const AUTO_SCROLL_STEP_DURATION_MS = 620;
 const COMPACT_VIEWPORT_QUERY = "(max-width: 839px)";
 const READER_PARAGRAPH_POSITION_PREFIX = "reader:paragraph-position";
+const MOBILE_PROGRESS_COMMIT_INTERVAL_MS = 900;
+const DESKTOP_PROGRESS_COMMIT_INTERVAL_MS = 250;
+const MOBILE_LOCAL_PROGRESS_PERSIST_MS = 5000;
+const DESKTOP_LOCAL_PROGRESS_PERSIST_MS = 1500;
+const MOBILE_REMOTE_PROGRESS_PERSIST_MS = 20000;
+const DESKTOP_REMOTE_PROGRESS_PERSIST_MS = 5000;
 
 const READER_COMFORT_PRESETS = {
   focus: {
@@ -240,11 +246,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [adminEditSaving, setAdminEditSaving] = useState(false);
   const [adminEditError, setAdminEditError] = useState<string | null>(null);
   const [selectionAction, setSelectionAction] = useState<ReaderSelectionAction>(null);
-  const cachedChapters = useLiveQuery(
+  const liveCachedChapters = useLiveQuery(
     () => offlineDb.chapters.where("storyId").equals(payload.story.id).sortBy("chapterNumber"),
     [payload.story.id],
     [] as OfflineChapterRecord[]
-  ) ?? [];
+  );
+  const cachedChapters = useMemo(() => liveCachedChapters ?? [], [liveCachedChapters]);
   const [cachedPayload, setCachedPayload] = useState<ReaderPayload | null>(null);
   const {
     context: formatFloatingContext,
@@ -378,7 +385,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       editor.scrollTop = Math.max(0, maxEditorScroll * (selectionStart / adminEdit.value.length) - 80);
     }
     if (typeof adminEdit.restoreScrollTop === "number") scrollPageTo(adminEdit.restoreScrollTop);
-  }, [adminEdit?.field, adminEdit?.selectionStart, adminEdit?.selectionEnd, adminEdit?.restoreScrollTop]);
+  }, [adminEdit?.field, adminEdit?.selectionStart, adminEdit?.selectionEnd, adminEdit?.restoreScrollTop, adminEdit?.value.length]);
   const qualityStats = useMemo(() => {
     if (!qualityPanelOpen) return null;
     const rawLines = activePayload.chapter.content?.replace(/\r\n?/g, "\n").split("\n") ?? [];
@@ -530,6 +537,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, [activePayload, queryClient]);
 
   useEffect(() => {
+    if (compactViewportRef.current) return;
     if (shouldReduceReaderBackgroundWork()) return;
     if (!navigator.onLine) return;
     const connection = (navigator as Navigator & { connection?: { effectiveType?: string; saveData?: boolean } }).connection;
@@ -738,6 +746,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, [desktopSidebarOpen, desktopSidebarWidth]);
 
   const refreshOfflineCache = useCallback((surfaceErrors = false) => {
+    if (!surfaceErrors && compactViewportRef.current) return;
     if (!surfaceErrors && shouldReduceReaderBackgroundWork()) return;
     setOfflineError(null);
     setOfflineLoading(true);
@@ -1142,8 +1151,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             mobileMinutesLabelRef.current.hidden = nextMinutesLeft <= 0;
           }
 
+          const progressCommitInterval = isCompactViewport ? MOBILE_PROGRESS_COMMIT_INTERVAL_MS : DESKTOP_PROGRESS_COMMIT_INTERVAL_MS;
           const shouldCommitProgress =
-            now - lastMobileProgressCommitRef.current > 250 ||
+            now - lastMobileProgressCommitRef.current > progressCommitInterval ||
             Math.abs(roundedProgress - mobileProgressStateRef.current) >= 5 ||
             roundedProgress === 0 ||
             roundedProgress === 100;
@@ -1163,7 +1173,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               lastMobileProgressCommitRef.current = Date.now();
               setMobileProgress(latestProgress);
             }
-          }, 140);
+          }, isCompactViewport ? 360 : 140);
         }
 
         const continueStateChanged = showContinuePromptRef.current !== shouldShowContinue || highlightContinuePromptRef.current !== shouldHighlightContinue;
@@ -1246,8 +1256,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         }
         lastScrollTopRef.current = Math.max(0, scrollTop);
 
-        if (now - lastLocalPersistRef.current > 1500) {
-          const shouldSyncRemote = now - lastRemotePersistRef.current > 5000;
+        const localPersistInterval = isCompactViewport ? MOBILE_LOCAL_PROGRESS_PERSIST_MS : DESKTOP_LOCAL_PROGRESS_PERSIST_MS;
+        if (now - lastLocalPersistRef.current > localPersistInterval) {
+          const remotePersistInterval = isCompactViewport ? MOBILE_REMOTE_PROGRESS_PERSIST_MS : DESKTOP_REMOTE_PROGRESS_PERSIST_MS;
+          const shouldSyncRemote = now - lastRemotePersistRef.current > remotePersistInterval;
           persistProgress(scrollTop, current, shouldSyncRemote);
           window.localStorage.setItem(paragraphPositionKey, String(activeParagraphIndexRef.current));
           lastLocalPersistRef.current = now;
