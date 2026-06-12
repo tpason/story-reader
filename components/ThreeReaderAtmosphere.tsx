@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, CanvasTexture, CircleGeometry, Color, DoubleSide, DynamicDrawUsage, Group, Material, Mesh, MeshBasicMaterial, NormalBlending, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Shape, ShapeGeometry, Sprite, SpriteMaterial, SRGBColorSpace, Texture, TorusGeometry, WebGLRenderer } from "three";
+import { makeFluffyCloudTexture, makeMistBandTexture } from "@/lib/three-cloud-utils";
 
 type ThreeReaderAtmosphereProps = {
   chapterNumber: number;
@@ -16,7 +17,8 @@ type XianxiaSkyRig = {
   sun: Mesh<CircleGeometry, MeshBasicMaterial>;
   sunGlow: Sprite;
   mountains: Mesh[];
-  clouds: Mesh[];
+  clouds: { sprite: Sprite; dx: number; phase: number; baseY: number }[];
+  peakMist: Mesh;
 };
 
 const THEME_COLORS = {
@@ -60,27 +62,6 @@ function makeDiscTexture(size = 128): CanvasTexture {
   return new CanvasTexture(canvas);
 }
 
-function makeMistTexture(): CanvasTexture {
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = 512;
-  const ctx = canvas.getContext("2d")!;
-  const blobs: [number, number, number, number][] = [
-    [256, 220, 200, 0.18],
-    [160, 280, 160, 0.12],
-    [360, 245, 170, 0.14],
-    [270, 265, 130, 0.09],
-    [200, 190, 140, 0.10],
-  ];
-  for (const [x, y, r, a] of blobs) {
-    const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
-    grad.addColorStop(0, `rgba(230,220,200,${a})`);
-    grad.addColorStop(1, "rgba(200,200,190,0)");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 512, 512);
-  }
-  return new CanvasTexture(canvas);
-}
-
 function makeGlowSprite(r: number, g: number, b: number, worldSize: number, opacity: number): Sprite {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 256;
@@ -114,7 +95,6 @@ function createSealTexture(chapterNumber: number, primary: string, secondary: st
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.translate(128, 128);
 
-  // Outer glow ring
   const grad = context.createRadialGradient(0, 0, 60, 0, 0, 110);
   grad.addColorStop(0, "rgba(255,220,80,0.0)");
   grad.addColorStop(0.7, "rgba(255,220,80,0.06)");
@@ -136,7 +116,6 @@ function createSealTexture(chapterNumber: number, primary: string, secondary: st
   context.arc(0, 0, 60, 0, Math.PI * 2);
   context.stroke();
 
-  // Tick marks
   for (let i = 0; i < 24; i++) {
     context.save();
     context.rotate((i / 24) * Math.PI * 2);
@@ -146,7 +125,6 @@ function createSealTexture(chapterNumber: number, primary: string, secondary: st
     context.restore();
   }
 
-  // Chapter glyph
   context.globalAlpha = 0.88;
   context.font = "700 48px serif";
   context.textAlign = "center";
@@ -159,7 +137,7 @@ function createSealTexture(chapterNumber: number, primary: string, secondary: st
   return texture;
 }
 
-// Shader-based pulsing particles (technique 3B)
+// ── Shader-based pulsing particles ──────────────────────────────────────────
 const PARTICLE_VS = `
   attribute float size;
   attribute vec3 aColor;
@@ -177,6 +155,30 @@ const PARTICLE_FS = `
   void main() {
     vec4 tex = texture2D(pointTexture, gl_PointCoord);
     gl_FragColor = vec4(vColor, tex.a * 0.7);
+    if (gl_FragColor.a < 0.02) discard;
+  }
+`;
+
+// ── Twinkling star shader ────────────────────────────────────────────────────
+const STAR_VS = `
+  attribute float twinkle;
+  attribute float baseSize;
+  varying float vAlpha;
+  uniform float uTime;
+  void main() {
+    float flicker = 0.55 + 0.45 * sin(uTime * twinkle + position.x * 9.3 + position.y * 7.1);
+    vAlpha = flicker;
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    gl_PointSize = baseSize * (0.7 + 0.3 * flicker) * (200.0 / -mv.z);
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+const STAR_FS = `
+  uniform sampler2D pointTexture;
+  varying float vAlpha;
+  void main() {
+    vec4 tex = texture2D(pointTexture, gl_PointCoord);
+    gl_FragColor = vec4(1.0, 0.96, 0.86, tex.a * vAlpha * 0.90);
     if (gl_FragColor.a < 0.02) discard;
   }
 `;
@@ -235,12 +237,8 @@ function createAmbientParticles(primary: string, secondary: string, discTexture:
 function createStarParticles(discTexture: CanvasTexture) {
   const count = 240;
   const positions = new Float32Array(count * 3);
-  const colors = new Float32Array(count * 3);
-  const warmPalette = [
-    new Color(1.0, 0.97, 0.88),
-    new Color(1.0, 0.94, 0.72),
-    new Color(0.90, 0.96, 1.0),
-  ];
+  const twinkles = new Float32Array(count);
+  const baseSizes = new Float32Array(count);
 
   for (let i = 0; i < count; i++) {
     const theta = seededNoise(i * 3 + 1) * Math.PI * 2;
@@ -249,37 +247,46 @@ function createStarParticles(discTexture: CanvasTexture) {
     positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
     positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) * 0.55;
     positions[i * 3 + 2] = r * Math.cos(phi);
-    const col = seededNoise(i + 500) < 0.08 ? warmPalette[2] : seededNoise(i + 600) < 0.3 ? warmPalette[1] : warmPalette[0];
-    colors[i * 3] = col.r;
-    colors[i * 3 + 1] = col.g;
-    colors[i * 3 + 2] = col.b;
+    twinkles[i] = 0.5 + seededNoise(i + 500) * 3.5;
+    baseSizes[i] = 1.0 + seededNoise(i + 600) * 2.8;
   }
 
   const geo = new BufferGeometry();
   geo.setAttribute("position", new BufferAttribute(positions, 3));
-  geo.setAttribute("color", new BufferAttribute(colors, 3));
-  return new Points(
-    geo,
-    new PointsMaterial({
-      size: 0.018,
-      sizeAttenuation: true,
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.0,
-      map: discTexture,
-      alphaTest: 0.05,
-      depthWrite: false,
-    })
-  );
+  geo.setAttribute("twinkle", new BufferAttribute(twinkles, 1));
+  geo.setAttribute("baseSize", new BufferAttribute(baseSizes, 1));
+
+  const mat = new ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      pointTexture: { value: discTexture },
+    },
+    vertexShader: STAR_VS,
+    fragmentShader: STAR_FS,
+    transparent: true,
+    depthWrite: false,
+    blending: AdditiveBlending,
+  });
+
+  const points = new Points(geo, mat);
+  points.visible = false;
+  return { points, mat };
 }
 
-function createMistSprites(mistTexture: CanvasTexture, theme: ThreeReaderAtmosphereProps["theme"]) {
+function createMistSprites(theme: ThreeReaderAtmosphereProps["theme"]) {
   const sprites: { sprite: Sprite; dx: number; phase: number }[] = [];
   const baseOpacity = theme === "dark" ? 0.07 : 0.06;
 
+  // Procedural mist texture per sprite (reuse makeFluffyCloudTexture as wide mist blob)
   for (let i = 0; i < 6; i++) {
+    const tint: [number, number, number] = theme === "dark"
+      ? [180, 190, 200]
+      : theme === "sepia"
+      ? [220, 205, 180]
+      : [230, 228, 222];
+    const tex = makeFluffyCloudTexture(i + 200, tint, 256);
     const mat = new SpriteMaterial({
-      map: mistTexture,
+      map: tex,
       transparent: true,
       opacity: baseOpacity + seededNoise(i + 200) * 0.04,
       blending: NormalBlending,
@@ -320,7 +327,7 @@ function createMountainLayer(color: string, seed: number, width: number, height:
     new MeshBasicMaterial({
       color,
       transparent: true,
-      opacity: 0.22,
+      opacity: 0.26,
       blending: AdditiveBlending,
       depthWrite: false,
       side: DoubleSide
@@ -328,7 +335,14 @@ function createMountainLayer(color: string, seed: number, width: number, height:
   );
 }
 
-function createXianxiaSky(primary: string, secondary: string, paper: string, theme: ThreeReaderAtmosphereProps["theme"]): XianxiaSkyRig {
+function createXianxiaSky(
+  primary: string,
+  secondary: string,
+  paper: string,
+  theme: ThreeReaderAtmosphereProps["theme"],
+  cloudTextures: CanvasTexture[],
+  mistBandTexture: CanvasTexture,
+): XianxiaSkyRig {
   const group = new Group();
   const sky = new Mesh(
     new PlaneGeometry(9.4, 5.6, 1, 1),
@@ -381,7 +395,6 @@ function createXianxiaSky(primary: string, secondary: string, paper: string, the
           vec3 skyColor = mix(uDawn, uNoon, dawnToNoon);
           skyColor = mix(skyColor, uDusk, noonToDusk);
 
-          // Aurora shimmer band
           float auroraY = smoothstep(0.62, 0.78, vUv.y) * smoothstep(0.98, 0.80, vUv.y);
           float auroraWave = sin(vUv.x * 8.0 + uTime * 0.3) * 0.5 + 0.5;
           skyColor = mix(skyColor, uAurora, auroraY * auroraWave * 0.28);
@@ -410,7 +423,6 @@ function createXianxiaSky(primary: string, secondary: string, paper: string, the
     })
   );
 
-  // Glow halo behind sun
   const sunGlow = makeGlowSprite(
     theme === "dark" ? 38 : 240,
     theme === "dark" ? 168 : 190,
@@ -436,30 +448,64 @@ function createXianxiaSky(primary: string, secondary: string, paper: string, the
     group.add(m);
   });
 
-  const clouds = Array.from({ length: 14 }).map((_, i) => {
-    const cloud = new Mesh(
-      new CircleGeometry(0.22 + seededNoise(i + 811) * 0.18, 24),
-      new MeshBasicMaterial({
-        color: theme === "dark" ? "#b0c8e8" : "#ffffff",
-        transparent: true,
-        opacity: theme === "dark" ? 0.1 : 0.16,
-        blending: AdditiveBlending,
-        depthWrite: false,
-        side: DoubleSide
-      })
-    );
-    cloud.scale.set(2.2 + seededNoise(i + 821) * 2.0, 0.36 + seededNoise(i + 827) * 0.24, 1);
-    cloud.position.set(
-      -4.8 + seededNoise(i + 829) * 9.6,
-      -0.5 + seededNoise(i + 839) * 2.8,
-      -2.05 - seededNoise(i + 853) * 0.32
-    );
-    group.add(cloud);
-    return cloud;
+  // Fluffy cloud sprites in 3 depth layers
+  const isDark = theme === "dark";
+  const cloudDefs: { z: number; sx: number; sy: number; baseX: number; baseY: number; dx: number; phase: number; opacity: number }[] = [];
+  let cidx = 0;
+  const layerConfig = [
+    { z: -2.6, count: 4, sxRange: [2.2, 3.2], yRange: [-0.7, 0.9], speed: 0.0004 },
+    { z: -2.2, count: 4, sxRange: [2.8, 4.2], yRange: [-0.4, 1.3], speed: 0.0007 },
+    { z: -1.8, count: 3, scaleRange: [3.0, 4.8], yRange: [-0.1, 1.9], speed: 0.0011 },
+  ];
+  for (const lyr of layerConfig) {
+    for (let i = 0; i < lyr.count; i++) {
+      const sxRange = (lyr as { sxRange?: [number, number] }).sxRange ?? [3.0, 4.8];
+      const sx = sxRange[0] + seededNoise(cidx + 811) * (sxRange[1] - sxRange[0]);
+      const sy = sx * 0.34 + seededNoise(cidx + 821) * 0.10;
+      const baseX = -5.0 + seededNoise(cidx + 831) * 10.0;
+      const baseY = lyr.yRange[0] + seededNoise(cidx + 841) * (lyr.yRange[1] - lyr.yRange[0]);
+      const dx = lyr.speed * (seededNoise(cidx + 851) > 0.5 ? 1 : -1);
+      const phase = seededNoise(cidx + 861) * Math.PI * 2;
+      const opacity = (isDark ? 0.10 : 0.18) + seededNoise(cidx + 871) * 0.09;
+      cloudDefs.push({ z: lyr.z, sx, sy, baseX, baseY, dx, phase, opacity });
+      cidx++;
+    }
+  }
+
+  const clouds: XianxiaSkyRig["clouds"] = cloudDefs.map((def, i) => {
+    const texIdx = i % cloudTextures.length;
+    const mat = new SpriteMaterial({
+      map: cloudTextures[texIdx],
+      transparent: true,
+      opacity: def.opacity,
+      blending: AdditiveBlending,
+      depthWrite: false,
+      color: isDark ? "#b0c8f0" : "#ffffff",
+    });
+    const sprite = new Sprite(mat);
+    sprite.scale.set(def.sx, def.sy, 1);
+    sprite.position.set(def.baseX, def.baseY, def.z);
+    group.add(sprite);
+    return { sprite, dx: def.dx, phase: def.phase, baseY: def.baseY };
   });
 
+  // Mountain-top mist band (ink-painting effect: peaks vanish into mist)
+  const peakMist = new Mesh(
+    new PlaneGeometry(9.4, 0.38, 1, 1),
+    new MeshBasicMaterial({
+      map: mistBandTexture,
+      transparent: true,
+      opacity: theme === "dark" ? 0.07 : 0.05,
+      blending: NormalBlending,
+      depthWrite: false,
+      side: DoubleSide,
+    })
+  );
+  peakMist.position.set(0, -1.68, -2.1);
+  group.add(peakMist);
+
   group.add(sky, sun, sunGlow);
-  return { group, sky, sun, sunGlow, mountains, clouds };
+  return { group, sky, sun, sunGlow, mountains, clouds, peakMist };
 }
 
 function createChapterSeal(chapterNumber: number, primary: string, secondary: string) {
@@ -497,8 +543,6 @@ function createChapterSeal(chapterNumber: number, primary: string, secondary: st
       depthWrite: false
     })
   );
-
-  // Formation ring (outer decorative, slower rotation)
   const formationRing = new Mesh(
     new TorusGeometry(0.96, 0.003, 8, 160),
     new MeshBasicMaterial({
@@ -509,8 +553,6 @@ function createChapterSeal(chapterNumber: number, primary: string, secondary: st
       depthWrite: false
     })
   );
-
-  // Glow sprite behind seal
   const sealGlow = makeGlowSprite(240, 180, 60, 2.6, 0.14);
 
   group.add(sealGlow, seal, outer, inner, formationRing);
@@ -681,6 +723,70 @@ function createStepPulse(primary: string, secondary: string) {
   return { group, ring, outerRing, disc };
 }
 
+// ── Wind streaks: thin planes drifting left→right ───────────────────────────
+function createWindStreaks(secondary: string) {
+  const group = new Group();
+  const streaks = Array.from({ length: 22 }).map((_, i) => {
+    const isGold = i % 5 === 0;
+    const w = 0.5 + seededNoise(i + 970) * 0.9;
+    const streak = new Mesh(
+      new PlaneGeometry(w, 0.007 + seededNoise(i + 971) * 0.005, 1, 1),
+      new MeshBasicMaterial({
+        color: isGold ? secondary : "#e8f0ee",
+        transparent: true,
+        opacity: 0.0,
+        blending: AdditiveBlending,
+        depthWrite: false,
+        side: DoubleSide,
+      })
+    );
+    const baseX = -5.5 + seededNoise(i + 972) * 11.0;
+    const y = -1.8 + seededNoise(i + 973) * 4.0;
+    const z = -1.6 - seededNoise(i + 974) * 1.2;
+    streak.position.set(baseX, y, z);
+    streak.rotation.z = (seededNoise(i + 975) - 0.5) * 0.12;
+    group.add(streak);
+    return {
+      mesh: streak,
+      baseX,
+      y,
+      speed: 0.7 + seededNoise(i + 976) * 1.3,
+      phase: seededNoise(i + 977) * Math.PI * 2,
+    };
+  });
+  return { group, streaks };
+}
+
+// ── Horizontal mist bands at mountain base ───────────────────────────────────
+function createMistBands(theme: ThreeReaderAtmosphereProps["theme"], mistBandTexture: CanvasTexture) {
+  const group = new Group();
+  const isDark = theme === "dark";
+  const bandDefs = [
+    { y: -1.62, z: -2.0, opacity: isDark ? 0.07 : 0.055, dx: 0.0011 },
+    { y: -1.88, z: -2.4, opacity: isDark ? 0.055 : 0.042, dx: -0.0008 },
+    { y: -2.12, z: -2.85, opacity: isDark ? 0.04 : 0.032, dx: 0.0005 },
+  ];
+
+  const bands: { mesh: Mesh; dx: number }[] = [];
+  for (const def of bandDefs) {
+    const mesh = new Mesh(
+      new PlaneGeometry(9.6, 0.52, 1, 1),
+      new MeshBasicMaterial({
+        map: mistBandTexture,
+        transparent: true,
+        opacity: def.opacity,
+        blending: NormalBlending,
+        depthWrite: false,
+        side: DoubleSide,
+      })
+    );
+    mesh.position.set(0, def.y, def.z);
+    group.add(mesh);
+    bands.push({ mesh, dx: def.dx });
+  }
+  return { group, bands };
+}
+
 export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabled, theme }: ThreeReaderAtmosphereProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const progressRef = useRef(progress);
@@ -711,25 +817,33 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
     el.appendChild(renderer.domElement);
 
     const discTexture = makeDiscTexture(128);
-    const mistTexture = makeMistTexture();
 
-    const xianxiaSky = createXianxiaSky(colors.primary, colors.secondary, colors.paper, theme);
+    // Build fluffy cloud textures for the sky
+    const isDark = theme === "dark";
+    const cloudTint: [number, number, number] = isDark ? [180, 200, 230] : theme === "sepia" ? [230, 210, 185] : [255, 252, 242];
+    const cloudTextures = [0, 7, 14, 21].map((seed) => makeFluffyCloudTexture(seed, cloudTint, 256));
+    const mistBandTint: [number, number, number] = isDark ? [160, 175, 195] : theme === "sepia" ? [220, 205, 180] : [225, 228, 222];
+    const mistBandTexture = makeMistBandTexture(mistBandTint, 512);
+
+    const xianxiaSky = createXianxiaSky(colors.primary, colors.secondary, colors.paper, theme, cloudTextures, mistBandTexture);
     const particles = createAmbientParticles(colors.primary, colors.secondary, discTexture);
     const stars = createStarParticles(discTexture);
-    const mistSprites = createMistSprites(mistTexture, theme);
+    const mistSprites = createMistSprites(theme);
     const seal = createChapterSeal(chapterNumber, colors.primary, colors.secondary);
     const current = createAutoScrollCurrent(colors.primary, colors.secondary);
     const readingLine = createReadingLine(colors.primary, colors.secondary);
     const pageWisps = createPageWisps(colors.secondary);
     const paragraphMarkers = createParagraphMarkers(colors.primary, colors.secondary);
     const stepPulse = createStepPulse(colors.primary, colors.secondary);
+    const windStreaks = createWindStreaks(colors.secondary);
+    const mistBands = createMistBands(theme, mistBandTexture);
     const glow = new PointLight(new Color(colors.secondary), 1.2, 7);
     glow.position.set(1.8, 1.4, 2.2);
 
     mistSprites.forEach(({ sprite }) => scene.add(sprite));
     scene.add(
       xianxiaSky.group,
-      stars,
+      stars.points,
       particles.points,
       seal.group,
       current.group,
@@ -737,6 +851,8 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
       pageWisps.group,
       paragraphMarkers.group,
       stepPulse.group,
+      windStreaks.group,
+      mistBands.group,
       glow
     );
 
@@ -786,30 +902,57 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
       xianxiaSky.mountains.forEach((m, i) => {
         m.position.x += Math.sin(t * (0.032 + i * 0.007) + i) * 0.0006;
         (m.material as MeshBasicMaterial).opacity =
-          (theme === "dark" ? 0.14 : 0.18) + i * 0.022 + Math.sin(progressValue * Math.PI) * 0.04;
+          (theme === "dark" ? 0.20 : 0.26) + i * 0.022 + Math.sin(progressValue * Math.PI) * 0.04;
       });
+
+      // Fluffy cloud sprites
       xianxiaSky.clouds.forEach((c, i) => {
-        c.position.x += (0.0008 + i * 0.00007) * (i % 2 === 0 ? 1 : -1);
-        if (c.position.x > 5.2) c.position.x = -5.2;
-        if (c.position.x < -5.2) c.position.x = 5.2;
-        c.position.y += Math.sin(t * 0.16 + i) * 0.0007;
-        (c.material as MeshBasicMaterial).opacity =
-          (theme === "dark" ? 0.07 : 0.12) + Math.sin(t * 0.32 + i) * 0.02;
+        c.sprite.position.x += c.dx;
+        if (c.sprite.position.x > 5.8) c.sprite.position.x = -5.8;
+        if (c.sprite.position.x < -5.8) c.sprite.position.x = 5.8;
+        c.sprite.position.y = c.baseY + Math.sin(t * 0.14 + c.phase) * 0.09;
+        c.sprite.material.opacity =
+          (isDark ? 0.09 : 0.15) + Math.sin(t * 0.28 + c.phase) * 0.04;
       });
 
-      // Stars: fade in after dusk (progress > 0.7) or dark theme
-      const starOpacity = theme === "dark"
-        ? 0.55 + Math.sin(t * 0.06) * 0.08
-        : Math.max(0, (progressValue - 0.65) * 2.2) * 0.42;
-      (stars.material as PointsMaterial).opacity = starOpacity;
-      stars.rotation.y += 0.00008;
+      // Mountain-top peak mist drifts slowly
+      xianxiaSky.peakMist.position.x = Math.sin(t * 0.06) * 0.3;
+      (xianxiaSky.peakMist.material as MeshBasicMaterial).opacity =
+        (theme === "dark" ? 0.07 : 0.05) + Math.sin(t * 0.18) * 0.015;
 
-      // Mist
+      // Stars: fade in at dusk/night
+      const starOpacity = theme === "dark"
+        ? 1.0
+        : Math.max(0, (progressValue - 0.65) * 2.5);
+      stars.points.visible = starOpacity > 0.01;
+      stars.mat.uniforms.uTime.value = t;
+      // Overall fade encoded in material opacity via a custom override uniform isn't needed
+      // since vAlpha already handles per-star variation; we just show/hide
+      stars.points.rotation.y += 0.00008;
+
+      // Mist sprites
       for (const { sprite, dx, phase } of mistSprites) {
         sprite.position.x += dx;
         if (Math.abs(sprite.position.x) > 6) sprite.position.x *= -1;
         sprite.position.y += Math.sin(t * 0.12 + phase) * 0.0005;
       }
+
+      // Mist bands drift
+      for (const { mesh, dx } of mistBands.bands) {
+        mesh.position.x += dx;
+        if (mesh.position.x > 2.2) mesh.position.x = -2.2;
+        if (mesh.position.x < -2.2) mesh.position.x = 2.2;
+      }
+
+      // Wind streaks drift right, fade in/out at edges
+      windStreaks.streaks.forEach((s, i) => {
+        s.mesh.position.x += s.speed * 0.016;
+        if (s.mesh.position.x > 5.8) s.mesh.position.x = -5.8;
+        const px = s.mesh.position.x;
+        const edgeFade = Math.min(1, Math.min(Math.abs(px + 5.8), Math.abs(5.8 - px)) * 0.6);
+        const pulse = 0.3 + 0.7 * Math.sin(t * 0.9 + s.phase);
+        (s.mesh.material as MeshBasicMaterial).opacity = edgeFade * pulse * (0.04 + autoScrollOn * 0.06);
+      });
 
       // Particles — pulsing shader sizes
       const posAttr = particles.points.geometry.getAttribute("position") as BufferAttribute;
@@ -876,7 +1019,7 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
           0.045 + near * 0.18 + autoScrollOn * 0.04;
       });
 
-      // Step pulse on auto-scroll advance
+      // Step pulse
       const pulseAge = Math.max(0, Math.min(1, (now - pulseStartedAt) / 1000));
       const pulseStrength = pulseStartedAt > 0 && pulseAge < 1 ? 1 - pulseAge : 0;
       stepPulse.group.position.y = readingLine.group.position.y;
@@ -902,7 +1045,8 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", handleVisibility);
       discTexture.dispose();
-      mistTexture.dispose();
+      cloudTextures.forEach((t) => t.dispose());
+      mistBandTexture.dispose();
       mistSprites.forEach(({ sprite }) => {
         sprite.material.map?.dispose();
         sprite.material.dispose();

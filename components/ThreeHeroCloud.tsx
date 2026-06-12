@@ -3,19 +3,13 @@
 import { useEffect, useRef } from "react";
 import type * as ThreeNamespace from "three";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
+import { makeFluffyCloudTexture } from "@/lib/three-cloud-utils";
 
-const STAR  = 90;   // starfield backdrop
-const MIST  = 120;  // warm mist cloud
-const VORTEX = 60;  // qi vortex rings (3 × 20)
-const WISP  = 30;   // edge wisps
-const SPARK = 60;   // golden sparks
-
-const CLOUD_TEXTURES = [
-  "/assets/xianxia/clouds/cloud_hero_01.png",
-  "/assets/xianxia/clouds/cloud_hero_02.png",
-  "/assets/xianxia/clouds/fog_wisp_01.png",
-  "/assets/xianxia/clouds/mist_band_01.png",
-] as const;
+const STAR  = 90;
+const MIST  = 120;
+const VORTEX = 60;
+const WISP  = 30;
+const SPARK = 80;
 
 export function ThreeHeroCloud() {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -59,32 +53,34 @@ export function ThreeHeroCloud() {
       const cam = new THREE.OrthographicCamera(-asp, asp, 1, -1, 0.1, 10);
       cam.position.z = 4;
 
+      // ── Procedural cloud layers (no file dependencies) ───────────────
+      const cloudTextures = [0, 7, 14, 21, 28, 35, 42, 49].map((seed) =>
+        makeFluffyCloudTexture(seed, [255, 250, 235], 256)
+      );
+
       const cloudGroup = new THREE.Group();
       cloudGroup.position.set(0, -0.02, -0.08);
       scene.add(cloudGroup);
 
-      const textureLoader = new THREE.TextureLoader();
-      const cloudTextures = CLOUD_TEXTURES.map((src) => textureLoader.load(src));
-      cloudTextures.forEach((texture) => {
-        texture.colorSpace = THREE.SRGBColorSpace;
-      });
-
-      const cloudLayers = [
-        { texture: 3, x: -0.10, y: -0.05, z: -0.18, sx: 2.45, sy: 1.08, rot: -0.02, opacity: 0.42, speed: 0.09, phase: 0.20 },
-        { texture: 0, x: -0.38, y: -0.01, z: -0.08, sx: 1.26, sy: 0.74, rot: 0.06, opacity: 0.64, speed: 0.13, phase: 1.40 },
-        { texture: 1, x: 0.25, y: 0.02, z: -0.06, sx: 1.42, sy: 0.82, rot: -0.05, opacity: 0.60, speed: 0.12, phase: 2.70 },
-        { texture: 2, x: 0.01, y: -0.08, z: 0.03, sx: 1.68, sy: 0.92, rot: 0.02, opacity: 0.46, speed: 0.16, phase: 4.10 },
-        { texture: 0, x: 0.55, y: -0.14, z: 0.06, sx: 1.05, sy: 0.62, rot: 0.11, opacity: 0.36, speed: 0.18, phase: 5.30 },
-        { texture: 1, x: -0.62, y: -0.14, z: 0.05, sx: 0.98, sy: 0.58, rot: -0.12, opacity: 0.34, speed: 0.17, phase: 3.30 },
+      const cloudLayerDefs = [
+        { ti: 3, x: -0.10, y: -0.08, z: -0.18, sx: 2.45, sy: 0.92, rot: -0.02, opacity: 0.36, speed: 0.09, phase: 0.20 },
+        { ti: 0, x: -0.38, y: -0.04, z: -0.08, sx: 1.42, sy: 0.58, rot: 0.06, opacity: 0.58, speed: 0.13, phase: 1.40 },
+        { ti: 1, x: 0.25, y: 0.01, z: -0.06, sx: 1.52, sy: 0.62, rot: -0.05, opacity: 0.52, speed: 0.12, phase: 2.70 },
+        { ti: 2, x: 0.01, y: -0.10, z: 0.03, sx: 1.78, sy: 0.68, rot: 0.02, opacity: 0.40, speed: 0.16, phase: 4.10 },
+        { ti: 4, x: 0.55, y: -0.16, z: 0.06, sx: 1.12, sy: 0.44, rot: 0.11, opacity: 0.32, speed: 0.18, phase: 5.30 },
+        { ti: 5, x: -0.62, y: -0.16, z: 0.05, sx: 1.04, sy: 0.42, rot: -0.12, opacity: 0.30, speed: 0.17, phase: 3.30 },
+        { ti: 6, x: 0.80, y: 0.05, z: -0.12, sx: 1.35, sy: 0.50, rot: 0.08, opacity: 0.22, speed: 0.11, phase: 1.80 },
+        { ti: 7, x: -0.80, y: 0.08, z: -0.14, sx: 1.28, sy: 0.48, rot: -0.07, opacity: 0.20, speed: 0.10, phase: 2.40 },
       ].map((layer) => {
         const geo = new THREE.PlaneGeometry(layer.sx * asp, layer.sy);
         const mat = new THREE.MeshBasicMaterial({
-          map: cloudTextures[layer.texture],
+          map: cloudTextures[layer.ti],
           color: 0xfff8e8,
           transparent: true,
           opacity: layer.opacity,
           depthWrite: false,
           depthTest: false,
+          blending: THREE.AdditiveBlending,
         });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(layer.x * asp, layer.y, layer.z);
@@ -93,6 +89,7 @@ export function ThreeHeroCloud() {
         return { mesh, geo, mat, ...layer };
       });
 
+      // ── Caustic light overlay ────────────────────────────────────────
       function createCausticTexture() {
         const canvas = document.createElement("canvas");
         canvas.width = 256;
@@ -184,7 +181,7 @@ export function ThreeHeroCloud() {
         makeProjectorBeam(0.16, -0.03, 0.20, 1.24, -0.98, 0.024),
       ];
 
-      // ── Formation rings: faint gold circles, spiritual array feel ────
+      // ── Formation rings: increased opacity for visible spiritual array ─
       const RING_SEG = 80;
       function makeRing(r: number, col: number, op: number) {
         const pts: number[] = [];
@@ -200,12 +197,14 @@ export function ThreeHeroCloud() {
         return { obj: new THREE.LineLoop(geo, mat), geo, mat };
       }
 
-      const ring1 = makeRing(0.26, 0xd4a840, 0.09);
-      const ring2 = makeRing(0.48, 0xc89830, 0.065);
-      const ring3 = makeRing(0.72, 0xb88820, 0.045);
-      scene.add(ring1.obj, ring2.obj, ring3.obj);
+      // Increased from 0.045-0.09 → 0.15-0.22 and added 4th ring
+      const ring1 = makeRing(0.26, 0xf0c840, 0.22);
+      const ring2 = makeRing(0.48, 0xe0b030, 0.18);
+      const ring3 = makeRing(0.72, 0xd0a020, 0.15);
+      const ring4 = makeRing(0.96, 0xc09010, 0.11);
+      scene.add(ring1.obj, ring2.obj, ring3.obj, ring4.obj);
 
-      // ── Starfield backdrop ───────────────────────────────────────────
+      // ── Starfield ────────────────────────────────────────────────────
       const stPos = new Float32Array(STAR * 3);
       const stPh  = new Float32Array(STAR);
       for (let i = 0; i < STAR; i++) {
@@ -223,7 +222,7 @@ export function ThreeHeroCloud() {
       });
       scene.add(new THREE.Points(stGeo, stMat));
 
-      // ── Mist: warm beige particles ───────────────────────────────────
+      // ── Warm mist particles ──────────────────────────────────────────
       const mPos  = new Float32Array(MIST * 3);
       const mBase = new Float32Array(MIST * 2);
       const mPh   = new Float32Array(MIST);
@@ -248,14 +247,13 @@ export function ThreeHeroCloud() {
       });
       scene.add(new THREE.Points(mGeo, mMat));
 
-      // ── Qi vortex: 3 concentric rings of particles, rotating ─────────
-      // VORTEX_R[layer] = base orbit radius in Y-space
+      // ── Qi vortex ────────────────────────────────────────────────────
       const VORTEX_R = [0.22, 0.40, 0.58];
-      const VORTEX_SPD = [0.30, 0.18, 0.10]; // rad/s each ring
+      const VORTEX_SPD = [0.30, 0.18, 0.10];
       const vPos  = new Float32Array(VORTEX * 3);
-      const vAngle = new Float32Array(VORTEX); // base angle per particle
-      const vLayer = new Float32Array(VORTEX); // which ring
-      const vRnd  = new Float32Array(VORTEX);  // radial noise offset
+      const vAngle = new Float32Array(VORTEX);
+      const vLayer = new Float32Array(VORTEX);
+      const vRnd  = new Float32Array(VORTEX);
       const COUNT_PER_RING = VORTEX / 3;
       for (let i = 0; i < VORTEX; i++) {
         const layer = Math.floor(i / COUNT_PER_RING);
@@ -273,7 +271,7 @@ export function ThreeHeroCloud() {
       const vAttr = new THREE.BufferAttribute(vPos, 3);
       vGeo.setAttribute("position", vAttr);
       const vMat = new THREE.PointsMaterial({
-        size: 0.055, color: 0xe0a830, transparent: true, opacity: 0.72,
+        size: 0.055, color: 0xf0c840, transparent: true, opacity: 0.80,
         depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true
       });
       scene.add(new THREE.Points(vGeo, vMat));
@@ -301,30 +299,58 @@ export function ThreeHeroCloud() {
       });
       scene.add(new THREE.Points(eGeo, eMat));
 
-      // ── Golden qi sparks ─────────────────────────────────────────────
-      const sPos  = new Float32Array(SPARK * 3);
-      const sBase = new Float32Array(SPARK * 2);
-      const sPh   = new Float32Array(SPARK);
+      // ── Golden qi sparks — 80 particles with size pulsing ────────────
+      const sPos   = new Float32Array(SPARK * 3);
+      const sBase  = new Float32Array(SPARK * 2);
+      const sPh    = new Float32Array(SPARK);
+      const sSizes = new Float32Array(SPARK);
+
+      const SPARK_VS = `
+        attribute float sparkSize;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = sparkSize * (200.0 / -mv.z);
+          gl_Position = projectionMatrix * mv;
+        }
+      `;
+      const SPARK_FS = `
+        void main() {
+          vec2 uv = gl_PointCoord - 0.5;
+          float d = dot(uv, uv);
+          if (d > 0.25) discard;
+          float a = (0.25 - d) * 4.0;
+          gl_FragColor = vec4(1.0, 0.85, 0.30, a * 0.88);
+        }
+      `;
+
       for (let i = 0; i < SPARK; i++) {
         const a = Math.random() * Math.PI * 2;
-        const r = Math.sqrt(Math.random()) * 0.72;
+        const r = Math.sqrt(Math.random()) * 0.82;
         const x = Math.cos(a) * r * asp;
         const y = Math.sin(a) * r * 0.80;
         sBase[i * 2] = sPos[i * 3] = x;
         sBase[i * 2 + 1] = sPos[i * 3 + 1] = y;
         sPos[i * 3 + 2] = 0.15 + Math.random() * 0.12;
         sPh[i] = Math.random() * Math.PI * 2;
+        sSizes[i] = 6 + Math.random() * 8;
       }
       const sGeo  = new THREE.BufferGeometry();
       const sAttr = new THREE.BufferAttribute(sPos, 3);
       sGeo.setAttribute("position", sAttr);
-      const sMat = new THREE.PointsMaterial({
-        size: 0.038, color: 0xf0c040, transparent: true, opacity: 0.90,
-        depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true
+      const sSizeAttr = new THREE.BufferAttribute(sSizes, 1);
+      sSizeAttr.usage = THREE.DynamicDrawUsage;
+      sGeo.setAttribute("sparkSize", sSizeAttr);
+
+      const sMat = new THREE.ShaderMaterial({
+        vertexShader: SPARK_VS,
+        fragmentShader: SPARK_FS,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
       });
       scene.add(new THREE.Points(sGeo, sMat));
 
-      // ── Light rays: 3 semi-transparent planes at different angles ────
+      // ── Light rays ───────────────────────────────────────────────────
       function makeRay(angle: number, op: number) {
         const geo = new THREE.PlaneGeometry(asp * 1.1, 2.2);
         const mat = new THREE.MeshBasicMaterial({
@@ -345,18 +371,12 @@ export function ThreeHeroCloud() {
         causticTexture?.dispose();
         causticGeo.dispose();
         causticMat.dispose();
-        beams.forEach(beam => {
-          beam.geo.dispose();
-          beam.mat.dispose();
-        });
-        cloudTextures.forEach(texture => texture.dispose());
-        cloudLayers.forEach(layer => {
-          layer.geo.dispose();
-          layer.mat.dispose();
-        });
-        [ring1.geo, ring2.geo, ring3.geo, stGeo, mGeo, vGeo, eGeo, sGeo,
+        beams.forEach(beam => { beam.geo.dispose(); beam.mat.dispose(); });
+        cloudTextures.forEach(t => t.dispose());
+        cloudLayerDefs.forEach(l => { l.geo.dispose(); l.mat.dispose(); });
+        [ring1.geo, ring2.geo, ring3.geo, ring4.geo, stGeo, mGeo, vGeo, eGeo, sGeo,
          ray1.geo, ray2.geo, ray3.geo].forEach(g => g.dispose());
-        [ring1.mat, ring2.mat, ring3.mat, stMat, mMat, vMat, eMat, sMat,
+        [ring1.mat, ring2.mat, ring3.mat, ring4.mat, stMat, mMat, vMat, eMat, sMat,
          ray1.mat, ray2.mat, ray3.mat].forEach(m => m.dispose());
         cvs.remove();
         return;
@@ -367,10 +387,8 @@ export function ThreeHeroCloud() {
         raf = requestAnimationFrame(tick);
         const t = ms * 0.001;
 
-        // Stars twinkle
         stMat.opacity = 0.30 + Math.sin(t * 0.28) * 0.10;
 
-        // Mist drift
         for (let i = 0; i < MIST; i++) {
           const ph = mPh[i], sp = mSp[i];
           (mAttr.array as Float32Array)[i * 3]     = mBase[i * 2] + Math.sin(t * sp + ph) * 0.095;
@@ -381,7 +399,7 @@ export function ThreeHeroCloud() {
 
         cloudGroup.position.y = -0.02 + Math.sin(t * 0.28) * 0.018;
         cloudGroup.rotation.z = Math.sin(t * 0.10) * 0.010;
-        cloudLayers.forEach((layer, index) => {
+        cloudLayerDefs.forEach((layer, index) => {
           const drift = Math.sin(t * layer.speed + layer.phase);
           const lift = Math.cos(t * (layer.speed * 0.74) + layer.phase);
           layer.mesh.position.x = layer.x * asp + drift * 0.030 * (1 + index * 0.08);
@@ -404,30 +422,27 @@ export function ThreeHeroCloud() {
           beam.mat.opacity = beam.baseOpacity + Math.sin(t * 0.18 + index * 0.8) * 0.012;
         });
 
-        // Qi vortex rotation per ring layer
         for (let i = 0; i < VORTEX; i++) {
           const layer = vLayer[i];
           const spd   = VORTEX_SPD[layer];
           const baseR = VORTEX_R[layer];
-          // rotate angle over time
           const a = vAngle[i] + t * spd;
-          // radial breathing
           const r = baseR + vRnd[i] + Math.sin(t * 0.42 + vAngle[i] * 3.14) * 0.018;
           (vAttr.array as Float32Array)[i * 3]     = Math.cos(a) * r * asp;
           (vAttr.array as Float32Array)[i * 3 + 1] = Math.sin(a) * r;
         }
         vAttr.needsUpdate = true;
-        vMat.opacity = 0.62 + Math.sin(t * 0.22) * 0.12;
+        vMat.opacity = 0.70 + Math.sin(t * 0.22) * 0.12;
 
-        // Formation rings rotate and breathe opacity
         ring1.obj.rotation.z = t * 0.045;
         ring2.obj.rotation.z = -t * 0.028;
         ring3.obj.rotation.z = t * 0.016;
-        ring1.mat.opacity = 0.07 + Math.sin(t * 0.31) * 0.03;
-        ring2.mat.opacity = 0.05 + Math.sin(t * 0.25 + 1.0) * 0.02;
-        ring3.mat.opacity = 0.035 + Math.sin(t * 0.19 + 2.0) * 0.015;
+        ring4.obj.rotation.z = -t * 0.010;
+        ring1.mat.opacity = 0.20 + Math.sin(t * 0.31) * 0.04;
+        ring2.mat.opacity = 0.16 + Math.sin(t * 0.25 + 1.0) * 0.03;
+        ring3.mat.opacity = 0.13 + Math.sin(t * 0.19 + 2.0) * 0.025;
+        ring4.mat.opacity = 0.09 + Math.sin(t * 0.15 + 3.0) * 0.02;
 
-        // Edge wisps drift
         for (let i = 0; i < WISP; i++) {
           const ph = ePh[i];
           (eAttr.array as Float32Array)[i * 3]     = eBase[i * 2] + Math.sin(t * 0.22 + ph) * 0.10;
@@ -436,17 +451,17 @@ export function ThreeHeroCloud() {
         eAttr.needsUpdate = true;
         eMat.opacity = 0.28 + Math.sin(t * 0.13 + 1.1) * 0.08;
 
-        // Sparks
         for (let i = 0; i < SPARK; i++) {
           const ph = sPh[i];
           (sAttr.array as Float32Array)[i * 3]     = sBase[i * 2] + Math.sin(t * 0.44 + ph) * 0.072;
           (sAttr.array as Float32Array)[i * 3 + 1] = sBase[i * 2 + 1]
             + Math.cos(t * 0.36 + ph) * 0.040
             + Math.sin(t * 0.16 + ph * 0.6) * 0.030;
+          sSizeAttr.array[i] = 5 + 7 * (0.5 + 0.5 * Math.sin(t * (2.2 + sPh[i] * 1.8) + ph));
         }
         sAttr.needsUpdate = true;
+        sSizeAttr.needsUpdate = true;
 
-        // Light rays breathe
         ray1.mat.opacity = 0.040 + Math.sin(t * 0.25) * 0.018;
         ray2.mat.opacity = 0.020 + Math.sin(t * 0.19 + 0.8) * 0.010;
         ray3.mat.opacity = 0.012 + Math.sin(t * 0.14 + 1.6) * 0.007;
@@ -461,18 +476,12 @@ export function ThreeHeroCloud() {
         causticTexture?.dispose();
         causticGeo.dispose();
         causticMat.dispose();
-        beams.forEach(beam => {
-          beam.geo.dispose();
-          beam.mat.dispose();
-        });
-        cloudTextures.forEach(texture => texture.dispose());
-        cloudLayers.forEach(layer => {
-          layer.geo.dispose();
-          layer.mat.dispose();
-        });
-        [ring1.geo, ring2.geo, ring3.geo, stGeo, mGeo, vGeo, eGeo, sGeo,
+        beams.forEach(beam => { beam.geo.dispose(); beam.mat.dispose(); });
+        cloudTextures.forEach(t => t.dispose());
+        cloudLayerDefs.forEach(l => { l.geo.dispose(); l.mat.dispose(); });
+        [ring1.geo, ring2.geo, ring3.geo, ring4.geo, stGeo, mGeo, vGeo, eGeo, sGeo,
          ray1.geo, ray2.geo, ray3.geo].forEach(g => g.dispose());
-        [ring1.mat, ring2.mat, ring3.mat, stMat, mMat, vMat, eMat, sMat,
+        [ring1.mat, ring2.mat, ring3.mat, ring4.mat, stMat, mMat, vMat, eMat, sMat,
          ray1.mat, ray2.mat, ray3.mat].forEach(m => m.dispose());
         cvs.remove();
       };

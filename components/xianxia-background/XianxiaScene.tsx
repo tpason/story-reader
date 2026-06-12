@@ -272,6 +272,17 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
       {/* ── Low smoke plumes ── soft rising mist around the foreground ───── */}
       <MistPlumes />
 
+      {/* ── Depth haze plane ── ink-painting fog between mountain layers ─── */}
+      <mesh position={[0, 0, -3.0]}>
+        <planeGeometry args={[20, 10]} />
+        <meshBasicMaterial
+          color={timeOfDay === "night" ? "#203050" : timeOfDay === "dusk" ? "#b06840" : timeOfDay === "dawn" ? "#d09850" : "#90b8cc"}
+          transparent
+          opacity={0.06}
+          depthWrite={false}
+        />
+      </mesh>
+
       {/* ── Spirit particles ── immortal energy drifting upward ──────────── */}
       <SpiritParticles />
 

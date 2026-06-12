@@ -1,15 +1,19 @@
-import { CheckCircle2, Flame, Headphones, Layers3, Search, Sparkles } from "lucide-react";
+import { CheckCircle2, Flame, Headphones, Layers3, Search, Sparkles, X } from "lucide-react";
 import Link from "next/link";
-import { listCategories, listRecentlyPolishedStories, listRecentlyUpdatedStories, listStoriesCursor } from "@/lib/stories";
+import { Suspense } from "react";
+import { getCachedPolishedStories, getCachedUpdatedStories, listCategories, listStoriesCursor } from "@/lib/stories";
 import { StoryLibrary } from "@/components/StoryLibrary";
 import { MotionFX } from "@/components/MotionFX";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { UserIdentity } from "@/components/UserIdentity";
 import { StoryDiscoveryRail } from "@/components/StoryDiscoveryRail";
+import { DiscoveryRailSkeleton } from "@/components/DiscoveryRailSkeleton";
 import { FollowedStoriesPanel } from "@/components/FollowedStoriesPanel";
+import { HomeRecommendationsPanel } from "@/components/HomeRecommendationsPanel";
 import { NotificationBell } from "@/components/NotificationBell";
 import { HeroCloudClient } from "@/components/HeroCloudClient";
 import { XianxiaPoetryColumn } from "@/components/XianxiaPoetryColumn";
+import { SearchSuggest } from "@/components/SearchSuggest";
 
 export const dynamic = "force-dynamic";
 
@@ -36,10 +40,32 @@ function buildQuery(params: Record<string, string | undefined>) {
   return query.toString();
 }
 
+async function DiscoverySection() {
+  const [polishedStories, updatedStories] = await Promise.all([
+    getCachedPolishedStories(8),
+    getCachedUpdatedStories(8),
+  ]);
+  return <StoryDiscoveryRail polishedStories={polishedStories} updatedStories={updatedStories} />;
+}
+
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
+  const queryText = params.q?.trim() || undefined;
+
+  const isSearchActive = !!(
+    queryText ||
+    params.hot === "true" ||
+    params.completed === "true" ||
+    params.category ||
+    (Number(params.minChapters) > 0) ||
+    (Number(params.maxChapters) > 0) ||
+    params.hasPolished === "true" ||
+    params.hasAudio === "true" ||
+    (params.sort && params.sort !== "updated")
+  );
+
   const libraryKey = JSON.stringify({
-    q: params.q ?? "",
+    q: queryText ?? "",
     hot: params.hot ?? "",
     completed: params.completed ?? "",
     category: params.category ?? "",
@@ -49,10 +75,11 @@ export default async function Home({ searchParams }: HomeProps) {
     hasAudio: params.hasAudio ?? "",
     sort: params.sort ?? ""
   });
-  const [stories, categories, polishedStories, updatedStories] = await Promise.all([
+
+  const [stories, categories] = await Promise.all([
     listStoriesCursor({
       limit: 24,
-      queryText: params.q,
+      queryText,
       hot: params.hot === "true",
       completed: params.completed === "true" ? true : undefined,
       category: params.category,
@@ -63,9 +90,21 @@ export default async function Home({ searchParams }: HomeProps) {
       sort: params.sort === "chapters" || params.sort === "hot" || params.sort === "title" || params.sort === "updated" ? params.sort : undefined
     }),
     listCategories(12),
-    listRecentlyPolishedStories(8),
-    listRecentlyUpdatedStories(8)
   ]);
+
+  const activeFilterLabels: string[] = [];
+  if (queryText) activeFilterLabels.push(`"${queryText}"`);
+  if (params.hot === "true") activeFilterLabels.push("Hot");
+  if (params.completed === "true") activeFilterLabels.push("Hoàn thành");
+  if (params.category) activeFilterLabels.push(params.category);
+  if (Number(params.minChapters) > 0) activeFilterLabels.push(`Từ ${params.minChapters} chương`);
+  if (Number(params.maxChapters) > 0) activeFilterLabels.push(`Đến ${params.maxChapters} chương`);
+  if (params.hasPolished === "true") activeFilterLabels.push("Có polish");
+  if (params.hasAudio === "true") activeFilterLabels.push("Có audio");
+  if (params.sort && params.sort !== "updated") {
+    const sortLabel: Record<string, string> = { chapters: "Nhiều chương", hot: "Đang hot", title: "Tên A-Z" };
+    activeFilterLabels.push(sortLabel[params.sort] ?? params.sort);
+  }
 
   return (
     <main className="app-shell">
@@ -89,7 +128,6 @@ export default async function Home({ searchParams }: HomeProps) {
           <XianxiaPoetryColumn />
           <div className="library-hero-shell">
             <HeroCloudClient />
-            {/* SVG filter — organic cloud edge via feTurbulence displacement */}
             <svg aria-hidden="true" style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }}>
               <defs>
                 <filter id="xi-cloud-f" x="-35%" y="-35%" width="170%" height="170%">
@@ -111,7 +149,7 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
 
           <form className="filters library-search">
-            <input className="search-input" name="q" defaultValue={params.q ?? ""} placeholder="Tìm truyện hoặc tác giả" aria-label="Tìm truyện hoặc tác giả" />
+            <SearchSuggest defaultValue={queryText} category={params.category} />
             <input type="hidden" name="category" value={params.category ?? ""} />
             <button className="chip" type="submit">
               <Search size={15} />
@@ -184,10 +222,34 @@ export default async function Home({ searchParams }: HomeProps) {
           </nav>
         ) : null}
 
-        <StoryDiscoveryRail polishedStories={polishedStories} updatedStories={updatedStories} />
-        <FollowedStoriesPanel />
+        {isSearchActive ? (
+          <div className="search-active-header">
+            <div className="search-active-info">
+              <span className="search-active-count">{stories.total ?? stories.items.length} kết quả</span>
+              {activeFilterLabels.length > 0 && (
+                <span className="search-active-filters">
+                  {activeFilterLabels.map((label, i) => (
+                    <span key={i} className="search-active-tag">{label}</span>
+                  ))}
+                </span>
+              )}
+            </div>
+            <Link href="/" className="chip search-clear-all">
+              <X size={13} />
+              Xóa tất cả
+            </Link>
+          </div>
+        ) : (
+          <>
+            <FollowedStoriesPanel />
+            <Suspense fallback={<DiscoveryRailSkeleton />}>
+              <DiscoverySection />
+            </Suspense>
+            <HomeRecommendationsPanel />
+          </>
+        )}
 
-        <StoryLibrary key={libraryKey} initialPage={stories} query={{ q: params.q, hot: params.hot, completed: params.completed, category: params.category, minChapters: params.minChapters, maxChapters: params.maxChapters, hasPolished: params.hasPolished, hasAudio: params.hasAudio, sort: params.sort }} />
+        <StoryLibrary key={libraryKey} initialPage={stories} query={{ q: queryText, hot: params.hot, completed: params.completed, category: params.category, minChapters: params.minChapters, maxChapters: params.maxChapters, hasPolished: params.hasPolished, hasAudio: params.hasAudio, sort: params.sort }} />
       </div>
     </main>
   );

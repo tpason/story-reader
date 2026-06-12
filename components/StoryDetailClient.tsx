@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpenCheck, Clock3, Sparkles } from "lucide-react";
+import { BookOpen, BookOpenCheck, Clock3, Flame, Sparkles, User } from "lucide-react";
 import { CharMapBlock } from "@/components/CharMapBlock";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -47,6 +47,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
   const [chapterLoadError, setChapterLoadError] = useState<string | null>(null);
   const [chapterSearch, setChapterSearch] = useState("");
   const [activeChapterSearch, setActiveChapterSearch] = useState("");
+  const [descExpanded, setDescExpanded] = useState(false);
   const [adminEdit, setAdminEdit] = useState<AdminStoryEditState>(null);
   const [adminEditSaving, setAdminEditSaving] = useState(false);
   const [adminEditError, setAdminEditError] = useState<string | null>(null);
@@ -73,6 +74,10 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
   useEffect(() => {
     setCurrentStory(story);
   }, [story]);
+
+  useEffect(() => {
+    setDescExpanded(false);
+  }, [story.id]);
 
   function startAdminEdit(field: AdminStoryEditField, value: string | null | undefined) {
     if (!currentUser?.isAdmin || adminEditSaving) return;
@@ -246,21 +251,52 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
               {adminEdit?.field === "author" ? (
                 <input className="admin-inline-input" value={adminEdit.value} autoFocus onChange={(event) => setAdminEdit({ field: "author", value: event.target.value })} />
               ) : (
-                <span className={currentUser?.isAdmin ? "admin-editable-hidden" : undefined} onDoubleClick={() => startAdminEdit("author", currentStory.author)}>
-                  {currentStory.author || "Unknown author"}
+                <span
+                  className={`story-meta-icon-badge${currentUser?.isAdmin ? " admin-editable-hidden" : ""}`}
+                  onDoubleClick={() => startAdminEdit("author", currentStory.author)}
+                >
+                  <User size={12} aria-hidden="true" />
+                  {currentStory.author || "Vô danh tác giả"}
                 </span>
               )}
-              <span>{totalChapters} chương</span>
-              {currentStory.isCompleted ? <span>Hoàn thành</span> : <span>{currentStory.status || "Đang cập nhật"}</span>}
-              <span>Cập nhật {updatedLabel}</span>
-              {currentStory.rankPosition ? <span>#{currentStory.rankPosition}</span> : null}
+              <span className="story-meta-icon-badge">
+                <BookOpen size={12} aria-hidden="true" />
+                {totalChapters} chương
+              </span>
+              {currentStory.isCompleted ? (
+                <span className="xi-badge-completed">Hoàn thành</span>
+              ) : (
+                <span className="xi-badge-ongoing">{currentStory.status || "Đang cập nhật"}</span>
+              )}
+              <span className="story-meta-icon-badge">
+                <Clock3 size={12} aria-hidden="true" />
+                Cập nhật {updatedLabel}
+              </span>
+              {currentStory.rankPosition ? (
+                <span className="story-meta-icon-badge story-meta-rank">
+                  <Flame size={12} aria-hidden="true" />
+                  #{currentStory.rankPosition}
+                </span>
+              ) : null}
             </div>
             {adminEdit?.field === "description" ? (
               <textarea className="admin-content-editor admin-description-editor" value={adminEdit.value} autoFocus onChange={(event) => setAdminEdit({ field: "description", value: event.target.value })} />
             ) : (
-              <p className={currentUser?.isAdmin ? "story-detail-description admin-editable-hidden" : "story-detail-description"} onDoubleClick={() => startAdminEdit("description", currentStory.description)}>
-                {storyDisplayDescription(currentStory)}
-              </p>
+              <div className={`story-detail-description-wrap${descExpanded ? " desc-expanded" : ""}`}>
+                <p
+                  className={currentUser?.isAdmin ? "story-detail-description admin-editable-hidden" : "story-detail-description"}
+                  onDoubleClick={() => startAdminEdit("description", currentStory.description)}
+                >
+                  {storyDisplayDescription(currentStory)}
+                </p>
+                <button
+                  type="button"
+                  className={`story-desc-expand-btn${descExpanded ? " desc-collapse-btn" : ""}`}
+                  onClick={() => setDescExpanded((v) => !v)}
+                >
+                  {descExpanded ? "Thu gọn" : "Xem thêm"}
+                </button>
+              </div>
             )}
             <div className="story-detail-actions">
               {continueChapter ? (
@@ -297,8 +333,8 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
           <section className="library-list-section" aria-label="Recommended stories">
             <div className="section-heading-row story-list-heading">
               <div>
-                <p className="eyebrow">Có thể hợp gu</p>
-                <h2>Truyện đề xuất</h2>
+                <p className="eyebrow">Đạo hữu trên con đường tương tự</p>
+                <h2>Linh quyển cùng đạo</h2>
               </div>
               <span className="discovery-badge">
                 <Sparkles size={15} />

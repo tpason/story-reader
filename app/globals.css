@@ -10608,3 +10608,460 @@ button:focus-visible .bookmark-jade-icon {
     opacity: 1;
   }
 }
+
+/* ============================================================
+   Skeleton shimmer — xianxia gold pulse
+   ============================================================ */
+@keyframes xi-shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position:  200% 0; }
+}
+
+.xi-skel {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--xi-gold, #c8962e) 10%, var(--hairline)) 25%,
+    color-mix(in srgb, var(--xi-gold, #c8962e) 18%, transparent)    50%,
+    color-mix(in srgb, var(--xi-gold, #c8962e) 10%, var(--hairline)) 75%
+  );
+  background-size: 200% 100%;
+  animation: xi-shimmer 1.7s ease infinite;
+  border-radius: 6px;
+}
+
+.xi-skel-title   { height: 20px; width: 140px; margin-bottom: 16px; }
+.xi-skel-eyebrow { height: 12px; width: 80px;  margin-bottom: 6px; }
+.xi-skel-heading { height: 22px; width: 180px; margin-bottom: 8px; }
+.xi-skel-body    { height: 14px; width: 260px; }
+.xi-skel-cover   { width: 100%; aspect-ratio: 2/3; border-radius: 8px; }
+.xi-skel-line         { height: 13px; width: 100%; margin-bottom: 6px; }
+.xi-skel-line-short   { width: 55%; }
+.xi-skel-line-mid     { width: 75%; }
+.xi-skel-card { pointer-events: none; cursor: default; }
+
+/* ============================================================
+   Search suggest dropdown — xianxia jade-gold scroll style
+   ============================================================ */
+.search-suggest-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.search-suggest-wrap .search-input {
+  width: 100%;
+  padding-right: 2.2rem;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 0.55rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--steel);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.search-clear-btn:hover {
+  color: var(--charcoal);
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 10%, transparent);
+}
+
+@keyframes xi-suggest-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+.search-suggest-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: color-mix(in srgb, var(--canvas) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 35%, transparent);
+  border-top: 2px solid color-mix(in srgb, var(--xi-gold, #c8962e) 55%, transparent);
+  border-radius: 0 0 14px 14px;
+  box-shadow:
+    0 12px 40px rgba(0,0,0,0.15),
+    0 0 0 1px color-mix(in srgb, var(--xi-gold, #c8962e) 8%, transparent) inset,
+    0 -1px 0 color-mix(in srgb, var(--xi-gold, #c8962e) 20%, transparent) inset;
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  z-index: 120;
+  overflow: hidden;
+  animation: xi-suggest-in 0.18s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+.search-suggest-header {
+  display: flex;
+  align-items: center;
+  padding: 7px 12px 5px;
+  border-bottom: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 18%, transparent);
+}
+.search-suggest-header span {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 80%, var(--slate));
+}
+
+.search-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  text-decoration: none;
+  color: var(--charcoal);
+  transition: background 0.12s;
+  border-bottom: 1px solid color-mix(in srgb, var(--hairline) 80%, transparent);
+  position: relative;
+}
+.search-suggest-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 2px;
+  background: var(--xi-gold, #c8962e);
+  border-radius: 2px;
+  opacity: 0;
+  transform: scaleY(0.4);
+  transition: opacity 0.15s, transform 0.15s;
+}
+.search-suggest-item:last-child { border-bottom: none; }
+.search-suggest-item:hover {
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 7%, transparent);
+}
+.search-suggest-item:hover::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.search-suggest-cover {
+  width: 28px;
+  min-width: 28px;
+  height: 42px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+}
+.search-suggest-cover .cover { width: 28px; height: 42px; }
+.search-suggest-cover .cover img {
+  width: 28px !important;
+  height: 42px !important;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.search-suggest-item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.search-suggest-item-body strong {
+  font-size: 0.855rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--charcoal);
+}
+.search-suggest-item-body small {
+  font-size: 0.72rem;
+  color: var(--steel);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-suggest-icon {
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 60%, transparent);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.search-suggest-item:hover .search-suggest-icon { opacity: 1; }
+
+/* ============================================================
+   Search active header — Thiên Thư query banner
+   ============================================================ */
+@keyframes xi-banner-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.search-active-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 6%, var(--canvas));
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 22%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--xi-gold, #c8962e) 70%, transparent);
+  border-radius: 10px;
+  animation: xi-banner-in 0.22s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+.search-active-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.search-active-count {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 85%, var(--charcoal));
+  white-space: nowrap;
+}
+
+.search-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.search-active-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 14%, transparent);
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 90%, var(--ink));
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 28%, transparent);
+  letter-spacing: 0.01em;
+}
+
+.search-clear-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  text-decoration: none;
+  font-size: 0.78rem;
+  padding: 4px 11px;
+  border-radius: 99px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 30%, transparent);
+  color: var(--slate);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.search-clear-all:hover {
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 10%, transparent);
+  color: var(--charcoal);
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 50%, transparent);
+}
+
+/* ============================================================
+   Recommendations panel — Linh quyển dành riêng
+   ============================================================ */
+.recommendations-section {
+  margin: 20px 0 6px;
+  position: relative;
+}
+
+.recommendations-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+@media (min-width: 640px) {
+  .recommendations-row {
+    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .recommendations-row {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+.recommendation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  text-decoration: none;
+  color: var(--charcoal);
+  border-radius: 10px;
+  padding: 6px;
+  border: 1px solid transparent;
+  transition: transform 0.2s cubic-bezier(0.16,1,0.3,1),
+              box-shadow 0.2s ease,
+              border-color 0.2s ease,
+              background 0.2s ease;
+}
+.recommendation-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 5%, var(--canvas));
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 22%, transparent);
+  box-shadow:
+    0 8px 24px rgba(0,0,0,0.12),
+    0 0 0 1px color-mix(in srgb, var(--xi-gold, #c8962e) 10%, transparent) inset;
+}
+.recommendation-card .cover {
+  border-radius: 7px;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+}
+
+.recommendation-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.recommendation-card-body h3 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  color: var(--charcoal);
+  margin: 0;
+}
+.recommendation-card-body small {
+  font-size: 0.7rem;
+  color: var(--steel);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   PHASE 2 ADDITIONS — Story Detail + Reader Improvements
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Sprint D: Story detail meta badges ──────────────────────────── */
+.story-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.story-meta-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--steel, #888);
+  font-size: 12.5px;
+}
+
+.story-meta-rank {
+  color: var(--xi-gold, #c8962e);
+  font-weight: 600;
+}
+
+.xi-badge-completed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 550;
+  border: 1px solid var(--xi-gold, #c8962e);
+  color: var(--xi-gold, #c8962e);
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 10%, transparent);
+}
+
+.xi-badge-ongoing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 550;
+  border: 1px solid var(--xi-jade, #1a6b5a);
+  color: var(--xi-jade-light, #26a882);
+  background: color-mix(in srgb, var(--xi-jade, #1a6b5a) 10%, transparent);
+}
+
+/* ── Sprint E: Description expand/collapse ──────────────────────── */
+.story-detail-description-wrap {
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .story-detail-description-wrap:not(.desc-expanded) .story-detail-description {
+    max-height: 5.5em;
+    overflow: hidden;
+  }
+
+  .story-detail-description-wrap:not(.desc-expanded)::after {
+    content: "";
+    position: absolute;
+    bottom: 1.6rem;
+    left: 0;
+    right: 0;
+    height: 2.5em;
+    background: linear-gradient(to bottom, transparent, var(--bg, #fff));
+    pointer-events: none;
+  }
+}
+
+.story-desc-expand-btn {
+  display: none;
+  font-size: 12.5px;
+  color: var(--xi-jade-light, #26a882);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 0;
+  margin-top: 2px;
+}
+
+@media (max-width: 768px) {
+  .story-desc-expand-btn {
+    display: inline-block;
+  }
+}
+
+/* ── Description expanded: override base -webkit-line-clamp ─────── */
+/* The base .story-detail-description rule uses -webkit-line-clamp: 5
+   which persists even after the max-height cap is removed. Must explicitly
+   reset display, overflow, and line-clamp to show full text. */
+.story-detail-description-wrap.desc-expanded .story-detail-description {
+  display: block;
+  overflow: visible;
+  max-height: none;
+  -webkit-line-clamp: unset;
+}
+
+/* Collapse button (visible in expanded state on mobile) */
+.story-desc-expand-btn.desc-collapse-btn {
+  color: var(--steel, #888);
+}
+
+/* ── Sprint F: Chapter list xianxia styling ──────────────────────── */
+#story-chapters .section-heading-row {
+  border-left: 4px solid var(--xi-jade, #1a6b5a);
+  padding-left: 12px;
+  margin-left: -12px;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, BookMarked, BookOpen, ChevronLeft, ChevronRight, ClipboardCheck, Eye, EyeOff, Headphones, Highlighter, LoaderCircle, Menu, Minus, Moon, Pause, Play, Plus, Search, Settings2, Sun, Type, WifiOff, X } from "lucide-react";
+import { ArrowUp, BookMarked, BookOpen, ChevronLeft, ChevronRight, ClipboardCheck, Eye, EyeOff, Headphones, Highlighter, LoaderCircle, Menu, Minus, Moon, MoreHorizontal, Pause, Play, Plus, Search, Settings2, Sun, Type, WifiOff, X } from "lucide-react";
 import type { animate as AnimateType } from "animejs";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -221,6 +221,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(false);
   const [autoScrollSpeed, setAutoScrollSpeed] = useState(180);
   const [focusModeEnabled, setFocusModeEnabled] = useState(false);
+  const [readerOverflowOpen, setReaderOverflowOpen] = useState(false);
+  const readerOverflowRef = useRef<HTMLDivElement>(null);
   const [floatingActionsMounted, setFloatingActionsMounted] = useState(false);
   const [showContinuePrompt, setShowContinuePrompt] = useState(false);
   const [highlightContinuePrompt, setHighlightContinuePrompt] = useState(false);
@@ -603,6 +605,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setMobileMenuOpen(false);
     setMobileFormatOpen(false);
     setMobileSheetOpen(false);
+    setReaderOverflowOpen(false);
     setAutoScrollEnabled(false);
     setChapterSearch("");
     setCachedPayload(null);
@@ -626,6 +629,24 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     document.addEventListener("pointerdown", handleOutsidePointerDown);
     return () => document.removeEventListener("pointerdown", handleOutsidePointerDown);
   }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    if (!readerOverflowOpen) return;
+    function handleOutside(event: MouseEvent) {
+      if (readerOverflowRef.current && !readerOverflowRef.current.contains(event.target as Node)) {
+        setReaderOverflowOpen(false);
+      }
+    }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setReaderOverflowOpen(false);
+    }
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [readerOverflowOpen]);
 
   useEffect(() => {
     if (prefersReducedMotion()) return;
@@ -2224,9 +2245,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       </nav>
 
       <header className="reader-topbar">
-        <Link href="/" className="brand">
+        <Link href="/" className="brand" aria-label={`Về thư viện — ${activePayload.story.title}: ${pageTitle}`}>
           <ReaderLogo />
-          <span className="reader-title-stack">
+          <span className="reader-title-stack" aria-hidden="true">
             <span className="reader-story-title" onDoubleClick={(event) => {
               event.preventDefault();
               event.stopPropagation();
@@ -2242,55 +2263,59 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             <NotificationBell className="reader-notification" />
             {isMobile || <CultivationPanel compact className="reader-cultivation" />}
           </div>
-          <div className="reader-control-group reader-action-group">
+          <div className="reader-control-group reader-action-group" ref={readerOverflowRef}>
             <FollowButton story={activePayload.story} compact />
             {!isMobile ? (
-              <FloatingTooltip label={currentBookmark ? "Bỏ dấu ấn chương này" : "Đánh dấu chương này"}>
+              <FloatingTooltip label="Thêm tùy chọn">
                 <button
-                  className={`icon-button bookmark-reader-button ${currentBookmark ? "bookmark-reader-button-active" : ""}`}
+                  className={`icon-button ${readerOverflowOpen || currentBookmark || focusModeEnabled || audioPanelOpen || offlineReady ? "icon-button-active" : ""}`}
                   type="button"
-                  title={currentBookmark ? "Bỏ dấu ấn chương này" : "Đánh dấu chương này"}
-                  aria-pressed={Boolean(currentBookmark)}
-                  onClick={toggleBookmark}
+                  title="Thêm tùy chọn"
+                  aria-expanded={readerOverflowOpen}
+                  aria-controls="reader-overflow-panel"
+                  onClick={() => setReaderOverflowOpen((v) => !v)}
                 >
-                  <img src="/icons/bookmark-jade.svg" className="bookmark-jade-icon" alt="" aria-hidden="true" />
+                  <MoreHorizontal size={17} />
                 </button>
               </FloatingTooltip>
             ) : null}
-            {!isMobile ? (
-              <FloatingTooltip label={focusModeEnabled ? "Tắt focus mode" : "Focus mode"}>
+            {!isMobile && readerOverflowOpen ? (
+              <div className="reader-overflow-panel" id="reader-overflow-panel">
                 <button
-                  className={`icon-button ${focusModeEnabled ? "icon-button-active" : ""}`}
+                  className={`reader-overflow-item ${currentBookmark ? "reader-overflow-item-active" : ""}`}
                   type="button"
-                  title={focusModeEnabled ? "Tắt focus mode" : "Focus mode"}
-                  aria-pressed={focusModeEnabled}
-                  onClick={() => setFocusModeEnabled((value) => !value)}
+                  onClick={() => { toggleBookmark(); setReaderOverflowOpen(false); }}
                 >
-                  {focusModeEnabled ? <Eye size={17} /> : <EyeOff size={17} />}
+                  <img src="/icons/bookmark-jade.svg" className="bookmark-jade-icon" alt="" aria-hidden="true" style={{ width: 16, height: 16 }} />
+                  {currentBookmark ? "Bỏ dấu ấn chương này" : "Đánh dấu chương này"}
                 </button>
-              </FloatingTooltip>
-            ) : null}
-            {!isMobile ? (
-              <FloatingTooltip label={activePayload.chapter.audioUrl ? "Nghe audio chương" : "Tạo audio chương"}>
-                <button className={`icon-button ${audioPanelOpen ? "icon-button-active" : ""}`} type="button" title={activePayload.chapter.audioUrl ? "Nghe audio chương" : "Tạo audio chương"} onClick={scrollToAudioPanel}>
-                  <Headphones size={17} />
-                </button>
-              </FloatingTooltip>
-            ) : null}
-            {!isMobile ? (
-              <FloatingTooltip label={offlineReady ? `Đã tải ${cachedChapters.length} chương` : "Tải chương để đọc offline"}>
                 <button
-                  className={`icon-button reader-offline-button ${offlineReady ? "icon-button-active" : ""}`}
+                  className={`reader-overflow-item ${focusModeEnabled ? "reader-overflow-item-active" : ""}`}
                   type="button"
-                  title={offlineReady ? `Đã tải ${cachedChapters.length} chương` : "Tải chương để đọc offline"}
-                  aria-pressed={offlineReady}
+                  onClick={() => { setFocusModeEnabled((v) => !v); setReaderOverflowOpen(false); }}
+                >
+                  {focusModeEnabled ? <Eye size={15} /> : <EyeOff size={15} />}
+                  {focusModeEnabled ? "Tắt focus mode" : "Focus mode"}
+                </button>
+                <div className="reader-overflow-sep" />
+                <button
+                  className={`reader-overflow-item ${audioPanelOpen ? "reader-overflow-item-active" : ""}`}
+                  type="button"
+                  onClick={() => { scrollToAudioPanel(); setReaderOverflowOpen(false); }}
+                >
+                  <Headphones size={15} />
+                  {activePayload.chapter.audioUrl ? "Nghe audio chương" : "Tạo audio chương"}
+                </button>
+                <button
+                  className={`reader-overflow-item reader-offline-button ${offlineReady ? "reader-overflow-item-active" : ""}`}
+                  type="button"
                   disabled={offlineLoading}
-                  onClick={() => refreshOfflineCache(true)}
+                  onClick={() => { refreshOfflineCache(true); setReaderOverflowOpen(false); }}
                 >
-                  {offlineLoading ? <LoaderCircle size={17} className="spin" /> : <WifiOff size={17} />}
-                  {cachedChapters.length > 0 ? <span>{cachedChapters.length}</span> : null}
+                  {offlineLoading ? <LoaderCircle size={15} className="spin" /> : <WifiOff size={15} />}
+                  {offlineReady ? `Đã tải ${cachedChapters.length} chương offline` : "Tải offline"}
                 </button>
-              </FloatingTooltip>
+              </div>
             ) : null}
             {!isMobile ? (
               <FloatingTooltip label={desktopSidebarOpen ? "Đóng mục lục" : "Mở mục lục"}>
@@ -2428,19 +2453,22 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         <Drawer.Portal>
           <Drawer.Overlay className="reader-mobile-sheet-backdrop" />
           <Drawer.Content className="reader-mobile-sheet-panel" id="reader-mobile-sheet" ref={mobileSheetPanelRef} aria-label="Reader tools">
-            <span className="reader-mobile-sheet-grip" aria-hidden="true" />
-            <div className="reader-mobile-sheet-header">
-              <div>
-                <p className="eyebrow">Công cụ đọc</p>
-                <Drawer.Title asChild>
-                  <h2>Chương {activePayload.chapter.chapterNumber}</h2>
-                </Drawer.Title>
+            <div className="reader-mobile-sheet-sticky-top">
+              <span className="reader-mobile-sheet-grip" aria-hidden="true" />
+              <div className="reader-mobile-sheet-header">
+                <div>
+                  <p className="eyebrow">Công cụ đọc</p>
+                  <Drawer.Title asChild>
+                    <h2>Chương {activePayload.chapter.chapterNumber}</h2>
+                  </Drawer.Title>
+                </div>
+                <button className="icon-button" type="button" aria-label="Đóng" onClick={() => setMobileSheetOpen(false)}>
+                  <X size={17} />
+                </button>
               </div>
-              <button className="icon-button" type="button" aria-label="Close" onClick={() => setMobileSheetOpen(false)}>
-                <X size={17} />
-              </button>
             </div>
 
+            <div className="reader-mobile-sheet-scroll">
             <div className="reader-sheet-current">
               <div>
                 <span>Tiến độ</span>
@@ -2816,6 +2844,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 </div>
               </details>
             ) : null}
+            </div>{/* end reader-mobile-sheet-scroll */}
           </Drawer.Content>
         </Drawer.Portal>
       </Drawer.Root>
