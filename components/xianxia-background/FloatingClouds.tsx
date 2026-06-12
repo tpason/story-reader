@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { AdditiveBlending, CanvasTexture, Mesh } from "three";
+import { AdditiveBlending, Mesh } from "three";
 import type { TimeOfDay } from "./sceneConfig";
+import { makeFluffyCloudTexture } from "@/lib/three-cloud-utils";
 
 // Time-of-day tint for cloud procedural texture
 const CLOUD_TINTS: Record<TimeOfDay, [number, number, number]> = {
@@ -12,38 +13,6 @@ const CLOUD_TINTS: Record<TimeOfDay, [number, number, number]> = {
   dusk:  [255, 200, 155],   // warm amber-orange
   night: [175, 198, 242],   // cool blue-silver
 };
-
-function makeCloudTex(seed: number, tint: [number, number, number], size = 512): CanvasTexture {
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
-  const [tr, tg, tb] = tint;
-
-  const rnd = (n: number) => {
-    const x = Math.sin(seed * 47.31 + n * 127.1) * 43758.55;
-    return x - Math.floor(x);
-  };
-
-  const cx = size * 0.50;
-  const cy = size * 0.54;
-  const blobs = 6 + Math.floor(rnd(99) * 3);
-
-  for (let i = 0; i < blobs; i++) {
-    const bx = cx + (rnd(i * 4)     - 0.5) * size * 0.65;
-    const by = cy + (rnd(i * 4 + 1) - 0.5) * size * 0.24;
-    const r  = (0.11 + rnd(i * 4 + 2) * 0.17) * size;
-    const a  =  0.13 + rnd(i * 4 + 3) * 0.07;
-
-    const grad = ctx.createRadialGradient(bx, by, 0, bx, by, r);
-    grad.addColorStop(0,   `rgba(${tr},${tg},${tb},${a})`);
-    grad.addColorStop(0.5, `rgba(${Math.round(tr * 0.97)},${Math.round(tg * 0.97)},${Math.round(tb * 0.96)},${(a * 0.42).toFixed(3)})`);
-    grad.addColorStop(1,   `rgba(${Math.round(tr * 0.94)},${Math.round(tg * 0.94)},${Math.round(tb * 0.88)},0)`);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, size, size);
-  }
-
-  return new CanvasTexture(canvas);
-}
 
 type CloudDef = {
   texIdx: number;
@@ -81,7 +50,12 @@ export function FloatingClouds({ timeOfDay = "day" }: FloatingCloudsProps) {
 
   const textures = useMemo(() => {
     const tint = CLOUD_TINTS[timeOfDay];
-    return [makeCloudTex(3, tint), makeCloudTex(11, tint), makeCloudTex(19, tint)];
+    // makeFluffyCloudTexture: 14–18 core blobs + highlights + shadows + wispy tendrils
+    return [
+      makeFluffyCloudTexture(3, tint, 512),
+      makeFluffyCloudTexture(11, tint, 512),
+      makeFluffyCloudTexture(19, tint, 512),
+    ];
   }, [timeOfDay]);
 
   useEffect(() => () => { textures.forEach((t) => t.dispose()); }, [textures]);

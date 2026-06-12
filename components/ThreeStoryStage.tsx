@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AdditiveBlending, AmbientLight, BoxGeometry, CanvasTexture, DirectionalLight, DoubleSide, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, Scene, SRGBColorSpace, TextureLoader, TorusGeometry, WebGLRenderer } from "three";
+import { AdditiveBlending, AmbientLight, BoxGeometry, BufferAttribute, BufferGeometry, CanvasTexture, DirectionalLight, DoubleSide, DynamicDrawUsage, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, SRGBColorSpace, TextureLoader, TorusGeometry, WebGLRenderer } from "three";
 
 type ThreeStoryStageProps = {
   coverImageUrl?: string | null;
@@ -18,11 +18,39 @@ function createTitleTexture(title: string) {
 
   context.fillStyle = "#f6f0dd";
   context.fillRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = "rgba(0, 102, 204, 0.16)";
+
+  // Jade inner border (xi-jade)
+  context.fillStyle = "rgba(26, 107, 90, 0.12)";
   context.fillRect(28, 28, canvas.width - 56, canvas.height - 56);
-  context.strokeStyle = "rgba(221, 91, 0, 0.38)";
-  context.lineWidth = 6;
+
+  // Gold ornamental border
+  context.strokeStyle = "rgba(200, 150, 46, 0.45)";
+  context.lineWidth = 5;
   context.strokeRect(42, 42, canvas.width - 84, canvas.height - 84);
+
+  // Corner ornaments
+  context.fillStyle = "rgba(200, 150, 46, 0.55)";
+  context.font = "700 22px serif";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  const corners = [[66, 66], [canvas.width - 66, 66], [66, canvas.height - 66], [canvas.width - 66, canvas.height - 66]];
+  corners.forEach(([cx, cy]) => context.fillText("◆", cx, cy));
+
+  // Vertical rule lines (page edge suggestion)
+  context.strokeStyle = "rgba(200, 150, 46, 0.12)";
+  context.lineWidth = 1;
+  for (let i = 0; i < 4; i++) {
+    const x = 80 + i * 10;
+    context.beginPath();
+    context.moveTo(x, 60);
+    context.lineTo(x, canvas.height - 60);
+    context.stroke();
+    const xr = canvas.width - 80 - i * 10;
+    context.beginPath();
+    context.moveTo(xr, 60);
+    context.lineTo(xr, canvas.height - 60);
+    context.stroke();
+  }
 
   context.fillStyle = "#26231f";
   context.font = "700 42px serif";
@@ -58,7 +86,7 @@ function createPageFan() {
       new MeshBasicMaterial({
         color: index % 2 === 0 ? "#fffefa" : "#f2ead8",
         transparent: true,
-        opacity: 0.22 - index * 0.012,
+        opacity: 0.35 - index * 0.014,
         side: DoubleSide,
         depthWrite: false
       })
@@ -77,7 +105,8 @@ function createMandala() {
     const ring = new Mesh(
       new TorusGeometry(0.86 + index * 0.22, 0.006, 8, 128),
       new MeshBasicMaterial({
-        color: index % 2 === 0 ? "#f5d75e" : "#0066cc",
+        // Fixed: was #0066cc (blue) → now xi-jade/xi-gold xianxia palette
+        color: index % 2 === 0 ? "#f5d75e" : "#1a6b5a",
         transparent: true,
         opacity: 0.15,
         blending: AdditiveBlending,
@@ -89,6 +118,60 @@ function createMandala() {
     group.add(ring);
   }
   return group;
+}
+
+function createMistAura() {
+  const group = new Group();
+  const mistyColors = ["#1a6b5a", "#26a882", "#c8962e"];
+  [1.1, 1.6, 2.1].forEach((r, i) => {
+    const ring = new Mesh(
+      new TorusGeometry(r, 0.06, 6, 80),
+      new MeshBasicMaterial({
+        color: mistyColors[i],
+        transparent: true,
+        opacity: 0.04,
+        blending: AdditiveBlending,
+        depthWrite: false,
+      })
+    );
+    ring.rotation.x = Math.PI / 2 + i * 0.22;
+    group.add(ring);
+  });
+  return group;
+}
+
+function createAmbientMotes() {
+  const count = 24;
+  const positions = new Float32Array(count * 3);
+  const phases = new Float32Array(count);
+  const speeds = new Float32Array(count);
+
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2;
+    const r = 1.4 + Math.sin(i * 0.77) * 0.8;
+    positions[i * 3] = Math.cos(angle) * r;
+    positions[i * 3 + 1] = Math.sin(angle) * r * 0.6;
+    positions[i * 3 + 2] = (Math.sin(i * 0.44) - 0.5) * 0.8;
+    phases[i] = i * 0.262;
+    speeds[i] = 0.18 + (i % 5) * 0.06;
+  }
+
+  const geo = new BufferGeometry();
+  const posAttr = new BufferAttribute(positions, 3);
+  posAttr.usage = DynamicDrawUsage;
+  geo.setAttribute("position", posAttr);
+
+  const mat = new PointsMaterial({
+    size: 0.045,
+    color: "#f0d06a",
+    transparent: true,
+    opacity: 0.72,
+    blending: AdditiveBlending,
+    depthWrite: false,
+    sizeAttenuation: true,
+  });
+
+  return { points: new Points(geo, mat), posAttr, phases, speeds, count };
 }
 
 export function ThreeStoryStage({ coverImageUrl, title, progressPercent = 0 }: ThreeStoryStageProps) {
@@ -140,9 +223,10 @@ export function ThreeStoryStage({ coverImageUrl, title, progressPercent = 0 }: T
     const spine = new Mesh(
       new BoxGeometry(0.12, 1.86, 0.18),
       new MeshStandardMaterial({
-        color: "#dd5b00",
+        // Fixed: was #dd5b00 (orange) → xi-gold
+        color: "#c8962e",
         emissive: "#f5d75e",
-        emissiveIntensity: 0.08,
+        emissiveIntensity: 0.10,
         roughness: 0.5
       })
     );
@@ -150,11 +234,14 @@ export function ThreeStoryStage({ coverImageUrl, title, progressPercent = 0 }: T
     const pages = createPageFan();
     const mandala = createMandala();
     mandala.position.z = -0.42;
+    const mistAura = createMistAura();
+    mistAura.position.z = -0.6;
+    const motes = createAmbientMotes();
 
     bookGroup.add(pages, cover, spine);
     bookGroup.rotation.y = -0.35;
     bookGroup.rotation.x = 0.08;
-    scene.add(bookGroup, mandala);
+    scene.add(bookGroup, mandala, mistAura, motes.points);
 
     const ambient = new AmbientLight(0xffffff, 1.7);
     const key = new DirectionalLight(0xffffff, 2.4);
@@ -190,6 +277,26 @@ export function ThreeStoryStage({ coverImageUrl, title, progressPercent = 0 }: T
       bookGroup.position.y = Math.sin(time * 0.9) * 0.045;
       mandala.rotation.z = time * (0.12 + progress * 0.18);
       mandala.scale.setScalar(0.92 + progress * 0.16 + Math.sin(time * 1.3) * 0.025);
+
+      // Mist aura rings — slow opposite rotations
+      const mistChildren = mistAura.children as Mesh[];
+      mistChildren.forEach((ring, i) => {
+        ring.rotation.z = time * (i % 2 === 0 ? 0.06 : -0.04) + i;
+        (ring.material as MeshBasicMaterial).opacity = 0.04 + Math.sin(time * 0.3 + i) * 0.015;
+      });
+
+      // Spiral orbit for ambient motes
+      const posArr = motes.posAttr.array as Float32Array;
+      for (let i = 0; i < motes.count; i++) {
+        const angle = (i / motes.count) * Math.PI * 2 + time * motes.speeds[i];
+        const r = 1.4 + Math.sin(time * 0.3 + motes.phases[i]) * 0.4;
+        posArr[i * 3] = Math.cos(angle) * r;
+        posArr[i * 3 + 1] = Math.sin(angle) * r * 0.6 + Math.sin(time * 0.5 + i) * 0.12;
+        posArr[i * 3 + 2] = (Math.sin(time * 0.4 + motes.phases[i]) - 0.5) * 0.8;
+      }
+      motes.posAttr.needsUpdate = true;
+      (motes.points.material as PointsMaterial).opacity = 0.55 + progress * 0.25 + Math.sin(time * 0.8) * 0.08;
+
       glow.intensity = 1.1 + progress * 1.3 + Math.sin(time * 2) * 0.18;
       renderer.render(scene, camera);
       frameId = window.requestAnimationFrame(render);
@@ -205,17 +312,15 @@ export function ThreeStoryStage({ coverImageUrl, title, progressPercent = 0 }: T
       window.cancelAnimationFrame(frameId);
       container.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("resize", resize);
+      texture?.dispose();
       scene.traverse((object: Object3D) => {
-        if (object instanceof Mesh) {
+        if (object instanceof Mesh || object instanceof Points) {
           object.geometry.dispose();
           const material = object.material;
           if (Array.isArray(material)) {
-            material.forEach((item) => {
-              item.map?.dispose();
-              item.dispose();
-            });
+            material.forEach((item) => { item.map?.dispose(); item.dispose(); });
           } else {
-            material.map?.dispose();
+            (material as MeshBasicMaterial).map?.dispose();
             material.dispose();
           }
         }

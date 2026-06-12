@@ -61,6 +61,7 @@ export function MistPlumes() {
   const texture = useMemo(createMistTexture, []);
 
   useFrame((state, delta) => {
+    const MAX_LIFT = 1.75;
     PUFFS.forEach((puff, index) => {
       const sprite = refs.current[index];
       if (!sprite) return;
@@ -70,13 +71,19 @@ export function MistPlumes() {
       sprite.material.rotation = Math.sin(state.clock.elapsedTime * 0.10 + puff.phase) * 0.12;
 
       const lift = sprite.position.y - puff.y;
-      const fade = 1 - Math.min(1, Math.max(0, lift / 1.75));
-      sprite.material.opacity = puff.opacity * (0.42 + fade * 0.58);
+      const t = Math.min(1, Math.max(0, lift / MAX_LIFT));
+      // Ramp in during first 20% of lift, hold at full, ramp out to 0 at 100%
+      const fadeIn = Math.min(1, t / 0.20);
+      const fadeOut = t < 0.25 ? 1 : Math.max(0, 1 - (t - 0.25) / 0.75);
+      sprite.material.opacity = puff.opacity * fadeIn * fadeOut;
+
       const scale = puff.scale * (1 + lift * 0.18);
       sprite.scale.set(scale * 1.35, scale, 1);
 
-      if (lift > 1.75) {
+      if (t >= 1) {
+        // Reset only after opacity has reached 0 (t==1 guarantees opacity=0)
         sprite.position.y = puff.y;
+        sprite.position.x = puff.x;
       }
     });
   });

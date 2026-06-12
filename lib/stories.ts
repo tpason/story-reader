@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
+import { unstable_cache } from "next/cache";
 import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
 import { READER_CONTENT_FORMAT_VERSION } from "@/lib/formatNovelContent";
@@ -606,6 +607,18 @@ export async function listRecentlyUpdatedStories(limit = 8): Promise<StoryDiscov
 
   return rows.map(mapDiscoveryStory);
 }
+
+export const getCachedPolishedStories = unstable_cache(
+  (limit: number) => listRecentlyPolishedStories(limit),
+  ["polished-stories"],
+  { revalidate: 300 }
+);
+
+export const getCachedUpdatedStories = unstable_cache(
+  (limit: number) => listRecentlyUpdatedStories(limit),
+  ["updated-stories"],
+  { revalidate: 300 }
+);
 
 export async function listRecentlyPolishedStoriesPage(options: { page?: number; pageSize?: number; today?: boolean } = {}): Promise<Paginated<StoryDiscoveryItem>> {
   const { page, pageSize, offset } = pageParams(options.page, options.pageSize);
