@@ -11269,3 +11269,75 @@ button:focus-visible .bookmark-jade-icon {
   font-size: 13px;
   color: #c0392b;
 }
+
+/* ── Reading Stats Panel (account page) ─────────────────────────── */
+.reading-stats-panel {
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(200,150,46,0.2);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.reading-stats-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--xi-gold, #c8962e);
+}
+
+.reading-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.reading-stats-card {
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(200,150,46,0.18);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reading-stats-card strong {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a1a);
+  line-height: 1.2;
+}
+
+.reading-stats-card span {
+  font-size: 12px;
+  color: var(--steel, #888);
+}
+
+.reading-stats-icon {
+  color: var(--xi-jade, #1a6b5a);
+  margin-bottom: 4px;
+}
+.reading-stats-icon-streak { color: #e67e22; }
+.reading-stats-icon-best { color: var(--xi-gold, #c8962e); }
+
+.reading-stats-time,
+.reading-stats-days {
+  font-size: 13px;
+  color: var(--steel, #888);
+  margin-top: 4px;
+}
+.reading-stats-time strong,
+.reading-stats-days strong {
+  color: var(--xi-gold, #c8962e);
+}
+
+/* ── Discover chip inverted (Đang viết filter) ───────────────────── */
+.chip-inverted {
+  background: rgba(26,107,90,0.15);
+  border-color: var(--xi-jade, #1a6b5a);
+  color: var(--xi-jade-light, #2fa890);
+}

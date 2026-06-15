@@ -4,6 +4,7 @@ import { ReaderLogo } from "@/components/ReaderLogo";
 import { CultivationPanel } from "@/components/CultivationPanel";
 import { UserIdentity } from "@/components/UserIdentity";
 import { ProfileShelf } from "@/components/ProfileShelf";
+import { ReadingStatsPanel } from "@/components/ReadingStatsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ export default function AccountPage() {
         <UserIdentity panel />
         <ProfileShelf />
         <CultivationPanel />
+        <ReadingStatsPanel />
       </section>
     </main>
   );

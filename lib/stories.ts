@@ -620,9 +620,10 @@ export const getCachedUpdatedStories = unstable_cache(
   { revalidate: 300 }
 );
 
-export async function listRecentlyPolishedStoriesPage(options: { page?: number; pageSize?: number; today?: boolean } = {}): Promise<Paginated<StoryDiscoveryItem>> {
+export async function listRecentlyPolishedStoriesPage(options: { page?: number; pageSize?: number; today?: boolean; completed?: boolean } = {}): Promise<Paginated<StoryDiscoveryItem>> {
   const { page, pageSize, offset } = pageParams(options.page, options.pageSize);
   const todaySql = options.today ? "AND r.latest_activity_at >= date_trunc('day', now())" : "";
+  const completedSql = options.completed === true ? "AND s.is_completed = TRUE" : options.completed === false ? "AND s.is_completed = FALSE" : "";
 
   const countRows = await query<{ count: string }>(
     `
@@ -642,6 +643,7 @@ export async function listRecentlyPolishedStoriesPage(options: { page?: number; 
       JOIN stories s ON s.id = r.story_id
       WHERE s.is_active = TRUE
         ${todaySql}
+        ${completedSql}
     `
   );
 
@@ -677,6 +679,7 @@ export async function listRecentlyPolishedStoriesPage(options: { page?: number; 
       LEFT JOIN counts cnt ON cnt.story_id = s.id
       WHERE s.is_active = TRUE
         ${todaySql}
+        ${completedSql}
       ORDER BY r.latest_activity_at DESC, s.updated_at DESC
       LIMIT $1 OFFSET $2
     `,
@@ -693,9 +696,10 @@ export async function listRecentlyPolishedStoriesPage(options: { page?: number; 
   };
 }
 
-export async function listRecentlyUpdatedStoriesPage(options: { page?: number; pageSize?: number; today?: boolean } = {}): Promise<Paginated<StoryDiscoveryItem>> {
+export async function listRecentlyUpdatedStoriesPage(options: { page?: number; pageSize?: number; today?: boolean; completed?: boolean } = {}): Promise<Paginated<StoryDiscoveryItem>> {
   const { page, pageSize, offset } = pageParams(options.page, options.pageSize);
   const todaySql = options.today ? "AND GREATEST(r.latest_activity_at, s.updated_at) >= date_trunc('day', now())" : "";
+  const completedSql = options.completed === true ? "AND s.is_completed = TRUE" : options.completed === false ? "AND s.is_completed = FALSE" : "";
 
   const countRows = await query<{ count: string }>(
     `
@@ -717,6 +721,7 @@ export async function listRecentlyUpdatedStoriesPage(options: { page?: number; p
       JOIN stories s ON s.id = r.story_id
       WHERE s.is_active = TRUE
         ${todaySql}
+        ${completedSql}
     `
   );
 
@@ -754,6 +759,7 @@ export async function listRecentlyUpdatedStoriesPage(options: { page?: number; p
       LEFT JOIN counts cnt ON cnt.story_id = s.id
       WHERE s.is_active = TRUE
         ${todaySql}
+        ${completedSql}
       ORDER BY GREATEST(r.latest_activity_at, s.updated_at) DESC, r.latest_chapter_number DESC
       LIMIT $1 OFFSET $2
     `,
