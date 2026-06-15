@@ -18,6 +18,7 @@ import { storyHref } from "@/lib/urls";
 import { useAppSelector } from "@/lib/store-hooks";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import { ChapterList } from "@/components/reader/ChapterList";
+import { StoryRatingWidget } from "@/components/StoryRatingWidget";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
 import { useStoryChapterPagination } from "@/hooks/useStoryChapterPagination";
 import { useStoryDetailAdminEdit } from "@/hooks/useStoryDetailAdminEdit";
@@ -203,6 +204,8 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
             })() : null}
           </div>
         </section>
+
+        <StoryRatingWidget storyId={currentStory.id} />
 
         <CharMapBlock storyId={currentStory.id} />
 

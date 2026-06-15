@@ -49,6 +49,7 @@ export function CultivationPanel({ items, compact = false, className = "" }: Cul
       .catch(() => undefined);
   }, [dispatch]);
 
+  const streak = useAppSelector((s) => s.readingStreak);
   const state = useMemo(() => getCultivationState(history, isLoggedIn), [history, isLoggedIn]);
   const estimatedReadingTime = state.estimatedMinutesToNextLevel
     ? formatReadingDuration(state.estimatedMinutesToNextLevel)
@@ -167,6 +168,12 @@ export function CultivationPanel({ items, compact = false, className = "" }: Cul
             {state.xpIntoLevel}/{state.xpForLevel} linh khí
           </span>
           <span>{state.completedChapterCount} chương đã hấp thu</span>
+          {streak.currentStreak > 0 ? (
+            <span className="cultivation-streak">
+              🔥 {streak.currentStreak} ngày liên tiếp
+              {streak.bestStreak > streak.currentStreak ? ` · kỷ lục ${streak.bestStreak} ngày` : ""}
+            </span>
+          ) : null}
           <span>
             Đọc thêm {state.chaptersToNextLevel} chương để đột phá
             {estimatedReadingTime ? ` · khoảng ${estimatedReadingTime}` : ""}

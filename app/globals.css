@@ -11133,3 +11133,139 @@ button:focus-visible .bookmark-jade-icon {
   padding-left: 12px;
   margin-left: -12px;
 }
+
+/* ── Reading streak badge in cultivation panel ───────────────────── */
+.cultivation-streak {
+  color: var(--xi-gold, #c8962e);
+  font-weight: 600;
+}
+
+/* ── Story Rating Widget ─────────────────────────────────────────── */
+.story-rating-widget {
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(200, 150, 46, 0.25);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.story-rating-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.story-rating-aggregate {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+}
+
+.story-rating-star-fill {
+  color: var(--xi-gold, #c8962e);
+}
+
+.story-rating-aggregate strong {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--xi-gold, #c8962e);
+}
+
+.story-rating-count {
+  color: var(--steel, #888);
+  font-size: 13px;
+}
+
+.story-rating-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--steel, #888);
+  text-decoration: underline;
+  padding: 0;
+}
+.story-rating-remove:hover { color: #c0392b; }
+
+.story-rating-stars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.story-rating-star {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--xi-gold, #c8962e);
+  padding: 2px;
+  transition: transform 0.12s;
+  line-height: 1;
+}
+.story-rating-star:hover,
+.story-rating-star:focus-visible { transform: scale(1.18); }
+.story-rating-star:disabled { opacity: 0.5; cursor: not-allowed; }
+.story-rating-star-active { color: var(--xi-gold, #c8962e); }
+.story-rating-star:not(.story-rating-star-active) { color: rgba(200,150,46,0.35); }
+
+.story-rating-review-toggle {
+  background: none;
+  border: 1px solid rgba(200,150,46,0.4);
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--xi-gold-light, #e2bc72);
+  margin-left: 8px;
+  transition: background 0.15s;
+}
+.story-rating-review-toggle:hover { background: rgba(200,150,46,0.1); }
+
+.story-rating-login-hint {
+  font-size: 13px;
+  color: var(--steel, #888);
+  font-style: italic;
+}
+
+.story-rating-review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.story-rating-review-input {
+  width: 100%;
+  border: 1px solid rgba(200,150,46,0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  background: rgba(255,255,255,0.7);
+  color: inherit;
+  resize: vertical;
+  min-height: 68px;
+}
+.story-rating-review-input:focus {
+  outline: none;
+  border-color: var(--xi-gold, #c8962e);
+  box-shadow: 0 0 0 2px rgba(200,150,46,0.15);
+}
+
+.story-rating-review-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.story-rating-error {
+  font-size: 13px;
+  color: #c0392b;
+}

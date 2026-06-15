@@ -50,7 +50,8 @@ import {
   store,
   removeBookmarkItem,
   upsertBookmarkItem,
-  upsertHistoryItem
+  upsertHistoryItem,
+  recordDailyRead
 } from "@/lib/store";
 import {
   READER_CONTENT_WIDTH_MAX,
@@ -217,7 +218,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [audioPanelOpen, setAudioPanelOpen] = useState(false);
   const [audioAutoStartToken, setAudioAutoStartToken] = useState(0);
   const [chapterSearch, setChapterSearch] = useState("");
-  const [readerChromeHidden, setReaderChromeHidden] = useState(false);
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [desktopSidebarWidth, setDesktopSidebarWidth] = useState(292);
   const [offlineLoading, setOfflineLoading] = useState(false);
@@ -322,6 +322,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const mobileMenuOpenRef = useRef(false);
   const mobileSheetOpenRef = useRef(false);
   const readerChromeHiddenRef = useRef(false);
+  const readerShellRef = useRef<HTMLElement | null>(null);
   const wakeLockRef = useRef<WakeLockSentinelLike | null>(null);
   const wakeLockRequestedRef = useRef(false);
   const swipeStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
@@ -624,7 +625,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   useEffect(() => {
     if (!mobileMenuOpen && !mobileSheetOpen) return;
     readerChromeHiddenRef.current = false;
-    setReaderChromeHidden(false);
+    readerShellRef.current?.classList.remove("reader-shell-chrome-hidden");
   }, [mobileMenuOpen, mobileSheetOpen]);
 
   useEffect(() => {
@@ -1014,10 +1015,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     };
   }, [mobileSheetOpen]);
 
-  useEffect(() => {
-    mobileProgressStateRef.current = mobileProgress;
-  }, [mobileProgress]);
-
   useLayoutEffect(() => {
     const updateContentMetrics = () => {
       const contentNode = paragraphContainerRef.current;
@@ -1064,7 +1061,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     };
   }, [mobileSheetOpen]);
 
-  // Reader keyboard shortcuts: ←/→ chapter nav, B bookmark, F focus mode
+  // Reader keyboard shortcuts: ←/→ chapter nav, B bookmark, F focus mode, T chapter list
   useEffect(() => {
     function onReaderKey(event: KeyboardEvent) {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -1082,6 +1079,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         toggleBookmark();
       } else if (event.key === "f" || event.key === "F") {
         setFocusModeEnabled((prev) => !prev);
+      } else if (event.key === "t" || event.key === "T") {
+        setDesktopSidebarOpen((prev) => !prev);
       }
     }
     window.addEventListener("keydown", onReaderKey);
@@ -1106,6 +1105,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       };
 
       dispatch(upsertHistoryItem(item));
+      dispatch(recordDailyRead(new Date().toLocaleDateString("sv-SE"))); // "YYYY-MM-DD"
       window.localStorage.setItem(storageKey, String(Math.round(scrollY)));
 
       if (syncRemote) {
@@ -1181,7 +1181,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           if (shouldCommitProgress) {
             mobileProgressStateRef.current = roundedProgress;
             lastMobileProgressCommitRef.current = now;
-            setMobileProgress(roundedProgress);
+            if (!isCompactViewport) setMobileProgress(roundedProgress);
           }
           if (mobileProgressIdleTimerRef.current) {
             window.clearTimeout(mobileProgressIdleTimerRef.current);
@@ -1192,7 +1192,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             if (mobileProgressStateRef.current !== latestProgress) {
               mobileProgressStateRef.current = latestProgress;
               lastMobileProgressCommitRef.current = Date.now();
-              setMobileProgress(latestProgress);
+              if (!isCompactViewport) setMobileProgress(latestProgress);
             }
           }, isCompactViewport ? 360 : 140);
         }
@@ -1269,11 +1269,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           const nextHidden = shouldHideChrome ? true : shouldShowChrome ? false : readerChromeHiddenRef.current;
           if (readerChromeHiddenRef.current !== nextHidden) {
             readerChromeHiddenRef.current = nextHidden;
-            setReaderChromeHidden(nextHidden);
+            readerShellRef.current?.classList.toggle("reader-shell-chrome-hidden", nextHidden);
           }
         } else if (readerChromeHiddenRef.current) {
           readerChromeHiddenRef.current = false;
-          setReaderChromeHidden(false);
+          readerShellRef.current?.classList.remove("reader-shell-chrome-hidden");
         }
         lastScrollTopRef.current = Math.max(0, scrollTop);
 
@@ -1335,6 +1335,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       mobileMinutesLabelRef.current.textContent = nextMinutesLeft > 0 ? `~${nextMinutesLeft} phút` : "";
       mobileMinutesLabelRef.current.hidden = nextMinutesLeft <= 0;
     }
+  });
+
+  useLayoutEffect(() => {
+    readerShellRef.current?.classList.toggle("reader-shell-chrome-hidden", readerChromeHiddenRef.current);
   });
 
   useEffect(() => {
@@ -2060,7 +2064,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     .trim();
 
   const pageTitle = `Chương ${chapterNumber} - ${cleanTitle}`;
-  const minutesLeft = Math.max(0, Math.ceil(totalReadingMinutes * (1 - mobileProgress / 100)));
+  const minutesLeft = Math.max(0, Math.ceil(totalReadingMinutes * (1 - progressRef.current / 100)));
   const floatingReaderActions = floatingActionsMounted
     ? createPortal(
         <div
@@ -2103,7 +2107,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   return (
     <main
-      className={`reader-shell ${readerChromeHidden ? "reader-shell-chrome-hidden" : ""} ${focusModeEnabled ? "reader-shell-focus-mode" : ""}`}
+      ref={readerShellRef}
+      className={`reader-shell ${focusModeEnabled ? "reader-shell-focus-mode" : ""}`}
       data-theme={theme}
       data-font={fontFamily}
       style={readerShellStyle}

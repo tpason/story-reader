@@ -204,6 +204,41 @@ const followsSlice = createSlice({
   }
 });
 
+type ReadingStreakState = {
+  currentStreak: number;
+  bestStreak: number;
+  lastReadDate: string | null; // "YYYY-MM-DD" local time
+  totalDaysRead: number;
+};
+
+const initialReadingStreakState: ReadingStreakState = {
+  currentStreak: 0,
+  bestStreak: 0,
+  lastReadDate: null,
+  totalDaysRead: 0
+};
+
+const readingStreakSlice = createSlice({
+  name: "readingStreak",
+  initialState: initialReadingStreakState,
+  reducers: {
+    recordDailyRead(state, action: PayloadAction<string>) {
+      const today = action.payload; // "YYYY-MM-DD"
+      if (state.lastReadDate === today) return;
+
+      // Check if yesterday
+      const prev = new Date(today + "T00:00:00");
+      prev.setDate(prev.getDate() - 1);
+      const yesterdayStr = prev.toISOString().slice(0, 10);
+
+      state.currentStreak = state.lastReadDate === yesterdayStr ? state.currentStreak + 1 : 1;
+      state.bestStreak = Math.max(state.bestStreak, state.currentStreak);
+      state.lastReadDate = today;
+      state.totalDaysRead = state.totalDaysRead + 1;
+    }
+  }
+});
+
 const bookmarksSlice = createSlice({
   name: "bookmarks",
   initialState: initialBookmarksState,
@@ -258,13 +293,15 @@ export const {
   removeBookmarkItem,
   markBookmarksHydrated
 } = bookmarksSlice.actions;
+export const { recordDailyRead } = readingStreakSlice.actions;
 
 const rootReducer = combineReducers({
   identity: identitySlice.reducer,
   history: historySlice.reducer,
   readerStyle: readerStyleSlice.reducer,
   follows: followsSlice.reducer,
-  bookmarks: bookmarksSlice.reducer
+  bookmarks: bookmarksSlice.reducer,
+  readingStreak: readingStreakSlice.reducer
 });
 
 const persistedReducer = persistReducer(
@@ -272,7 +309,7 @@ const persistedReducer = persistReducer(
     key: "story-reader",
     version: 1,
     storage,
-    whitelist: ["identity", "history", "readerStyle", "follows", "bookmarks"]
+    whitelist: ["identity", "history", "readerStyle", "follows", "bookmarks", "readingStreak"]
   },
   rootReducer
 );
