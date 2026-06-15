@@ -16,6 +16,7 @@ type Props = {
 
 export function StoryRatingWidget({ storyId }: Props) {
   const user = useAppSelector((s) => s.identity.user);
+  const identityHydrated = useAppSelector((s) => s.identity.hydrated);
   const [data, setData] = useState<RatingData | null>(null);
   const [hovered, setHovered] = useState(0);
   const [showReview, setShowReview] = useState(false);
@@ -89,7 +90,7 @@ export function StoryRatingWidget({ storyId }: Props) {
         ) : null}
       </div>
 
-      {user ? (
+      {identityHydrated && user ? (
         <div className="story-rating-stars" aria-label="Chọn sao đánh giá">
           {[1, 2, 3, 4, 5].map((star) => (
             <button
@@ -121,9 +122,9 @@ export function StoryRatingWidget({ storyId }: Props) {
             </button>
           ) : null}
         </div>
-      ) : (
+      ) : identityHydrated && !user ? (
         <p className="story-rating-login-hint">Đăng nhập để đánh giá truyện này</p>
-      )}
+      ) : null}
 
       {showReview && data?.userRating ? (
         <div className="story-rating-review-form">

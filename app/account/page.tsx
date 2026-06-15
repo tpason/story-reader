@@ -5,6 +5,7 @@ import { CultivationPanel } from "@/components/CultivationPanel";
 import { UserIdentity } from "@/components/UserIdentity";
 import { ProfileShelf } from "@/components/ProfileShelf";
 import { ReadingStatsPanel } from "@/components/ReadingStatsPanel";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export const dynamic = "force-dynamic";
 
@@ -12,11 +13,20 @@ export default function AccountPage() {
   return (
     <main className="auth-shell">
       <MotionFX variant="error" />
-      <section className="auth-panel">
-        <Link href="/" className="brand auth-brand">
+      <header className="topbar account-topbar">
+        <Link href="/" className="brand">
           <ReaderLogo />
           <span>Linh Quyển Các</span>
         </Link>
+        <nav className="topbar-nav" aria-label="Account navigation">
+          <Link href="/">Thư viện</Link>
+          <Link href="/reading-history">Tàng thư</Link>
+          <Link href="/discover">Khám phá</Link>
+        </nav>
+        <NotificationBell />
+        <UserIdentity compact className="topbar-identity" />
+      </header>
+      <section className="auth-panel">
         <div className="auth-heading">
           <p className="eyebrow">Động phủ</p>
           <h1>Định danh đạo hữu, khắc tu vi vào Thiên Thư</h1>

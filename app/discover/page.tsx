@@ -20,7 +20,7 @@ type DiscoverProps = {
   }>;
 };
 
-function discoverHref(kind: "polished" | "updated", page: number, today: boolean, completed: boolean | null) {
+function discoverHref(kind: "polished" | "updated", page: number, today: boolean, completed: boolean | undefined) {
   const params = new URLSearchParams();
   params.set("kind", kind);
   if (page > 1) params.set("page", String(page));
@@ -43,10 +43,6 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
       ? await listRecentlyPolishedStoriesPage({ page: currentPage, pageSize, today, completed })
       : await listRecentlyUpdatedStoriesPage({ page: currentPage, pageSize, today, completed });
   const Icon = kind === "polished" ? WandSparkles : Clock3;
-
-  // Completed filter toggle: null → true → false → null
-  const nextCompleted: boolean | null =
-    completed === undefined ? true : completed === true ? false : null;
 
   return (
     <main className="app-shell">
@@ -72,24 +68,30 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
             <p className="library-subtitle">Theo dõi các truyện có bản đọc mượt hơn hoặc chương mới vừa được cập nhật vào Thiên Thư.</p>
           </div>
           <div className="filters discover-tabs">
-            <Link className={`chip ${kind === "polished" ? "chip-active" : ""}`} href={discoverHref("polished", 1, today, completed ?? null)}>
+            <Link className={`chip ${kind === "polished" ? "chip-active" : ""}`} href={discoverHref("polished", 1, today, completed)}>
               <WandSparkles size={15} />
               Vừa polish
             </Link>
-            <Link className={`chip ${kind === "updated" ? "chip-active" : ""}`} href={discoverHref("updated", 1, today, completed ?? null)}>
+            <Link className={`chip ${kind === "updated" ? "chip-active" : ""}`} href={discoverHref("updated", 1, today, completed)}>
               <Clock3 size={15} />
               Vừa cập nhật
             </Link>
-            <Link className={`chip ${today ? "chip-active" : ""}`} href={discoverHref(kind, 1, !today, completed ?? null)}>
+            <Link className={`chip ${today ? "chip-active" : ""}`} href={discoverHref(kind, 1, !today, completed)}>
               <Sparkles size={15} />
               Hôm nay
             </Link>
             <Link
-              className={`chip ${completed === true ? "chip-active" : completed === false ? "chip-active chip-inverted" : ""}`}
-              href={discoverHref(kind, 1, today, nextCompleted)}
+              className={`chip ${completed === true ? "chip-active" : ""}`}
+              href={discoverHref(kind, 1, today, completed === true ? undefined : true)}
             >
               <BookOpenCheck size={15} />
-              {completed === false ? "Đang viết" : "Hoàn thành"}
+              Hoàn thành
+            </Link>
+            <Link
+              className={`chip ${completed === false ? "chip-active chip-inverted" : ""}`}
+              href={discoverHref(kind, 1, today, completed === false ? undefined : false)}
+            >
+              Đang viết
             </Link>
           </div>
         </section>
@@ -97,7 +99,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
         <section className="library-list-section" aria-label={kind === "polished" ? "Vừa polish" : "Vừa cập nhật"}>
           <div className="section-heading-row story-list-heading">
             <div>
-              <p className="eyebrow">{today ? "Trong hôm nay" : "Mới nhất"}{completed === true ? " · Hoàn thành" : completed === false ? " · Đang viết" : ""}</p>
+              <p className="eyebrow">{today ? "Trong hôm nay" : "Mới nhất"}{completed === true ? " · Hoàn thành" : completed === false ? " · Đang viết" : " · Tất cả"}</p>
               <h2>{kind === "polished" ? "Bản đọc vừa polish" : "Chương vừa cập nhật"}</h2>
             </div>
             <span className="discovery-badge">
@@ -138,13 +140,13 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
           )}
 
           <nav className="pagination discover-pagination" aria-label="Discovery pagination">
-            <Link className={`chip ${page.page <= 1 ? "chip-disabled" : ""}`} href={discoverHref(kind, Math.max(1, page.page - 1), today, completed ?? null)} aria-disabled={page.page <= 1}>
+            <Link className={`chip ${page.page <= 1 ? "chip-disabled" : ""}`} href={discoverHref(kind, Math.max(1, page.page - 1), today, completed)} aria-disabled={page.page <= 1}>
               Trước
             </Link>
             <span>
               Trang {page.page} / {page.totalPages}
             </span>
-            <Link className={`chip ${page.page >= page.totalPages ? "chip-disabled" : ""}`} href={discoverHref(kind, Math.min(page.totalPages, page.page + 1), today, completed ?? null)} aria-disabled={page.page >= page.totalPages}>
+            <Link className={`chip ${page.page >= page.totalPages ? "chip-disabled" : ""}`} href={discoverHref(kind, Math.min(page.totalPages, page.page + 1), today, completed)} aria-disabled={page.page >= page.totalPages}>
               Sau
             </Link>
           </nav>

@@ -1,6 +1,6 @@
 "use client";
 
-import { BookMarked, BookOpen, Clock, Flame, LoaderCircle, Trophy } from "lucide-react";
+import { BookMarked, BookOpen, ChevronRight, Clock, Flame, LoaderCircle, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ReaderLogo } from "@/components/ReaderLogo";
@@ -16,39 +16,8 @@ import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 
 import type { ReadingHistoryItem } from "@/lib/reading-history";
 
-function dateKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function calcStreak(items: ReadingHistoryItem[]): number {
-  if (items.length === 0) return 0;
-
-  const dates = new Set(
-    items
-      .filter((i) => i.lastReadAt)
-      .map((i) => dateKey(new Date(i.lastReadAt)))
-  );
-
-  const today = new Date();
-  const todayKey = dateKey(today);
-  const yest = new Date(today);
-  yest.setDate(today.getDate() - 1);
-  const yesterdayKey = dateKey(yest);
-
-  if (!dates.has(todayKey) && !dates.has(yesterdayKey)) return 0;
-
-  const cursor = new Date(today);
-  if (!dates.has(todayKey)) cursor.setDate(cursor.getDate() - 1);
-
-  let streak = 0;
-  while (dates.has(dateKey(cursor))) {
-    streak++;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return streak;
-}
-
 function ReadingStats({ items }: { items: ReadingHistoryItem[] }) {
+  const reduxStreak = useAppSelector((s) => s.readingStreak);
   if (items.length === 0) return null;
 
   const totalChapters = items.reduce((s, i) => s + i.maxReadChapterNumber, 0);
@@ -62,10 +31,8 @@ function ReadingStats({ items }: { items: ReadingHistoryItem[] }) {
     ? `${estimatedHours}h${remainingMins > 0 ? ` ${remainingMins}p` : ""}`
     : `${estimatedMinutes}p`;
 
-  const streak = calcStreak(items);
-  const readToday = items.some(
-    (i) => i.lastReadAt && dateKey(new Date(i.lastReadAt)) === dateKey(new Date())
-  );
+  const streak = reduxStreak.currentStreak;
+  const readToday = reduxStreak.lastReadDate === new Date().toISOString().slice(0, 10);
 
   return (
     <div className="reading-stats-row" aria-label="Thống kê tu luyện">
@@ -193,20 +160,48 @@ export function ReadingHistoryClient() {
         ) : null}
 
         <section className="story-grid" aria-label="Hành trình tu luyện">
-          {items.map((item) => (
-            <Link className="story-card" href={storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber)} key={item.storyId}>
-              <StoryCover src={item.coverImageUrl} title={item.storyTitle} />
-              <div className="story-card-body">
-                <h2 className="story-card-title">{item.storyTitle}</h2>
-                <div className="story-meta">
-                  <span>Tu luyện tiếp chương {item.chapterNumber}</span>
-                  <span>{Math.round(item.progressPercent)}%</span>
-                  {item.totalChapters > item.maxReadChapterNumber ? <span>Mới +{item.totalChapters - item.maxReadChapterNumber}</span> : <span>Đã đọc</span>}
+          {items.map((item) => {
+            const progressPercent = item.totalChapters > 0
+              ? Math.min(100, Math.round((item.maxReadChapterNumber / item.totalChapters) * 100))
+              : 0;
+            const newChapters = item.totalChapters > item.maxReadChapterNumber
+              ? item.totalChapters - item.maxReadChapterNumber
+              : 0;
+            return (
+              <Link className="story-card" href={storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber)} key={item.storyId}>
+                <StoryCover src={item.coverImageUrl} title={item.storyTitle} />
+                <div className="story-card-body">
+                  <div className="story-card-heading">
+                    <div>
+                      <p className="story-card-kicker">
+                        <BookOpen size={12} />
+                        Chương {item.chapterNumber}
+                        {newChapters > 0 ? ` · Mới +${newChapters}` : ""}
+                      </p>
+                      <h2 className="story-card-title">{item.storyTitle}</h2>
+                    </div>
+                    <span className={`read-badge ${newChapters > 0 ? "read-badge-active" : ""}`}>
+                      {newChapters > 0 ? `+${newChapters}` : "Đã đọc"}
+                    </span>
+                  </div>
+                  <div className="story-meta">
+                    <span>{Math.round(item.progressPercent)}% hoàn thành</span>
+                    {item.totalChapters > 0 ? <span>{item.maxReadChapterNumber}/{item.totalChapters} chương</span> : null}
+                  </div>
+                  {item.chapterTitle ? <p className="story-description">{item.chapterTitle}</p> : null}
+                  <div className="story-card-footer">
+                    <div className="story-progress-mini" aria-label={`Tiến độ ${progressPercent}%`}>
+                      <span style={{ width: `${progressPercent}%` }} />
+                    </div>
+                    <span className="story-card-cta">
+                      Đọc tiếp
+                      <ChevronRight size={14} />
+                    </span>
+                  </div>
                 </div>
-                {item.chapterTitle ? <p className="story-description">{item.chapterTitle}</p> : null}
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </section>
       </div>
     </main>

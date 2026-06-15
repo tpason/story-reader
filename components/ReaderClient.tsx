@@ -1105,7 +1105,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       };
 
       dispatch(upsertHistoryItem(item));
-      dispatch(recordDailyRead(new Date().toLocaleDateString("sv-SE"))); // "YYYY-MM-DD"
+      dispatch(recordDailyRead(new Date().toISOString().slice(0, 10))); // "YYYY-MM-DD"
       window.localStorage.setItem(storageKey, String(Math.round(scrollY)));
 
       if (syncRemote) {
@@ -2332,6 +2332,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   {offlineLoading ? <LoaderCircle size={15} className="spin" /> : <WifiOff size={15} />}
                   {offlineReady ? `Đã tải ${cachedChapters.length} chương offline` : "Tải offline"}
                 </button>
+                <div className="reader-overflow-sep" />
+                <div className="reader-overflow-shortcuts">
+                  <p className="reader-overflow-shortcuts-title">Phím tắt</p>
+                  <div className="reader-shortcut-row"><kbd>←</kbd><kbd>→</kbd><span>Chương trước / sau</span></div>
+                  <div className="reader-shortcut-row"><kbd>B</kbd><span>Đánh dấu chương</span></div>
+                  <div className="reader-shortcut-row"><kbd>F</kbd><span>Focus mode</span></div>
+                  <div className="reader-shortcut-row"><kbd>T</kbd><span>Mục lục</span></div>
+                </div>
               </div>
             ) : null}
             {!isMobile ? (
