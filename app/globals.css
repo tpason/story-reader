@@ -11389,3 +11389,95 @@ button:focus-visible .bookmark-jade-icon {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Per-route skeleton loading states ──────────────────────────── */
+
+/* Topbar shell used by loading skeletons */
+.topbar-skel {
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.topbar-skel .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Story detail skeleton */
+.story-detail-hero-skel {
+  align-items: flex-start;
+}
+.story-skel-cover {
+  flex-shrink: 0;
+  width: 160px;
+  aspect-ratio: 2/3;
+  border-radius: 10px;
+}
+@media (max-width: 640px) {
+  .story-skel-cover { width: 110px; }
+}
+.story-skel-copy {
+  flex: 1;
+  min-width: 0;
+}
+.story-skel-chapter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.story-skel-chapter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+.story-skel-chapter-row:last-child { border-bottom: none; }
+
+/* Reader skeleton */
+.reader-skel-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--bg-primary, #faf9f6);
+}
+.reader-skel-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--bg-primary, #faf9f6);
+}
+.reader-skel-content {
+  max-width: 680px;
+  width: 100%;
+  margin: 40px auto;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+}
+.reader-skel-chapter-title { margin-bottom: 8px; }
+.reader-skel-para {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.reader-skel-footnav {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 20px 40px;
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
+}

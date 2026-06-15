@@ -1,20 +1,93 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { Sparkles } from "lucide-react";
 import { StoryDetailClient } from "@/components/StoryDetailClient";
+import { StoryCover } from "@/components/StoryCover";
 import { getStory, listChapters, listRecommendedStories } from "@/lib/stories";
-import { isStoryUuid, storyKeyToId } from "@/lib/urls";
+import { isStoryUuid, storyKeyToId, storyHref } from "@/lib/urls";
+import type { StorySummary } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+function RecommendationsSkeleton() {
+  return (
+    <section className="library-list-section" aria-hidden="true">
+      <div className="section-heading-row story-list-heading" style={{ marginBottom: 16 }}>
+        <div>
+          <div className="xi-skel xi-skel-eyebrow" style={{ marginBottom: 8 }} />
+          <div className="xi-skel" style={{ height: 20, width: 160 }} />
+        </div>
+      </div>
+      <div className="recommendation-row">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="recommendation-card xi-skel-card">
+            <div className="xi-skel xi-skel-cover" />
+            <div style={{ padding: "8px 4px", display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="xi-skel xi-skel-line" />
+              <div className="xi-skel xi-skel-line xi-skel-line-mid" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+async function RecommendationsSection({ storyId }: { storyId: string }) {
+  const recommendations = await listRecommendedStories(storyId, 8);
+  if (recommendations.length === 0) return null;
+  return (
+    <section className="library-list-section" aria-label="Recommended stories">
+      <div className="section-heading-row story-list-heading">
+        <div>
+          <p className="eyebrow">Đạo hữu trên con đường tương tự</p>
+          <h2>Linh quyển cùng đạo</h2>
+        </div>
+        <span className="discovery-badge">
+          <Sparkles size={15} />
+          {recommendations.length} truyện
+        </span>
+      </div>
+      <div className="recommendation-row">
+        {recommendations.map((item: StorySummary) => (
+          <Link className="recommendation-card" href={storyHref(item)} key={item.id}>
+            <StoryCover src={item.coverImageUrl} title={item.title} />
+            <div>
+              <h3>{item.title}</h3>
+              <div className="discovery-meta">
+                <span>{item.author || "Unknown author"}</span>
+                <span>{item.totalChapters} chương</span>
+                {item.primaryCategoryName ? <span>{item.primaryCategoryName}</span> : null}
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default async function StoryLanding({ params }: { params: Promise<{ storyId: string }> }) {
   const { storyId: storyKey } = await params;
   const storyId = storyKeyToId(storyKey);
   if (!isStoryUuid(storyId)) notFound();
 
-  const [story, chapters, recommendations] = await Promise.all([
+  const [story, chapters] = await Promise.all([
     getStory(storyId),
     listChapters(storyId, { pageSize: 80 }),
-    listRecommendedStories(storyId, 8)
   ]);
 
-  return <StoryDetailClient story={story} chapters={chapters.items} totalChapters={chapters.total} recommendations={recommendations} />;
+  return (
+    <StoryDetailClient
+      story={story}
+      chapters={chapters.items}
+      totalChapters={chapters.total}
+      recommendationsSlot={
+        <Suspense fallback={<RecommendationsSkeleton />}>
+          <RecommendationsSection storyId={storyId} />
+        </Suspense>
+      }
+    />
+  );
 }

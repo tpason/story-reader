@@ -4,7 +4,7 @@ import { BookOpen, BookOpenCheck, Clock3, Flame, Sparkles, User } from "lucide-r
 import { CharMapBlock } from "@/components/CharMapBlock";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MotionFX } from "@/components/MotionFX";
 import { ReaderLogo } from "@/components/ReaderLogo";
@@ -31,10 +31,11 @@ type StoryDetailClientProps = {
   story: StorySummary;
   chapters: ChapterSummary[];
   totalChapters: number;
-  recommendations: StorySummary[];
+  recommendations?: StorySummary[];
+  recommendationsSlot?: React.ReactNode;
 };
 
-export function StoryDetailClient({ story, chapters, totalChapters, recommendations }: StoryDetailClientProps) {
+export function StoryDetailClient({ story, chapters, totalChapters, recommendations = [], recommendationsSlot }: StoryDetailClientProps) {
   const queryClient = useQueryClient();
   const decorativeWebglEnabled = useDecorativeWebglEnabled();
   const currentUser = useAppSelector((state) => state.identity.user);
@@ -209,7 +210,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
 
         <CharMapBlock storyId={currentStory.id} />
 
-        {recommendations.length > 0 ? (
+        {recommendationsSlot ?? (recommendations.length > 0 ? (
           <section className="library-list-section" aria-label="Recommended stories">
             <div className="section-heading-row story-list-heading">
               <div>
@@ -237,7 +238,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
               ))}
             </div>
           </section>
-        ) : null}
+        ) : null)}
 
         <section className="library-list-section" id="story-chapters">
           <div className="section-heading-row story-list-heading">
