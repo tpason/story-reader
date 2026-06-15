@@ -11505,3 +11505,30 @@ button:focus-visible .bookmark-jade-icon {
 .story-share-btn {
   gap: 6px;
 }
+
+/* ── Same-author section ─────────────────────────────────────────── */
+.same-author-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--xi-gold, #c8962e);
+  text-decoration: none;
+}
+.same-author-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.same-author-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+}
+
+/* ── Search highlight marks ──────────────────────────────────────── */
+.search-highlight {
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 28%, transparent);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}

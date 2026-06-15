@@ -2,7 +2,7 @@
 
 import { BookOpen, BookOpenCheck, ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { memo, useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { CursorPage, StorySummary } from "@/lib/types";
@@ -50,6 +50,16 @@ function resetCardTilt(event: ReactPointerEvent<HTMLElement>) {
   card.style.setProperty("--tilt-glow-y", "50%");
 }
 
+function highlightText(text: string, term: string): React.ReactNode {
+  if (!term || !text) return text;
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(${escaped})`, "gi");
+  const parts = text.split(regex);
+  return parts.map((part, i) =>
+    regex.test(part) ? <mark key={i} className="search-highlight">{part}</mark> : part
+  );
+}
+
 function StoryCardSkeleton() {
   return (
     <div className="story-card story-card-skeleton" aria-hidden="true">
@@ -74,11 +84,12 @@ type StoryCardProps = {
   storyHistory: StoryHistoryItem | undefined;
   isAdmin: boolean;
   adminEditForCard: AdminStoryListEditState;
+  highlight?: string;
   onStartEdit: (story: StorySummary, field: AdminStoryListEditField, value: string | null | undefined) => void;
   onSetAdminEdit: (edit: AdminStoryListEditState) => void;
 };
 
-const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminEditForCard, onStartEdit, onSetAdminEdit }: StoryCardProps) {
+const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminEditForCard, highlight, onStartEdit, onSetAdminEdit }: StoryCardProps) {
   const newChapterCount = storyHistory ? Math.max(0, story.totalChapters - storyHistory.maxReadChapterNumber) : 0;
   const statusLabel = storyHistory
     ? newChapterCount > 0
@@ -129,7 +140,7 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
                   onStartEdit(story, "storyTitle", story.title);
                 }}
               >
-                {story.title}
+                {highlight ? highlightText(story.title, highlight) : story.title}
               </h2>
             )}
           </div>
@@ -161,7 +172,7 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
                 onStartEdit(story, "author", story.author);
               }}
             >
-              {story.author || "Unknown author"}
+              {highlight && story.author ? highlightText(story.author, highlight) : story.author || "Unknown author"}
             </span>
           )}
           <span>{story.totalChapters} chương</span>
@@ -294,6 +305,7 @@ export function StoryLibrary({ initialPage, query }: StoryLibraryProps) {
               storyHistory={historyByStory.get(story.id)}
               isAdmin={!!currentUser?.isAdmin}
               adminEditForCard={adminEdit?.storyId === story.id ? adminEdit : null}
+              highlight={query.q || undefined}
               onStartEdit={startAdminEdit}
               onSetAdminEdit={setAdminEdit}
             />

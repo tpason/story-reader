@@ -531,6 +531,24 @@ export async function listCategories(limit = 16): Promise<CategorySummary[]> {
   }));
 }
 
+export async function getCategoryBySlug(slug: string): Promise<CategorySummary | null> {
+  const rows = await query<CategoryRow>(
+    `
+      SELECT cat.id, cat.slug, cat.name, COUNT(s.id)::text AS story_count
+      FROM categories cat
+      LEFT JOIN story_categories sc ON sc.category_id = cat.id
+      LEFT JOIN stories s ON s.id = sc.story_id AND s.is_active = TRUE
+      WHERE cat.is_excluded = FALSE
+        AND (cat.slug = $1 OR cat.normalized_name = $1)
+      GROUP BY cat.id
+      LIMIT 1
+    `,
+    [slug]
+  );
+  if (!rows[0]) return null;
+  return { id: rows[0].id, slug: rows[0].slug, name: rows[0].name, storyCount: Number(rows[0].story_count) };
+}
+
 export async function listRecentlyPolishedStories(limit = 8): Promise<StoryDiscoveryItem[]> {
   const rows = await query<StoryDiscoveryRow>(
     `

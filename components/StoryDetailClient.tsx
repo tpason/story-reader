@@ -33,9 +33,10 @@ type StoryDetailClientProps = {
   totalChapters: number;
   recommendations?: StorySummary[];
   recommendationsSlot?: React.ReactNode;
+  sameAuthorSlot?: React.ReactNode;
 };
 
-export function StoryDetailClient({ story, chapters, totalChapters, recommendations = [], recommendationsSlot }: StoryDetailClientProps) {
+export function StoryDetailClient({ story, chapters, totalChapters, recommendations = [], recommendationsSlot, sameAuthorSlot }: StoryDetailClientProps) {
   const queryClient = useQueryClient();
   const decorativeWebglEnabled = useDecorativeWebglEnabled();
   const currentUser = useAppSelector((state) => state.identity.user);
@@ -260,6 +261,8 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
             </div>
           </section>
         ) : null)}
+
+        {sameAuthorSlot}
 
         <section className="library-list-section" id="story-chapters">
           <div className="section-heading-row story-list-heading">
