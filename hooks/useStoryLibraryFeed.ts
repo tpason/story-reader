@@ -7,6 +7,7 @@ import { useAppDispatch } from "@/lib/store-hooks";
 
 type StoryLibraryQuery = {
   q?: string;
+  author?: string;
   hot?: string;
   completed?: string;
   category?: string;
@@ -22,6 +23,7 @@ function apiUrl(cursor: string | null, query: StoryLibraryQuery) {
   params.set("limit", "24");
   if (cursor) params.set("cursor", cursor);
   if (query.q) params.set("q", query.q);
+  if (query.author) params.set("author", query.author);
   if (query.hot) params.set("hot", query.hot);
   if (query.completed) params.set("completed", query.completed);
   if (query.category) params.set("category", query.category);

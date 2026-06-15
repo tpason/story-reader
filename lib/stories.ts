@@ -359,6 +359,7 @@ export async function listStoriesCursor(options: {
   completed?: boolean;
   hot?: boolean;
   queryText?: string;
+  author?: string;
   minChapters?: number;
   maxChapters?: number;
   hasPolished?: boolean;
@@ -419,6 +420,12 @@ export async function listStoriesCursor(options: {
       WHERE c_audio.story_id = s.id
         AND (c_audio.is_audio_generated = TRUE OR c_audio.audio_path IS NOT NULL)
     )`);
+  }
+
+
+  if (options.author) {
+    const authorIndex = values.push(`%${options.author.trim()}%`);
+    where.push(`s.author ILIKE $${authorIndex}`);
   }
 
   if (options.queryText) {

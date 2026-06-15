@@ -11481,3 +11481,27 @@ button:focus-visible .bookmark-jade-icon {
   width: 100%;
   margin: 0 auto;
 }
+
+/* ── StoryCover shimmer placeholder ─────────────────────────────── */
+.cover-shimmer {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--xi-gold, #c8962e) 10%, var(--hairline)) 25%,
+    color-mix(in srgb, var(--xi-gold, #c8962e) 18%, transparent)    50%,
+    color-mix(in srgb, var(--xi-gold, #c8962e) 10%, var(--hairline)) 75%
+  );
+  background-size: 200% 100%;
+  animation: xi-shimmer 1.7s ease infinite;
+}
+.cover-shimmer img {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.cover:not(.cover-shimmer) img {
+  opacity: 1;
+}
+
+/* ── Story share button ──────────────────────────────────────────── */
+.story-share-btn {
+  gap: 6px;
+}

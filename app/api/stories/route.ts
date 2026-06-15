@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
       completed: boolParam(params.get("completed")),
       hot: params.get("hot") === "true",
       queryText: params.get("q") ?? undefined,
+      author: params.get("author") ?? undefined,
       minChapters: numberParam(params.get("minChapters")) ?? 1,
       maxChapters: numberParam(params.get("maxChapters")),
       hasPolished: params.get("hasPolished") === "true",

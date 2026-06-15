@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, BookOpenCheck, Clock3, Flame, Sparkles, User } from "lucide-react";
+import { BookOpen, BookOpenCheck, Check, Clock3, Flame, Share2, Sparkles, User } from "lucide-react";
 import { CharMapBlock } from "@/components/CharMapBlock";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -40,6 +40,18 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
   const decorativeWebglEnabled = useDecorativeWebglEnabled();
   const currentUser = useAppSelector((state) => state.identity.user);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  async function handleShare() {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    if (navigator.share) {
+      await navigator.share({ title: currentStory.title, url }).catch(() => undefined);
+    } else {
+      await navigator.clipboard.writeText(url).catch(() => undefined);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
+  }
   const { currentStory, adminEdit, adminEditSaving, adminEditError, setAdminEdit, startAdminEdit, saveAdminEdit } = useStoryDetailAdminEdit({
     story,
     isAdmin: !!currentUser?.isAdmin,
@@ -185,6 +197,15 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
                 </Link>
               ) : null}
               <FollowButton story={currentStory} />
+              <button
+                type="button"
+                className={`chip story-share-btn${shareCopied ? " chip-active" : ""}`}
+                onClick={handleShare}
+                title="Chia sẻ truyện"
+              >
+                {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
+                {shareCopied ? "Đã copy!" : "Chia sẻ"}
+              </button>
               <Link className="chip" href="/">
                 Thư viện
               </Link>

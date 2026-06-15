@@ -21,6 +21,7 @@ type HomeProps = {
   searchParams: Promise<{
     page?: string;
     q?: string;
+    author?: string;
     hot?: string;
     completed?: string;
     category?: string;
@@ -51,9 +52,11 @@ async function DiscoverySection() {
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
   const queryText = params.q?.trim() || undefined;
+  const authorText = params.author?.trim() || undefined;
 
   const isSearchActive = !!(
     queryText ||
+    authorText ||
     params.hot === "true" ||
     params.completed === "true" ||
     params.category ||
@@ -66,6 +69,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const libraryKey = JSON.stringify({
     q: queryText ?? "",
+    author: authorText ?? "",
     hot: params.hot ?? "",
     completed: params.completed ?? "",
     category: params.category ?? "",
@@ -80,6 +84,7 @@ export default async function Home({ searchParams }: HomeProps) {
     listStoriesCursor({
       limit: 24,
       queryText,
+      author: authorText,
       hot: params.hot === "true",
       completed: params.completed === "true" ? true : undefined,
       category: params.category,
@@ -94,6 +99,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const activeFilterLabels: string[] = [];
   if (queryText) activeFilterLabels.push(`"${queryText}"`);
+  if (authorText) activeFilterLabels.push(`Tác giả: ${authorText}`);
   if (params.hot === "true") activeFilterLabels.push("Hot");
   if (params.completed === "true") activeFilterLabels.push("Hoàn thành");
   if (params.category) activeFilterLabels.push(params.category);
@@ -169,6 +175,10 @@ export default async function Home({ searchParams }: HomeProps) {
                 Lọc nâng cao
               </summary>
               <div className="advanced-filter-panel">
+                <label>
+                  <span>Tác giả</span>
+                  <input name="author" defaultValue={params.author ?? ""} placeholder="Tên tác giả..." />
+                </label>
                 <label>
                   <span>Số chương từ</span>
                   <input name="minChapters" inputMode="numeric" defaultValue={params.minChapters ?? ""} placeholder="100" />
@@ -249,7 +259,7 @@ export default async function Home({ searchParams }: HomeProps) {
           </>
         )}
 
-        <StoryLibrary key={libraryKey} initialPage={stories} query={{ q: queryText, hot: params.hot, completed: params.completed, category: params.category, minChapters: params.minChapters, maxChapters: params.maxChapters, hasPolished: params.hasPolished, hasAudio: params.hasAudio, sort: params.sort }} />
+        <StoryLibrary key={libraryKey} initialPage={stories} query={{ q: queryText, author: authorText, hot: params.hot, completed: params.completed, category: params.category, minChapters: params.minChapters, maxChapters: params.maxChapters, hasPolished: params.hasPolished, hasAudio: params.hasAudio, sort: params.sort }} />
       </div>
     </main>
   );

@@ -19,6 +19,7 @@ type StoryLibraryProps = {
   initialPage: CursorPage<StorySummary>;
   query: {
     q?: string;
+    author?: string;
     hot?: string;
     completed?: string;
     category?: string;
