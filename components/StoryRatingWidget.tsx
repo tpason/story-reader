@@ -59,7 +59,12 @@ export function StoryRatingWidget({ storyId }: Props) {
     setSaving(true);
     try {
       await fetch(`/api/stories/${storyId}/rating`, { method: "DELETE" });
-      setData((prev) => prev ? { ...prev, userRating: null } : prev);
+      const fresh = await fetch(`/api/stories/${storyId}/rating`).then((r) => r.json()).catch(() => null);
+      if (fresh) {
+        setData(fresh);
+      } else {
+        setData((prev) => prev ? { ...prev, userRating: null } : prev);
+      }
       setReviewText("");
     } finally {
       setSaving(false);

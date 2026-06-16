@@ -23,18 +23,15 @@ export default async function CategoryPage({
   const { slug } = await params;
   const { sort } = await searchParams;
 
+  const validSort: CategorySort | undefined =
+    sort === "chapters" || sort === "hot" || sort === "title" || sort === "updated" ? sort : undefined;
+
   const [category, stories] = await Promise.all([
     getCategoryBySlug(slug),
-    listStoriesCursor({
-      limit: 24,
-      category: slug,
-      sort: sort === "chapters" || sort === "hot" || sort === "title" || sort === "updated" ? sort : undefined,
-    }),
+    listStoriesCursor({ limit: 24, category: slug, sort: validSort }),
   ]);
 
   if (!category) notFound();
-
-  const validSort = sort === "chapters" || sort === "hot" || sort === "title" || sort === "updated" ? sort : undefined;
 
   function sortHref(s: CategorySort) {
     return `/categories/${slug}?sort=${s}` as Route;
