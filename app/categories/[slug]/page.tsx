@@ -1,4 +1,5 @@
 import { BookOpen, Layers3 } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MotionFX } from "@/components/MotionFX";
@@ -36,7 +37,7 @@ export default async function CategoryPage({
   const validSort = sort === "chapters" || sort === "hot" || sort === "title" || sort === "updated" ? sort : undefined;
 
   function sortHref(s: CategorySort) {
-    return `/categories/${slug}?sort=${s}`;
+    return `/categories/${slug}?sort=${s}` as Route;
   }
 
   return (

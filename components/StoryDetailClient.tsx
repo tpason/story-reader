@@ -1,6 +1,7 @@
 "use client";
 
 import { BookOpen, BookOpenCheck, Check, Clock3, Flame, Share2, Sparkles, User } from "lucide-react";
+import type { Route } from "next";
 import { CharMapBlock } from "@/components/CharMapBlock";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -133,7 +134,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
           <div className="story-detail-copy">
             <p className="eyebrow">
               {currentStory.primaryCategorySlug ? (
-                <Link href={`/categories/${currentStory.primaryCategorySlug}`} className="category-eyebrow-link">
+                <Link href={`/categories/${currentStory.primaryCategorySlug}` as Route} className="category-eyebrow-link">
                   {currentStory.primaryCategoryName || currentStory.category || "Truyện chữ"}
                 </Link>
               ) : (currentStory.primaryCategoryName || currentStory.category || "Truyện chữ")}
