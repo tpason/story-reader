@@ -283,6 +283,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const formatTriggerRef = useRef<HTMLButtonElement | null>(null);
   const formatPanelRef = useRef<HTMLDivElement | null>(null);
   const mobileSheetPanelRef = useRef<HTMLDivElement | null>(null);
+  const mobileSheetScrollRef = useRef<HTMLDivElement | null>(null);
   const lastLocalPersistRef = useRef(0);
   const lastRemotePersistRef = useRef(0);
   const progressRef = useRef(0);
@@ -1517,14 +1518,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     if (!details.open) return;
 
     window.requestAnimationFrame(() => {
-      const panel = mobileSheetPanelRef.current;
-      if (!panel || !panel.contains(details)) return;
+      const scrollEl = mobileSheetScrollRef.current;
+      if (!scrollEl || !scrollEl.contains(details)) return;
 
-      const panelRect = panel.getBoundingClientRect();
+      const scrollRect = scrollEl.getBoundingClientRect();
       const detailsRect = details.getBoundingClientRect();
       const bottomPadding = 22;
 
-      if (detailsRect.bottom > panelRect.bottom - bottomPadding || detailsRect.top < panelRect.top + 12) {
+      if (detailsRect.bottom > scrollRect.bottom - bottomPadding || detailsRect.top < scrollRect.top) {
         details.scrollIntoView({
           block: "nearest",
           behavior: prefersReducedMotion() ? "auto" : "smooth"
@@ -2493,7 +2494,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               </div>
             </div>
 
-            <div className="reader-mobile-sheet-scroll">
+            <div className="reader-mobile-sheet-scroll" ref={mobileSheetScrollRef}>
             <div className="reader-sheet-current">
               <div>
                 <span>Tiến độ</span>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { AdditiveBlending, BufferGeometry, Color, Line, LineBasicMaterial, Vector3 } from "three";
 
 type CurrentLine = {
@@ -61,6 +61,10 @@ export function WindCurrentLines() {
       return new Line(geometry, material);
     }),
   []);
+
+  useEffect(() => () => {
+    objects.forEach((obj) => { obj.geometry.dispose(); (obj.material as LineBasicMaterial).dispose(); });
+  }, [objects]);
 
   useFrame((state) => {
     LINES.forEach((line, index) => {

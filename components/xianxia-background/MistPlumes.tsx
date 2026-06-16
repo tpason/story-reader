@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { CanvasTexture, LinearFilter, NormalBlending, Sprite, SRGBColorSpace } from "three";
 
 type MistPuff = {
@@ -59,6 +59,7 @@ function createMistTexture() {
 export function MistPlumes() {
   const refs = useRef<Array<Sprite | null>>([]);
   const texture = useMemo(createMistTexture, []);
+  useEffect(() => () => { texture.dispose(); }, [texture]);
 
   useFrame((state, delta) => {
     const MAX_LIFT = 1.75;
