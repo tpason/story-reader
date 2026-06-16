@@ -11,6 +11,7 @@ import { CultivationPanel } from "@/components/CultivationPanel";
 import { MotionFX } from "@/components/MotionFX";
 import { UserIdentity } from "@/components/UserIdentity";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { mergeBookmarkItems, mergeHistoryItems } from "@/lib/store";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 
@@ -101,6 +102,7 @@ export function ReadingHistoryClient() {
           <Link href="/">Thư viện</Link>
           <Link href="/updates">Chương mới</Link>
         </nav>
+        <ThemeToggle />
         <NotificationBell />
         <UserIdentity compact className="topbar-identity" />
       </header>

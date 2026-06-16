@@ -11,6 +11,7 @@ import { DiscoveryRailSkeleton } from "@/components/DiscoveryRailSkeleton";
 import { FollowedStoriesPanel } from "@/components/FollowedStoriesPanel";
 import { HomeRecommendationsPanel } from "@/components/HomeRecommendationsPanel";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { HeroCloudClient } from "@/components/HeroCloudClient";
 import { XianxiaPoetryColumn } from "@/components/XianxiaPoetryColumn";
 import { SearchSuggest } from "@/components/SearchSuggest";
@@ -125,6 +126,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <Link href="/reading-history">Tàng thư</Link>
           <Link href="/account">Động phủ</Link>
         </nav>
+        <ThemeToggle />
         <NotificationBell />
         <UserIdentity compact className="topbar-identity" />
       </header>

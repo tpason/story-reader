@@ -7,6 +7,7 @@ import { ReaderLogo } from "@/components/ReaderLogo";
 import { UserIdentity } from "@/components/UserIdentity";
 import { NotificationBell } from "@/components/NotificationBell";
 import { StoryLibrary } from "@/components/StoryLibrary";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { getCategoryBySlug, listStoriesCursor } from "@/lib/stories";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +51,7 @@ export default async function CategoryPage({
           <Link href="/discover">Khám phá</Link>
           <Link href="/reading-history">Tàng thư</Link>
         </nav>
+        <ThemeToggle />
         <NotificationBell />
         <UserIdentity compact className="topbar-identity" />
       </header>

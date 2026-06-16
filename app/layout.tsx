@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { GlobalScrollTop } from "@/components/GlobalScrollTop";
+import { GlobalThemeProvider } from "@/components/GlobalThemeProvider";
 import { PwaRuntime } from "@/components/PwaRuntime";
 import { QueryProvider } from "@/components/QueryProvider";
 import { StoreProvider } from "@/components/StoreProvider";
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body>
         <StoreProvider>
+          <GlobalThemeProvider />
           <QueryProvider>
             <Suspense fallback={null}>
               <XianxiaWorldBackgroundClient />

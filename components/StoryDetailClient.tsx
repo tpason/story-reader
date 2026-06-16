@@ -13,6 +13,7 @@ import { StoryCover } from "@/components/StoryCover";
 import { UserIdentity } from "@/components/UserIdentity";
 import { FollowButton } from "@/components/FollowButton";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { storyDisplayDescription } from "@/lib/story-description";
 import type { ChapterSummary, StorySummary } from "@/lib/types";
 import { storyHref } from "@/lib/urls";
@@ -104,6 +105,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
           <Link href="/updates">Chương mới</Link>
           <Link href="/reading-history">Tàng thư</Link>
         </nav>
+        <ThemeToggle />
         <NotificationBell />
         <UserIdentity compact className="topbar-identity" />
       </header>

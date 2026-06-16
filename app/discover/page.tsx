@@ -5,6 +5,7 @@ import { MotionFX } from "@/components/MotionFX";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { StoryCover } from "@/components/StoryCover";
 import { UserIdentity } from "@/components/UserIdentity";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { formatAbsoluteActivity, formatDiscoveryChapterLabel } from "@/lib/discovery-format";
 import { listRecentlyPolishedStoriesPage, listRecentlyUpdatedStoriesPage } from "@/lib/stories";
 import { storyHref } from "@/lib/urls";
@@ -57,6 +58,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
           <Link href="/reading-history">Tàng thư</Link>
           <Link href="/account">Động phủ</Link>
         </nav>
+        <ThemeToggle />
         <UserIdentity compact className="topbar-identity" />
       </header>
 

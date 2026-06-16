@@ -11576,3 +11576,97 @@ button:focus-visible .bookmark-jade-icon {
   border-radius: 2px;
   padding: 0 1px;
 }
+
+/* ============================================================
+   Global dark mode — [data-xi-theme="dark"] on <html>
+   Applied by GlobalThemeProvider reading Redux + OS preference.
+   Reader pages have their own [data-theme] system on .reader-shell
+   and are NOT affected by these rules.
+   ============================================================ */
+[data-xi-theme="dark"] {
+  --canvas: rgba(22, 20, 18, 0.92);
+  --surface: rgba(28, 26, 24, 0.88);
+  --surface-soft: rgba(32, 30, 27, 0.84);
+  --hairline: rgba(255, 255, 255, 0.09);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --ink: #f0ece4;
+  --charcoal: #e6e2da;
+  --slate: #a09890;
+  --steel: #726c64;
+  --muted: #524e4a;
+}
+
+[data-xi-theme="dark"] .topbar {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+  background: rgba(10, 9, 8, 0.94);
+}
+
+[data-xi-theme="dark"] .auth-panel,
+[data-xi-theme="dark"] .auth-modal-inner {
+  background:
+    radial-gradient(circle at 88% 8%, rgba(200, 150, 46, 0.10), transparent 30%),
+    rgba(18, 17, 15, 0.96);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-xi-theme="dark"] .story-card {
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.36);
+}
+
+[data-xi-theme="dark"] .story-card:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48);
+}
+
+[data-xi-theme="dark"] .notification-panel {
+  background:
+    radial-gradient(circle at 88% 8%, rgba(200, 150, 46, 0.10), transparent 30%),
+    rgba(18, 17, 15, 0.98);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.48);
+}
+
+[data-xi-theme="dark"] .library-header-card {
+  background:
+    radial-gradient(circle at 10% 90%, rgba(26, 107, 90, 0.14), transparent 40%),
+    radial-gradient(circle at 90% 10%, rgba(200, 150, 46, 0.12), transparent 36%),
+    rgba(16, 15, 13, 0.94);
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+[data-xi-theme="dark"] .story-detail-hero {
+  background: rgba(12, 11, 10, 0.70);
+}
+
+[data-xi-theme="dark"] .chip:not(.chip-active) {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(200, 150, 46, 0.06)) padding-box,
+    linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(200, 150, 46, 0.20)) border-box;
+  color: var(--slate);
+}
+
+[data-xi-theme="dark"] input,
+[data-xi-theme="dark"] textarea,
+[data-xi-theme="dark"] select {
+  background: rgba(24, 22, 20, 0.94);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--ink);
+}
+
+[data-xi-theme="dark"] input::placeholder,
+[data-xi-theme="dark"] textarea::placeholder {
+  color: var(--steel);
+}
+
+/* Dark: invert section-heading halos so text stays readable over dark cards */
+[data-xi-theme="dark"] .section-heading-row h2 {
+  text-shadow: none;
+}
+
+/* Theme toggle button — subtle in topbar */
+.theme-toggle-btn {
+  color: var(--slate);
+  transition: color 160ms ease;
+}
+.theme-toggle-btn:hover {
+  color: var(--ink);
+}

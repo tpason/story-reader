@@ -6,6 +6,7 @@ import { UserIdentity } from "@/components/UserIdentity";
 import { ProfileShelf } from "@/components/ProfileShelf";
 import { ReadingStatsPanel } from "@/components/ReadingStatsPanel";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export default function AccountPage() {
           <Link href="/reading-history">Tàng thư</Link>
           <Link href="/discover">Khám phá</Link>
         </nav>
+        <ThemeToggle />
         <NotificationBell />
         <UserIdentity compact className="topbar-identity" />
       </header>

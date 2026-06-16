@@ -295,13 +295,28 @@ export const {
 } = bookmarksSlice.actions;
 export const { recordDailyRead } = readingStreakSlice.actions;
 
+export type GlobalTheme = "auto" | "dark" | "light";
+
+const globalThemeSlice = createSlice({
+  name: "globalTheme",
+  initialState: "auto" as GlobalTheme,
+  reducers: {
+    setGlobalTheme(_, action: PayloadAction<GlobalTheme>) {
+      return action.payload;
+    }
+  }
+});
+
+export const { setGlobalTheme } = globalThemeSlice.actions;
+
 const rootReducer = combineReducers({
   identity: identitySlice.reducer,
   history: historySlice.reducer,
   readerStyle: readerStyleSlice.reducer,
   follows: followsSlice.reducer,
   bookmarks: bookmarksSlice.reducer,
-  readingStreak: readingStreakSlice.reducer
+  readingStreak: readingStreakSlice.reducer,
+  globalTheme: globalThemeSlice.reducer
 });
 
 const persistedReducer = persistReducer(
@@ -309,7 +324,7 @@ const persistedReducer = persistReducer(
     key: "story-reader",
     version: 1,
     storage,
-    whitelist: ["identity", "history", "readerStyle", "follows", "bookmarks", "readingStreak"]
+    whitelist: ["identity", "history", "readerStyle", "follows", "bookmarks", "readingStreak", "globalTheme"]
   },
   rootReducer
 );

@@ -8,6 +8,7 @@ import { ReaderLogo } from "@/components/ReaderLogo";
 import { StoryCover } from "@/components/StoryCover";
 import { UserIdentity } from "@/components/UserIdentity";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { fetchReadingProgress } from "@/lib/api-client";
 import { historyToFollowItem } from "@/lib/follows";
 import { mergeHistoryItems } from "@/lib/store";
@@ -57,6 +58,7 @@ export function UpdatesClient() {
           <Link href="/">Thư viện</Link>
           <Link href="/reading-history">Tàng thư</Link>
         </nav>
+        <ThemeToggle />
         <NotificationBell />
         <UserIdentity compact className="topbar-identity" />
       </header>
