@@ -28,6 +28,7 @@
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "@types/web-push": "^3.6.4",
     "animejs": "^4.4.1",
     "dexie": "^4.4.2",
     "dexie-react-hooks": "^4.4.0",
@@ -39,12 +40,13 @@
     "pg": "^8.13.1",
     "postprocessing": "^6.39.1",
     "react": "^19.0.0",
-"react-dom": "^19.0.0",
+    "react-dom": "^19.0.0",
     "react-redux": "^9.2.0",
     "redux-persist": "^6.0.0",
     "three": "^0.184.0",
     "typescript": "^5.7.2",
     "vaul": "^1.1.2",
+    "web-push": "^3.6.7",
     "ws": "^8.20.1"
   },
   "devDependencies": {

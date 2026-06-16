@@ -62,6 +62,35 @@ async function networkFirst(request, cacheName, fallbackUrl) {
   }
 }
 
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+  let data;
+  try { data = event.data.json(); } catch { return; }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Linh Quyển Các", {
+      body: data.body || "Có chương mới từ truyện đang theo dõi.",
+      icon: data.icon || "/icons/icon-192.svg",
+      badge: data.badge || "/icons/icon-192.svg",
+      tag: `story-${data.storyId}-${data.chapterNumber}`,
+      renotify: false,
+      data: { url: data.url || "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      const found = clients.find((c) => c.url.startsWith(self.location.origin) && "focus" in c);
+      if (found) return found.focus().then(() => found.navigate(url));
+      return self.clients.openWindow(url);
+    })
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
