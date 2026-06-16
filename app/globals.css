@@ -3941,11 +3941,26 @@ select {
   }
 
   .reader-mobile-sheet-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     max-height: calc(100dvh - max(10px, env(safe-area-inset-top)));
     height: auto;
     border-radius: 18px 18px 0 0;
-    padding: 12px 12px max(24px, calc(14px + env(safe-area-inset-bottom)));
+    padding: 12px 12px 0;
     scroll-padding: 12px 0 max(92px, calc(36px + env(safe-area-inset-bottom)));
+  }
+
+  .reader-mobile-sheet-sticky-top {
+    flex: 0 0 auto;
+  }
+
+  .reader-mobile-sheet-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: max(24px, calc(14px + env(safe-area-inset-bottom)));
   }
 
   .reader-sheet-current {
