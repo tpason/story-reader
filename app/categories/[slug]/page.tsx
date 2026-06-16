@@ -1,16 +1,16 @@
 import { BookOpen, Layers3 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { MotionFX } from "@/components/MotionFX";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { UserIdentity } from "@/components/UserIdentity";
 import { NotificationBell } from "@/components/NotificationBell";
 import { StoryLibrary } from "@/components/StoryLibrary";
-import { DiscoveryRailSkeleton } from "@/components/DiscoveryRailSkeleton";
 import { getCategoryBySlug, listStoriesCursor } from "@/lib/stories";
 
 export const dynamic = "force-dynamic";
+
+type CategorySort = "updated" | "chapters" | "hot" | "title";
 
 export default async function CategoryPage({
   params,
@@ -35,7 +35,7 @@ export default async function CategoryPage({
 
   const validSort = sort === "chapters" || sort === "hot" || sort === "title" || sort === "updated" ? sort : undefined;
 
-  function sortHref(s: string) {
+  function sortHref(s: CategorySort) {
     return `/categories/${slug}?sort=${s}`;
   }
 

@@ -26,6 +26,7 @@ type StoryRow = {
   is_completed: boolean;
   source_code: string;
   primary_category_name: string | null;
+  primary_category_slug: string | null;
   updated_at: Date;
 };
 
@@ -161,6 +162,7 @@ function mapStory(row: StoryRow): StorySummary {
     isCompleted: row.is_completed,
     sourceCode: row.source_code,
     primaryCategoryName: row.primary_category_name,
+    primaryCategorySlug: row.primary_category_slug ?? null,
     updatedAt: row.updated_at.toISOString()
   };
 }
@@ -313,7 +315,7 @@ export async function listStories(options: {
       SELECT
         s.id, COALESCE(NULLIF(s.display_title, ''), s.title) AS title, s.original_title, s.author, s.category, s.status, s.description,
         s.cover_image_url, s.rank_name, s.rank_position, s.total_chapters, s.is_completed,
-        s.updated_at, src.code AS source_code, cat.name AS primary_category_name
+        s.updated_at, src.code AS source_code, cat.name AS primary_category_name, cat.slug AS primary_category_slug
       FROM stories s
       JOIN sources src ON src.id = s.source_id
       LEFT JOIN categories cat ON cat.id = s.primary_category_id
@@ -467,7 +469,7 @@ export async function listStoriesCursor(options: {
       SELECT
         s.id, COALESCE(NULLIF(s.display_title, ''), s.title) AS title, s.original_title, s.author, s.category, s.status, s.description,
         s.cover_image_url, s.rank_name, s.rank_position, s.total_chapters, s.is_completed,
-        s.updated_at, src.code AS source_code, cat.name AS primary_category_name
+        s.updated_at, src.code AS source_code, cat.name AS primary_category_name, cat.slug AS primary_category_slug
       FROM stories s
       JOIN sources src ON src.id = s.source_id
       LEFT JOIN categories cat ON cat.id = s.primary_category_id
@@ -572,7 +574,7 @@ export async function listRecentlyPolishedStories(limit = 8): Promise<StoryDisco
       SELECT
         s.id, COALESCE(NULLIF(s.display_title, ''), s.title) AS title, s.original_title, s.author, s.category, s.status, s.description,
         s.cover_image_url, s.rank_name, s.rank_position, s.total_chapters, s.is_completed,
-        s.updated_at, src.code AS source_code, cat.name AS primary_category_name,
+        s.updated_at, src.code AS source_code, cat.name AS primary_category_name, cat.slug AS primary_category_slug,
         r.latest_chapter_number, r.latest_chapter_title, r.latest_activity_at,
         COALESCE(cnt.polished_chapter_count, '0') AS polished_chapter_count
       FROM recent r
@@ -615,7 +617,7 @@ export async function listRecentlyUpdatedStories(limit = 8): Promise<StoryDiscov
       SELECT
         s.id, COALESCE(NULLIF(s.display_title, ''), s.title) AS title, s.original_title, s.author, s.category, s.status, s.description,
         s.cover_image_url, s.rank_name, s.rank_position, s.total_chapters, s.is_completed,
-        s.updated_at, src.code AS source_code, cat.name AS primary_category_name,
+        s.updated_at, src.code AS source_code, cat.name AS primary_category_name, cat.slug AS primary_category_slug,
         r.latest_chapter_number, r.latest_chapter_title, GREATEST(r.latest_activity_at, s.updated_at) AS latest_activity_at,
         COALESCE(cnt.polished_chapter_count, '0') AS polished_chapter_count
       FROM recent r
@@ -694,7 +696,7 @@ export async function listRecentlyPolishedStoriesPage(options: { page?: number; 
       SELECT
         s.id, COALESCE(NULLIF(s.display_title, ''), s.title) AS title, s.original_title, s.author, s.category, s.status, s.description,
         s.cover_image_url, s.rank_name, s.rank_position, s.total_chapters, s.is_completed,
-        s.updated_at, src.code AS source_code, cat.name AS primary_category_name,
+        s.updated_at, src.code AS source_code, cat.name AS primary_category_name, cat.slug AS primary_category_slug,
         r.latest_chapter_number, r.latest_chapter_title, r.latest_activity_at,
         COALESCE(cnt.polished_chapter_count, '0') AS polished_chapter_count
       FROM recent r
@@ -774,7 +776,7 @@ export async function listRecentlyUpdatedStoriesPage(options: { page?: number; p
       SELECT
         s.id, COALESCE(NULLIF(s.display_title, ''), s.title) AS title, s.original_title, s.author, s.category, s.status, s.description,
         s.cover_image_url, s.rank_name, s.rank_position, s.total_chapters, s.is_completed,
-        s.updated_at, src.code AS source_code, cat.name AS primary_category_name,
+        s.updated_at, src.code AS source_code, cat.name AS primary_category_name, cat.slug AS primary_category_slug,
         r.latest_chapter_number, r.latest_chapter_title, GREATEST(r.latest_activity_at, s.updated_at) AS latest_activity_at,
         COALESCE(cnt.polished_chapter_count, '0') AS polished_chapter_count
       FROM recent r
@@ -807,7 +809,7 @@ export async function getStory(storyId: string): Promise<StorySummary> {
       SELECT
         s.id, COALESCE(NULLIF(s.display_title, ''), s.title) AS title, s.original_title, s.author, s.category, s.status, s.description,
         s.cover_image_url, s.rank_name, s.rank_position, s.total_chapters, s.is_completed,
-        s.updated_at, src.code AS source_code, cat.name AS primary_category_name
+        s.updated_at, src.code AS source_code, cat.name AS primary_category_name, cat.slug AS primary_category_slug
       FROM stories s
       JOIN sources src ON src.id = s.source_id
       LEFT JOIN categories cat ON cat.id = s.primary_category_id
@@ -841,7 +843,7 @@ export async function listRecommendedStories(storyId: string, limit = 6): Promis
       SELECT
         s.id, COALESCE(NULLIF(s.display_title, ''), s.title) AS title, s.original_title, s.author, s.category, s.status, s.description,
         s.cover_image_url, s.rank_name, s.rank_position, s.total_chapters, s.is_completed,
-        s.updated_at, src.code AS source_code, cat.name AS primary_category_name
+        s.updated_at, src.code AS source_code, cat.name AS primary_category_name, cat.slug AS primary_category_slug
       FROM stories s
       CROSS JOIN current_story cs
       JOIN sources src ON src.id = s.source_id

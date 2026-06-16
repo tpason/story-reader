@@ -13,6 +13,7 @@ export type StorySummary = {
   isCompleted: boolean;
   sourceCode: string;
   primaryCategoryName: string | null;
+  primaryCategorySlug: string | null;
   updatedAt: string;
 };
 

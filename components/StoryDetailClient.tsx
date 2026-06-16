@@ -131,7 +131,13 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
           ) : null}
           <StoryCover src={currentStory.coverImageUrl} title={currentStory.title} />
           <div className="story-detail-copy">
-            <p className="eyebrow">{currentStory.primaryCategoryName || currentStory.category || "Truyện chữ"}</p>
+            <p className="eyebrow">
+              {currentStory.primaryCategorySlug ? (
+                <Link href={`/categories/${currentStory.primaryCategorySlug}`} className="category-eyebrow-link">
+                  {currentStory.primaryCategoryName || currentStory.category || "Truyện chữ"}
+                </Link>
+              ) : (currentStory.primaryCategoryName || currentStory.category || "Truyện chữ")}
+            </p>
             {adminEdit?.field === "storyTitle" ? (
               <input className="admin-inline-input admin-inline-title" value={adminEdit.value} autoFocus onChange={(event) => setAdminEdit({ field: "storyTitle", value: event.target.value })} />
             ) : (

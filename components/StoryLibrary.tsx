@@ -53,10 +53,11 @@ function resetCardTilt(event: ReactPointerEvent<HTMLElement>) {
 function highlightText(text: string, term: string): React.ReactNode {
   if (!term || !text) return text;
   const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(`(${escaped})`, "gi");
-  const parts = text.split(regex);
+  // split with capturing group → odd-indexed items are the matched portions
+  const parts = text.split(new RegExp(`(${escaped})`, "gi"));
+  if (parts.length === 1) return text;
   return parts.map((part, i) =>
-    regex.test(part) ? <mark key={i} className="search-highlight">{part}</mark> : part
+    i % 2 === 1 ? <mark key={i} className="search-highlight">{part}</mark> : part
   );
 }
 

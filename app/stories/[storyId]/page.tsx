@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { Route } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Sparkles, User } from "lucide-react";
@@ -96,7 +97,7 @@ async function SameAuthorSection({ author, excludeStoryId }: { author: string; e
   const page = await listStoriesCursor({ author, limit: 9 });
   const others = page.items.filter((s) => s.id !== excludeStoryId).slice(0, 8);
   if (others.length === 0) return null;
-  const authorHref = `/?author=${encodeURIComponent(author)}`;
+  const authorHref = `/?author=${encodeURIComponent(author)}` as Route;
   return (
     <section className="library-list-section" aria-label={`Cùng tác giả ${author}`}>
       <div className="section-heading-row story-list-heading">
