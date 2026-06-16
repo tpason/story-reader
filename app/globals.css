@@ -2953,8 +2953,8 @@ select {
 @media (max-width: 620px) {
   .topbar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    gap: 8px 10px;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    gap: 8px 6px;
     min-height: auto;
     padding: 8px 12px 10px;
   }
@@ -11157,10 +11157,10 @@ button:focus-visible .bookmark-jade-icon {
 
 /* ── Story Rating Widget ─────────────────────────────────────────── */
 .story-rating-widget {
-  background: rgba(255,255,255,0.55);
+  background: var(--canvas);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(200, 150, 46, 0.25);
+  border: 1px solid color-mix(in srgb, var(--xi-gold) 28%, var(--hairline));
   border-radius: 12px;
   padding: 16px 20px;
   display: flex;
@@ -11263,7 +11263,7 @@ button:focus-visible .bookmark-jade-icon {
   padding: 8px 12px;
   font-family: inherit;
   font-size: 14px;
-  background: rgba(255,255,255,0.7);
+  background: var(--surface);
   color: inherit;
   resize: vertical;
   min-height: 68px;
@@ -11287,10 +11287,10 @@ button:focus-visible .bookmark-jade-icon {
 
 /* ── Reading Stats Panel (account page) ─────────────────────────── */
 .reading-stats-panel {
-  background: rgba(255,255,255,0.55);
+  background: var(--canvas);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(200,150,46,0.2);
+  border: 1px solid color-mix(in srgb, var(--xi-gold) 22%, var(--hairline));
   border-radius: 12px;
   padding: 20px;
   margin-top: 16px;
@@ -11311,8 +11311,8 @@ button:focus-visible .bookmark-jade-icon {
 }
 
 .reading-stats-card {
-  background: rgba(255,255,255,0.6);
-  border: 1px solid rgba(200,150,46,0.18);
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--xi-gold) 18%, var(--hairline));
   border-radius: 10px;
   padding: 12px 14px;
   display: flex;
@@ -11323,7 +11323,7 @@ button:focus-visible .bookmark-jade-icon {
 .reading-stats-card strong {
   font-size: 22px;
   font-weight: 700;
-  color: var(--text-primary, #1a1a1a);
+  color: var(--charcoal);
   line-height: 1.2;
 }
 
@@ -11386,11 +11386,11 @@ button:focus-visible .bookmark-jade-icon {
   padding: 0 5px;
   border-radius: 4px;
   border: 1px solid rgba(0,0,0,0.18);
-  background: rgba(255,255,255,0.8);
+  background: var(--canvas);
   font-family: inherit;
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-primary, #1a1a1a);
+  color: var(--charcoal);
   box-shadow: 0 1px 0 rgba(0,0,0,0.14);
   line-height: 1;
 }
