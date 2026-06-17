@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { sendPush } from "@/lib/push";
+import { slugify } from "@/lib/urls";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,6 @@ export async function POST(request: Request) {
     storyTitle?: unknown;
     chapterNumber?: unknown;
     chapterTitle?: unknown;
-    storySlug?: unknown;
   };
 
   const storyId = typeof body.storyId === "string" ? body.storyId : "";
@@ -26,16 +26,16 @@ export async function POST(request: Request) {
   const storyTitle = typeof body.storyTitle === "string" ? body.storyTitle : "Truyện mới cập nhật";
   const chapterNumber = Number(body.chapterNumber) || 0;
   const chapterTitle = typeof body.chapterTitle === "string" ? body.chapterTitle : null;
-  const storySlug = typeof body.storySlug === "string" ? body.storySlug : null;
-  const url = storySlug
-    ? `/stories/${storyId}/${storySlug}/chapters/${chapterNumber}`
-    : `/stories/${storyId}`;
+  const storyKey = `${slugify(storyTitle)}-${storyId}`;
+  const url = chapterNumber
+    ? `/stories/${storyKey}/chapters/${chapterNumber}`
+    : `/stories/${storyKey}`;
 
   const subs = await query<SubRow>(
     `
       SELECT ps.endpoint, ps.p256dh, ps.auth
       FROM reader_push_subscriptions ps
-      JOIN reader_follows rf ON rf.user_id = ps.user_id
+      JOIN reader_story_follows rf ON rf.user_id = ps.user_id
       WHERE rf.story_id = $1
     `,
     [storyId]

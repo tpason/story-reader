@@ -26,10 +26,9 @@ async function subscribePush(swReg: ServiceWorkerRegistration): Promise<boolean>
   const vapidKey = await getVapidPublicKey();
   if (!vapidKey) return false;
 
-  const existing = await swReg.pushManager.getSubscription();
-  if (existing) {
-    await existing.unsubscribe();
-  }
+  // Record the existing endpoint before subscribing so we can detect whether
+  // subscribe() returned an existing subscription or created a new one.
+  const existingEndpoint = (await swReg.pushManager.getSubscription())?.endpoint ?? null;
 
   const sub = await swReg.pushManager.subscribe({
     userVisibleOnly: true,
@@ -51,7 +50,17 @@ async function subscribePush(swReg: ServiceWorkerRegistration): Promise<boolean>
     }),
   });
 
-  return res.ok;
+  if (!res.ok) {
+    // Only unsubscribe if this is a newly created subscription — if subscribe()
+    // returned the existing one (same endpoint), a transient server failure should
+    // not destroy a working subscription that the server may still hold.
+    if (sub.endpoint !== existingEndpoint) {
+      await sub.unsubscribe().catch(() => undefined);
+    }
+    return false;
+  }
+
+  return true;
 }
 
 async function unsubscribePush(swReg: ServiceWorkerRegistration): Promise<void> {
@@ -67,11 +76,15 @@ async function unsubscribePush(swReg: ServiceWorkerRegistration): Promise<void> 
   }).catch(() => undefined);
 }
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = atob(base64);
-  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i += 1) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
 }
 
 export function PwaRuntime() {
@@ -183,6 +196,15 @@ export function PwaRuntime() {
   async function enablePush() {
     setPushLoading(true);
     try {
+      // Guard: verify auth before prompting for OS-level permission — /api/auth/me
+      // always returns 200, so check the body for a non-null user.
+      const authRes = await fetch("/api/auth/me").catch(() => null);
+      const authData = authRes ? ((await authRes.json().catch(() => null)) as { user: unknown } | null) : null;
+      if (!authData?.user) {
+        setPushVisible(false);
+        return;
+      }
+
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
         setPushVisible(false);
