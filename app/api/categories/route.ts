@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { listCategories } from "@/lib/stories";
+import { getCachedCategories } from "@/lib/stories";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 export async function GET() {
   try {
-    const categories = await listCategories(40);
+    const categories = await getCachedCategories(40);
     return NextResponse.json({ items: categories });
   } catch (error) {
     return NextResponse.json(

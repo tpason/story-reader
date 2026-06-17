@@ -10,7 +10,7 @@ import { StoryLibrary } from "@/components/StoryLibrary";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { getCategoryBySlug, listStoriesCursor } from "@/lib/stories";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 type CategorySort = "updated" | "chapters" | "hot" | "title";
 

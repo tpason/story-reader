@@ -1,7 +1,7 @@
 import { CheckCircle2, Flame, Headphones, Layers3, Search, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { getCachedPolishedStories, getCachedUpdatedStories, listCategories, listStoriesCursor } from "@/lib/stories";
+import { getCachedCategories, getCachedPolishedStories, getCachedUpdatedStories, listStoriesCursor } from "@/lib/stories";
 import { StoryLibrary } from "@/components/StoryLibrary";
 import { MotionFX } from "@/components/MotionFX";
 import { ReaderLogo } from "@/components/ReaderLogo";
@@ -16,7 +16,7 @@ import { HeroCloudClient } from "@/components/HeroCloudClient";
 import { XianxiaPoetryColumn } from "@/components/XianxiaPoetryColumn";
 import { SearchSuggest } from "@/components/SearchSuggest";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 type HomeProps = {
   searchParams: Promise<{
@@ -95,7 +95,7 @@ export default async function Home({ searchParams }: HomeProps) {
       hasAudio: params.hasAudio === "true",
       sort: params.sort === "chapters" || params.sort === "hot" || params.sort === "title" || params.sort === "updated" ? params.sort : undefined
     }),
-    listCategories(12),
+    getCachedCategories(12),
   ]);
 
   const activeFilterLabels: string[] = [];

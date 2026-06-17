@@ -5,11 +5,11 @@ import Link from "next/link";
 import { Sparkles, User } from "lucide-react";
 import { StoryDetailClient } from "@/components/StoryDetailClient";
 import { StoryCover } from "@/components/StoryCover";
-import { getStory, listChapters, listRecommendedStories, listStoriesCursor } from "@/lib/stories";
+import { getCachedRecommendedStories, getCachedStory, listChapters, listStoriesCursor } from "@/lib/stories";
 import { isStoryUuid, storyKeyToId, storyHref } from "@/lib/urls";
 import type { StorySummary } from "@/lib/types";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 function RecommendationsSkeleton() {
   return (
@@ -36,7 +36,7 @@ function RecommendationsSkeleton() {
 }
 
 async function RecommendationsSection({ storyId }: { storyId: string }) {
-  const recommendations = await listRecommendedStories(storyId, 8);
+  const recommendations = await getCachedRecommendedStories(storyId, 8);
   if (recommendations.length === 0) return null;
   return (
     <section className="library-list-section" aria-label="Recommended stories">
@@ -140,7 +140,7 @@ export default async function StoryLanding({ params }: { params: Promise<{ story
   if (!isStoryUuid(storyId)) notFound();
 
   const [story, chapters] = await Promise.all([
-    getStory(storyId),
+    getCachedStory(storyId),
     listChapters(storyId, { pageSize: 80 }),
   ]);
 

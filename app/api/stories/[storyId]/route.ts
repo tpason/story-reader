@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getStory } from "@/lib/stories";
+import { getCachedStory } from "@/lib/stories";
 import { isStoryUuid, storyKeyToId } from "@/lib/urls";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 export async function GET(_: Request, { params }: { params: Promise<{ storyId: string }> }) {
   try {
@@ -12,7 +12,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ storyId: s
       return NextResponse.json({ error: "Invalid story id" }, { status: 404 });
     }
 
-    const story = await getStory(storyId);
+    const story = await getCachedStory(storyId);
     return NextResponse.json(story);
   } catch (error) {
     return NextResponse.json(

@@ -10,7 +10,7 @@ import { formatAbsoluteActivity, formatDiscoveryChapterLabel } from "@/lib/disco
 import { listRecentlyPolishedStoriesPage, listRecentlyUpdatedStoriesPage } from "@/lib/stories";
 import { storyHref } from "@/lib/urls";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 type DiscoverProps = {
   searchParams: Promise<{
