@@ -48,19 +48,19 @@
 }
 
 .reader-shell[data-font="literata"] {
-  --reader-font-family: "Literata", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --reader-font-family: var(--font-literata), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
 .reader-shell[data-font="noto-serif"] {
-  --reader-font-family: "Noto Serif", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --reader-font-family: var(--font-noto-serif), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
 .reader-shell[data-font="sora"] {
-  --reader-font-family: "Sora", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --reader-font-family: var(--font-sora), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .reader-shell[data-font="merriweather"] {
-  --reader-font-family: "Merriweather", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --reader-font-family: var(--font-merriweather), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
 .reader-shell[data-font="sans"] {
