@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-export function StoryCover({ src, title }: { src: string | null; title: string }) {
+export function StoryCover({ src, title, priority }: { src: string | null; title: string; priority?: boolean }) {
   return (
     <div className="cover cover-shimmer">
       <Image
@@ -9,6 +9,7 @@ export function StoryCover({ src, title }: { src: string | null; title: string }
         width={152}
         height={228}
         sizes="152px"
+        priority={priority}
         onLoad={(e) => {
           const img = e.currentTarget as HTMLImageElement;
           img.closest(".cover-shimmer")?.classList.remove("cover-shimmer");

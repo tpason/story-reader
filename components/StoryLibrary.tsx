@@ -86,11 +86,12 @@ type StoryCardProps = {
   isAdmin: boolean;
   adminEditForCard: AdminStoryListEditState;
   highlight?: string;
+  priority?: boolean;
   onStartEdit: (story: StorySummary, field: AdminStoryListEditField, value: string | null | undefined) => void;
   onSetAdminEdit: (edit: AdminStoryListEditState) => void;
 };
 
-const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminEditForCard, highlight, onStartEdit, onSetAdminEdit }: StoryCardProps) {
+const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminEditForCard, highlight, priority, onStartEdit, onSetAdminEdit }: StoryCardProps) {
   const newChapterCount = storyHistory ? Math.max(0, story.totalChapters - storyHistory.maxReadChapterNumber) : 0;
   const statusLabel = storyHistory
     ? newChapterCount > 0
@@ -108,7 +109,7 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
       onPointerMove={updateCardTilt}
       onPointerLeave={resetCardTilt}
     >
-      <StoryCover src={story.coverImageUrl} title={story.title} />
+      <StoryCover src={story.coverImageUrl} title={story.title} priority={priority} />
       <div className="story-card-body">
         <div className="story-card-heading">
           <div>
@@ -299,7 +300,7 @@ export function StoryLibrary({ initialPage, query }: StoryLibraryProps) {
         </div>
 
         <div className="story-grid">
-          {items.map((story) => (
+          {items.map((story, index) => (
             <StoryCard
               key={story.id}
               story={story}
@@ -307,6 +308,7 @@ export function StoryLibrary({ initialPage, query }: StoryLibraryProps) {
               isAdmin={!!currentUser?.isAdmin}
               adminEditForCard={adminEdit?.storyId === story.id ? adminEdit : null}
               highlight={query.q || undefined}
+              priority={index < 6}
               onStartEdit={startAdminEdit}
               onSetAdminEdit={setAdminEdit}
             />

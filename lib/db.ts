@@ -10,7 +10,10 @@ declare global {
 export const pool =
   globalThis.storyReaderPool ??
   new Pool({
-    connectionString: process.env.STORY_DATABASE_URL ?? DEFAULT_DATABASE_URL
+    connectionString: process.env.STORY_DATABASE_URL ?? DEFAULT_DATABASE_URL,
+    max: 10,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 3_000,
   });
 
 if (process.env.NODE_ENV !== "production") {
