@@ -5,15 +5,21 @@ import type * as ThreeNamespace from "three";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import { makeFluffyCloudTexture } from "@/lib/three-cloud-utils";
 
-const STAR  = 90;
-const MIST  = 120;
-const VORTEX = 60;
-const WISP  = 30;
-const SPARK = 80;
+type ThreeHeroCloudProps = { paused?: boolean };
 
-export function ThreeHeroCloud() {
+const STAR  = 50;
+const MIST  = 60;
+const VORTEX = 30;
+const WISP  = 15;
+const SPARK = 40;
+const FRAME_MS = 1000 / 30;
+
+export function ThreeHeroCloud({ paused }: ThreeHeroCloudProps = {}) {
   const hostRef = useRef<HTMLDivElement>(null);
   const webglEnabled = useDecorativeWebglEnabled();
+  const pausedRef = useRef(paused ?? false);
+
+  useEffect(() => { pausedRef.current = paused ?? false; }, [paused]);
 
   useEffect(() => {
     if (!webglEnabled) return;
@@ -39,7 +45,7 @@ export function ThreeHeroCloud() {
       const renderer = new THREE.WebGLRenderer({
         alpha: true, antialias: false, powerPreference: "low-power"
       });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0));
       renderer.setSize(w, h, false);
       renderer.setClearColor(0x000000, 0);
 
@@ -382,9 +388,12 @@ export function ThreeHeroCloud() {
         return;
       }
 
+      let lastRender = 0;
       function tick(ms: number) {
         if (disposed) return;
         raf = requestAnimationFrame(tick);
+        if (pausedRef.current || ms - lastRender < FRAME_MS) return;
+        lastRender = ms;
         const t = ms * 0.001;
 
         stMat.opacity = 0.30 + Math.sin(t * 0.28) * 0.10;

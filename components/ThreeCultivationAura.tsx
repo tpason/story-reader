@@ -81,7 +81,7 @@ export function ThreeCultivationAura({ realm, level, progressPercent }: ThreeCul
 
     const renderer = new WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.4));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.0));
     renderer.domElement.className = "cultivation-aura-canvas";
     container.appendChild(renderer.domElement);
 
@@ -171,6 +171,8 @@ export function ThreeCultivationAura({ realm, level, progressPercent }: ThreeCul
     scene.add(group);
     let frameId = 0;
     let disposed = false;
+    let lastRender = 0;
+    const FRAME_MS = 1000 / 30;
 
     function resize() {
       const width = Math.max(1, container.clientWidth);
@@ -187,6 +189,9 @@ export function ThreeCultivationAura({ realm, level, progressPercent }: ThreeCul
 
     function render(now: number) {
       if (disposed) return;
+      frameId = window.requestAnimationFrame(render);
+      if (now - lastRender < FRAME_MS) return;
+      lastRender = now;
       const time = now * 0.001;
       const progress = Math.min(1, Math.max(0, progressRef.current / 100));
       group.rotation.z = time * 0.12;
@@ -220,7 +225,6 @@ export function ThreeCultivationAura({ realm, level, progressPercent }: ThreeCul
       });
 
       renderer.render(scene, camera);
-      frameId = window.requestAnimationFrame(render);
     }
 
     resize();

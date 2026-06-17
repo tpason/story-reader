@@ -25,7 +25,7 @@ export function ThreeReaderProgress({ progress }: ThreeReaderProgressProps) {
 
     const renderer = new WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.4));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.0));
     renderer.domElement.className = "reader-progress-webgl-canvas";
     container.appendChild(renderer.domElement);
 
@@ -122,6 +122,8 @@ export function ThreeReaderProgress({ progress }: ThreeReaderProgressProps) {
 
     let frameId = 0;
     let disposed = false;
+    let lastRender = 0;
+    const FRAME_MS = 1000 / 30;
 
     function resize() {
       const width = Math.max(1, container.clientWidth);
@@ -142,6 +144,9 @@ export function ThreeReaderProgress({ progress }: ThreeReaderProgressProps) {
 
     function render(now: number) {
       if (disposed) return;
+      frameId = window.requestAnimationFrame(render);
+      if (now - lastRender < FRAME_MS) return;
+      lastRender = now;
       const t = now * 0.001;
       const target = Math.min(1, Math.max(0.001, progressRef.current / 100));
 
@@ -199,7 +204,6 @@ export function ThreeReaderProgress({ progress }: ThreeReaderProgressProps) {
       }
 
       renderer.render(scene, camera);
-      frameId = window.requestAnimationFrame(render);
     }
 
     resize();

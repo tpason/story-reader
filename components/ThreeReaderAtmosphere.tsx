@@ -184,7 +184,7 @@ const STAR_FS = `
 `;
 
 function createAmbientParticles(primary: string, secondary: string, discTexture: CanvasTexture) {
-  const count = 160;
+  const count = 80;
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
   const sizes = new Float32Array(count);
@@ -235,7 +235,7 @@ function createAmbientParticles(primary: string, secondary: string, discTexture:
 }
 
 function createStarParticles(discTexture: CanvasTexture) {
-  const count = 240;
+  const count = 100;
   const positions = new Float32Array(count * 3);
   const twinkles = new Float32Array(count);
   const baseSizes = new Float32Array(count);
@@ -278,7 +278,7 @@ function createMistSprites(theme: ThreeReaderAtmosphereProps["theme"]) {
   const baseOpacity = theme === "dark" ? 0.07 : 0.06;
 
   // Procedural mist texture per sprite (reuse makeFluffyCloudTexture as wide mist blob)
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 4; i++) {
     const tint: [number, number, number] = theme === "dark"
       ? [180, 190, 200]
       : theme === "sepia"
@@ -726,7 +726,7 @@ function createStepPulse(primary: string, secondary: string) {
 // ── Wind streaks: thin planes drifting left→right ───────────────────────────
 function createWindStreaks(secondary: string) {
   const group = new Group();
-  const streaks = Array.from({ length: 22 }).map((_, i) => {
+  const streaks = Array.from({ length: 12 }).map((_, i) => {
     const isGold = i % 5 === 0;
     const w = 0.5 + seededNoise(i + 970) * 0.9;
     const streak = new Mesh(
@@ -812,7 +812,7 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
 
     const renderer = new WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.0));
     renderer.domElement.className = "reader-atmosphere-canvas";
     el.appendChild(renderer.domElement);
 
@@ -859,6 +859,8 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
     let frameId = 0;
     let disposed = false;
     let pulseStartedAt = -10000;
+    let lastRender = 0;
+    const FRAME_MS = 1000 / 20; // 20fps — user is reading text, not watching the bg
 
     function resize() {
       const w = Math.max(1, el.clientWidth);
@@ -879,6 +881,9 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
 
     function render(now: number) {
       if (disposed) return;
+      frameId = window.requestAnimationFrame(render);
+      if (now - lastRender < FRAME_MS) return;
+      lastRender = now;
       const t = now * 0.001;
       const progressValue = Math.min(1, Math.max(0, progressRef.current / 100));
       const autoScrollOn = autoScrollRef.current ? 1 : 0;
@@ -1031,7 +1036,6 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
       glow.intensity = 0.9 + progressValue * 0.55 + autoScrollOn * 0.65;
 
       renderer.render(scene, camera);
-      frameId = window.requestAnimationFrame(render);
     }
 
     resize();

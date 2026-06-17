@@ -56,12 +56,12 @@ export function ThreeXianxiaWorldBackground() {
     <div className="xianxia-world-background" aria-hidden="true">
       <Canvas
         camera={{ position: [0, 0, 5], fov: 45 }}
-        dpr={compact ? [0.75, 1] : midRange ? [0.8, 1.1] : [1, 1.5]}
+        dpr={compact ? [0.6, 0.75] : midRange ? [0.6, 0.85] : [0.75, 1.0]}
         frameloop={frameloop}
         gl={{
           antialias: !isReducedQuality,
           alpha: false,
-          powerPreference: compact ? "default" : "high-performance"
+          powerPreference: "low-power"
         }}
         style={{ background: "#000" }}
       >

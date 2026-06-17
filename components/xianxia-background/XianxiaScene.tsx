@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { EffectComposer, Bloom, Vignette, Noise, GodRays } from "@react-three/postprocessing";
+import { EffectComposer, Bloom, Vignette, GodRays } from "@react-three/postprocessing";
 import { Sky } from "@react-three/drei";
 import { BlendFunction, KernelSize } from "postprocessing";
 import { AdditiveBlending, MathUtils, Mesh, Vector3 } from "three";
@@ -297,11 +297,10 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
         />
       )}
 
-      {/* ── Post-processing — base pass (no GodRays) ─────────────────────── */}
-      {(!preset.godRays || compact || !sunMesh) && (
+      {/* ── Post-processing — base pass (no GodRays, no postprocessing on midRange) */}
+      {(!preset.godRays || compact || !sunMesh) && !compact && (
         <EffectComposer>
           <Bloom intensity={preset.bloom} luminanceThreshold={0.62} luminanceSmoothing={0.42} />
-          <Noise blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.028} />
           <Vignette offset={0.24} darkness={0.62} />
         </EffectComposer>
       )}
@@ -313,16 +312,15 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
           <GodRays
             sun={sunMesh as any}
             blendFunction={BlendFunction.SCREEN}
-            samples={30}
+            samples={16}
             density={0.96}
             decay={0.91}
             weight={0.28}
             exposure={0.55}
             clampMax={1}
-            kernelSize={KernelSize.SMALL}
+            kernelSize={KernelSize.VERY_SMALL}
             blur
           />
-          <Noise blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.028} />
           <Vignette offset={0.24} darkness={0.62} />
         </EffectComposer>
       )}

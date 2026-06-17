@@ -192,7 +192,7 @@ export function ThreeStoryStage({ coverImageUrl, title, progressPercent = 0 }: T
 
     const renderer = new WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.0));
     renderer.domElement.className = "story-stage-canvas";
     container.appendChild(renderer.domElement);
 
@@ -253,6 +253,8 @@ export function ThreeStoryStage({ coverImageUrl, title, progressPercent = 0 }: T
     const pointer = { x: 0, y: 0 };
     let frameId = 0;
     let disposed = false;
+    let lastRender = 0;
+    const FRAME_MS = 1000 / 30;
 
     function resize() {
       const width = Math.max(1, container.clientWidth);
@@ -270,6 +272,9 @@ export function ThreeStoryStage({ coverImageUrl, title, progressPercent = 0 }: T
 
     function render(now: number) {
       if (disposed) return;
+      frameId = window.requestAnimationFrame(render);
+      if (now - lastRender < FRAME_MS) return;
+      lastRender = now;
       const time = now * 0.001;
       const progress = Math.min(1, Math.max(0, progressRef.current / 100));
       bookGroup.rotation.y = -0.35 + pointer.x * 0.22 + Math.sin(time * 0.7) * 0.035;
@@ -299,7 +304,6 @@ export function ThreeStoryStage({ coverImageUrl, title, progressPercent = 0 }: T
 
       glow.intensity = 1.1 + progress * 1.3 + Math.sin(time * 2) * 0.18;
       renderer.render(scene, camera);
-      frameId = window.requestAnimationFrame(render);
     }
 
     resize();
