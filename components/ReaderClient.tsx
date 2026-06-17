@@ -3,6 +3,7 @@
 import { ArrowUp, BookMarked, BookOpen, ChevronLeft, ChevronRight, ClipboardCheck, Eye, EyeOff, Headphones, Highlighter, LoaderCircle, Menu, Minus, Moon, MoreHorizontal, Pause, Play, Plus, Search, Settings2, Sun, Type, WifiOff, X } from "lucide-react";
 import type { animate as AnimateType } from "animejs";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Drawer } from "vaul";
@@ -340,6 +341,52 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     "--reader-content-width": `${contentWidth}px`,
     "--reader-dim-opacity": readerDimEnabled ? readerDimLevel : 0
   } as CSSProperties;
+
+  const buildCurrentBookmark = useCallback((): ReaderBookmarkItem => {
+    const now = new Date().toISOString();
+    return {
+      id: `local-${activePayload.story.id}-${activePayload.chapter.chapterNumber}`,
+      storyId: activePayload.story.id,
+      storyTitle: activePayload.story.title,
+      coverImageUrl: activePayload.story.coverImageUrl,
+      chapterId: activePayload.chapter.id,
+      chapterNumber: activePayload.chapter.chapterNumber,
+      chapterTitle: activePayload.chapter.title,
+      scrollPosition: Math.max(0, Math.round(window.scrollY)),
+      progressPercent: Math.round(progressRef.current * 100) / 100,
+      note: null,
+      createdAt: currentBookmark?.createdAt ?? now,
+      updatedAt: now
+    };
+  }, [activePayload.chapter, activePayload.story, currentBookmark?.createdAt]);
+
+  const toggleBookmark = useCallback(() => {
+    if (currentBookmark) {
+      dispatch(removeBookmarkItem({ storyId: activePayload.story.id, chapterNumber: activePayload.chapter.chapterNumber }));
+      fetch("/api/bookmarks", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storyId: activePayload.story.id,
+          chapterNumber: activePayload.chapter.chapterNumber
+        })
+      }).catch(() => undefined);
+      return;
+    }
+
+    const item = buildCurrentBookmark();
+    dispatch(upsertBookmarkItem(item));
+    fetch("/api/bookmarks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(item)
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { item?: ReaderBookmarkItem } | null) => {
+        if (data?.item) dispatch(upsertBookmarkItem(data.item));
+      })
+      .catch(() => undefined);
+  }, [activePayload.chapter, activePayload.story, buildCurrentBookmark, currentBookmark, dispatch]);
 
   useEffect(() => {
     setFloatingActionsMounted(true);
@@ -1086,7 +1133,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
     window.addEventListener("keydown", onReaderKey);
     return () => window.removeEventListener("keydown", onReaderKey);
-  }, [activePayload.nextChapter, activePayload.previousChapter, activePayload.story, router]);
+  }, [activePayload.nextChapter, activePayload.previousChapter, activePayload.story, router, toggleBookmark]);
 
   useEffect(() => {
     function persistProgress(scrollY: number, currentProgress: number, syncRemote: boolean) {
@@ -2008,52 +2055,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     startAutoScroll();
   }
 
-  function buildCurrentBookmark(): ReaderBookmarkItem {
-    const now = new Date().toISOString();
-    return {
-      id: `local-${activePayload.story.id}-${activePayload.chapter.chapterNumber}`,
-      storyId: activePayload.story.id,
-      storyTitle: activePayload.story.title,
-      coverImageUrl: activePayload.story.coverImageUrl,
-      chapterId: activePayload.chapter.id,
-      chapterNumber: activePayload.chapter.chapterNumber,
-      chapterTitle: activePayload.chapter.title,
-      scrollPosition: Math.max(0, Math.round(window.scrollY)),
-      progressPercent: Math.round(progressRef.current * 100) / 100,
-      note: null,
-      createdAt: currentBookmark?.createdAt ?? now,
-      updatedAt: now
-    };
-  }
-
-  function toggleBookmark() {
-    if (currentBookmark) {
-      dispatch(removeBookmarkItem({ storyId: activePayload.story.id, chapterNumber: activePayload.chapter.chapterNumber }));
-      fetch("/api/bookmarks", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          storyId: activePayload.story.id,
-          chapterNumber: activePayload.chapter.chapterNumber
-        })
-      }).catch(() => undefined);
-      return;
-    }
-
-    const item = buildCurrentBookmark();
-    dispatch(upsertBookmarkItem(item));
-    fetch("/api/bookmarks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(item)
-    })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data: { item?: ReaderBookmarkItem } | null) => {
-        if (data?.item) dispatch(upsertBookmarkItem(data.item));
-      })
-      .catch(() => undefined);
-  }
-
   const chapterNumber = activePayload.chapter.chapterNumber;
   const title = activePayload.chapter.title ?? "";
 
@@ -2304,7 +2305,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   type="button"
                   onClick={() => { toggleBookmark(); setReaderOverflowOpen(false); }}
                 >
-                  <img src="/icons/bookmark-jade.svg" className="bookmark-jade-icon" alt="" aria-hidden="true" style={{ width: 16, height: 16 }} />
+                  <Image src="/icons/bookmark-jade.svg" className="bookmark-jade-icon" alt="" aria-hidden="true" width={16} height={16} />
                   {currentBookmark ? "Bỏ dấu ấn chương này" : "Đánh dấu chương này"}
                 </button>
                 <button
@@ -2516,7 +2517,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 Mục lục
               </button>
               <button className="reader-sheet-action" type="button" onClick={toggleBookmark}>
-                <img src="/icons/bookmark-jade.svg" className="bookmark-jade-icon" alt="" aria-hidden="true" />
+                <Image src="/icons/bookmark-jade.svg" className="bookmark-jade-icon" alt="" aria-hidden="true" width={18} height={18} />
                 {currentBookmark ? "Bỏ dấu" : "Đánh dấu"}
               </button>
               <button

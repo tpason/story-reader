@@ -30,6 +30,7 @@ type Options = {
   dryRun: boolean;
   migrate: boolean;
   migrateOnly: boolean;
+  polishedOnly: boolean;
 };
 
 function readOptions(): Options {
@@ -45,7 +46,8 @@ function readOptions(): Options {
     overwrite: args.includes("--overwrite"),
     dryRun: args.includes("--dry-run"),
     migrate: args.includes("--migrate"),
-    migrateOnly: args.includes("--migrate-only")
+    migrateOnly: args.includes("--migrate-only"),
+    polishedOnly: args.includes("--polished-only"),
   };
 }
 
@@ -89,6 +91,10 @@ async function fetchCandidates(pool: Pool, options: Options) {
   if (options.storyId) {
     values.push(options.storyId);
     where.push(`story_id = $${values.length}`);
+  }
+
+  if (options.polishedOnly) {
+    where.push(`is_polished = TRUE`);
   }
 
   const rows = await pool.query<ChapterRow>(

@@ -76,8 +76,10 @@ export function SearchSuggest({ defaultValue, category }: SearchSuggestProps) {
         onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
         placeholder="Tìm truyện hoặc tác giả..."
         aria-label="Tìm kiếm trong Thiên Thư"
+        role="combobox"
         aria-expanded={open && suggestions.length > 0}
         aria-haspopup="listbox"
+        aria-controls="search-suggest-listbox"
       />
       {query.length > 0 && (
         <button
@@ -94,7 +96,7 @@ export function SearchSuggest({ defaultValue, category }: SearchSuggestProps) {
         </button>
       )}
       {open && suggestions.length > 0 && (
-        <div className="search-suggest-dropdown" role="listbox" aria-label="Linh quyển tìm thấy">
+        <div className="search-suggest-dropdown" id="search-suggest-listbox" role="listbox" aria-label="Linh quyển tìm thấy">
           <div className="search-suggest-header">
             <span>Linh quyển phù hợp</span>
           </div>

@@ -4764,7 +4764,7 @@ select {
   line-height: 0.84;
   margin-right: 5px;
   margin-top: 4px;
-  font-family: 'Literata', ui-serif, Georgia, 'Times New Roman', serif;
+  font-family: var(--font-literata), ui-serif, Georgia, 'Times New Roman', serif;
   font-weight: 700;
   color: var(--xi-gold);
   text-shadow:
@@ -8934,7 +8934,7 @@ button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.skill-
   -webkit-text-fill-color: transparent;
 
   /* Literata italic — literary serif, classical poetry feel */
-  font-family:    'Literata', ui-serif, Georgia, 'Times New Roman', serif;
+  font-family:    var(--font-literata), ui-serif, Georgia, 'Times New Roman', serif;
   font-style:     italic;
   font-size:      17px;
   font-weight:    500;

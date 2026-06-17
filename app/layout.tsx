@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Literata, Merriweather, Noto_Serif, Sora } from "next/font/google";
 import { Suspense } from "react";
 import { GlobalScrollTop } from "@/components/GlobalScrollTop";
 import { GlobalThemeProvider } from "@/components/GlobalThemeProvider";
@@ -7,6 +8,31 @@ import { QueryProvider } from "@/components/QueryProvider";
 import { StoreProvider } from "@/components/StoreProvider";
 import { XianxiaWorldBackgroundClient } from "@/components/XianxiaWorldBackgroundClient";
 import "./globals.css";
+
+const literata = Literata({
+  axes: ["opsz"],
+  subsets: ["latin", "latin-ext", "vietnamese"],
+  variable: "--font-literata",
+  display: "swap"
+});
+
+const merriweather = Merriweather({
+  subsets: ["latin", "latin-ext", "vietnamese"],
+  variable: "--font-merriweather",
+  display: "swap"
+});
+
+const notoSerif = Noto_Serif({
+  subsets: ["latin", "latin-ext", "vietnamese"],
+  variable: "--font-noto-serif",
+  display: "swap"
+});
+
+const sora = Sora({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-sora",
+  display: "swap"
+});
 
 export const metadata: Metadata = {
   title: "Linh Quyển Các",
@@ -27,16 +53,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Literata only — used on homepage (XianxiaPoetryColumn) and reader default serif */}
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600;7..72,700&display=swap"
-        />
-      </head>
+    <html lang="vi" className={`${literata.variable} ${merriweather.variable} ${notoSerif.variable} ${sora.variable}`}>
       <body>
         <StoreProvider>
           <GlobalThemeProvider />
