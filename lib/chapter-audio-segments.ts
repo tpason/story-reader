@@ -8,7 +8,7 @@ import { promisify } from "node:util";
 import { query } from "@/lib/db";
 
 const PROJECT_ROOT = resolve(process.cwd(), "..");
-const DEFAULT_VOICE_KEY = "viterbox_default";
+const DEFAULT_VOICE_KEY = "xianxia_story_male";
 const execFileAsync = promisify(execFile);
 const FIRST_SEGMENT_MAX_CHARS = 180;
 const FIRST_SEGMENT_MIN_CHARS = 40;
@@ -83,7 +83,7 @@ export async function checkAudioSegmentStartGate(chapterId: string) {
   const maxQueued = numberEnv("AUDIO_API_MAX_QUEUED_JOBS", 1);
   const minFreeRamGb = numberEnv("AUDIO_API_MIN_FREE_RAM_GB", 1.5);
   const maxLoadPerCpu = numberEnv("AUDIO_API_MAX_LOAD_PER_CPU", 0.9);
-  const minFreeVramGb = numberEnv("AUDIO_API_MIN_FREE_VRAM_GB", numberEnv("AUDIO_SEGMENT_MIN_FREE_VRAM_GB", 0));
+  const minFreeVramGb = numberEnv("AUDIO_API_MIN_FREE_VRAM_GB", numberEnv("AUDIO_SEGMENT_VIENEU_MIN_FREE_VRAM_GB", 0));
 
   const sameChapterJobs = await query<SameChapterJobRow>(
     `
@@ -362,9 +362,10 @@ export async function prepareChapterAudioSegments(chapterId: string, voiceKey = 
   await query(
     `
       INSERT INTO story_jobs (job_type, chapter_id, story_id, model, payload, priority, max_attempts)
-      VALUES ('audio_chapter_segments', $1, $2, 'viterbox', $3::jsonb, 40, 2)
+      VALUES ('audio_chapter_segments', $1, $2, 'vieneu', $3::jsonb, 40, 2)
       ON CONFLICT (job_type, chapter_id)
       DO UPDATE SET
+        model = EXCLUDED.model,
         payload = story_jobs.payload || EXCLUDED.payload,
         priority = LEAST(story_jobs.priority, EXCLUDED.priority),
         status = CASE WHEN story_jobs.status = 'running' THEN 'running' ELSE 'pending' END,
