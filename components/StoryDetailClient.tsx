@@ -40,7 +40,7 @@ type StoryDetailClientProps = {
 
 export function StoryDetailClient({ story, chapters, totalChapters, recommendations = [], recommendationsSlot, sameAuthorSlot }: StoryDetailClientProps) {
   const queryClient = useQueryClient();
-  const decorativeWebglEnabled = useDecorativeWebglEnabled();
+  const decorativeWebglEnabled = useDecorativeWebglEnabled({ compactMaxWidth: 1099 });
   const currentUser = useAppSelector((state) => state.identity.user);
   const [descExpanded, setDescExpanded] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -131,7 +131,9 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
               title={currentStory.title}
               progressPercent={totalChapters > 0 ? Math.min(100, (maxReadChapter / totalChapters) * 100) : 0}
             />
-          ) : null}
+          ) : (
+            <div className="story-detail-hero-aura" aria-hidden="true" />
+          )}
           <StoryCover src={currentStory.coverImageUrl} title={currentStory.title} />
           <div className="story-detail-copy">
             <p className="eyebrow">

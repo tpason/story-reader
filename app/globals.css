@@ -13591,3 +13591,115 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
     animation: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   STORY DETAIL v21 — CSS aura fallback, dark readability, tablet perf
+   ThreeStoryStage off ≤1099px; lightweight jade/gold aura instead.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.story-detail-hero-aura {
+  position: absolute;
+  top: -12%;
+  right: -8%;
+  width: min(58%, 420px);
+  height: 88%;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 58% 42% 46% 54% / 48% 52% 44% 56%;
+  background:
+    radial-gradient(ellipse at 62% 38%, rgba(240, 208, 106, 0.16), transparent 58%),
+    radial-gradient(ellipse at 34% 68%, rgba(26, 107, 90, 0.14), transparent 62%),
+    radial-gradient(ellipse at 78% 72%, rgba(200, 150, 46, 0.10), transparent 55%);
+  box-shadow:
+    inset 0 0 28px rgba(200, 150, 46, 0.08),
+    0 0 48px rgba(200, 150, 46, 0.08);
+  opacity: 0.92;
+}
+
+.story-detail-shell .story-detail-copy h1 {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .page-wrap {
+  background: rgba(14, 13, 11, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
+}
+
+[data-xi-theme="dark"] .story-detail-hero {
+  background:
+    radial-gradient(circle at 88% 18%, rgba(200, 150, 46, 0.10), transparent 42%),
+    radial-gradient(circle at 12% 88%, rgba(26, 107, 90, 0.08), transparent 38%),
+    rgba(12, 11, 10, 0.82) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-copy h1 {
+  color: #f5f0e6;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.72);
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-description,
+[data-xi-theme="dark"] .story-detail-shell .story-detail-copy .eyebrow {
+  color: #d0c8bc;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-meta-icon-badge {
+  background: rgba(24, 22, 20, 0.92);
+  border-color: rgba(255, 255, 255, 0.10);
+  color: #b8b0a4;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .xi-badge-ongoing {
+  background: color-mix(in srgb, var(--xi-jade, #1a6b5a) 18%, rgba(12, 11, 10, 0.9));
+}
+
+[data-xi-theme="dark"] .story-detail-shell .xi-badge-completed {
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 14%, rgba(12, 11, 10, 0.9));
+}
+
+[data-xi-theme="dark"] .story-detail-description-wrap:not(.desc-expanded)::after {
+  background: linear-gradient(to bottom, transparent, rgba(12, 11, 10, 0.96));
+}
+
+[data-xi-theme="dark"] .story-detail-hero-aura {
+  background:
+    radial-gradient(ellipse at 62% 38%, rgba(200, 150, 46, 0.14), transparent 58%),
+    radial-gradient(ellipse at 34% 68%, rgba(26, 107, 90, 0.10), transparent 62%),
+    radial-gradient(ellipse at 78% 72%, rgba(0, 0, 0, 0.22), transparent 55%);
+  box-shadow:
+    inset 0 0 32px rgba(0, 0, 0, 0.42),
+    0 0 40px rgba(200, 150, 46, 0.06);
+}
+
+[data-xi-theme="dark"] .story-detail-shell #story-chapters .section-heading-row h2,
+[data-xi-theme="dark"] .story-detail-shell .library-list-section .section-heading-row h2 {
+  color: #f0ebe2;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-chapter-search {
+  background: rgba(20, 18, 16, 0.94);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+@media (max-width: 1099px) {
+  .story-detail-hero .story-stage {
+    display: none !important;
+  }
+}
+
+@media (max-width: 839px) {
+  .story-detail-hero-aura {
+    top: -8%;
+    right: -14%;
+    width: 72%;
+    height: 72%;
+    opacity: 0.78;
+  }
+}

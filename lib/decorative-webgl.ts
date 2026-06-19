@@ -19,6 +19,8 @@ type NavigatorWithExtras = Navigator & {
 
 type DecorativeWebglOptions = {
   allowCompact?: boolean;
+  /** Disable WebGL at or below this viewport width (default 839). */
+  compactMaxWidth?: number;
 };
 
 // Returns true when the device is clearly low-end: <2 GB RAM, data-saver on,
@@ -34,12 +36,12 @@ function isLowEndDevice(): boolean {
 }
 
 export function useDecorativeWebglEnabled(options: DecorativeWebglOptions = {}) {
-  const { allowCompact = false } = options;
+  const { allowCompact = false, compactMaxWidth = 839 } = options;
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const compactQuery = window.matchMedia("(max-width: 839px)");
+    const compactQuery = window.matchMedia(`(max-width: ${compactMaxWidth}px)`);
     let battery: BatteryManager | null = null;
     const lowEnd = isLowEndDevice();
 
@@ -77,7 +79,7 @@ export function useDecorativeWebglEnabled(options: DecorativeWebglOptions = {}) 
         battery.removeEventListener("chargingchange", update);
       }
     };
-  }, [allowCompact]);
+  }, [allowCompact, compactMaxWidth]);
 
   return enabled && !prefersReducedMotion();
 }
