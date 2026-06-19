@@ -94,6 +94,22 @@ export const scenePresets: Record<TimeOfDay, ScenePreset> = {
   },
 };
 
+/** PNG cloud / valley mist — dim at night so stars read clearly. */
+export function pngCloudOpacityMul(timeOfDay: TimeOfDay): number {
+  if (timeOfDay === "night") return 0.38;
+  if (timeOfDay === "dusk" || timeOfDay === "dawn") return 0.88;
+  return 1;
+}
+
+/** Rising mist plumes — softer at night. */
+export function mistOpacityMul(timeOfDay: TimeOfDay): number {
+  if (timeOfDay === "night") return 0.42;
+  if (timeOfDay === "dusk" || timeOfDay === "dawn") return 0.82;
+  return 1;
+}
+
+export type SceneQualityTier = "phone" | "mid" | "full";
+
 export const sharedLayers = {
   mountains: {
     far:  `${ASSET_BASE}/mountains/mountain_far_01.png`,

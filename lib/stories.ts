@@ -893,22 +893,25 @@ export async function listRecommendedStories(storyId: string, limit = 6): Promis
 
 export async function listChapters(storyId: string, options: { page?: number; pageSize?: number } = {}): Promise<Paginated<ChapterSummary>> {
   const { page, pageSize, offset } = pageParams(options.page, options.pageSize);
-  const countRows = await query<{ count: string }>("SELECT COUNT(*)::text AS count FROM chapters WHERE story_id = $1", [storyId]);
-  const rows = await query<ChapterRow>(
-    `
-      SELECT
-        c.id, c.story_id, c.chapter_number, c.title, c.is_downloaded, c.is_polished, c.is_translated,
-        c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
-        c.raw_text_content, c.translated_text_content, c.polished_text_content,
-        (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
-        COALESCE(c.polished_at, c.downloaded_at, c.updated_at, c.created_at) AS chapter_updated_at
-      FROM chapters c
-      WHERE c.story_id = $1
-      ORDER BY c.chapter_number ASC
-      LIMIT $2 OFFSET $3
-    `,
-    [storyId, pageSize, offset]
-  );
+  // Run count and data queries in parallel — avoids N+1 while keeping correct total on out-of-range pages.
+  const [countRows, rows] = await Promise.all([
+    query<{ count: string }>("SELECT COUNT(*)::text AS count FROM chapters WHERE story_id = $1", [storyId]),
+    query<ChapterRow>(
+      `
+        SELECT
+          c.id, c.story_id, c.chapter_number, c.title, c.is_downloaded, c.is_polished, c.is_translated,
+          c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
+          c.raw_text_content, c.translated_text_content, c.polished_text_content,
+          (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
+          COALESCE(c.polished_at, c.downloaded_at, c.updated_at, c.created_at) AS chapter_updated_at
+        FROM chapters c
+        WHERE c.story_id = $1
+        ORDER BY c.chapter_number ASC
+        LIMIT $2 OFFSET $3
+      `,
+      [storyId, pageSize, offset]
+    ),
+  ]);
 
   const total = Number(countRows[0]?.count ?? 0);
   return {

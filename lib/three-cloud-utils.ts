@@ -101,6 +101,38 @@ export function makeFluffyCloudTexture(
   return tex;
 }
 
+/** Fluffy cloud with offset under-layer for soft volumetric depth (desktop full). */
+export function makeVolumeCloudTexture(
+  seed: number,
+  tint: RGB = [255, 252, 242],
+  size = 512,
+): CanvasTexture {
+  const base = makeFluffyCloudTexture(seed, tint, size);
+  const canvas = document.createElement("canvas");
+  canvas.width = base.image.width;
+  canvas.height = base.image.height;
+  const ctx = canvas.getContext("2d")!;
+  const [tr, tg, tb] = tint;
+  const sr = Math.round(tr * 0.72);
+  const sg = Math.round(tg * 0.74);
+  const sb = Math.round(tb * 0.82);
+
+  ctx.globalAlpha = 0.42;
+  ctx.filter = "blur(6px)";
+  ctx.drawImage(base.image as CanvasImageSource, 5, 8);
+  ctx.filter = "none";
+  ctx.globalAlpha = 0.28;
+  ctx.fillStyle = `rgba(${sr},${sg},${sb},1)`;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.globalAlpha = 1;
+  ctx.drawImage(base.image as CanvasImageSource, 0, 0);
+  base.dispose();
+
+  const tex = new CanvasTexture(canvas);
+  tex.colorSpace = SRGBColorSpace;
+  return tex;
+}
+
 /**
  * Wide horizontal mist band for low-altitude drift layers.
  */

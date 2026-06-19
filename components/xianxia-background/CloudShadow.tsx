@@ -4,6 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { CanvasTexture, Mesh, NormalBlending } from "three";
 
+import { pngCloudOpacityMul, type TimeOfDay } from "./sceneConfig";
+
+type CloudShadowProps = {
+  timeOfDay?: TimeOfDay;
+};
+
 function makeShadowBlobTexture(): CanvasTexture {
   const size = 128;
   const canvas = document.createElement("canvas");
@@ -27,10 +33,11 @@ function makeShadowBlobTexture(): CanvasTexture {
   return new CanvasTexture(canvas);
 }
 
-export function CloudShadow() {
+export function CloudShadow({ timeOfDay = "day" }: CloudShadowProps) {
   const mesh1 = useRef<Mesh>(null);
   const mesh2 = useRef<Mesh>(null);
   const [tex, setTex] = useState<CanvasTexture | null>(null);
+  const opacityMul = pngCloudOpacityMul(timeOfDay) * (timeOfDay === "night" ? 0.65 : 1);
 
   useEffect(() => {
     const t = makeShadowBlobTexture();
@@ -57,7 +64,7 @@ export function CloudShadow() {
         <meshBasicMaterial
           map={tex}
           transparent
-          opacity={0.07}
+          opacity={0.07 * opacityMul}
           blending={NormalBlending}
           depthWrite={false}
           color={0x000000}
@@ -68,7 +75,7 @@ export function CloudShadow() {
         <meshBasicMaterial
           map={tex}
           transparent
-          opacity={0.055}
+          opacity={0.055 * opacityMul}
           blending={NormalBlending}
           depthWrite={false}
           color={0x000000}

@@ -787,6 +787,84 @@ function createMistBands(theme: ThreeReaderAtmosphereProps["theme"], mistBandTex
   return { group, bands };
 }
 
+function makeCraneSilhouetteTexture(fill: string): CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return new CanvasTexture(canvas);
+
+  ctx.clearRect(0, 0, 256, 128);
+  ctx.fillStyle = fill;
+  ctx.strokeStyle = fill;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  ctx.save();
+  ctx.translate(128, 78);
+
+  ctx.beginPath();
+  ctx.ellipse(0, 6, 42, 15, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.lineWidth = 11;
+  ctx.beginPath();
+  ctx.moveTo(30, 2);
+  ctx.bezierCurveTo(54, -6, 64, -34, 48, -52);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(46, -54, 7, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(-12, 0);
+  ctx.quadraticCurveTo(-62, -30, -78, -6);
+  ctx.quadraticCurveTo(-42, 10, -12, 10);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(10, 2);
+  ctx.quadraticCurveTo(48, -20, 64, 4);
+  ctx.quadraticCurveTo(36, 14, 10, 12);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+
+  const tex = new CanvasTexture(canvas);
+  tex.colorSpace = SRGBColorSpace;
+  return tex;
+}
+
+function createReaderCraneSilhouette(theme: ThreeReaderAtmosphereProps["theme"]) {
+  const isDark = theme === "dark";
+  const fill = isDark
+    ? "rgba(210, 225, 245, 0.85)"
+    : theme === "sepia"
+    ? "rgba(72, 52, 36, 0.72)"
+    : "rgba(48, 68, 92, 0.65)";
+  const tex = makeCraneSilhouetteTexture(fill);
+  const mat = new SpriteMaterial({
+    map: tex,
+    transparent: true,
+    opacity: isDark ? 0.13 : 0.10,
+    depthWrite: false,
+    blending: NormalBlending,
+  });
+  const sprite = new Sprite(mat);
+  sprite.scale.set(1.65, 0.82, 1);
+  sprite.position.set(-3.8, 1.45, -3.0);
+  return {
+    sprite,
+    tex,
+    x: -3.8,
+    dir: 1 as 1 | -1,
+    phase: seededNoise(881) * Math.PI * 2,
+  };
+}
+
 export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabled, theme }: ThreeReaderAtmosphereProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const progressRef = useRef(progress);
@@ -837,10 +915,12 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
     const stepPulse = createStepPulse(colors.primary, colors.secondary);
     const windStreaks = createWindStreaks(colors.secondary);
     const mistBands = createMistBands(theme, mistBandTexture);
+    const craneSilhouette = createReaderCraneSilhouette(theme);
     const glow = new PointLight(new Color(colors.secondary), 1.2, 7);
     glow.position.set(1.8, 1.4, 2.2);
 
     mistSprites.forEach(({ sprite }) => scene.add(sprite));
+    scene.add(craneSilhouette.sprite);
     scene.add(
       xianxiaSky.group,
       stars.points,
@@ -919,6 +999,16 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
         c.sprite.material.opacity =
           (isDark ? 0.09 : 0.15) + Math.sin(t * 0.28 + c.phase) * 0.04;
       });
+
+      // Subtle crane silhouette — slow drift across upper sky
+      craneSilhouette.x += craneSilhouette.dir * 0.0018;
+      if (craneSilhouette.x > 4.6) craneSilhouette.dir = -1;
+      if (craneSilhouette.x < -4.6) craneSilhouette.dir = 1;
+      craneSilhouette.sprite.position.x = craneSilhouette.x;
+      craneSilhouette.sprite.position.y = 1.35 + Math.sin(t * 0.22 + craneSilhouette.phase) * 0.08;
+      craneSilhouette.sprite.material.opacity =
+        (isDark ? 0.11 : 0.085) + Math.sin(t * 0.35 + craneSilhouette.phase) * 0.025;
+      craneSilhouette.sprite.scale.x = craneSilhouette.dir > 0 ? 1.65 : -1.65;
 
       // Mountain-top peak mist drifts slowly
       xianxiaSky.peakMist.position.x = Math.sin(t * 0.06) * 0.3;
@@ -1049,6 +1139,7 @@ export function ThreeReaderAtmosphere({ chapterNumber, progress, autoScrollEnabl
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", handleVisibility);
       discTexture.dispose();
+      craneSilhouette.tex.dispose();
       cloudTextures.forEach((t) => t.dispose());
       mistBandTexture.dispose();
       mistSprites.forEach(({ sprite }) => {

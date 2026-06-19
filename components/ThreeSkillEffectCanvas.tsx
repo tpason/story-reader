@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AdditiveBlending, AmbientLight, BoxGeometry, BufferAttribute, BufferGeometry, CapsuleGeometry, CircleGeometry, Color, ConeGeometry, CylinderGeometry, DirectionalLight, DoubleSide, Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, SphereGeometry, TorusGeometry, Vector2, WebGLRenderer } from "three";
+import { AdditiveBlending, AmbientLight, BoxGeometry, BufferAttribute, BufferGeometry, CapsuleGeometry, CircleGeometry, Color, ConeGeometry, CylinderGeometry, DirectionalLight, DoubleSide, ExtrudeGeometry, Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Shape, SphereGeometry, TorusGeometry, Vector2, WebGLRenderer } from "three";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
@@ -43,8 +43,133 @@ type SwordFlightRig = {
   group: Group;
   blade: Mesh;
   trail: Mesh;
+  aura: Mesh;
   afterimages: Mesh[];
 };
+
+type JianSwordParts = {
+  group: Group;
+  blade: Mesh;
+  aura: Mesh;
+};
+
+/** Tapered jian blade — extruded profile instead of a 4-sided cone. */
+function createJianBladeGeometry(length = 1.18, halfWidth = 0.058) {
+  const shape = new Shape();
+  shape.moveTo(0, 0);
+  shape.lineTo(halfWidth * 0.42, 0);
+  shape.lineTo(halfWidth, length * 0.14);
+  shape.lineTo(halfWidth * 0.62, length);
+  shape.lineTo(-halfWidth * 0.62, length);
+  shape.lineTo(-halfWidth, length * 0.14);
+  shape.lineTo(-halfWidth * 0.42, 0);
+  shape.closePath();
+
+  const geometry = new ExtrudeGeometry(shape, {
+    depth: 0.024,
+    bevelEnabled: true,
+    bevelThickness: 0.004,
+    bevelSize: 0.004,
+    bevelSegments: 3,
+  });
+  geometry.center();
+  geometry.rotateZ(-Math.PI / 2);
+  geometry.translate(length * 0.08, 0, 0);
+  return geometry;
+}
+
+function buildJianSwordParts(palette: SkillPalette, scale = 1): JianSwordParts {
+  const group = new Group();
+  const bladeMat = new MeshStandardMaterial({
+    color: "#f6f9ff",
+    emissive: new Color(palette.secondary),
+    emissiveIntensity: 0.62,
+    roughness: 0.06,
+    metalness: 0.94,
+    transparent: true,
+    opacity: 0.98,
+  });
+  const blade = new Mesh(createJianBladeGeometry(1.16 * scale, 0.056 * scale), bladeMat);
+
+  const ridge = new Mesh(
+    new BoxGeometry(1.02 * scale, 0.007 * scale, 0.007 * scale),
+    new MeshBasicMaterial({
+      color: palette.hot,
+      transparent: true,
+      opacity: 0.78,
+      blending: AdditiveBlending,
+      depthWrite: false,
+    })
+  );
+  ridge.position.set(0.42 * scale, 0, 0.014 * scale);
+
+  const guard = new Mesh(
+    new BoxGeometry(0.055 * scale, 0.34 * scale, 0.038 * scale),
+    new MeshStandardMaterial({
+      color: palette.primary,
+      emissive: new Color(palette.primary),
+      emissiveIntensity: 0.28,
+      roughness: 0.28,
+      metalness: 0.72,
+    })
+  );
+  guard.position.set(-0.74 * scale, 0, 0);
+
+  const handle = new Mesh(
+    new CylinderGeometry(0.03 * scale, 0.03 * scale, 0.46 * scale, 12),
+    new MeshStandardMaterial({
+      color: "#2a1438",
+      emissive: new Color(palette.primary),
+      emissiveIntensity: 0.14,
+      roughness: 0.5,
+      metalness: 0.12,
+    })
+  );
+  handle.rotation.z = Math.PI / 2;
+  handle.position.set(-1.02 * scale, 0, 0);
+
+  const pommel = new Mesh(
+    new SphereGeometry(0.04 * scale, 12, 10),
+    new MeshStandardMaterial({
+      color: palette.hot,
+      emissive: new Color(palette.hot),
+      emissiveIntensity: 0.35,
+      roughness: 0.32,
+      metalness: 0.55,
+    })
+  );
+  pommel.position.set(-1.28 * scale, 0, 0);
+
+  const tassel = new Mesh(
+    new PlaneGeometry(0.05 * scale, 0.22 * scale, 1, 1),
+    new MeshBasicMaterial({
+      color: palette.secondary,
+      transparent: true,
+      opacity: 0.55,
+      blending: AdditiveBlending,
+      side: DoubleSide,
+      depthWrite: false,
+    })
+  );
+  tassel.position.set(-1.34 * scale, -0.1 * scale, 0.02 * scale);
+  tassel.rotation.z = 0.22;
+
+  const aura = new Mesh(
+    new PlaneGeometry(2.6 * scale, 0.56 * scale, 1, 1),
+    new MeshBasicMaterial({
+      color: palette.secondary,
+      transparent: true,
+      opacity: 0.32,
+      blending: AdditiveBlending,
+      side: DoubleSide,
+      depthWrite: false,
+    })
+  );
+  aura.position.set(0.12 * scale, 0, -0.04 * scale);
+
+  group.add(aura, ridge, blade, guard, handle, pommel, tassel);
+  return { group, blade, aura };
+}
 
 type WindBladeRig = {
   group: Group;
@@ -212,6 +337,17 @@ const SKILL_PALETTES: Record<string, SkillPalette> = {
   }
 };
 
+const DESKTOP_SPECTACLE = 1.38;
+
+function scalePalette(palette: SkillPalette): SkillPalette {
+  return {
+    ...palette,
+    particleCount: Math.round(palette.particleCount * DESKTOP_SPECTACLE),
+    ringCount: Math.min(8, palette.ringCount + 1),
+    speed: palette.speed * 1.1,
+  };
+}
+
 const DEFAULT_PALETTE: SkillPalette = {
   primary: "#f5d75e",
   secondary: "#60a5fa",
@@ -224,19 +360,21 @@ const DEFAULT_PALETTE: SkillPalette = {
 type BloomConfig = { strength: number; radius: number; threshold: number; afterimage?: number };
 
 function getBloomConfig(skillId: string, effectPower: number): BloomConfig {
+  const p = effectPower * 1.12;
   switch (skillId) {
-    case "heaven_thunder": return { strength: 2.2 * effectPower, radius: 0.52, threshold: 0 };
-    case "sword_flight":   return { strength: 1.8 * effectPower, radius: 0.28, threshold: 0, afterimage: 0.88 };
-    case "wind_blade":     return { strength: 1.6 * effectPower, radius: 0.34, threshold: 0, afterimage: 0.80 };
-    case "starfall":       return { strength: 2.0 * effectPower, radius: 0.40, threshold: 0, afterimage: 0.74 };
-    case "celestial_rain": return { strength: 1.4 * effectPower, radius: 0.58, threshold: 0 };
-    case "lotus_domain":   return { strength: 1.2 * effectPower, radius: 0.50, threshold: 0 };
-    case "bean_soldiers":  return { strength: 1.0 * effectPower, radius: 0.44, threshold: 0 };
-    case "hoa_long":       return { strength: 2.4 * effectPower, radius: 0.46, threshold: 0, afterimage: 0.82 };
-    case "van_kiem":       return { strength: 2.2 * effectPower, radius: 0.32, threshold: 0, afterimage: 0.78 };
-    case "dao_hoa_tan":    return { strength: 1.4 * effectPower, radius: 0.54, threshold: 0 };
-    case "thien_dia_an":   return { strength: 2.8 * effectPower, radius: 0.62, threshold: 0 };
-    default:               return { strength: 1.2 * effectPower, radius: 0.42, threshold: 0 };
+    case "heaven_thunder": return { strength: 2.45 * p, radius: 0.56, threshold: 0 };
+    case "sword_flight":   return { strength: 2.05 * p, radius: 0.32, threshold: 0, afterimage: 0.9 };
+    case "wind_blade":     return { strength: 1.85 * p, radius: 0.38, threshold: 0, afterimage: 0.86 };
+    case "starfall":       return { strength: 2.25 * p, radius: 0.44, threshold: 0, afterimage: 0.8 };
+    case "celestial_rain": return { strength: 1.55 * p, radius: 0.62, threshold: 0 };
+    case "summon_rain":    return { strength: 1.25 * p, radius: 0.58, threshold: 0 };
+    case "lotus_domain":   return { strength: 1.35 * p, radius: 0.54, threshold: 0 };
+    case "bean_soldiers":  return { strength: 1.15 * p, radius: 0.48, threshold: 0 };
+    case "hoa_long":       return { strength: 2.65 * p, radius: 0.5, threshold: 0, afterimage: 0.86 };
+    case "van_kiem":       return { strength: 2.45 * p, radius: 0.36, threshold: 0, afterimage: 0.84 };
+    case "dao_hoa_tan":    return { strength: 1.55 * p, radius: 0.58, threshold: 0 };
+    case "thien_dia_an":   return { strength: 3.1 * p, radius: 0.66, threshold: 0 };
+    default:               return { strength: 1.35 * p, radius: 0.46, threshold: 0 };
   }
 }
 
@@ -350,7 +488,7 @@ function createWindBladeRig(palette: SkillPalette): WindBladeRig {
   const group = new Group();
   group.position.set(-5.4, 0.12, 0.15);
 
-  const blades = Array.from({ length: 5 }).map((_, index) => {
+  const blades = Array.from({ length: 7 }).map((_, index) => {
     const blade = new Mesh(
       new TorusGeometry(0.42 + index * 0.055, 0.012 + index * 0.002, 8, 72, Math.PI * 0.86),
       new MeshBasicMaterial({
@@ -376,89 +514,40 @@ function createSwordFlightRig(palette: SkillPalette): SwordFlightRig {
   group.position.set(-5.2, 0.72, 0.18);
   group.rotation.z = -0.1;
 
-  const blade = new Mesh(
-    new ConeGeometry(0.08, 1.42, 4, 1),
-    new MeshStandardMaterial({
-      color: "#f8fbff",
-      emissive: new Color(palette.secondary),
-      emissiveIntensity: 0.55,
-      roughness: 0.2,
-      metalness: 0.6,
-      transparent: true,
-      opacity: 0.96
-    })
-  );
-  blade.rotation.z = -Math.PI / 2;
-  blade.scale.x = 1.8;
-
-  const spine = new Mesh(
-    new BoxGeometry(1.52, 0.026, 0.026),
-    new MeshBasicMaterial({
-      color: palette.hot,
-      transparent: true,
-      opacity: 0.84,
-      blending: AdditiveBlending,
-      depthWrite: false
-    })
-  );
-  spine.position.x = -0.1;
-
-  const guard = new Mesh(
-    new BoxGeometry(0.08, 0.34, 0.035),
-    new MeshStandardMaterial({
-      color: palette.primary,
-      emissive: palette.primary,
-      emissiveIntensity: 0.2,
-      roughness: 0.36,
-      metalness: 0.3
-    })
-  );
-  guard.position.x = -0.78;
-
-  const handle = new Mesh(
-    new CylinderGeometry(0.035, 0.035, 0.48, 10),
-    new MeshStandardMaterial({
-      color: "#3b1d63",
-      emissive: palette.primary,
-      emissiveIntensity: 0.12,
-      roughness: 0.46
-    })
-  );
-  handle.rotation.z = Math.PI / 2;
-  handle.position.x = -1.06;
+  const { group: sword, blade, aura } = buildJianSwordParts(palette, 1);
 
   const trail = new Mesh(
-    new PlaneGeometry(2.8, 0.34, 1, 1),
+    new PlaneGeometry(3.1, 0.38, 1, 1),
     new MeshBasicMaterial({
       color: palette.secondary,
       transparent: true,
-      opacity: 0.34,
+      opacity: 0.38,
       blending: AdditiveBlending,
       side: DoubleSide,
-      depthWrite: false
+      depthWrite: false,
     })
   );
-  trail.position.x = -1.72;
-  trail.rotation.z = 0.04;
+  trail.position.set(-1.82, 0, -0.06);
+  trail.rotation.z = 0.05;
 
-  const afterimages = Array.from({ length: 3 }).map((_, index) => {
+  const afterimages = Array.from({ length: 4 }).map((_, index) => {
     const image = new Mesh(
-      new PlaneGeometry(1.8 + index * 0.42, 0.045, 1, 1),
+      new PlaneGeometry(2.0 + index * 0.38, 0.05, 1, 1),
       new MeshBasicMaterial({
         color: index % 2 === 0 ? palette.primary : palette.secondary,
         transparent: true,
-        opacity: 0.24 - index * 0.045,
+        opacity: 0.26 - index * 0.05,
         blending: AdditiveBlending,
         side: DoubleSide,
-        depthWrite: false
+        depthWrite: false,
       })
     );
-    image.position.set(-1.18 - index * 0.48, -0.14 + index * 0.08, -0.02 - index * 0.04);
+    image.position.set(-1.28 - index * 0.52, -0.12 + index * 0.07, -0.03 - index * 0.04);
     return image;
   });
 
-  group.add(trail, blade, spine, guard, handle, ...afterimages);
-  return { group, blade, trail, afterimages };
+  group.add(trail, sword, ...afterimages);
+  return { group, blade, trail, aura, afterimages };
 }
 
 function createWaterDragonRig(palette: SkillPalette, majestic = false): WaterDragonRig {
@@ -638,7 +727,7 @@ function createLightningBranchGeometry(branchIndex: number) {
 
 function createLightningRig(palette: SkillPalette): LightningRig {
   const group = new Group();
-  const branches = Array.from({ length: 4 }).map((_, index) => {
+  const branches = Array.from({ length: 6 }).map((_, index) => {
     const line = new LineSegments(
       createLightningBranchGeometry(index),
       new LineBasicMaterial({
@@ -675,7 +764,7 @@ function createLotusDomainRig(palette: SkillPalette): LotusDomainRig {
   dome.position.y = -0.94;
   dome.rotation.x = Math.PI;
 
-  const petals = Array.from({ length: 18 }).map((_, index) => {
+  const petals = Array.from({ length: 22 }).map((_, index) => {
     const petal = new Mesh(
       new PlaneGeometry(0.16, 0.38, 1, 1),
       new MeshBasicMaterial({
@@ -717,7 +806,7 @@ function createLotusDomainRig(palette: SkillPalette): LotusDomainRig {
 
 function createStarfallRig(palette: SkillPalette): StarfallRig {
   const group = new Group();
-  const meteors = Array.from({ length: 11 }).map((_, index) => {
+  const meteors = Array.from({ length: 15 }).map((_, index) => {
     const meteor = new Mesh(
       new PlaneGeometry(1.15 + seededNoise(index + 1201) * 0.9, 0.035, 1, 1),
       new MeshBasicMaterial({
@@ -740,7 +829,7 @@ function createStarfallRig(palette: SkillPalette): StarfallRig {
 function createFireDragonRig(palette: SkillPalette): FireDragonRig {
   const group = new Group();
 
-  const bodyBeads = Array.from({ length: 22 }).map((_, index) => {
+  const bodyBeads = Array.from({ length: 30 }).map((_, index) => {
     const radius = Math.max(0.042, 0.16 - index * 0.005);
     const bead = new Mesh(
       new SphereGeometry(radius, 12, 8),
@@ -758,7 +847,7 @@ function createFireDragonRig(palette: SkillPalette): FireDragonRig {
     return bead;
   });
 
-  const mane = Array.from({ length: 8 }).map((_, index) => {
+  const mane = Array.from({ length: 10 }).map((_, index) => {
     const m = new Mesh(
       new ConeGeometry(0.056, 0.28, 4),
       new MeshBasicMaterial({
@@ -798,63 +887,26 @@ function createFireDragonRig(palette: SkillPalette): FireDragonRig {
 function createSwordRainRig(palette: SkillPalette): SwordRainRig {
   const group = new Group();
 
-  const swords = Array.from({ length: 18 }).map((_, index) => {
+  const swords = Array.from({ length: 22 }).map((_, index) => {
     const sg = new Group();
+    const rainScale = 0.36 + seededNoise(index + 880) * 0.14;
+    const { group: sword, blade, aura } = buildJianSwordParts(palette, rainScale);
+    sword.rotation.z = (seededNoise(index + 931) - 0.5) * 0.18;
+    sg.add(sword);
 
-    const blade = new Mesh(
-      new ConeGeometry(0.036, 1.0, 4),
-      new MeshStandardMaterial({
-        color: "#f0f8ff",
-        emissive: new Color(palette.secondary),
-        emissiveIntensity: 0.5,
-        roughness: 0.12,
-        metalness: 0.82,
-        transparent: true,
-        opacity: 0.94
-      })
-    );
-    blade.position.y = 0.12;
-
-    const guard = new Mesh(
-      new CylinderGeometry(0.12, 0.12, 0.024, 8),
-      new MeshBasicMaterial({
-        color: new Color(palette.primary),
-        transparent: true,
-        opacity: 0.84,
-        blending: AdditiveBlending,
-        depthWrite: false
-      })
-    );
-    guard.position.y = -0.38;
-
-    const glow = new Mesh(
-      new PlaneGeometry(0.06, 1.4, 1, 1),
-      new MeshBasicMaterial({
-        color: new Color(palette.secondary),
-        transparent: true,
-        opacity: 0.58,
-        blending: AdditiveBlending,
-        side: DoubleSide,
-        depthWrite: false
-      })
-    );
-    glow.position.y = 0.12;
-
-    sg.add(blade, guard, glow);
-
-    const xPos = -4.5 + (index / 17) * 9.0 + (seededNoise(index + 907) - 0.5) * 1.2;
-    const yStart = 4.0 + seededNoise(index + 911) * 2.2;
+    const xPos = -4.8 + (index / 21) * 9.6 + (seededNoise(index + 907) - 0.5) * 1.5;
+    const yStart = 4.2 + seededNoise(index + 911) * 2.4;
     sg.position.set(xPos, yStart, -0.4 + seededNoise(index + 921) * 0.8);
-    sg.rotation.z = (seededNoise(index + 931) - 0.5) * 0.28;
+    sg.rotation.z += (seededNoise(index + 931) - 0.5) * 0.28;
 
     group.add(sg);
     return {
       group: sg,
       blade,
-      guard,
-      glow,
-      speed: 1.6 + seededNoise(index + 901) * 0.8,
-      phase: seededNoise(index + 941) * Math.PI * 2
+      guard: aura,
+      glow: aura,
+      speed: 1.5 + seededNoise(index + 901) * 0.9,
+      phase: seededNoise(index + 941) * Math.PI * 2,
     };
   });
 
@@ -864,7 +916,7 @@ function createSwordRainRig(palette: SkillPalette): SwordRainRig {
 function createPetalCascadeRig(palette: SkillPalette): PetalCascadeRig {
   const group = new Group();
 
-  const petals = Array.from({ length: 42 }).map((_, index) => {
+  const petals = Array.from({ length: 54 }).map((_, index) => {
     const w = 0.13 + seededNoise(index + 1101) * 0.11;
     const h = 0.19 + seededNoise(index + 1107) * 0.09;
     const petal = new Mesh(
@@ -987,7 +1039,7 @@ function createBeanSoldier(index: number, palette: SkillPalette): BeanSoldierRig
   const root = new Group();
   const lane = index % 3;
   const phase = index * 0.72;
-  root.position.set(-5.8 - index * 0.72, -1.95 + lane * 0.18, 0.9 - lane * 0.22);
+  root.position.set(-6.2 - index * 1.05, -1.88 + lane * 0.38, 1.0 - lane * 0.28);
   root.rotation.y = -0.1;
 
   const body = new Mesh(
@@ -1089,18 +1141,18 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
     if (!host) return;
     const container = host;
 
-    const palette = getPalette(skillId);
-    const effectPower = Math.max(1, Math.min(2.6, 0.78 + intensity * 0.32));
+    const palette = scalePalette(getPalette(skillId));
+    const effectPower = Math.max(1, Math.min(3.4, 0.95 + intensity * 0.42));
     const scene = new Scene();
     const camera = new PerspectiveCamera(38, 1, 0.1, 100);
     camera.position.set(0, 0, 7.4);
 
     const renderer = new WebGLRenderer({
-      alpha: false,
+      alpha: true,
       antialias: true,
       powerPreference: "high-performance"
     });
-    renderer.setClearColor(0x000000, 1);
+    renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
     renderer.domElement.className = "skill-webgl-canvas";
     container.appendChild(renderer.domElement);
@@ -1275,13 +1327,15 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
       }
 
       if (beanParade) {
-        beanParade.group.position.x = progress * 3.8;
+        beanParade.group.position.x = progress * 3.2;
         beanParade.group.rotation.y = Math.sin(time * 0.65) * 0.08;
-        beanParade.soldiers.forEach((soldier) => {
+        beanParade.soldiers.forEach((soldier, soldierIndex) => {
           const stride = time * 8.2 + soldier.phase;
           const bob = Math.abs(Math.sin(stride)) * 0.13;
-          soldier.root.position.x = -5.8 - soldier.phase * 0.9 + progress * 10.8;
-          soldier.root.position.y = -1.95 + soldier.lane * 0.18 + bob;
+          const laneOffset = (soldier.lane - 1) * 0.38;
+          soldier.root.position.x = -6.2 - soldierIndex * 1.05 + progress * 10.4;
+          soldier.root.position.y = -1.88 + laneOffset + bob;
+          soldier.root.position.z = 1.0 - soldier.lane * 0.28;
           soldier.root.rotation.z = Math.sin(stride) * 0.08;
           if (soldier.body.morphTargetInfluences) {
             soldier.body.morphTargetInfluences[0] = 0.18 + Math.abs(Math.sin(stride)) * 0.64;
@@ -1299,11 +1353,12 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
         swordRig.group.position.x = -5.4 + flight * 11.4;
         swordRig.group.position.y = 0.68 + Math.sin(time * 4.2) * 0.18;
         swordRig.group.rotation.z = -0.14 + Math.sin(time * 5.2) * 0.08;
-        swordRig.blade.rotation.x = time * 1.8;
-        (swordRig.trail.material as MeshBasicMaterial).opacity = 0.44 * pulse;
+        swordRig.blade.rotation.y = Math.sin(time * 2.4) * 0.12;
+        (swordRig.trail.material as MeshBasicMaterial).opacity = 0.48 * pulse;
+        (swordRig.aura.material as MeshBasicMaterial).opacity = 0.24 + pulse * 0.22;
         swordRig.afterimages.forEach((image, index) => {
-          image.position.x = -1.2 - index * 0.55 - Math.sin(time * 3 + index) * 0.18;
-          (image.material as MeshBasicMaterial).opacity = Math.max(0, (0.28 - index * 0.06) * pulse);
+          image.position.x = -1.28 - index * 0.58 - Math.sin(time * 3 + index) * 0.2;
+          (image.material as MeshBasicMaterial).opacity = Math.max(0, (0.3 - index * 0.055) * pulse);
         });
       }
 

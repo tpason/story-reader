@@ -24,31 +24,66 @@ import { MoonlightBeam } from "./MoonlightBeam";
 import { LingQiOrbs } from "./LingQiOrbs";
 import { FormationRing } from "./FormationRing";
 import { WaterSparkles } from "./WaterSparkles";
-import { scenePresets, sharedLayers, TimeOfDay } from "./sceneConfig";
-
-// ─── Coverage formula ─────────────────────────────────────────────────────
-// Camera z=5, fov=45°. Half-height at depth z: h(z) = (5-z)*tan(22.5°)
-// 2:1 PNG plane=[2,1]×scale=[s,s] → world 2s×s. Full-width: 2s ≥ 2*h*1.778
-// Need s ≥ h*1.778. Add ±0.22 margin for camera drift (CameraBreath ±0.18).
-//
-//  z=-10: h=6.21 → s≥12.1 → use 13   (background, full sky)
-//  z=-7:  h=4.97 → s≥ 9.7 → use 10   (far mountains)
-//  z=-5:  h=4.14 → s≥ 8.1 → use  9   (mid mountains)
-//  z=-4.5:h=3.93 → s≥ 7.7 → use  8   (valley mist, full width)
-//  z=-2.3:h=3.02 → s≥ 5.9 → use  6   (near mountains)
+import { CraneDanceOrbit } from "./CraneDanceOrbit";
+import {
+  pngCloudOpacityMul,
+  scenePresets,
+  sharedLayers,
+  type SceneQualityTier,
+  type TimeOfDay,
+} from "./sceneConfig";
 
 type XianxiaSceneProps = {
   timeOfDay: TimeOfDay;
-  compact?: boolean;
+  qualityTier?: SceneQualityTier;
 };
 
-export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) {
-  const preset = scenePresets[timeOfDay];
+type ScenePostEffectsProps = {
+  showGodRays: boolean;
+  sunMesh: Mesh | null;
+  bloom: number;
+  isMid: boolean;
+};
 
-  // GodRays: callback ref so state updates when mesh mounts
+function ScenePostEffects({ showGodRays, sunMesh, bloom, isMid }: ScenePostEffectsProps) {
+  if (showGodRays && sunMesh) {
+    return (
+      <EffectComposer>
+        <Bloom intensity={bloom} luminanceThreshold={0.62} luminanceSmoothing={0.42} />
+        <GodRays
+          sun={sunMesh}
+          blendFunction={BlendFunction.SCREEN}
+          samples={isMid ? 10 : 16}
+          density={0.96}
+          decay={0.91}
+          weight={isMid ? 0.20 : 0.28}
+          exposure={isMid ? 0.42 : 0.55}
+          clampMax={1}
+          kernelSize={KernelSize.VERY_SMALL}
+          blur
+        />
+        <Vignette offset={0.24} darkness={0.62} />
+      </EffectComposer>
+    );
+  }
+
+  return (
+    <EffectComposer>
+      <Bloom intensity={bloom} luminanceThreshold={0.62} luminanceSmoothing={0.42} />
+      <Vignette offset={0.24} darkness={0.62} />
+    </EffectComposer>
+  );
+}
+
+export function XianxiaScene({ timeOfDay, qualityTier = "full" }: XianxiaSceneProps) {
+  const preset = scenePresets[timeOfDay];
+  const isPhone = qualityTier === "phone";
+  const isMid = qualityTier === "mid";
+  const isFull = qualityTier === "full";
+  const pngMul = pngCloudOpacityMul(timeOfDay);
+
   const [sunMesh, setSunMesh] = useState<Mesh | null>(null);
 
-  // sunPosition for <Sky> — derived from elevation/azimuth
   const sunPosition = useMemo((): [number, number, number] => {
     if (!preset.sky) return [0, 1, 0];
     const phi = MathUtils.degToRad(90 - preset.sky.elevation);
@@ -57,11 +92,13 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
     return [v.x, v.y, v.z];
   }, [preset.sky?.elevation, preset.sky?.azimuth]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const showGodRays = preset.godRays && !isPhone && !!sunMesh;
+  const showCraneDance = isFull && (timeOfDay === "night" || timeOfDay === "dusk" || timeOfDay === "dawn");
+
   return (
     <>
       <CameraBreath />
 
-      {/* ── Procedural sky (dawn/day/dusk) — renders at Z=-infinity ──────── */}
       {preset.sky && (
         <Sky
           distance={4500000}
@@ -73,7 +110,6 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
         />
       )}
 
-      {/* ── z=-10: Background painting — opacity lowered when Sky is active  */}
       <ImageLayer
         src={preset.background}
         position={[0, 0, -10]}
@@ -83,22 +119,21 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
         depthWrite
       />
 
-      {/* ── z=-9: Light rays ── additive, directional golden light ───────── */}
       {preset.lightRays && (
         <ImageLayer
           src={preset.lightRays}
           position={[0.8, 1.0, -9]}
           scale={[13, 13, 1]}
-          opacity={0.20}
+          opacity={0.20 * pngMul}
           blendMode={AdditiveBlending}
         />
       )}
 
-      {/* ── z=-8.5–8.6: Procedural sun / moon ───────────────────────────── */}
       <SunMoon timeOfDay={timeOfDay} position={preset.celestialPos} />
 
-      {/* ── z=-8.6: GodRays source — invisible anchor at celestial position */}
-      {preset.godRays && !compact && (
+      {showCraneDance && <CraneDanceOrbit center={preset.celestialPos} />}
+
+      {preset.godRays && !isPhone && (
         <mesh
           ref={(m) => { if (m) setSunMesh(m); }}
           position={preset.celestialPos}
@@ -108,15 +143,13 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
         </mesh>
       )}
 
-      {/* ── Night: procedural star field + moonlight rays ────────────────── */}
       {timeOfDay === "night" && (
         <>
-          <NightSky />
+          <NightSky compact={isPhone || isMid} />
           <MoonlightBeam />
         </>
       )}
 
-      {/* ── z=-7: Far mountains ── very faint, misty horizon ─────────────── */}
       <ImageLayer
         src={sharedLayers.mountains.far}
         position={[0, -4.5, -7]}
@@ -125,16 +158,12 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
         alphaTest={0.03}
       />
 
-      {/* ── z=-6.5: Formation ring — 陣法, hidden behind mountains ─────────── */}
-      {!compact && <FormationRing />}
+      {isFull && <FormationRing />}
 
-      {/* ── z=-7.8 → -4.2: Procedural fluffy clouds (time-of-day tinted) ─── */}
-      <FloatingClouds timeOfDay={timeOfDay} />
+      <FloatingClouds timeOfDay={timeOfDay} volumetric={isFull} />
 
-      {/* ── z=-6/-5.5: Cloud shadows drifting across mountains ───────────── */}
-      {!compact && <CloudShadow />}
+      {!isPhone && <CloudShadow timeOfDay={timeOfDay} />}
 
-      {/* ── z=-5: Mid mountains ── s=9 → width 18 > vis 16.2 ✓ ──────────── */}
       <ImageLayer
         src={sharedLayers.mountains.mid}
         position={[0, -4.2, -5]}
@@ -143,75 +172,65 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
         alphaTest={0.03}
       />
 
-      {/* ── Layered clouds ── slow parallax drift without bright washout ─── */}
-      <DriftingCloudBank sources={sharedLayers.cloudBank} />
+      <DriftingCloudBank sources={sharedLayers.cloudBank} timeOfDay={timeOfDay} />
 
-      {/* ── z=-4.5: Valley mist A ── s=8 → width 16 > vis 15.4 ✓ full cover */}
       <MovingLayer
         src={sharedLayers.clouds.lowValley}
         position={[0, -2.0, -4.5]}
         scale={[8, 8, 1]}
-        opacity={0.28}
+        opacity={0.28 * pngMul}
         speedX={0.014}
         drift={0.022}
         blendMode={AdditiveBlending}
       />
 
-      {/* ── z=-4.0: Valley mist B ── opposite direction, full cover ─────── */}
       <MovingLayer
         src={sharedLayers.clouds.lowValley}
         position={[0, -1.2, -4.0]}
         scale={[8, 8, 1]}
-        opacity={0.18}
+        opacity={0.18 * pngMul}
         speedX={-0.009}
         drift={0.028}
         blendMode={AdditiveBlending}
       />
 
-      {/* ── z=-4.8 → -3.3: Linh khí orbs — immortal energy pools ───────── */}
       <LingQiOrbs />
 
-      {/* ── z=-3.5: Thiên trì / water reflection at mountain base ────────── */}
-      <WaterPlane timeOfDay={timeOfDay} compact={compact} />
+      <WaterPlane timeOfDay={timeOfDay} compact={isPhone} />
 
-      {/* ── Water sparkles — moonlight dancing on lake surface (night only) ─ */}
-      {timeOfDay === "night" && !compact && <WaterSparkles />}
+      {timeOfDay === "night" && !isPhone && <WaterSparkles />}
 
-      {/* ── z=-3.5: Hero cloud ── left-edge accent, additive ─────────────── */}
       <MovingLayer
         src={sharedLayers.clouds.hero1}
         position={[-5, 0.2, -3.5]}
         scale={[3.5, 3.5, 1]}
-        opacity={0.28}
+        opacity={0.28 * pngMul}
         speedX={0.018}
         drift={0.04}
         blendMode={AdditiveBlending}
       />
 
-      {/* ── z=-3.2: Hero cloud ── right-edge accent, additive ────────────── */}
       <MovingLayer
         src={sharedLayers.clouds.hero2}
         position={[5, 0.5, -3.2]}
         scale={[3.2, 3.2, 1]}
-        opacity={0.22}
+        opacity={0.22 * pngMul}
         speedX={-0.013}
         drift={0.045}
         blendMode={AdditiveBlending}
       />
 
-      {/* ── z=-2.8: Fog wisp rising ── wind-blown upward ─────────────────── */}
       <MovingLayer
         src={sharedLayers.clouds.fogWisp}
         position={[1.0, -1.5, -2.8]}
         scale={[2.0, 2.0, 1]}
-        opacity={0.22}
+        opacity={0.22 * pngMul}
         speedX={0.022}
         speedY={0.016}
         drift={0.03}
         blendMode={AdditiveBlending}
       />
 
-      {/* ── z=-2.3: Near mountains ── solid base layer ───────────────────── */}
       <ImageLayer
         src={sharedLayers.mountains.near}
         position={[0, -3.5, -2.3]}
@@ -220,28 +239,21 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
         alphaTest={0.04}
       />
 
-      {/* ── z=-2.0: Fog wisp 2 ── left side rising ───────────────────────── */}
       <MovingLayer
         src={sharedLayers.clouds.fogWisp}
         position={[-2.0, -2.0, -2.0]}
         scale={[1.8, 1.8, 1]}
-        opacity={0.20}
+        opacity={0.20 * pngMul}
         speedX={-0.015}
         speedY={0.020}
         drift={0.025}
         blendMode={AdditiveBlending}
       />
 
-      {/* ── z=-3.1: Crane flock + loner ────────────────────────────────── */}
       <FlyingCranes />
-
-      {/* ── z=-4.0/-2.6/-6.2: Cò · Vẹt · Thiên mã ─────────────────────── */}
       <WildAnimals />
-
-      {/* ── Wind currents ── faint strokes that imply airflow ────────────── */}
       <WindCurrentLines />
 
-      {/* ── z=-0.5: Foreground pine — wind-blown sway ────────────────────── */}
       <WindLayer
         src={sharedLayers.foreground.pine}
         position={[-4.8, -1.2, -0.5]}
@@ -255,7 +267,6 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
         phase={0}
       />
 
-      {/* ── z=-0.6: Foreground bamboo — slightly faster sway ─────────────── */}
       <WindLayer
         src={sharedLayers.foreground.bamboo}
         position={[4.5, -1.0, -0.6]}
@@ -269,60 +280,37 @@ export function XianxiaScene({ timeOfDay, compact = false }: XianxiaSceneProps) 
         phase={2.1}
       />
 
-      {/* ── Low smoke plumes ── soft rising mist around the foreground ───── */}
-      <MistPlumes />
+      <MistPlumes timeOfDay={timeOfDay} />
 
-      {/* ── Depth haze plane ── ink-painting fog between mountain layers ─── */}
       <mesh position={[0, 0, -3.0]}>
         <planeGeometry args={[20, 10]} />
         <meshBasicMaterial
           color={timeOfDay === "night" ? "#203050" : timeOfDay === "dusk" ? "#b06840" : timeOfDay === "dawn" ? "#d09850" : "#90b8cc"}
           transparent
-          opacity={0.06}
+          opacity={(timeOfDay === "night" ? 0.04 : 0.06) * pngMul}
           depthWrite={false}
         />
       </mesh>
 
-      {/* ── Spirit particles ── immortal energy drifting upward ──────────── */}
       <SpiritParticles />
 
-      {/* ── z=-0.1: Atmospheric haze tint ────────────────────────────────── */}
       {preset.haze && (
         <ImageLayer
           src={preset.haze}
           position={[0, 0, -0.1]}
           scale={[6, 6, 1]}
-          opacity={0.035}
+          opacity={0.035 * pngMul}
           blendMode={AdditiveBlending}
         />
       )}
 
-      {/* ── Post-processing — base pass (no GodRays, no postprocessing on midRange) */}
-      {(!preset.godRays || compact || !sunMesh) && !compact && (
-        <EffectComposer>
-          <Bloom intensity={preset.bloom} luminanceThreshold={0.62} luminanceSmoothing={0.42} />
-          <Vignette offset={0.24} darkness={0.62} />
-        </EffectComposer>
-      )}
-
-      {/* ── Post-processing — with GodRays (dawn/dusk, desktop only) ─────── */}
-      {preset.godRays && !compact && sunMesh && (
-        <EffectComposer>
-          <Bloom intensity={preset.bloom} luminanceThreshold={0.62} luminanceSmoothing={0.42} />
-          <GodRays
-            sun={sunMesh as any}
-            blendFunction={BlendFunction.SCREEN}
-            samples={16}
-            density={0.96}
-            decay={0.91}
-            weight={0.28}
-            exposure={0.55}
-            clampMax={1}
-            kernelSize={KernelSize.VERY_SMALL}
-            blur
-          />
-          <Vignette offset={0.24} darkness={0.62} />
-        </EffectComposer>
+      {!isPhone && (
+        <ScenePostEffects
+          showGodRays={!!showGodRays}
+          sunMesh={sunMesh}
+          bloom={preset.bloom}
+          isMid={isMid}
+        />
       )}
     </>
   );

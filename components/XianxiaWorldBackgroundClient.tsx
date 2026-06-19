@@ -2,6 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
+import { XianxiaCssBackdrop } from "@/components/XianxiaCssBackdrop";
+import { useXianxiaTimeOfDay } from "@/hooks/useXianxiaTimeOfDay";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 
 const ThreeXianxiaWorldBackground = dynamic(
@@ -13,12 +15,17 @@ const ThreeXianxiaWorldBackground = dynamic(
 const READER_PATH_RE = /^\/stories\/[^/]+\/chapters\/\d+/;
 
 export function XianxiaWorldBackgroundClient() {
-  const enabled = useDecorativeWebglEnabled();
+  const webglEnabled = useDecorativeWebglEnabled();
+  const timeOfDay = useXianxiaTimeOfDay();
   const pathname = usePathname();
 
-  if (!enabled || READER_PATH_RE.test(pathname ?? "")) {
+  if (READER_PATH_RE.test(pathname ?? "")) {
     return null;
   }
 
-  return <ThreeXianxiaWorldBackground />;
+  if (!webglEnabled) {
+    return <XianxiaCssBackdrop timeOfDay={timeOfDay} />;
+  }
+
+  return <ThreeXianxiaWorldBackground timeOfDay={timeOfDay} />;
 }

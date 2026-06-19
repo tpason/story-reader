@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { AdditiveBlending, Mesh } from "three";
 import type { TimeOfDay } from "./sceneConfig";
-import { makeFluffyCloudTexture } from "@/lib/three-cloud-utils";
+import { makeFluffyCloudTexture, makeVolumeCloudTexture } from "@/lib/three-cloud-utils";
 
 // Time-of-day tint for cloud procedural texture
 const CLOUD_TINTS: Record<TimeOfDay, [number, number, number]> = {
@@ -41,39 +41,76 @@ const CLOUDS: CloudDef[] = [
 
 const WRAP = 9.5;
 
-type FloatingCloudsProps = {
-  timeOfDay?: TimeOfDay;
+const VOLUME_BACK_CLOUDS: CloudDef[] = [
+  { texIdx: 0, initX: -4.0, y: 2.8, z: -8.6, w: 6.2, h: 2.1, opacity: 0.20, speed: 0.12, bobAmp: 0.06, bobPhase: 0.6 },
+  { texIdx: 1, initX: 2.5, y: 3.6, z: -8.2, w: 7.0, h: 2.3, opacity: 0.17, speed: -0.10, bobAmp: 0.08, bobPhase: 2.1 },
+  { texIdx: 2, initX: -2.0, y: 1.4, z: -7.9, w: 5.4, h: 1.9, opacity: 0.15, speed: 0.14, bobAmp: 0.05, bobPhase: 3.8 },
+];
+
+const TIME_OPACITY: Record<TimeOfDay, number> = {
+  dawn: 0.88,
+  day: 1.0,
+  dusk: 0.90,
+  night: 0.50,
 };
 
-export function FloatingClouds({ timeOfDay = "day" }: FloatingCloudsProps) {
+type FloatingCloudsProps = {
+  timeOfDay?: TimeOfDay;
+  volumetric?: boolean;
+};
+
+export function FloatingClouds({ timeOfDay = "day", volumetric = false }: FloatingCloudsProps) {
   const meshRefs = useRef<(Mesh | null)[]>([]);
+  const backMeshRefs = useRef<(Mesh | null)[]>([]);
+  const opacityMul = TIME_OPACITY[timeOfDay];
 
   const textures = useMemo(() => {
     const tint = CLOUD_TINTS[timeOfDay];
-    // makeFluffyCloudTexture: 14–18 core blobs + highlights + shadows + wispy tendrils
+    const maker = volumetric ? makeVolumeCloudTexture : makeFluffyCloudTexture;
     return [
-      makeFluffyCloudTexture(3, tint, 512),
-      makeFluffyCloudTexture(11, tint, 512),
-      makeFluffyCloudTexture(19, tint, 512),
+      maker(3, tint, 512),
+      maker(11, tint, 512),
+      maker(19, tint, 512),
     ];
-  }, [timeOfDay]);
+  }, [timeOfDay, volumetric]);
 
   useEffect(() => () => { textures.forEach((t) => t.dispose()); }, [textures]);
 
   useFrame(({ clock }, delta) => {
     const t = clock.elapsedTime;
-    CLOUDS.forEach((def, i) => {
-      const mesh = meshRefs.current[i];
-      if (!mesh) return;
-      mesh.position.x += def.speed * delta;
-      if (mesh.position.x >  WRAP) mesh.position.x -= WRAP * 2;
-      if (mesh.position.x < -WRAP) mesh.position.x += WRAP * 2;
-      mesh.position.y = def.y + Math.sin(t * 0.13 + def.bobPhase) * def.bobAmp;
-    });
+    const drift = (defs: CloudDef[], refs: (Mesh | null)[]) => {
+      defs.forEach((def, i) => {
+        const mesh = refs[i];
+        if (!mesh) return;
+        mesh.position.x += def.speed * delta;
+        if (mesh.position.x > WRAP) mesh.position.x -= WRAP * 2;
+        if (mesh.position.x < -WRAP) mesh.position.x += WRAP * 2;
+        mesh.position.y = def.y + Math.sin(t * 0.13 + def.bobPhase) * def.bobAmp;
+      });
+    };
+    drift(CLOUDS, meshRefs.current);
+    if (volumetric) drift(VOLUME_BACK_CLOUDS, backMeshRefs.current);
   });
 
   return (
     <>
+      {volumetric &&
+        VOLUME_BACK_CLOUDS.map((def, i) => (
+          <mesh
+            key={`back-${i}`}
+            ref={(n) => { backMeshRefs.current[i] = n; }}
+            position={[def.initX, def.y, def.z]}
+          >
+            <planeGeometry args={[def.w, def.h]} />
+            <meshBasicMaterial
+              map={textures[def.texIdx]}
+              transparent
+              opacity={def.opacity * opacityMul * 0.85}
+              depthWrite={false}
+              blending={AdditiveBlending}
+            />
+          </mesh>
+        ))}
       {CLOUDS.map((def, i) => (
         <mesh
           key={i}
@@ -84,7 +121,7 @@ export function FloatingClouds({ timeOfDay = "day" }: FloatingCloudsProps) {
           <meshBasicMaterial
             map={textures[def.texIdx]}
             transparent
-            opacity={def.opacity}
+            opacity={def.opacity * opacityMul}
             depthWrite={false}
             blending={AdditiveBlending}
           />

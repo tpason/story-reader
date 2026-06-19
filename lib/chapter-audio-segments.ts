@@ -8,7 +8,7 @@ import { promisify } from "node:util";
 import { query } from "@/lib/db";
 
 const PROJECT_ROOT = resolve(process.cwd(), "..");
-const DEFAULT_VOICE_KEY = "xianxia_story_male";
+const DEFAULT_VOICE_KEY = "preset_binh_an";
 const execFileAsync = promisify(execFile);
 const FIRST_SEGMENT_MAX_CHARS = 180;
 const FIRST_SEGMENT_MIN_CHARS = 40;

@@ -83,13 +83,23 @@ function buildStarPoints(
 }
 
 // Three groups twinkle at different phases — produces convincing varied sparkle
-const GROUPS = [
-  { count: 440, size: 0.019, opacity: 0.52, freq: 0.26, phase: 0.0, seed: 1  },
-  { count: 200, size: 0.031, opacity: 0.70, freq: 0.43, phase: 2.1, seed: 17 },
-  { count: 65,  size: 0.055, opacity: 0.90, freq: 0.71, phase: 4.4, seed: 37 },
+const GROUPS_FULL = [
+  { count: 520, size: 0.019, opacity: 0.54, freq: 0.26, phase: 0.0, seed: 1  },
+  { count: 240, size: 0.031, opacity: 0.72, freq: 0.43, phase: 2.1, seed: 17 },
+  { count: 80,  size: 0.055, opacity: 0.92, freq: 0.71, phase: 4.4, seed: 37 },
 ];
 
-export function NightSky() {
+const GROUPS_COMPACT = [
+  { count: 280, size: 0.017, opacity: 0.48, freq: 0.26, phase: 0.0, seed: 1  },
+  { count: 120, size: 0.028, opacity: 0.62, freq: 0.43, phase: 2.1, seed: 17 },
+  { count: 36,  size: 0.048, opacity: 0.82, freq: 0.71, phase: 4.4, seed: 37 },
+];
+
+type NightSkyProps = {
+  compact?: boolean;
+};
+
+export function NightSky({ compact = false }: NightSkyProps) {
   const groupRef = useRef<Group>(null);
   const starData = useRef<Array<{ mat: PointsMaterial; geo: BufferGeometry; baseOpacity: number; freq: number; phase: number }>>([]);
 
@@ -99,7 +109,8 @@ export function NightSky() {
     const group = groupRef.current;
     if (!group) return;
 
-    const built = GROUPS.map((cfg) => {
+    const groups = compact ? GROUPS_COMPACT : GROUPS_FULL;
+    const built = groups.map((cfg) => {
       const { points, mat, geo } = buildStarPoints(cfg.count, cfg.size, tex, cfg.opacity, cfg.seed);
       group.add(points);
       return { mat, geo, baseOpacity: cfg.opacity, freq: cfg.freq, phase: cfg.phase };
@@ -113,7 +124,7 @@ export function NightSky() {
         mat.dispose();
       });
     };
-  }, [tex]);
+  }, [tex, compact]);
 
   useEffect(() => () => tex.dispose(), [tex]);
 

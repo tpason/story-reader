@@ -12,7 +12,6 @@ import { FollowedStoriesPanel } from "@/components/FollowedStoriesPanel";
 import { HomeRecommendationsPanel } from "@/components/HomeRecommendationsPanel";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { HeroCloudClient } from "@/components/HeroCloudClient";
 import { XianxiaPoetryColumn } from "@/components/XianxiaPoetryColumn";
 import { SearchSuggest } from "@/components/SearchSuggest";
 
@@ -133,19 +132,22 @@ export default async function Home({ searchParams }: HomeProps) {
 
       <div className="page-wrap">
         <section className="library-header">
+          <svg aria-hidden="true" className="xi-cloud-filters" style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }}>
+            <defs>
+              <filter id="xi-cloud-f" x="-35%" y="-35%" width="170%" height="170%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.016 0.020" numOctaves="4" seed="12" result="n" />
+                <feDisplacementMap in="SourceGraphic" in2="n" scale="32" xChannelSelector="R" yChannelSelector="G" />
+              </filter>
+              <filter id="xi-cloud-f-alt" x="-35%" y="-35%" width="170%" height="170%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.018 0.022" numOctaves="4" seed="28" result="n" />
+                <feDisplacementMap in="SourceGraphic" in2="n" scale="28" xChannelSelector="R" yChannelSelector="G" />
+              </filter>
+            </defs>
+          </svg>
           <XianxiaPoetryColumn />
           <div className="library-hero-shell">
-            <HeroCloudClient />
-            <svg aria-hidden="true" style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }}>
-              <defs>
-                <filter id="xi-cloud-f" x="-35%" y="-35%" width="170%" height="170%">
-                  <feTurbulence type="fractalNoise" baseFrequency="0.016 0.020" numOctaves="4" seed="12" result="n" />
-                  <feDisplacementMap in="SourceGraphic" in2="n" scale="32" xChannelSelector="R" yChannelSelector="G" />
-                </filter>
-              </defs>
-            </svg>
             <div className="xi-hero-cloud">
-              <div className="xi-hero-cloud-bg" aria-hidden="true" />
+              <div className="xi-hero-cloud-bg xi-cloud-aura xi-cloud-aura--primary" role="presentation" />
               <div className="library-hero-content">
                 <p className="eyebrow library-hero-eyebrow">Linh quyển các</p>
                 <h1 className="library-title library-title-centered">Tu tiên từng chương. Vươn tới đỉnh trời.</h1>

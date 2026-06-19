@@ -4,6 +4,8 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import { CanvasTexture, LinearFilter, NormalBlending, Sprite, SRGBColorSpace } from "three";
 
+import { mistOpacityMul, type TimeOfDay } from "./sceneConfig";
+
 type MistPuff = {
   x: number;
   y: number;
@@ -13,6 +15,10 @@ type MistPuff = {
   rise: number;
   sway: number;
   phase: number;
+};
+
+type MistPlumesProps = {
+  timeOfDay?: TimeOfDay;
 };
 
 const PUFFS: MistPuff[] = [
@@ -56,9 +62,10 @@ function createMistTexture() {
   return texture;
 }
 
-export function MistPlumes() {
+export function MistPlumes({ timeOfDay = "day" }: MistPlumesProps) {
   const refs = useRef<Array<Sprite | null>>([]);
   const texture = useMemo(createMistTexture, []);
+  const opacityMul = mistOpacityMul(timeOfDay);
   useEffect(() => () => { texture.dispose(); }, [texture]);
 
   useFrame((state, delta) => {
@@ -76,7 +83,7 @@ export function MistPlumes() {
       // Ramp in during first 20% of lift, hold at full, ramp out to 0 at 100%
       const fadeIn = Math.min(1, t / 0.20);
       const fadeOut = t < 0.25 ? 1 : Math.max(0, 1 - (t - 0.25) / 0.75);
-      sprite.material.opacity = puff.opacity * fadeIn * fadeOut;
+      sprite.material.opacity = puff.opacity * opacityMul * fadeIn * fadeOut;
 
       const scale = puff.scale * (1 + lift * 0.18);
       sprite.scale.set(scale * 1.35, scale, 1);

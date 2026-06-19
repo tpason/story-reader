@@ -35,16 +35,28 @@ function apiUrl(cursor: string | null, query: StoryLibraryQuery) {
   return `/api/stories?${params.toString()}`;
 }
 
+function mergeUniqueStories(current: StorySummary[], incoming: StorySummary[]): StorySummary[] {
+  const seen = new Set(current.map((story) => story.id));
+  const merged = [...current];
+  for (const story of incoming) {
+    if (seen.has(story.id)) continue;
+    seen.add(story.id);
+    merged.push(story);
+  }
+  return merged;
+}
+
 export function useStoryLibraryFeed(initialPage: CursorPage<StorySummary>, query: StoryLibraryQuery) {
   const dispatch = useAppDispatch();
-  const [items, setItems] = useState(initialPage.items);
+  const [items, setItems] = useState(() => mergeUniqueStories([], initialPage.items));
   const [nextCursor, setNextCursor] = useState(initialPage.nextCursor);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const loadingRef = useRef(false);
 
   useEffect(() => {
-    setItems(initialPage.items);
+    setItems(mergeUniqueStories([], initialPage.items));
     setNextCursor(initialPage.nextCursor);
     setError(null);
   }, [initialPage]);
@@ -54,8 +66,9 @@ export function useStoryLibraryFeed(initialPage: CursorPage<StorySummary>, query
   }, [dispatch, items]);
 
   const loadMore = useCallback(() => {
-    if (!nextCursor || loading) return;
+    if (!nextCursor || loadingRef.current) return;
 
+    loadingRef.current = true;
     setLoading(true);
     fetch(apiUrl(nextCursor, query))
       .then((response) => {
@@ -63,13 +76,16 @@ export function useStoryLibraryFeed(initialPage: CursorPage<StorySummary>, query
         return response.json() as Promise<CursorPage<StorySummary>>;
       })
       .then((page) => {
-        setItems((current) => [...current, ...page.items]);
+        setItems((current) => mergeUniqueStories(current, page.items));
         setNextCursor(page.nextCursor);
         setError(null);
       })
       .catch((fetchError: Error) => setError(fetchError.message))
-      .finally(() => setLoading(false));
-  }, [loading, nextCursor, query]);
+      .finally(() => {
+        loadingRef.current = false;
+        setLoading(false);
+      });
+  }, [nextCursor, query]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;

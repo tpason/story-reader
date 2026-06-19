@@ -5,8 +5,11 @@ import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import { ClampToEdgeWrapping, FrontSide, LinearFilter, Mesh, NormalBlending, SRGBColorSpace } from "three";
 
+import { pngCloudOpacityMul, type TimeOfDay } from "./sceneConfig";
+
 type CloudBankProps = {
   sources: string[];
+  timeOfDay?: TimeOfDay;
 };
 
 type CloudLayer = {
@@ -30,9 +33,10 @@ const CLOUD_LAYERS: CloudLayer[] = [
   { textureIndex: 0, x: -6.2, y: -0.45, z: -3.1, scale: 4.0, opacity: 0.20, speed: 0.024, drift: 0.12, phase: 3.0, rotation: 0.05 },
 ];
 
-export function DriftingCloudBank({ sources }: CloudBankProps) {
+export function DriftingCloudBank({ sources, timeOfDay = "day" }: CloudBankProps) {
   const refs = useRef<Array<Mesh | null>>([]);
   const textures = useTexture(sources);
+  const opacityMul = pngCloudOpacityMul(timeOfDay);
 
   const preparedTextures = useMemo(() => {
     return textures.map((texture) => {
@@ -79,7 +83,7 @@ export function DriftingCloudBank({ sources }: CloudBankProps) {
             <meshBasicMaterial
               map={texture}
               transparent
-              opacity={layer.opacity}
+              opacity={layer.opacity * opacityMul}
               depthWrite={false}
               blending={NormalBlending}
               alphaTest={0.02}

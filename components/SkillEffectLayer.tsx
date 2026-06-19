@@ -3,6 +3,8 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { isMobile, prefersReducedMotion } from "@/lib/browser";
+import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
+import { desktopSkillIntensity, isSkillWebglActive, shouldRenderCssLayer, SKILL_POLICY } from "@/lib/skill-visual";
 
 const ThreeSkillEffectCanvas = dynamic(() => import("@/components/ThreeSkillEffectCanvas").then((mod) => mod.ThreeSkillEffectCanvas), {
   ssr: false
@@ -35,9 +37,9 @@ type EffectState = SkillCastEvent & {
   reduceMotion: boolean;
 };
 
-const MAX_VISIBLE_SKILL_EFFECTS = 2;
-const MOBILE_MAX_VISIBLE_SKILL_EFFECTS = 1;
-const MOBILE_SKILL_DURATION_CAP_MS = 3600;
+const MAX_VISIBLE_SKILL_EFFECTS = SKILL_POLICY.desktop.maxVisibleEffects;
+const MOBILE_MAX_VISIBLE_SKILL_EFFECTS = SKILL_POLICY.mobile.maxVisibleEffects;
+const MOBILE_SKILL_DURATION_CAP_MS = SKILL_POLICY.mobile.durationCapMs;
 const DESKTOP_SKILL_POLL_MS = 4200;
 const MOBILE_SKILL_POLL_MS = 30000;
 const HIDDEN_SKILL_POLL_MS = 60000;
@@ -48,9 +50,9 @@ function isMobileSkillDevice() {
 
 function isMobileSkillPollingEnabled() {
   try {
-    return window.localStorage.getItem("reader:mobile-skill-poll") === "true";
+    return window.localStorage.getItem("reader:mobile-skill-poll") !== "off";
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -152,31 +154,46 @@ export function SkillEffectLayer({ storyId, chapterId }: { storyId: string; chap
 }
 
 function SkillEffect({ effect }: { effect: EffectState }) {
+  const decorativeWebgl = useDecorativeWebglEnabled();
+  const skillWebgl = isSkillWebglActive(effect.mobileOptimized, effect.reduceMotion, decorativeWebgl);
+  const sid = effect.skillId;
+
+  const show = (layer: Parameters<typeof shouldRenderCssLayer>[1]) =>
+    shouldRenderCssLayer(sid, layer, effect.mobileOptimized, skillWebgl);
+
   return (
     <div
-      className={`skill-effect skill-effect-${effect.skillId} ${effect.mobileOptimized ? "skill-effect-mobile" : ""}`}
+      className={`skill-effect skill-effect-${sid} ${effect.mobileOptimized ? "skill-effect-mobile" : ""} ${skillWebgl ? "skill-effect-webgl skill-effect-desktop-epic" : ""}`}
       data-reduce-motion={effect.reduceMotion ? "true" : undefined}
       style={{ "--skill-duration": `${effect.durationMs}ms` } as React.CSSProperties}
     >
-      <SkillBackdrop skillId={effect.skillId} />
-      {effect.reduceMotion || effect.mobileOptimized ? null : <ThreeSkillEffectCanvas skillId={effect.skillId} durationMs={effect.durationMs} intensity={effect.intensity} />}
-      {effect.mobileOptimized ? <MobileEnergyRings skillId={effect.skillId} /> : <MysticSeal skillId={effect.skillId} />}
-      <div className={`skill-cast-label skill-cast-label-${effect.skillId}`}>
+      <SkillBackdrop skillId={sid} />
+      {skillWebgl ? (
+        <ThreeSkillEffectCanvas
+          skillId={sid}
+          durationMs={effect.durationMs}
+          intensity={desktopSkillIntensity(effect.intensity)}
+        />
+      ) : null}
+      {effect.mobileOptimized ? <MobileEnergyRings skillId={sid} /> : <MysticSeal skillId={sid} />}
+      <div className={`skill-cast-label skill-cast-label-${sid}`}>
         <span className="skill-cast-label-orb" />
         <span className="skill-cast-label-text">
           {effect.caster.username} thi triển {effect.skillName}
         </span>
       </div>
-      {effect.mobileOptimized ? null : <ParticleField skillId={effect.skillId} />}
-      {effect.skillId === "wind_blade" ? <WindBlade /> : null}
-      {effect.skillId === "summon_rain" || effect.skillId === "celestial_rain" ? <Rain intense={effect.skillId === "celestial_rain"} /> : null}
-      {!effect.mobileOptimized && effect.skillId === "bean_soldiers" ? <BeanSoldiers /> : null}
-      {effect.skillId === "sword_flight" ? <SwordFlight /> : null}
-      {effect.skillId === "heaven_thunder" ? <Thunder /> : null}
-      {effect.skillId === "hoa_long" ? <FireDragon /> : null}
-      {effect.mobileOptimized ? null : effect.skillId === "van_kiem" ? <SwordRain /> : null}
-      {effect.skillId === "dao_hoa_tan" ? <PetalCascade /> : null}
-      {effect.skillId === "thien_dia_an" ? <DivineSeal /> : null}
+      {show("particles") ? <ParticleField skillId={sid} compact={effect.mobileOptimized} /> : null}
+      {show("wind") ? <WindBlade compact={effect.mobileOptimized} /> : null}
+      {show("rain") ? <Rain intense={sid === "celestial_rain"} compact={effect.mobileOptimized} /> : null}
+      {show("creatures") && sid === "bean_soldiers" ? <BeanSoldiers compact={effect.mobileOptimized} /> : null}
+      {show("creatures") && sid === "sword_flight" ? <SwordFlight compact={effect.mobileOptimized} /> : null}
+      {show("thunder") ? <Thunder compact={effect.mobileOptimized} /> : null}
+      {show("creatures") && sid === "hoa_long" ? <FireDragon compact={effect.mobileOptimized} /> : null}
+      {show("creatures") && sid === "van_kiem" ? <SwordRain compact={effect.mobileOptimized} /> : null}
+      {show("petals") ? <PetalCascade compact={effect.mobileOptimized} /> : null}
+      {show("seal") ? <DivineSeal compact={effect.mobileOptimized} /> : null}
+      {show("meteors") ? <StarfallMeteors compact={effect.mobileOptimized} /> : null}
+      {show("lotus") ? <LotusBlossoms compact={effect.mobileOptimized} /> : null}
     </div>
   );
 }
@@ -211,10 +228,11 @@ function MysticSeal({ skillId }: { skillId: string }) {
   );
 }
 
-function ParticleField({ skillId }: { skillId: string }) {
+function ParticleField({ skillId, compact = false }: { skillId: string; compact?: boolean }) {
+  const count = compact ? 10 : 28;
   return (
-    <div className={`skill-particles skill-particles-${skillId}`}>
-      {Array.from({ length: 28 }).map((_, index) => (
+    <div className={`skill-particles skill-particles-${skillId} ${compact ? "skill-particles--compact" : ""}`}>
+      {Array.from({ length: count }).map((_, index) => (
         <span
           key={index}
           style={
@@ -232,10 +250,12 @@ function ParticleField({ skillId }: { skillId: string }) {
   );
 }
 
-function WindBlade() {
+function WindBlade({ compact = false }: { compact?: boolean }) {
+  const slashCount = compact ? 5 : 9;
+  const petalCount = compact ? 8 : 18;
   return (
-    <div className="wind-blade">
-      {Array.from({ length: 9 }).map((_, index) => (
+    <div className={`wind-blade ${compact ? "wind-blade--compact" : ""}`}>
+      {Array.from({ length: slashCount }).map((_, index) => (
         <span
           key={index}
           style={
@@ -247,7 +267,7 @@ function WindBlade() {
         />
       ))}
       <div className="petal-storm">
-        {Array.from({ length: 18 }).map((_, index) => (
+        {Array.from({ length: petalCount }).map((_, index) => (
           <i
             key={index}
             style={
@@ -264,12 +284,13 @@ function WindBlade() {
   );
 }
 
-function Rain({ intense = false }: { intense?: boolean }) {
+function Rain({ intense = false, compact = false }: { intense?: boolean; compact?: boolean }) {
+  const rippleCount = compact ? 4 : 7;
   return (
-    <div className={intense ? "rain-field rain-field-intense" : "rain-field"}>
+    <div className={`${intense ? "rain-field rain-field-intense" : "rain-field"} ${compact ? "rain-field--compact" : ""}`}>
       <div className="rain-curtain" />
       <div className="lotus-ripples">
-        {Array.from({ length: 7 }).map((_, index) => (
+        {Array.from({ length: rippleCount }).map((_, index) => (
           <span
             key={index}
             style={
@@ -286,11 +307,12 @@ function Rain({ intense = false }: { intense?: boolean }) {
   );
 }
 
-function BeanSoldiers() {
+function BeanSoldiers({ compact = false }: { compact?: boolean }) {
+  const count = compact ? 4 : 9;
   return (
-    <div className="bean-soldiers">
-      <div className="soldier-banner" />
-      {Array.from({ length: 9 }).map((_, index) => (
+    <div className={`bean-soldiers ${compact ? "bean-soldiers--compact" : ""}`}>
+      {!compact ? <div className="soldier-banner" /> : null}
+      {Array.from({ length: count }).map((_, index) => (
         <span
           className="bean-soldier"
           key={index}
@@ -321,8 +343,8 @@ function BeanSoldierIcon({ index }: { index: number }) {
         </linearGradient>
         <linearGradient id={bannerGradientId} x1="36" x2="60" y1="5" y2="28" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#fef3c7" />
-          <stop offset="0.46" stopColor="#fb7185" />
-          <stop offset="1" stopColor="#7c3aed" />
+          <stop offset="0.46" stopColor="#f0d06a" />
+          <stop offset="1" stopColor="#c8962e" />
         </linearGradient>
       </defs>
       <path className="bean-soldier-shadow" d="M8 68c8-6 36-6 48 0-10 5-38 5-48 0Z" />
@@ -338,9 +360,9 @@ function BeanSoldierIcon({ index }: { index: number }) {
   );
 }
 
-function SwordFlight() {
+function SwordFlight({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="sword-flight">
+    <div className={`sword-flight ${compact ? "sword-flight--compact" : ""}`}>
       <span className="sword-core" />
       <span className="sword-aura sword-aura-one" />
       <span className="sword-aura sword-aura-two" />
@@ -350,20 +372,26 @@ function SwordFlight() {
   );
 }
 
-function Thunder() {
+function Thunder({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="thunder-flash">
+    <div className={`thunder-flash ${compact ? "thunder-flash--compact" : ""}`}>
       <span className="thunder-bolt thunder-bolt-main" />
-      <span className="thunder-bolt thunder-bolt-left" />
-      <span className="thunder-bolt thunder-bolt-right" />
+      {compact ? null : (
+        <>
+          <span className="thunder-bolt thunder-bolt-left" />
+          <span className="thunder-bolt thunder-bolt-right" />
+        </>
+      )}
     </div>
   );
 }
 
-function FireDragon() {
+function FireDragon({ compact = false }: { compact?: boolean }) {
+  const tongueCount = compact ? 4 : 6;
+  const emberCount = compact ? 0 : 14;
   return (
-    <div className="fire-dragon">
-      {Array.from({ length: 6 }).map((_, index) => (
+    <div className={`fire-dragon ${compact ? "fire-dragon--compact" : ""}`}>
+      {Array.from({ length: tongueCount }).map((_, index) => (
         <span
           key={index}
           className="fire-tongue"
@@ -376,8 +404,9 @@ function FireDragon() {
           }
         />
       ))}
+      {emberCount > 0 ? (
       <div className="fire-embers">
-        {Array.from({ length: 14 }).map((_, index) => (
+        {Array.from({ length: emberCount }).map((_, index) => (
           <i
             key={index}
             style={
@@ -391,14 +420,16 @@ function FireDragon() {
           />
         ))}
       </div>
+      ) : null}
     </div>
   );
 }
 
-function SwordRain() {
+function SwordRain({ compact = false }: { compact?: boolean }) {
+  const count = compact ? 7 : 14;
   return (
-    <div className="sword-rain">
-      {Array.from({ length: 14 }).map((_, index) => (
+    <div className={`sword-rain ${compact ? "sword-rain--compact" : ""}`}>
+      {Array.from({ length: count }).map((_, index) => (
         <span
           key={index}
           className="sword-drop"
@@ -415,10 +446,11 @@ function SwordRain() {
   );
 }
 
-function PetalCascade() {
+function PetalCascade({ compact = false }: { compact?: boolean }) {
+  const count = compact ? 12 : 22;
   return (
-    <div className="petal-cascade">
-      {Array.from({ length: 22 }).map((_, index) => (
+    <div className={`petal-cascade ${compact ? "petal-cascade--compact" : ""}`}>
+      {Array.from({ length: count }).map((_, index) => (
         <span
           key={index}
           className="petal"
@@ -437,15 +469,17 @@ function PetalCascade() {
   );
 }
 
-function DivineSeal() {
+function DivineSeal({ compact = false }: { compact?: boolean }) {
+  const ringCount = compact ? 2 : 4;
+  const runeCount = compact ? 4 : 8;
   return (
-    <div className="divine-seal-overlay">
-      <span className="divine-ring divine-ring-1" />
-      <span className="divine-ring divine-ring-2" />
-      <span className="divine-ring divine-ring-3" />
-      <span className="divine-ring divine-ring-4" />
+    <div className={`divine-seal-overlay ${compact ? "divine-seal-overlay--compact" : ""}`}>
+      {ringCount >= 1 ? <span className="divine-ring divine-ring-1" /> : null}
+      {ringCount >= 2 ? <span className="divine-ring divine-ring-2" /> : null}
+      {ringCount >= 3 ? <span className="divine-ring divine-ring-3" /> : null}
+      {ringCount >= 4 ? <span className="divine-ring divine-ring-4" /> : null}
       <div className="divine-runes">
-        {Array.from({ length: 8 }).map((_, index) => (
+        {Array.from({ length: runeCount }).map((_, index) => (
           <i key={index} style={{ "--rune-n": index } as React.CSSProperties} />
         ))}
       </div>
@@ -459,6 +493,49 @@ function MobileEnergyRings({ skillId }: { skillId: string }) {
       <span className="mobile-energy-ring mobile-energy-ring-1" />
       <span className="mobile-energy-ring mobile-energy-ring-2" />
       <span className="mobile-energy-ring mobile-energy-ring-3" />
+    </div>
+  );
+}
+
+function StarfallMeteors({ compact = false }: { compact?: boolean }) {
+  const count = compact ? 5 : 9;
+  return (
+    <div className={`starfall-meteors ${compact ? "starfall-meteors--compact" : ""}`} aria-hidden="true">
+      {Array.from({ length: count }).map((_, index) => (
+        <span
+          key={index}
+          className="starfall-meteor"
+          style={
+            {
+              "--meteor-left": `${(index * 23 + 6) % 92}%`,
+              "--meteor-delay": `${index * 180}ms`,
+              "--meteor-tilt": `${-18 + (index % 4) * 8}deg`
+            } as React.CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+function LotusBlossoms({ compact = false }: { compact?: boolean }) {
+  const count = compact ? 4 : 7;
+  return (
+    <div className={`lotus-blossoms ${compact ? "lotus-blossoms--compact" : ""}`} aria-hidden="true">
+      {Array.from({ length: count }).map((_, index) => (
+        <span
+          key={index}
+          className="lotus-blossom"
+          style={
+            {
+              "--lotus-left": `${14 + ((index * 19) % 72)}%`,
+              "--lotus-top": `${22 + ((index * 13) % 58)}%`,
+              "--lotus-delay": `${index * 220}ms`,
+              "--lotus-scale": `${0.72 + (index % 3) * 0.18}`
+            } as React.CSSProperties
+          }
+        />
+      ))}
     </div>
   );
 }
