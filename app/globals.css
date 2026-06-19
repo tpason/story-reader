@@ -13752,3 +13752,37 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
     rgba(14, 13, 11, 0.94);
   border-color: rgba(255, 255, 255, 0.08);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CATEGORIES INDEX v23 — /categories grid
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.category-index-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 10px;
+  margin: 8px 0 28px;
+}
+
+.category-index-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 46px;
+  padding: 10px 14px;
+  text-decoration: none;
+}
+
+.category-index-name {
+  font-weight: 650;
+  color: var(--ink);
+}
+
+[data-xi-theme="dark"] .category-index-name {
+  color: #f0ebe2;
+}
+
+.categories-index-header .library-title {
+  -webkit-font-smoothing: antialiased;
+}

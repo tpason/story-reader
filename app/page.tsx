@@ -226,6 +226,10 @@ export default async function Home({ searchParams }: HomeProps) {
                 <span className="chip-count">{category.storyCount}</span>
               </a>
             ))}
+            <Link className="chip category-row-more" href="/categories">
+              <Layers3 size={15} />
+              Tất cả thể loại
+            </Link>
           </nav>
         ) : null}
 
@@ -259,7 +263,7 @@ export default async function Home({ searchParams }: HomeProps) {
         <StoryLibrary
           key={libraryKey}
           initialPage={stories}
-          searchActive={isSearchActive}
+          mode={isSearchActive ? "search" : "default"}
           query={{ q: queryText, author: authorText, hot: params.hot, completed: params.completed, category: params.category, minChapters: params.minChapters, maxChapters: params.maxChapters, hasPolished: params.hasPolished, hasAudio: params.hasAudio, sort: params.sort }}
         />
       </div>

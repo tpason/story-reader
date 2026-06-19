@@ -12,6 +12,11 @@ import { storyHref } from "@/lib/urls";
 
 export const revalidate = 120;
 
+export const metadata = {
+  title: "Khám phá nhanh | Linh Quyển Các",
+  description: "Truyện vừa polish và chương mới cập nhật trên Linh Quyển Các.",
+};
+
 type DiscoverProps = {
   searchParams: Promise<{
     kind?: string;

@@ -1,4 +1,5 @@
 import { BookOpen, Layers3 } from "lucide-react";
+import type { Metadata } from "next";
 import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -8,11 +9,23 @@ import { UserIdentity } from "@/components/UserIdentity";
 import { NotificationBell } from "@/components/NotificationBell";
 import { StoryLibrary } from "@/components/StoryLibrary";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { buildCategoryMetadata } from "@/lib/metadata";
 import { getCategoryBySlug, listStoriesCursor } from "@/lib/stories";
 
 export const revalidate = 300;
 
 type CategorySort = "updated" | "chapters" | "hot" | "title";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const category = await getCategoryBySlug(slug);
+  if (!category) return {};
+  return buildCategoryMetadata(category.name, category.storyCount, category.slug);
+}
 
 export default async function CategoryPage({
   params,
@@ -98,6 +111,7 @@ export default async function CategoryPage({
           <StoryLibrary
             key={`${slug}-${validSort ?? "updated"}`}
             initialPage={stories}
+            mode="browse"
             query={{ category: slug, sort: validSort }}
           />
         )}

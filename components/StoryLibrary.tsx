@@ -15,9 +15,13 @@ import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
 import { useStoryLibraryAdminEdit, type AdminStoryListEditField, type AdminStoryListEditState } from "@/hooks/useStoryLibraryAdminEdit";
 import { useStoryLibraryFeed } from "@/hooks/useStoryLibraryFeed";
 
+export type StoryLibraryMode = "default" | "search" | "browse";
+
 type StoryLibraryProps = {
   initialPage: CursorPage<StorySummary>;
+  /** @deprecated use `mode="search"` */
   searchActive?: boolean;
+  mode?: StoryLibraryMode;
   query: {
     q?: string;
     author?: string;
@@ -225,7 +229,9 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
   );
 });
 
-export function StoryLibrary({ initialPage, searchActive = false, query }: StoryLibraryProps) {
+export function StoryLibrary({ initialPage, searchActive = false, mode, query }: StoryLibraryProps) {
+  const libraryMode: StoryLibraryMode = mode ?? (searchActive ? "search" : "default");
+  const hideHomeExtras = libraryMode !== "default";
   const queryClient = useQueryClient();
   const { items, setItems, nextCursor, loading, error, sentinelRef } = useStoryLibraryFeed(initialPage, query);
   const currentUser = useAppSelector((state) => state.identity.user);
@@ -255,7 +261,7 @@ export function StoryLibrary({ initialPage, searchActive = false, query }: Story
 
   return (
     <>
-      {!searchActive ? <CultivationPanel items={history} /> : null}
+      {!hideHomeExtras ? <CultivationPanel items={history} /> : null}
 
       {adminEdit ? (
         <div className="admin-edit-floating" role="status">
@@ -270,7 +276,7 @@ export function StoryLibrary({ initialPage, searchActive = false, query }: Story
         </div>
       ) : null}
 
-      {!searchActive && recentItems.length > 0 ? (
+      {!hideHomeExtras && recentItems.length > 0 ? (
         <section className="continue-section" aria-label="Tu luyện tiếp">
           <div className="section-heading-row">
             <div>
@@ -291,11 +297,11 @@ export function StoryLibrary({ initialPage, searchActive = false, query }: Story
         </section>
       ) : null}
 
-      <section className="library-list-section" aria-label={searchActive ? "Search results" : "Stories"}>
+      <section className="library-list-section" aria-label={libraryMode === "search" ? "Search results" : "Stories"}>
         <div className="section-heading-row story-list-heading">
           <div>
-            <p className="eyebrow">{searchActive ? "Kết quả" : "Thư viện"}</p>
-            <h2>{searchActive ? "Linh quyển tìm thấy" : "Danh sách truyện"}</h2>
+            <p className="eyebrow">{libraryMode === "search" ? "Kết quả" : "Thư viện"}</p>
+            <h2>{libraryMode === "search" ? "Linh quyển tìm thấy" : "Danh sách truyện"}</h2>
           </div>
           <span className="discovery-badge">{initialPage.total ?? items.length} truyện</span>
         </div>

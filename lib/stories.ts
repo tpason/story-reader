@@ -665,6 +665,19 @@ export const getCachedCategories = unstable_cache(
   { revalidate: 600 }
 );
 
+export const getCachedChapterHead = unstable_cache(
+  async (storyId: string, chapterNumber: number) => {
+    const rows = await query<{ chapter_number: number; title: string }>(
+      `SELECT chapter_number, title FROM chapters WHERE story_id = $1 AND chapter_number = $2 LIMIT 1`,
+      [storyId, chapterNumber],
+    );
+    if (!rows[0]) return null;
+    return { chapterNumber: rows[0].chapter_number, title: rows[0].title };
+  },
+  ["chapter-head"],
+  { revalidate: 300 },
+);
+
 export async function listRecentlyPolishedStoriesPage(options: { page?: number; pageSize?: number; today?: boolean; completed?: boolean } = {}): Promise<Paginated<StoryDiscoveryItem>> {
   const { page, pageSize, offset } = pageParams(options.page, options.pageSize);
   const todaySql = options.today ? "AND r.latest_activity_at >= date_trunc('day', now())" : "";
