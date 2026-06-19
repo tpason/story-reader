@@ -130,36 +130,52 @@ export default async function Home({ searchParams }: HomeProps) {
         <UserIdentity compact className="topbar-identity" />
       </header>
 
-      <div className="page-wrap">
+      <div className="page-wrap" data-search-active={isSearchActive ? "true" : undefined}>
         <section className="library-header">
           <svg aria-hidden="true" className="xi-cloud-filters" style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }}>
             <defs>
-              <filter id="xi-cloud-f" x="-35%" y="-35%" width="170%" height="170%">
-                <feTurbulence type="fractalNoise" baseFrequency="0.016 0.020" numOctaves="4" seed="12" result="n" />
-                <feDisplacementMap in="SourceGraphic" in2="n" scale="32" xChannelSelector="R" yChannelSelector="G" />
+              <filter id="xi-cloud-f" x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+                <feTurbulence type="fractalNoise" baseFrequency="0.014 0.018" numOctaves="3" seed="12" result="n" />
+                <feDisplacementMap in="SourceGraphic" in2="n" scale="12" xChannelSelector="R" yChannelSelector="G" />
               </filter>
-              <filter id="xi-cloud-f-alt" x="-35%" y="-35%" width="170%" height="170%">
-                <feTurbulence type="fractalNoise" baseFrequency="0.018 0.022" numOctaves="4" seed="28" result="n" />
-                <feDisplacementMap in="SourceGraphic" in2="n" scale="28" xChannelSelector="R" yChannelSelector="G" />
+              <filter id="xi-cloud-f-alt" x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+                <feTurbulence type="fractalNoise" baseFrequency="0.016 0.020" numOctaves="3" seed="28" result="n" />
+                <feDisplacementMap in="SourceGraphic" in2="n" scale="10" xChannelSelector="R" yChannelSelector="G" />
               </filter>
             </defs>
           </svg>
-          <XianxiaPoetryColumn />
-          <div className="library-hero-shell">
-            <div className="xi-hero-cloud">
-              <div className="xi-hero-cloud-bg xi-cloud-aura xi-cloud-aura--primary" role="presentation" />
-              <div className="library-hero-content">
-                <p className="eyebrow library-hero-eyebrow">Linh quyển các</p>
-                <h1 className="library-title library-title-centered">Tu tiên từng chương. Vươn tới đỉnh trời.</h1>
-                <p className="library-subtitle">
-                  Tán tu du đạo — đọc ngay, không cần nhập môn. Kết bái đạo hữu để định danh linh hồn và lưu hành trình tu luyện vào Thiên Thư.
-                </p>
+          {!isSearchActive ? (
+            <>
+              <XianxiaPoetryColumn />
+              <div className="library-hero-shell">
+                <div className="xi-hero-cloud">
+                  <div className="xi-hero-cloud-bg xi-cloud-aura xi-cloud-aura--primary" role="presentation" />
+                  <div className="library-hero-content">
+                    <p className="eyebrow library-hero-eyebrow">Linh quyển các</p>
+                    <h1 className="library-title library-title-centered">Tu tiên từng chương. Vươn tới đỉnh trời.</h1>
+                    <p className="library-subtitle">
+                      Tán tu du đạo — đọc ngay, không cần nhập môn. Kết bái đạo hữu để định danh linh hồn và lưu hành trình tu luyện vào Thiên Thư.
+                    </p>
+                  </div>
+                </div>
               </div>
+            </>
+          ) : (
+            <div className="library-search-hero" aria-live="polite">
+              <p className="eyebrow">Tìm trong Thiên Thư</p>
+              <h1 className="library-search-hero-title">
+                {queryText ? `“${queryText}”` : "Kết quả lọc"}
+              </h1>
+              <p className="library-search-hero-sub">
+                {stories.total ?? stories.items.length} linh quyển phù hợp
+              </p>
             </div>
-          </div>
+          )}
 
           <form className="filters library-search">
-            <SearchSuggest defaultValue={queryText} category={params.category} />
+            <Suspense fallback={<input className="search-input" name="q" defaultValue={queryText} placeholder="Tìm truyện hoặc tác giả..." aria-label="Tìm kiếm trong Thiên Thư" />}>
+              <SearchSuggest defaultValue={queryText} category={params.category} />
+            </Suspense>
             <input type="hidden" name="category" value={params.category ?? ""} />
             <button className="chip" type="submit">
               <Search size={15} />
@@ -263,7 +279,12 @@ export default async function Home({ searchParams }: HomeProps) {
           </>
         )}
 
-        <StoryLibrary key={libraryKey} initialPage={stories} query={{ q: queryText, author: authorText, hot: params.hot, completed: params.completed, category: params.category, minChapters: params.minChapters, maxChapters: params.maxChapters, hasPolished: params.hasPolished, hasAudio: params.hasAudio, sort: params.sort }} />
+        <StoryLibrary
+          key={libraryKey}
+          initialPage={stories}
+          searchActive={isSearchActive}
+          query={{ q: queryText, author: authorText, hot: params.hot, completed: params.completed, category: params.category, minChapters: params.minChapters, maxChapters: params.maxChapters, hasPolished: params.hasPolished, hasAudio: params.hasAudio, sort: params.sort }}
+        />
       </div>
     </main>
   );

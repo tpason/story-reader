@@ -2,6 +2,7 @@
 
 import { Search, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { StoryCover } from "@/components/StoryCover";
@@ -23,17 +24,33 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export function SearchSuggest({ defaultValue, category }: SearchSuggestProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState(defaultValue ?? "");
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debouncedQuery = useDebounce(query.trim(), 280);
+  const debouncedUrlQuery = useDebounce(query.trim(), 420);
 
   // Sync with server-driven defaultValue on navigation (App Router state preservation fix)
   useEffect(() => {
     setQuery(defaultValue ?? "");
     setOpen(false);
   }, [defaultValue]);
+
+  // Keep URL in sync so homepage shows search results (not discovery rails).
+  useEffect(() => {
+    const nextQ = debouncedUrlQuery;
+    const currentQ = (searchParams.get("q") ?? "").trim();
+    if (nextQ === currentQ) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextQ) params.set("q", nextQ);
+    else params.delete("q");
+    params.delete("page");
+    router.replace(params.size ? `/?${params.toString()}` : "/", { scroll: false });
+  }, [debouncedUrlQuery, router, searchParams]);
 
   const { data } = useQuery<CursorPage<StorySummary>>({
     queryKey: ["search-suggest", debouncedQuery, category],
@@ -73,7 +90,10 @@ export function SearchSuggest({ defaultValue, category }: SearchSuggestProps) {
           setOpen(true);
         }}
         onFocus={() => { if (query.trim().length > 1) setOpen(true); }}
-        onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setOpen(false);
+          if (e.key === "Enter") setOpen(false);
+        }}
         placeholder="Tìm truyện hoặc tác giả..."
         aria-label="Tìm kiếm trong Thiên Thư"
         role="combobox"

@@ -13448,3 +13448,146 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
     visibility: hidden;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   HOMEPAGE v20 — sharp hero/poetry text + search-first layout
+   Move transforms off text parents; soften cloud SVG displacement.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Drift/breathe on cloud layers only — text stays pixel-crisp */
+.library-header > .library-hero-shell > .xi-hero-cloud {
+  animation: none !important;
+  transform: none !important;
+}
+
+.library-header > .library-hero-shell .xi-hero-cloud-bg {
+  animation:
+    xi-cloud-translate 14s ease-in-out infinite,
+    xi-poetry-cloud-morph 13s ease-in-out infinite,
+    xi-cloud-breathe 9s ease-in-out infinite !important;
+  will-change: transform, opacity, border-radius;
+}
+
+.library-header > .library-hero-shell .library-hero-content {
+  position: relative;
+  z-index: 2;
+  transform: translateZ(0);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.library-header > .library-hero-shell .library-hero-content .library-title {
+  -webkit-text-fill-color: #1a1209 !important;
+  color: #1a1209 !important;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.92),
+    0 2px 6px rgba(30, 20, 8, 0.14) !important;
+}
+
+.library-header > .library-hero-shell .library-hero-content .library-subtitle {
+  color: #2e2418 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.88) !important;
+}
+
+.library-header > .library-hero-shell .library-hero-content .eyebrow {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.82) !important;
+}
+
+[data-xi-theme="dark"] .library-header > .library-hero-shell .library-hero-content .library-title {
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.82),
+    0 0 1px rgba(0, 0, 0, 0.65) !important;
+}
+
+[data-xi-theme="dark"] .library-header > .library-hero-shell .library-hero-content .library-subtitle,
+[data-xi-theme="dark"] .library-header > .library-hero-shell .library-hero-content .eyebrow {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.72) !important;
+}
+
+/* Poetry — no drift on text grid; solid inscription color (no clip-text blur) */
+.library-header > .xi-poetry-col .xi-poetry-grid {
+  animation: none !important;
+  transform: translateZ(0);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.library-header > .xi-poetry-col .xi-poetry-cloud-bg {
+  animation:
+    xi-poetry-cloud-morph 13s ease-in-out infinite,
+    xi-poetry-cloud-drift 16s ease-in-out infinite,
+    xi-cloud-breathe 11s ease-in-out infinite !important;
+}
+
+.xi-poetry-col .xi-poetry-line {
+  background: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #6f8f66 !important;
+  color: #6f8f66 !important;
+  filter: none !important;
+  text-shadow:
+    0 1px 0 rgba(240, 255, 238, 0.55),
+    0 1px 2px rgba(8, 20, 6, 0.35) !important;
+  animation: xi-poetry-word-in-plain 0.75s ease forwards !important;
+  will-change: opacity;
+}
+
+[data-xi-theme="dark"] .xi-poetry-col .xi-poetry-line {
+  -webkit-text-fill-color: #d8c890 !important;
+  color: #d8c890 !important;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.72),
+    0 0 1px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* Search mode — compact header, results first */
+.page-wrap[data-search-active="true"] .library-header {
+  min-height: unset;
+  padding-bottom: 8px;
+}
+
+.library-search-hero {
+  grid-column: 1 / -1;
+  position: relative;
+  z-index: 2;
+  padding: 8px 4px 4px;
+  text-align: left;
+}
+
+.library-search-hero-title {
+  margin: 6px 0 4px;
+  font-family: var(--font-literata), var(--font-merriweather), serif;
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  font-weight: 700;
+  color: #1a1209;
+  letter-spacing: -0.02em;
+  -webkit-font-smoothing: antialiased;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.library-search-hero-sub {
+  margin: 0;
+  color: #4a4034;
+  font-size: 0.95rem;
+}
+
+[data-xi-theme="dark"] .library-search-hero-title {
+  color: #f5f0e6;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
+[data-xi-theme="dark"] .library-search-hero-sub {
+  color: #c8c0b4;
+}
+
+.page-wrap[data-search-active="true"] .search-active-header {
+  margin-top: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-header > .library-hero-shell .xi-hero-cloud-bg,
+  .library-header > .xi-poetry-col .xi-poetry-cloud-bg {
+    animation: none !important;
+  }
+}

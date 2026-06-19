@@ -59,7 +59,9 @@ export function useStoryLibraryFeed(initialPage: CursorPage<StorySummary>, query
     setItems(mergeUniqueStories([], initialPage.items));
     setNextCursor(initialPage.nextCursor);
     setError(null);
-  }, [initialPage]);
+    loadingRef.current = false;
+    setLoading(false);
+  }, [initialPage, query.q, query.author, query.hot, query.completed, query.category, query.minChapters, query.maxChapters, query.hasPolished, query.hasAudio, query.sort]);
 
   useEffect(() => {
     if (items.length > 0) dispatch(syncFollowedStories(items));

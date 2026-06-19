@@ -17,6 +17,7 @@ import { useStoryLibraryFeed } from "@/hooks/useStoryLibraryFeed";
 
 type StoryLibraryProps = {
   initialPage: CursorPage<StorySummary>;
+  searchActive?: boolean;
   query: {
     q?: string;
     author?: string;
@@ -224,7 +225,7 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
   );
 });
 
-export function StoryLibrary({ initialPage, query }: StoryLibraryProps) {
+export function StoryLibrary({ initialPage, searchActive = false, query }: StoryLibraryProps) {
   const queryClient = useQueryClient();
   const { items, setItems, nextCursor, loading, error, sentinelRef } = useStoryLibraryFeed(initialPage, query);
   const currentUser = useAppSelector((state) => state.identity.user);
@@ -254,7 +255,7 @@ export function StoryLibrary({ initialPage, query }: StoryLibraryProps) {
 
   return (
     <>
-      <CultivationPanel items={history} />
+      {!searchActive ? <CultivationPanel items={history} /> : null}
 
       {adminEdit ? (
         <div className="admin-edit-floating" role="status">
@@ -269,7 +270,7 @@ export function StoryLibrary({ initialPage, query }: StoryLibraryProps) {
         </div>
       ) : null}
 
-      {recentItems.length > 0 ? (
+      {!searchActive && recentItems.length > 0 ? (
         <section className="continue-section" aria-label="Tu luyện tiếp">
           <div className="section-heading-row">
             <div>
@@ -290,11 +291,11 @@ export function StoryLibrary({ initialPage, query }: StoryLibraryProps) {
         </section>
       ) : null}
 
-      <section className="library-list-section" aria-label="Stories">
+      <section className="library-list-section" aria-label={searchActive ? "Search results" : "Stories"}>
         <div className="section-heading-row story-list-heading">
           <div>
-            <p className="eyebrow">Thư viện</p>
-            <h2>Danh sách truyện</h2>
+            <p className="eyebrow">{searchActive ? "Kết quả" : "Thư viện"}</p>
+            <h2>{searchActive ? "Linh quyển tìm thấy" : "Danh sách truyện"}</h2>
           </div>
           <span className="discovery-badge">{initialPage.total ?? items.length} truyện</span>
         </div>
