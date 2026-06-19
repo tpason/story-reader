@@ -25,7 +25,7 @@ type CultivationPanelProps = {
 
 export function CultivationPanel({ items, compact = false, className = "" }: CultivationPanelProps) {
   const dispatch = useAppDispatch();
-  const decorativeWebglEnabled = useDecorativeWebglEnabled();
+  const decorativeWebglEnabled = useDecorativeWebglEnabled({ compactMaxWidth: 1099 });
   const storeHistory = useAppSelector((state) => state.history.items);
   const user = useAppSelector((state) => state.identity.user);
   const history = items ?? storeHistory;

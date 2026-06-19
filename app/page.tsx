@@ -2,6 +2,7 @@ import { CheckCircle2, Flame, Headphones, Layers3, Search, Sparkles, X } from "l
 import Link from "next/link";
 import { Suspense } from "react";
 import { getCachedCategories, getCachedPolishedStories, getCachedUpdatedStories, listStoriesCursor } from "@/lib/stories";
+import { buildHomeFilterLabels, isHomeSearchActive } from "@/lib/home-search";
 import { StoryLibrary } from "@/components/StoryLibrary";
 import { MotionFX } from "@/components/MotionFX";
 import { ReaderLogo } from "@/components/ReaderLogo";
@@ -54,18 +55,7 @@ export default async function Home({ searchParams }: HomeProps) {
   const queryText = params.q?.trim() || undefined;
   const authorText = params.author?.trim() || undefined;
 
-  const isSearchActive = !!(
-    queryText ||
-    authorText ||
-    params.hot === "true" ||
-    params.completed === "true" ||
-    params.category ||
-    (Number(params.minChapters) > 0) ||
-    (Number(params.maxChapters) > 0) ||
-    params.hasPolished === "true" ||
-    params.hasAudio === "true" ||
-    (params.sort && params.sort !== "updated")
-  );
+  const isSearchActive = isHomeSearchActive(params);
 
   const libraryKey = JSON.stringify({
     q: queryText ?? "",
@@ -97,20 +87,7 @@ export default async function Home({ searchParams }: HomeProps) {
     getCachedCategories(12),
   ]);
 
-  const activeFilterLabels: string[] = [];
-  if (queryText) activeFilterLabels.push(`"${queryText}"`);
-  if (authorText) activeFilterLabels.push(`Tác giả: ${authorText}`);
-  if (params.hot === "true") activeFilterLabels.push("Hot");
-  if (params.completed === "true") activeFilterLabels.push("Hoàn thành");
-  if (params.category) activeFilterLabels.push(params.category);
-  if (Number(params.minChapters) > 0) activeFilterLabels.push(`Từ ${params.minChapters} chương`);
-  if (Number(params.maxChapters) > 0) activeFilterLabels.push(`Đến ${params.maxChapters} chương`);
-  if (params.hasPolished === "true") activeFilterLabels.push("Có polish");
-  if (params.hasAudio === "true") activeFilterLabels.push("Có audio");
-  if (params.sort && params.sort !== "updated") {
-    const sortLabel: Record<string, string> = { chapters: "Nhiều chương", hot: "Đang hot", title: "Tên A-Z" };
-    activeFilterLabels.push(sortLabel[params.sort] ?? params.sort);
-  }
+  const activeFilterLabels = buildHomeFilterLabels(params);
 
   return (
     <main className="app-shell">

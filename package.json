@@ -13,6 +13,7 @@
     "start:lan": "next start -H 0.0.0.0 -p ${PORT:-3000}",
     "tunnel": "ngrok http ${PORT:-3000}",
     "lint": "next lint",
+    "test:unit": "node --experimental-strip-types --test tests/*.test.ts",
     "analyze": "ANALYZE=true npm run build"
   },
   "dependencies": {

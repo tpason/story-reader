@@ -5796,3 +5796,39 @@ html[data-sidebar-resizing="true"] * {
 .skill-effect-mobile.skill-effect-lotus_domain .skill-backdrop {
   opacity: 0.9;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   READER v20 — CSS ambiance when WebGL atmosphere is off (≤1099px)
+   Reader theme (data-theme) controls copy; sky clock stays on <html>.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.reader-main:not(:has(.reader-atmosphere))::before {
+  content: "";
+  position: fixed;
+  inset: 56px 0 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 82% 48% at 50% -4%, rgba(200, 150, 46, 0.07), transparent 68%),
+    radial-gradient(ellipse 54% 38% at 14% 100%, rgba(26, 107, 90, 0.06), transparent 62%);
+  opacity: 0.95;
+}
+
+.reader-shell[data-theme="sepia"] .reader-main:not(:has(.reader-atmosphere))::before {
+  background:
+    radial-gradient(ellipse 82% 48% at 50% -4%, rgba(180, 130, 60, 0.08), transparent 68%),
+    radial-gradient(ellipse 54% 38% at 86% 100%, rgba(120, 90, 50, 0.06), transparent 62%);
+}
+
+.reader-shell[data-theme="dark"] .reader-main:not(:has(.reader-atmosphere))::before {
+  background:
+    radial-gradient(ellipse 78% 44% at 50% -6%, rgba(200, 150, 46, 0.05), transparent 70%),
+    radial-gradient(ellipse 60% 42% at 12% 100%, rgba(26, 107, 90, 0.04), transparent 64%),
+    linear-gradient(180deg, rgba(8, 10, 12, 0.18), transparent 42%);
+  opacity: 1;
+}
+
+.reader-main .reader-article {
+  position: relative;
+  z-index: 1;
+}
