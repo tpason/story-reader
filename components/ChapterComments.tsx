@@ -213,18 +213,31 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
   }, [dispatch]);
 
   useEffect(() => {
-    if (!isOpen) return;
-
+    let cancelled = false;
+    setComments([]);
+    setReplies([]);
     setLoading(true);
     fetch(`/api/chapters/${chapterId}/comments`)
       .then((response) => response.json() as Promise<CommentsResponse>)
       .then((data) => {
+        if (cancelled) return;
         setComments(data.items ?? []);
         setReplies(data.replies ?? []);
       })
       .catch(() => undefined)
-      .finally(() => setLoading(false));
-  }, [chapterId, isOpen]);
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [chapterId]);
+
+  useEffect(() => {
+    const openComments = () => setIsOpen(true);
+    window.addEventListener("reader:open-comments", openComments);
+    return () => window.removeEventListener("reader:open-comments", openComments);
+  }, []);
 
   useEffect(() => {
     const block = blockRef.current;
@@ -280,6 +293,8 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
     window.dispatchEvent(new CustomEvent<SkillCastEvent>("reader-skill-cast", { detail: event as SkillCastEvent }));
   }
 
+  const commentCount = comments.length + replies.length;
+
   return (
   <section className="chapter-comments" ref={blockRef} aria-label="Luận đạo chương này">
     <button
@@ -296,7 +311,9 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
         </div>
 
         <div className="comments-toggle-meta">
-          <span className="comments-count">{comments.length + replies.length}</span>
+          <span className="comments-count" aria-label={`${commentCount} bình luận`}>
+            {loading && commentCount === 0 ? "…" : commentCount}
+          </span>
           <ChevronDown className={isOpen ? "comments-chevron open" : "comments-chevron"} size={20} />
         </div>
       </div>

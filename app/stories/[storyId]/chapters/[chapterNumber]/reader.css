@@ -349,6 +349,38 @@
   color: var(--link);
 }
 
+.reader-selection-actions-compact {
+  top: auto !important;
+  bottom: calc(env(safe-area-inset-bottom) + 92px);
+  left: 50% !important;
+  transform: translateX(-50%);
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: min(96vw, 440px);
+  border-radius: 18px;
+  padding: 8px;
+}
+
+.reader-selection-actions-compact .reader-selection-glossary {
+  flex: 1 1 100%;
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .paragraph-bookmark-button,
+  .paragraph-note-button {
+    opacity: 0.72;
+  }
+
+  .reader-paragraph-bookmarked .paragraph-bookmark-button,
+  .reader-paragraph-has-note .paragraph-note-button,
+  .paragraph-bookmark-button:focus-visible,
+  .paragraph-note-button:focus-visible {
+    opacity: 1;
+  }
+}
+
 .reader-audio-jump {
   position: fixed;
   right: max(18px, env(safe-area-inset-right));

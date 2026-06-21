@@ -39,3 +39,17 @@ export function writeReaderSkillEffectsEnabled(enabled: boolean) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(READER_SKILL_EFFECTS_KEY, enabled ? "1" : "0");
 }
+
+export type ReaderSheetTab = "read" | "settings" | "offline";
+const READER_SHEET_TAB_KEY = "reader:sheet-tab";
+
+export function readReaderSheetTab(): ReaderSheetTab {
+  if (typeof window === "undefined") return "read";
+  const saved = window.sessionStorage.getItem(READER_SHEET_TAB_KEY);
+  return saved === "settings" || saved === "offline" ? saved : "read";
+}
+
+export function writeReaderSheetTab(tab: ReaderSheetTab) {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(READER_SHEET_TAB_KEY, tab);
+}

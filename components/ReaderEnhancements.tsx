@@ -54,6 +54,7 @@ export function ReaderChapterRecap({ recap, previousChapter }: ReaderChapterReca
 type ReaderSelectionToolbarProps = {
   x: number;
   y: number;
+  compact?: boolean;
   glossaryCharacter: GlossaryCharacter | null;
   isAdmin: boolean;
   onCopy: () => void;
@@ -64,6 +65,7 @@ type ReaderSelectionToolbarProps = {
 export function ReaderSelectionToolbar({
   x,
   y,
+  compact = false,
   glossaryCharacter,
   isAdmin,
   onCopy,
@@ -71,7 +73,13 @@ export function ReaderSelectionToolbar({
   onEdit
 }: ReaderSelectionToolbarProps) {
   return (
-    <div className="reader-selection-actions" style={{ left: x, top: y }} onMouseDown={(event) => event.preventDefault()} role="toolbar" aria-label="Thao tác với đoạn chọn">
+    <div
+      className={`reader-selection-actions${compact ? " reader-selection-actions-compact" : ""}`}
+      style={{ left: x, top: y }}
+      onMouseDown={(event) => event.preventDefault()}
+      role="toolbar"
+      aria-label="Thao tác với đoạn chọn"
+    >
       {glossaryCharacter ? (
         <div className="reader-selection-glossary" title={glossaryCharacter.role ?? undefined}>
           <strong>{glossaryCharacter.name}</strong>

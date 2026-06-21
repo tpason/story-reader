@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, BookMarked, BookOpen, ChevronLeft, ChevronRight, ClipboardCheck, Eye, EyeOff, Headphones, Highlighter, LoaderCircle, Menu, Minus, Moon, MoreHorizontal, Pause, Play, Plus, Search, Settings2, StickyNote, Sun, Type, WifiOff, X } from "lucide-react";
+import { ArrowUp, BookMarked, BookOpen, ChevronLeft, ChevronRight, ClipboardCheck, Eye, EyeOff, Headphones, Highlighter, LoaderCircle, Menu, MessageCircle, Minus, Moon, MoreHorizontal, Pause, Play, Plus, RotateCcw, Search, Settings2, StickyNote, Sun, Type, WifiOff, X } from "lucide-react";
 import type { animate as AnimateType } from "animejs";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -59,6 +59,7 @@ import {
 } from "@/lib/store";
 import {
   isDefaultReaderStyleConfig,
+  DEFAULT_READER_STYLE_CONFIG,
   READER_CONTENT_WIDTH_MAX,
   READER_CONTENT_WIDTH_MIN,
   READER_FONT_SIZE_MAX,
@@ -73,10 +74,13 @@ import {
 import {
   markMobilePresetBootstrapped,
   markSwipeHintShown,
+  readReaderSheetTab,
   READER_SWIPE_HINT_DURATION_MS,
   READER_SWIPE_HINT_MESSAGE,
   shouldShowSwipeHint,
-  wasMobilePresetBootstrapped
+  wasMobilePresetBootstrapped,
+  writeReaderSheetTab,
+  type ReaderSheetTab
 } from "@/lib/reader-onboarding";
 import { buildParagraphPages, pageIndexForParagraph } from "@/lib/reader-pagination";
 import {
@@ -184,7 +188,7 @@ function getPageScrollMetrics() {
   };
 }
 
-type MobileSheetTab = "read" | "settings" | "offline";
+type MobileSheetTab = ReaderSheetTab;
 
 type AdminEditField = "storyTitle" | "author" | "chapterTitle" | "content";
 
@@ -278,7 +282,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [wakeLockError, setWakeLockError] = useState<string | null>(null);
   const [swipeNotice, setSwipeNotice] = useState<string | null>(null);
   const [compactReader, setCompactReader] = useState(false);
-  const [mobileSheetTab, setMobileSheetTab] = useState<MobileSheetTab>("read");
+  const [mobileSheetTab, setMobileSheetTab] = useState<MobileSheetTab>(() => readReaderSheetTab());
   const [paragraphScrollMargin, setParagraphScrollMargin] = useState(0);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageViewportHeight, setPageViewportHeight] = useState(640);
@@ -646,8 +650,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, [autoScrollEnabled, isPageLayout]);
 
   useEffect(() => {
-    if (mobileSheetOpen) setMobileSheetTab("read");
-  }, [mobileSheetOpen]);
+    writeReaderSheetTab(mobileSheetTab);
+  }, [mobileSheetTab]);
 
   useEffect(() => {
     if (!isPageLayout) return;
@@ -1275,7 +1279,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       } else if (event.key === "f" || event.key === "F") {
         setFocusModeEnabled((prev) => !prev);
       } else if (event.key === "t" || event.key === "T") {
-        setDesktopSidebarOpen((prev) => !prev);
+        if (compactViewportRef.current) {
+          setMobileMenuOpen((prev) => !prev);
+        } else {
+          setDesktopSidebarOpen((prev) => !prev);
+        }
       }
     }
     window.addEventListener("keydown", onReaderKey);
@@ -1891,15 +1899,36 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     startAdminEdit("content", content);
   }
 
+  function resetReaderSettings() {
+    dispatch(setReaderStyle(DEFAULT_READER_STYLE_CONFIG));
+    setReaderDimEnabled(false);
+    setFocusModeEnabled(false);
+    stopAutoScroll();
+    setReaderOverflowOpen(false);
+    setMobileSheetOpen(false);
+    showSwipeNotice("Đã về cài đặt mặc định");
+  }
+
   function maybeShowContentSelectionActions() {
     if (adminEdit) return;
     if (Date.now() < suppressSelectionActionUntilRef.current) return;
-    if (isMobile || compactViewportRef.current) {
+    const content = activePayload.chapter.content ?? paragraphs.join("\n\n");
+    const action = selectedContentAction(content);
+    if (!action) {
       setSelectionAction(null);
       return;
     }
-    const content = activePayload.chapter.content ?? paragraphs.join("\n\n");
-    setSelectionAction(selectedContentAction(content));
+
+    if (isMobile || compactViewportRef.current) {
+      setSelectionAction({
+        ...action,
+        x: window.innerWidth / 2,
+        y: Math.min(window.innerHeight - 96, Math.max(72, action.y))
+      });
+      return;
+    }
+
+    setSelectionAction(action);
   }
 
   async function copySelectedContent() {
@@ -2345,9 +2374,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }
 
   function scrollToComments() {
-    document.querySelector(".chapter-comments")?.scrollIntoView({
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
-      block: "start"
+    window.dispatchEvent(new Event("reader:open-comments"));
+    window.requestAnimationFrame(() => {
+      document.querySelector(".chapter-comments")?.scrollIntoView({
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+        block: "start"
+      });
     });
     setMobileSheetOpen(false);
   }
@@ -2531,6 +2563,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         <ReaderSelectionToolbar
           x={selectionAction.x}
           y={selectionAction.y}
+          compact={compactReader}
           glossaryCharacter={selectionAction.glossaryCharacter}
           isAdmin={Boolean(currentUser?.isAdmin)}
           onCopy={copySelectedContent}
@@ -2639,7 +2672,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           <div className="reader-control-group reader-session-group">
             <UserIdentity compact className="reader-identity" />
             <NotificationBell className="reader-notification" />
-            {compactReader || <CultivationPanel compact className="reader-cultivation" />}
+            <CultivationPanel compact className="reader-cultivation" />
           </div>
           <div className="reader-control-group reader-action-group" ref={readerOverflowRef}>
             <FollowButton story={activePayload.story} compact />
@@ -2716,6 +2749,56 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 >
                   <BookOpen size={15} />
                   {isPageLayout ? "Chế độ cuộn" : "Chế độ trang"}
+                </button>
+                {!isPageLayout ? (
+                  <button
+                    className={`reader-overflow-item ${autoScrollEnabled ? "reader-overflow-item-active" : ""}`}
+                    type="button"
+                    onClick={() => { toggleAutoScroll(); setReaderOverflowOpen(false); }}
+                  >
+                    {autoScrollEnabled ? <Pause size={15} /> : <Play size={15} />}
+                    {autoScrollEnabled ? "Dừng tự cuộn" : "Tự cuộn"}
+                  </button>
+                ) : null}
+                <button
+                  className={`reader-overflow-item ${readerDimEnabled ? "reader-overflow-item-active" : ""}`}
+                  type="button"
+                  onClick={() => { setReaderDimEnabled((value) => !value); setReaderOverflowOpen(false); }}
+                >
+                  {readerDimEnabled ? <Eye size={15} /> : <EyeOff size={15} />}
+                  {readerDimEnabled ? "Tắt lọc sáng" : "Lọc sáng"}
+                </button>
+                <button
+                  className={`reader-overflow-item ${wakeLockActive ? "reader-overflow-item-active" : ""}`}
+                  type="button"
+                  title={wakeLockSupported ? "Giữ màn hình sáng khi đọc" : "Trình duyệt có thể chưa hỗ trợ"}
+                  onClick={() => {
+                    if (wakeLockActive || wakeLockRequestedRef.current) {
+                      releaseWakeLock();
+                    } else {
+                      void requestWakeLock();
+                    }
+                    setReaderOverflowOpen(false);
+                  }}
+                >
+                  {wakeLockActive ? <Eye size={15} /> : <EyeOff size={15} />}
+                  {wakeLockActive ? "Đang giữ sáng" : "Giữ màn hình sáng"}
+                </button>
+                <button
+                  className="reader-overflow-item"
+                  type="button"
+                  onClick={() => { scrollToComments(); setReaderOverflowOpen(false); }}
+                >
+                  <MessageCircle size={15} />
+                  Luận đạo
+                </button>
+                <button
+                  className="reader-overflow-item"
+                  type="button"
+                  onClick={resetReaderSettings}
+                >
+                  <RotateCcw size={15} />
+                  Về mặc định
                 </button>
                 <div className="reader-overflow-sep" />
                 <div className="reader-overflow-shortcuts">
@@ -3050,7 +3133,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   <input
                     type="range"
                     min={80}
-                    max={360}
+                    max={400}
                     step={20}
                     value={autoScrollSpeed}
                     onChange={(event) => setAutoScrollSpeed(Number(event.target.value))}
@@ -3238,6 +3321,16 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 >
                   {focusModeEnabled ? <Eye size={16} /> : <EyeOff size={16} />}
                   {focusModeEnabled ? "Đang focus" : "Focus"}
+                </button>
+              </div>
+            </div>
+
+            <div className="reader-sheet-section">
+              <span>Đặt lại</span>
+              <div className="reader-sheet-section-body">
+                <button className="reader-sheet-action" type="button" onClick={resetReaderSettings}>
+                  <RotateCcw size={16} />
+                  Về cài đặt mặc định
                 </button>
               </div>
             </div>
@@ -3546,6 +3639,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               aria-label="Chapter content"
               ref={paragraphContainerRef}
               onMouseUp={() => window.setTimeout(() => maybeShowContentSelectionActions(), 0)}
+              onTouchEnd={() => window.setTimeout(() => maybeShowContentSelectionActions(), 0)}
             >
               {adminEdit?.field === "content" ? (
                 <textarea ref={adminContentEditorRef} className="admin-content-editor" value={adminEdit.value} autoFocus onChange={(event) => setAdminEdit((current) => current?.field === "content" ? { ...current, value: event.target.value } : current)} />
