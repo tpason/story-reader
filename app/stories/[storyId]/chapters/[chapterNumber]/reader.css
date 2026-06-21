@@ -6043,6 +6043,27 @@ html[data-sidebar-resizing="true"] * {
   margin-bottom: 0.6rem;
 }
 
+.reader-content-paginated {
+  position: relative;
+  overflow: hidden;
+}
+
+.reader-page-measure-layer {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: -1;
+  contain: layout style;
+}
+
+.reader-page-measure-gutter {
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+}
+
 .reader-page-shell {
   display: flex;
   flex-direction: column;
@@ -6092,10 +6113,6 @@ html[data-sidebar-resizing="true"] * {
   font-size: 12px;
   font-weight: 650;
   padding-inline: 10px;
-}
-
-.reader-content-paginated {
-  overflow: hidden;
 }
 
 .reader-heading-eta {

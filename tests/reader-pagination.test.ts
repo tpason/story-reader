@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildParagraphPages, pageIndexForParagraph } from "../lib/reader-pagination.ts";
+import { buildParagraphPages, buildParagraphPagesFromHeights, pageIndexForParagraph } from "../lib/reader-pagination.ts";
 
 describe("reader-pagination", () => {
   const baseOptions = {
@@ -23,5 +23,16 @@ describe("reader-pagination", () => {
     const pages = [[0, 1], [2, 3], [4]];
     assert.equal(pageIndexForParagraph(pages, 3), 1);
     assert.equal(pageIndexForParagraph(pages, 9), 0);
+  });
+
+  it("splits pages from measured paragraph heights", () => {
+    const heights = [120, 140, 130, 150, 110, 125];
+    const pages = buildParagraphPagesFromHeights(heights, {
+      pageHeight: 320,
+      headingReserve: 40,
+      pageChromeReserve: 60
+    });
+    assert.ok(pages.length > 1);
+    assert.deepEqual(pages.flat().sort((left, right) => left - right), heights.map((_, index) => index));
   });
 });

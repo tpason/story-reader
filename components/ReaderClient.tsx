@@ -82,7 +82,7 @@ import {
   writeReaderSheetTab,
   type ReaderSheetTab
 } from "@/lib/reader-onboarding";
-import { buildParagraphPages, pageIndexForParagraph } from "@/lib/reader-pagination";
+import { buildParagraphPages, buildParagraphPagesFromHeights, pageIndexForParagraph } from "@/lib/reader-pagination";
 import {
   estimateParagraphHeight,
   PARAGRAPH_VIRTUALIZE_THRESHOLD
@@ -286,6 +286,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [paragraphScrollMargin, setParagraphScrollMargin] = useState(0);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageViewportHeight, setPageViewportHeight] = useState(640);
+  const [measuredParagraphHeights, setMeasuredParagraphHeights] = useState<number[] | null>(null);
   const [chapterTransitionTrigger, setChapterTransitionTrigger] = useState(0);
   const [chapterTransitionDirection, setChapterTransitionDirection] = useState<"next" | "prev">("next");
   const [adminEdit, setAdminEdit] = useState<AdminEditState>(null);
@@ -328,6 +329,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const adminContentEditorRef = useRef<HTMLTextAreaElement | null>(null);
   const adminRestoreScrollTopRef = useRef<number | null>(null);
   const paragraphContainerRef = useRef<HTMLElement | null>(null);
+  const pageMeasureContainerRef = useRef<HTMLDivElement | null>(null);
   const formatTriggerRef = useRef<HTMLButtonElement | null>(null);
   const formatPanelRef = useRef<HTMLDivElement | null>(null);
   const mobileSheetPanelRef = useRef<HTMLDivElement | null>(null);
@@ -484,18 +486,39 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     scrollMargin: paragraphScrollMargin
   });
   const isPageLayout = layoutMode === "page";
-  const paragraphPages = useMemo(
-    () =>
-      buildParagraphPages(paragraphs, {
-        fontSize,
-        lineHeight,
-        paragraphSpacing,
-        contentWidth,
-        pageHeight: pageViewportHeight,
-        headingReserve: compactReader ? 148 : 168
-      }),
-    [paragraphs, fontSize, lineHeight, paragraphSpacing, contentWidth, pageViewportHeight, compactReader]
-  );
+  const pageHeadingReserve = compactReader ? 148 : 168;
+  const paragraphPages = useMemo(() => {
+    const pageOptions = {
+      pageHeight: pageViewportHeight,
+      headingReserve: pageHeadingReserve
+    };
+
+    if (
+      isPageLayout &&
+      measuredParagraphHeights &&
+      measuredParagraphHeights.length === paragraphs.length
+    ) {
+      return buildParagraphPagesFromHeights(measuredParagraphHeights, pageOptions);
+    }
+
+    return buildParagraphPages(paragraphs, {
+      fontSize,
+      lineHeight,
+      paragraphSpacing,
+      contentWidth,
+      ...pageOptions
+    });
+  }, [
+    paragraphs,
+    fontSize,
+    lineHeight,
+    paragraphSpacing,
+    contentWidth,
+    pageViewportHeight,
+    pageHeadingReserve,
+    isPageLayout,
+    measuredParagraphHeights
+  ]);
   const currentPageParagraphIndexes = paragraphPages[pageIndex] ?? [];
 
   useLayoutEffect(() => {
@@ -675,6 +698,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   useEffect(() => {
     setPageIndex(0);
+    setMeasuredParagraphHeights(null);
   }, [activePayload.chapter.id, isPageLayout]);
 
   useEffect(() => {
@@ -683,6 +707,35 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     if (!Number.isFinite(savedParagraph)) return;
     setPageIndex(pageIndexForParagraph(paragraphPages, savedParagraph));
   }, [activePayload.chapter.id, historyHydrated, isPageLayout, paragraphPages, paragraphPositionKey]);
+
+  useLayoutEffect(() => {
+    if (!isPageLayout || paragraphs.length === 0) {
+      setMeasuredParagraphHeights(null);
+      return;
+    }
+
+    const container = pageMeasureContainerRef.current;
+    if (!container) return;
+
+    const nodes = container.querySelectorAll<HTMLElement>("[data-measure-index]");
+    if (nodes.length !== paragraphs.length) return;
+
+    const heights = Array.from(nodes).map((node) => node.getBoundingClientRect().height);
+    setMeasuredParagraphHeights((current) => {
+      if (
+        current &&
+        current.length === heights.length &&
+        current.every((height, index) => Math.abs(height - heights[index]!) < 0.5)
+      ) {
+        return current;
+      }
+      return heights;
+    });
+  }, [isPageLayout, paragraphs, fontSize, lineHeight, paragraphSpacing, contentWidth, pageViewportHeight]);
+
+  useEffect(() => {
+    setPageIndex((current) => Math.min(current, Math.max(0, paragraphPages.length - 1)));
+  }, [paragraphPages.length]);
 
   useEffect(() => {
     if (mobileSheetTab === "settings" && currentUser?.isAdmin) {
@@ -1268,12 +1321,26 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       if (["input", "textarea", "select"].includes(tag)) return;
       if ((document.activeElement as HTMLElement | null)?.isContentEditable) return;
 
-      if (event.key === "ArrowRight" && activePayload.nextChapter) {
-        event.preventDefault();
-        router.push(storyHref(activePayload.story, activePayload.nextChapter.chapterNumber));
-      } else if (event.key === "ArrowLeft" && activePayload.previousChapter) {
-        event.preventDefault();
-        router.push(storyHref(activePayload.story, activePayload.previousChapter.chapterNumber));
+      if (event.key === "ArrowRight") {
+        if (isPageLayout && pageIndex < paragraphPages.length - 1) {
+          event.preventDefault();
+          goToPage(pageIndex + 1);
+          return;
+        }
+        if (activePayload.nextChapter) {
+          event.preventDefault();
+          router.push(storyHref(activePayload.story, activePayload.nextChapter.chapterNumber));
+        }
+      } else if (event.key === "ArrowLeft") {
+        if (isPageLayout && pageIndex > 0) {
+          event.preventDefault();
+          goToPage(pageIndex - 1);
+          return;
+        }
+        if (activePayload.previousChapter) {
+          event.preventDefault();
+          router.push(storyHref(activePayload.story, activePayload.previousChapter.chapterNumber));
+        }
       } else if (event.key === "b" || event.key === "B") {
         toggleBookmark();
       } else if (event.key === "f" || event.key === "F") {
@@ -1288,7 +1355,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
     window.addEventListener("keydown", onReaderKey);
     return () => window.removeEventListener("keydown", onReaderKey);
-  }, [activePayload.nextChapter, activePayload.previousChapter, activePayload.story, router, toggleBookmark]);
+  }, [activePayload.nextChapter, activePayload.previousChapter, activePayload.story, isPageLayout, pageIndex, paragraphPages.length, router, toggleBookmark]);
 
   useEffect(() => {
     function persistProgress(scrollY: number, currentProgress: number, syncRemote: boolean) {
@@ -2803,7 +2870,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 <div className="reader-overflow-sep" />
                 <div className="reader-overflow-shortcuts">
                   <p className="reader-overflow-shortcuts-title">Phím tắt</p>
-                  <div className="reader-shortcut-row"><kbd>←</kbd><kbd>→</kbd><span>Chương trước / sau</span></div>
+                  <div className="reader-shortcut-row"><kbd>←</kbd><kbd>→</kbd><span>{isPageLayout ? "Trang / chương" : "Chương trước / sau"}</span></div>
                   <div className="reader-shortcut-row"><kbd>B</kbd><span>Đánh dấu chương</span></div>
                   <div className="reader-shortcut-row"><kbd>F</kbd><span>Focus mode</span></div>
                   <div className="reader-shortcut-row"><kbd>T</kbd><span>Mục lục</span></div>
@@ -3635,12 +3702,22 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             ) : null}
 
             <section
-              className={`reader-content ${currentUser?.isAdmin ? "admin-editable-content-hidden" : ""}`}
+              className={`reader-content ${isPageLayout ? "reader-content-paginated" : ""} ${currentUser?.isAdmin ? "admin-editable-content-hidden" : ""}`}
               aria-label="Chapter content"
               ref={paragraphContainerRef}
               onMouseUp={() => window.setTimeout(() => maybeShowContentSelectionActions(), 0)}
               onTouchEnd={() => window.setTimeout(() => maybeShowContentSelectionActions(), 0)}
             >
+              {isPageLayout && paragraphs.length > 0 && adminEdit?.field !== "content" ? (
+                <div ref={pageMeasureContainerRef} className="reader-page-measure-layer" aria-hidden="true">
+                  {paragraphs.map((paragraph, index) => (
+                    <p className="reader-paragraph" data-measure-index={index} key={`measure-${index}`}>
+                      <span className="reader-page-measure-gutter" />
+                      <span className="reader-paragraph-text">{paragraph}</span>
+                    </p>
+                  ))}
+                </div>
+              ) : null}
               {adminEdit?.field === "content" ? (
                 <textarea ref={adminContentEditorRef} className="admin-content-editor" value={adminEdit.value} autoFocus onChange={(event) => setAdminEdit((current) => current?.field === "content" ? { ...current, value: event.target.value } : current)} />
               ) : paragraphs.length > 0 ? (
