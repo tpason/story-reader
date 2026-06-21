@@ -50,7 +50,10 @@ export function CultivationPanel({ items, compact = false, className = "" }: Cul
   }, [dispatch]);
 
   const streak = useAppSelector((s) => s.readingStreak);
-  const state = useMemo(() => getCultivationState(history, isLoggedIn), [history, isLoggedIn]);
+  const state = useMemo(
+    () => getCultivationState(history, isLoggedIn, streak.currentStreak, Boolean(user?.isAdmin)),
+    [history, isLoggedIn, streak.currentStreak, user?.isAdmin]
+  );
   const estimatedReadingTime = state.estimatedMinutesToNextLevel
     ? formatReadingDuration(state.estimatedMinutesToNextLevel)
     : "";
@@ -171,6 +174,7 @@ export function CultivationPanel({ items, compact = false, className = "" }: Cul
           {streak.currentStreak > 0 ? (
             <span className="cultivation-streak">
               🔥 {streak.currentStreak} ngày liên tiếp
+              {state.streakXp > 0 ? ` · +${state.streakXp} linh khí chuỗi` : ""}
               {streak.bestStreak > streak.currentStreak ? ` · kỷ lục ${streak.bestStreak} ngày` : ""}
             </span>
           ) : null}

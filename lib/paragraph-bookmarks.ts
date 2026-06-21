@@ -9,7 +9,9 @@ export type ParagraphBookmark = {
   paragraphIndex: number;
   excerpt: string;
   progressPercent: number;
+  note: string | null;
   createdAt: string;
+  updatedAt?: string;
 };
 
 const PARAGRAPH_BOOKMARKS_KEY = "reader:paragraph-bookmarks";

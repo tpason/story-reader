@@ -19,6 +19,7 @@ import type { StoredReaderUser } from "@/lib/identity";
 import {
   sanitizeReaderStyleConfig,
   type ReaderFontFamily,
+  type ReaderLayoutMode,
   type ReaderStyleConfig,
   type ReaderTheme
 } from "@/lib/reader-preferences";
@@ -159,6 +160,18 @@ const readerStyleSlice = createSlice({
       }).contentWidth;
       state.hydrated = true;
     },
+    setReaderLayoutMode(state, action: PayloadAction<ReaderLayoutMode>) {
+      state.config.layoutMode = action.payload;
+      state.hydrated = true;
+    },
+    setReaderTapEdgeEnabled(state, action: PayloadAction<boolean>) {
+      state.config.tapEdgeEnabled = action.payload;
+      state.hydrated = true;
+    },
+    setReaderSkillEffectsEnabled(state, action: PayloadAction<boolean>) {
+      state.config.skillEffectsEnabled = action.payload;
+      state.hydrated = true;
+    },
     markReaderStyleHydrated(state) {
       state.hydrated = true;
     }
@@ -227,8 +240,11 @@ const readingStreakSlice = createSlice({
       if (state.lastReadDate === today) return;
 
       // Check if yesterday
-      const prev = new Date(today + "T00:00:00");
-      prev.setDate(prev.getDate() - 1);
+      const prev = new Date(Date.UTC(
+        Number(today.slice(0, 4)),
+        Number(today.slice(5, 7)) - 1,
+        Number(today.slice(8, 10)) - 1
+      ));
       const yesterdayStr = prev.toISOString().slice(0, 10);
 
       state.currentStreak = state.lastReadDate === yesterdayStr ? state.currentStreak + 1 : 1;
@@ -275,6 +291,9 @@ export const {
   setReaderLineHeight,
   setReaderParagraphSpacing,
   setReaderContentWidth,
+  setReaderLayoutMode,
+  setReaderTapEdgeEnabled,
+  setReaderSkillEffectsEnabled,
   markReaderStyleHydrated
 } = readerStyleSlice.actions;
 export const {

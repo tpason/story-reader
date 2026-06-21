@@ -3,7 +3,7 @@
 import { CloudRain, Flame, Leaf, LoaderCircle, Shield, Sparkles, Swords, UsersRound, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { fetchReadingProgress } from "@/lib/api-client";
-import { getCultivationLevelFromXp, XP_PER_CHAPTER } from "@/lib/cultivation";
+import { getCultivationLevelFromXp, effectiveCultivationLevel, XP_PER_CHAPTER } from "@/lib/cultivation";
 import { visibleSkillsForAdmin, type ReaderSkill } from "@/lib/skills";
 import type { StoredReaderUser } from "@/lib/identity";
 
@@ -121,6 +121,7 @@ export function SkillCaster({
 
   const isAdmin = Boolean(user?.isAdmin);
   const visibleSkills = useMemo(() => visibleSkillsForAdmin(isAdmin), [isAdmin]);
+  const displayLevel = effectiveCultivationLevel(level, isAdmin);
 
   async function cast(skill: ReaderSkill) {
     if (!user || (!isAdmin && level < skill.minLevel) || cooldowns[skill.id] > 0 || castingSkillId) return;
@@ -160,7 +161,7 @@ export function SkillCaster({
         <span>Đạo pháp</span>
         <span className="skill-caster-meta">
           <span className={`role-badge role-badge-${isAdmin ? "admin" : user ? "user" : "guest"}`}>{isAdmin ? "Admin" : user ? "Đạo hữu" : "Guest"}</span>
-          <small>{user ? `Lv.${level}` : "Tán tu chỉ xem"}</small>
+          <small>{user ? `Lv.${displayLevel}` : "Tán tu chỉ xem"}</small>
         </span>
       </div>
       <div className="skill-row">

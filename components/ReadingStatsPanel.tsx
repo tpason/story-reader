@@ -3,6 +3,7 @@
 import { BookOpen, Flame, Star, Trophy } from "lucide-react";
 import { useMemo } from "react";
 import { DEFAULT_WORDS_PER_CHAPTER, formatReadingDuration } from "@/lib/reading-estimate";
+import { streakBonusXp } from "@/lib/reading-streak";
 import { useAppSelector } from "@/lib/store-hooks";
 
 export function ReadingStatsPanel() {
@@ -13,12 +14,12 @@ export function ReadingStatsPanel() {
     const totalStories = history.length;
     const totalChapters = history.reduce((sum, item) => sum + (item.maxReadChapterNumber ?? 0), 0);
     const estimatedWords = totalChapters * DEFAULT_WORDS_PER_CHAPTER;
-    // ~100 wpm reading speed for Vietnamese prose
     const estimatedMinutes = Math.round(estimatedWords / 100);
     const estimatedHours = Math.round(estimatedMinutes / 60);
+    const streakXp = streakBonusXp(streak.currentStreak);
 
-    return { totalStories, totalChapters, estimatedHours };
-  }, [history]);
+    return { totalStories, totalChapters, estimatedHours, streakXp };
+  }, [history, streak.currentStreak]);
 
   return (
     <section className="reading-stats-panel" aria-label="Thống kê tu luyện">
@@ -56,6 +57,7 @@ export function ReadingStatsPanel() {
       {streak.totalDaysRead > 0 ? (
         <p className="reading-stats-days">
           Tổng <strong>{streak.totalDaysRead}</strong> ngày đã tu luyện
+          {stats.streakXp > 0 ? ` · chuỗi hiện tại +${stats.streakXp} linh khí` : ""}
           {streak.bestStreak >= 7 ? ` · đã đạt chuỗi ${streak.bestStreak} ngày` : ""}
         </p>
       ) : null}

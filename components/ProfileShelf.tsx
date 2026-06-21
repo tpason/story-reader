@@ -11,9 +11,10 @@ export function ProfileShelf() {
   const user = useAppSelector((state) => state.identity.user);
   const history = useAppSelector((state) => state.history.items);
   const follows = useAppSelector((state) => state.follows.items);
-  const cultivation = getCultivationState(history, Boolean(user));
+  const streak = useAppSelector((state) => state.readingStreak);
+  const cultivation = getCultivationState(history, Boolean(user), streak.currentStreak, Boolean(user?.isAdmin));
   const unlockedSkills = visibleSkillsForAdmin(Boolean(user?.isAdmin)).filter((skill) => Boolean(user?.isAdmin) || cultivation.level >= skill.minLevel);
-  const streakBase = history.filter((item) => Date.now() - Date.parse(item.lastReadAt) < 1000 * 60 * 60 * 24 * 7).length;
+  const streakBase = Math.max(1, streak.currentStreak || history.filter((item) => Date.now() - Date.parse(item.lastReadAt) < 1000 * 60 * 60 * 24 * 7).length);
 
   return (
     <section className="profile-shelf" aria-label="Tủ truyện đạo hữu">

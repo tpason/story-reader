@@ -53,6 +53,7 @@ export type ReaderPayload = {
   chapters: ChapterSummary[];
   previousChapter: ChapterSummary | null;
   nextChapter: ChapterSummary | null;
+  previousChapterRecap: string | null;
   previousChapterCursor: string | null;
   chapterCursor: string | null;
 };

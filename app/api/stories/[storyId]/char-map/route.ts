@@ -10,6 +10,7 @@ const PROJECT_ROOT_CANDIDATES = Array.from(new Set([process.cwd(), resolve(proce
 type StoryMetaRow = {
   metadata: {
     char_map_path?: string;
+    char_map_content?: string;
     char_map_updated_at?: string;
     char_map_updated_to_chapter?: number;
   } | null;
@@ -167,7 +168,17 @@ export async function GET(_: Request, { params }: { params: Promise<{ storyId: s
   }
 
   const metadata = rows[0].metadata ?? {};
+  const charMapContent = typeof metadata.char_map_content === "string" ? metadata.char_map_content.trim() : "";
   const charMapPath = metadata.char_map_path ?? null;
+
+  if (charMapContent) {
+    const parsed = parseCharMap(charMapContent);
+    return NextResponse.json({
+      available: true,
+      updatedToChapter: metadata.char_map_updated_to_chapter ?? null,
+      ...parsed
+    } satisfies CharMapResponse);
+  }
 
   if (!charMapPath) {
     return NextResponse.json({

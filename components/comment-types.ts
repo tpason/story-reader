@@ -1,6 +1,7 @@
 export type CommentAuthor = {
   id: string;
   username: string;
+  isAdmin?: boolean;
   cultivation: {
     level: number;
     realm: string;

@@ -1,13 +1,13 @@
 "use client";
 
-import { ArrowUp, BookMarked, BookOpen, ChevronLeft, ChevronRight, ClipboardCheck, Eye, EyeOff, Headphones, Highlighter, LoaderCircle, Menu, Minus, Moon, MoreHorizontal, Pause, Play, Plus, Search, Settings2, Sun, Type, WifiOff, X } from "lucide-react";
+import { ArrowUp, BookMarked, BookOpen, ChevronLeft, ChevronRight, ClipboardCheck, Eye, EyeOff, Headphones, Highlighter, LoaderCircle, Menu, Minus, Moon, MoreHorizontal, Pause, Play, Plus, Search, Settings2, StickyNote, Sun, Type, WifiOff, X } from "lucide-react";
 import type { animate as AnimateType } from "animejs";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Drawer } from "vaul";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useVirtualizer, useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useQueryClient } from "@tanstack/react-query";
 import { autoUpdate, flip, offset, shift, useDismiss, useFloating, useInteractions } from "@floating-ui/react";
 import Fuse from "fuse.js";
@@ -44,9 +44,12 @@ import {
   setReaderContentWidth,
   setReaderFontFamily,
   setReaderFontSize,
+  setReaderLayoutMode,
   setReaderLineHeight,
   setReaderParagraphSpacing,
+  setReaderSkillEffectsEnabled,
   setReaderStyle,
+  setReaderTapEdgeEnabled,
   setReaderTheme,
   store,
   removeBookmarkItem,
@@ -55,6 +58,7 @@ import {
   recordDailyRead
 } from "@/lib/store";
 import {
+  isDefaultReaderStyleConfig,
   READER_CONTENT_WIDTH_MAX,
   READER_CONTENT_WIDTH_MIN,
   READER_FONT_SIZE_MAX,
@@ -63,8 +67,35 @@ import {
   READER_LINE_HEIGHT_MIN,
   READER_PARAGRAPH_SPACING_MAX,
   READER_PARAGRAPH_SPACING_MIN,
-  type ReaderFontFamily
+  type ReaderFontFamily,
+  type ReaderLayoutMode
 } from "@/lib/reader-preferences";
+import {
+  markMobilePresetBootstrapped,
+  markSwipeHintShown,
+  READER_SWIPE_HINT_DURATION_MS,
+  READER_SWIPE_HINT_MESSAGE,
+  shouldShowSwipeHint,
+  wasMobilePresetBootstrapped
+} from "@/lib/reader-onboarding";
+import { buildParagraphPages, pageIndexForParagraph } from "@/lib/reader-pagination";
+import {
+  estimateParagraphHeight,
+  PARAGRAPH_VIRTUALIZE_THRESHOLD
+} from "@/lib/reader-navigation";
+import { buildGlossaryIndex, lookupGlossarySelection, type GlossaryCharacter, type GlossaryIndex } from "@/lib/reader-glossary";
+import {
+  dismissResumeHint,
+  shouldOfferResumeHint,
+  type ReaderResumeHint
+} from "@/lib/reader-resume";
+import { shareSelectedQuote } from "@/lib/reader-share";
+import {
+  ReaderChapterRecap,
+  ReaderParagraphNoteEditor,
+  ReaderResumeBanner,
+  ReaderSelectionToolbar
+} from "@/components/ReaderEnhancements";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 
@@ -153,6 +184,8 @@ function getPageScrollMetrics() {
   };
 }
 
+type MobileSheetTab = "read" | "settings" | "offline";
+
 type AdminEditField = "storyTitle" | "author" | "chapterTitle" | "content";
 
 type AdminEditState = {
@@ -169,6 +202,7 @@ type ReaderSelectionAction = {
   selectionEnd: number;
   x: number;
   y: number;
+  glossaryCharacter: GlossaryCharacter | null;
 } | null;
 
 function scrollPageTo(top: number) {
@@ -203,7 +237,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const decorativeWebglEnabled = useDecorativeWebglEnabled({ compactMaxWidth: 1099 });
-  const { theme, fontSize, fontFamily, lineHeight, paragraphSpacing, contentWidth } = useAppSelector((state) => state.readerStyle.config);
+  const { theme, fontSize, fontFamily, lineHeight, paragraphSpacing, contentWidth, layoutMode, tapEdgeEnabled, skillEffectsEnabled } = useAppSelector((state) => state.readerStyle.config);
   const historyHydrated = useAppSelector((state) => state.history.hydrated);
   const currentBookmark = useAppSelector(useMemo(() => selectCurrentBookmark(payload.story.id, payload.chapter.chapterNumber), [payload.story.id, payload.chapter.chapterNumber]));
   const currentUser = useAppSelector((state) => state.identity.user);
@@ -243,12 +277,21 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const [wakeLockError, setWakeLockError] = useState<string | null>(null);
   const [swipeNotice, setSwipeNotice] = useState<string | null>(null);
+  const [compactReader, setCompactReader] = useState(false);
+  const [mobileSheetTab, setMobileSheetTab] = useState<MobileSheetTab>("read");
+  const [paragraphScrollMargin, setParagraphScrollMargin] = useState(0);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageViewportHeight, setPageViewportHeight] = useState(640);
   const [chapterTransitionTrigger, setChapterTransitionTrigger] = useState(0);
   const [chapterTransitionDirection, setChapterTransitionDirection] = useState<"next" | "prev">("next");
   const [adminEdit, setAdminEdit] = useState<AdminEditState>(null);
   const [adminEditSaving, setAdminEditSaving] = useState(false);
   const [adminEditError, setAdminEditError] = useState<string | null>(null);
   const [selectionAction, setSelectionAction] = useState<ReaderSelectionAction>(null);
+  const [showResumeBanner, setShowResumeBanner] = useState(false);
+  const [resumeHint, setResumeHint] = useState<ReaderResumeHint | null>(null);
+  const [glossaryIndex, setGlossaryIndex] = useState<GlossaryIndex>(() => new Map());
+  const [paragraphNoteEditor, setParagraphNoteEditor] = useState<{ paragraphIndex: number; note: string } | null>(null);
   const liveCachedChapters = useLiveQuery(
     () => offlineDb.chapters.where("storyId").equals(payload.story.id).sortBy("chapterNumber"),
     [payload.story.id],
@@ -298,6 +341,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const mobileProgressIdleTimerRef = useRef<number | null>(null);
   const mobileProgressLabelRef = useRef<HTMLSpanElement | null>(null);
   const mobileMinutesLabelRef = useRef<HTMLSpanElement | null>(null);
+  const headingEtaLabelRef = useRef<HTMLSpanElement | null>(null);
   const focusProgressLabelRef = useRef<HTMLElement | null>(null);
   const showContinuePromptRef = useRef(false);
   const highlightContinuePromptRef = useRef(false);
@@ -422,6 +466,33 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     () => estimateReadingMinutes(countReadableWords(activePayload.chapter.content)),
     [activePayload.chapter.content]
   );
+  const shouldVirtualizeParagraphs = layoutMode === "scroll" && paragraphs.length >= PARAGRAPH_VIRTUALIZE_THRESHOLD;
+  const paragraphVirtualizer = useWindowVirtualizer({
+    count: shouldVirtualizeParagraphs ? paragraphs.length : 0,
+    estimateSize: (index) =>
+      estimateParagraphHeight(paragraphs[index] ?? "", {
+        fontSize,
+        lineHeight,
+        paragraphSpacing,
+        contentWidth
+      }),
+    overscan: 10,
+    scrollMargin: paragraphScrollMargin
+  });
+  const isPageLayout = layoutMode === "page";
+  const paragraphPages = useMemo(
+    () =>
+      buildParagraphPages(paragraphs, {
+        fontSize,
+        lineHeight,
+        paragraphSpacing,
+        contentWidth,
+        pageHeight: pageViewportHeight,
+        headingReserve: compactReader ? 148 : 168
+      }),
+    [paragraphs, fontSize, lineHeight, paragraphSpacing, contentWidth, pageViewportHeight, compactReader]
+  );
+  const currentPageParagraphIndexes = paragraphPages[pageIndex] ?? [];
 
   useLayoutEffect(() => {
     if (adminEdit?.field !== "content") return;
@@ -562,12 +633,58 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     const compactQuery = window.matchMedia(COMPACT_VIEWPORT_QUERY);
     const update = () => {
       compactViewportRef.current = compactQuery.matches;
+      setCompactReader(compactQuery.matches);
     };
 
     update();
     compactQuery.addEventListener("change", update);
     return () => compactQuery.removeEventListener("change", update);
   }, []);
+
+  useEffect(() => {
+    if (isPageLayout && autoScrollEnabled) setAutoScrollEnabled(false);
+  }, [autoScrollEnabled, isPageLayout]);
+
+  useEffect(() => {
+    if (mobileSheetOpen) setMobileSheetTab("read");
+  }, [mobileSheetOpen]);
+
+  useEffect(() => {
+    if (!isPageLayout) return;
+    const update = () => {
+      const dockReserve = compactReader ? 96 : 28;
+      setPageViewportHeight(Math.max(280, window.innerHeight - dockReserve));
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [compactReader, isPageLayout]);
+
+  useEffect(() => {
+    if (!isPageLayout) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isPageLayout]);
+
+  useEffect(() => {
+    setPageIndex(0);
+  }, [activePayload.chapter.id, isPageLayout]);
+
+  useEffect(() => {
+    if (!isPageLayout || !historyHydrated) return;
+    const savedParagraph = Number(window.localStorage.getItem(paragraphPositionKey));
+    if (!Number.isFinite(savedParagraph)) return;
+    setPageIndex(pageIndexForParagraph(paragraphPages, savedParagraph));
+  }, [activePayload.chapter.id, historyHydrated, isPageLayout, paragraphPages, paragraphPositionKey]);
+
+  useEffect(() => {
+    if (mobileSheetTab === "settings" && currentUser?.isAdmin) {
+      setQualityPanelOpen(true);
+    }
+  }, [mobileSheetTab, currentUser]);
 
   useEffect(() => {
     mobileMenuOpenRef.current = mobileMenuOpen;
@@ -637,10 +754,23 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
 
     const historyItem = store.getState().history.items.find((item) => item.storyId === activePayload.story.id);
+    const sameChapter = historyItem?.chapterNumber === activePayload.chapter.chapterNumber;
+    const progressPercent = sameChapter ? historyItem.progressPercent : 0;
+    const paragraphIndex = sameChapter ? (historyItem.paragraphIndex ?? null) : null;
+
+    if (
+      sameChapter &&
+      shouldOfferResumeHint(activePayload.story.id, activePayload.chapter.chapterNumber, progressPercent, paragraphIndex)
+    ) {
+      setResumeHint({ paragraphIndex, progressPercent });
+      setShowResumeBanner(true);
+      return;
+    }
+
     const localScroll = Number(window.localStorage.getItem(storageKey));
     const savedScroll = Number.isFinite(localScroll) && localScroll > 0
       ? localScroll
-      : historyItem?.chapterNumber === activePayload.chapter.chapterNumber
+      : sameChapter
         ? historyItem.scrollPosition
         : 0;
 
@@ -667,8 +797,24 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setChapterSearch("");
     setCachedPayload(null);
     setShowCompletionOverlay(false);
+    setShowResumeBanner(false);
+    setResumeHint(null);
+    setParagraphNoteEditor(null);
     completionShownRef.current = false;
   }, [payload.chapters, payload.previousChapterCursor, payload.chapterCursor]);
+
+  useEffect(() => {
+    fetch(`/api/stories/${activePayload.story.id}/char-map`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { available?: boolean; characters?: GlossaryCharacter[]; aliases?: Record<string, string> } | null) => {
+        if (!data?.available || !Array.isArray(data.characters)) {
+          setGlossaryIndex(new Map());
+          return;
+        }
+        setGlossaryIndex(buildGlossaryIndex(data.characters, data.aliases ?? {}));
+      })
+      .catch(() => setGlossaryIndex(new Map()));
+  }, [activePayload.story.id]);
 
   useEffect(() => {
     if (!mobileMenuOpen && !mobileSheetOpen) return;
@@ -1070,6 +1216,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       const rect = contentNode.getBoundingClientRect();
       contentTopRef.current = rect.top + window.scrollY;
       contentHeightRef.current = Math.max(1, contentNode.offsetHeight);
+      setParagraphScrollMargin(contentNode.offsetTop);
     };
 
     updateContentMetrics();
@@ -1085,7 +1232,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       resizeObserver?.disconnect();
       window.removeEventListener("resize", updateContentMetrics);
     };
-  }, [paragraphs.length, fontSize, lineHeight, paragraphSpacing, contentWidth]);
+  }, [paragraphs.length, fontSize, lineHeight, paragraphSpacing, contentWidth, shouldVirtualizeParagraphs]);
 
   useEffect(() => {
     return () => {
@@ -1171,6 +1318,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
       scrollFrameRef.current = window.requestAnimationFrame(() => {
         scrollFrameRef.current = null;
+        if (isPageLayout) return;
         const scrollingElement = document.scrollingElement ?? document.documentElement;
         const scrollTop = scrollingElement.scrollTop || window.scrollY;
         const scrollable = Math.max(1, scrollingElement.scrollHeight - window.innerHeight);
@@ -1218,6 +1366,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             const nextMinutesLeft = Math.max(0, Math.ceil(totalReadingMinutes * (1 - roundedProgress / 100)));
             mobileMinutesLabelRef.current.textContent = nextMinutesLeft > 0 ? `~${nextMinutesLeft} phút` : "";
             mobileMinutesLabelRef.current.hidden = nextMinutesLeft <= 0;
+          }
+          if (headingEtaLabelRef.current) {
+            const nextMinutesLeft = Math.max(0, Math.ceil(totalReadingMinutes * (1 - roundedProgress / 100)));
+            headingEtaLabelRef.current.textContent = nextMinutesLeft > 0 ? ` · còn ~${nextMinutesLeft} phút` : "";
+            headingEtaLabelRef.current.hidden = nextMinutesLeft <= 0;
           }
 
           const progressCommitInterval = isCompactViewport ? MOBILE_PROGRESS_COMMIT_INTERVAL_MS : DESKTOP_PROGRESS_COMMIT_INTERVAL_MS;
@@ -1351,7 +1504,23 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       persistProgress(window.scrollY, progressRef.current, true);
       window.removeEventListener("scroll", onScroll);
     };
-  }, [activePayload.chapter, activePayload.nextChapter, activePayload.story, audioPanelOpen, dispatch, paragraphPositionKey, queryClient, storageKey, totalReadingMinutes]);
+  }, [activePayload.chapter, activePayload.nextChapter, activePayload.story, audioPanelOpen, dispatch, isPageLayout, paragraphPositionKey, queryClient, storageKey, totalReadingMinutes]);
+
+  useEffect(() => {
+    if (!isPageLayout) return;
+    const pageProgress = paragraphPages.length > 0 ? ((pageIndex + 1) / paragraphPages.length) * 100 : 0;
+    progressRef.current = pageProgress;
+    if (progressBarRef.current) {
+      progressBarRef.current.style.transform = `scaleX(${pageProgress / 100})`;
+    }
+    const rounded = Math.round(pageProgress);
+    mobileProgressRef.current = rounded;
+    setMobileProgress(rounded);
+    setSheetProgress(rounded);
+    const shouldShowContinue = Boolean(activePayload.nextChapter) && pageIndex >= paragraphPages.length - 1;
+    showContinuePromptRef.current = shouldShowContinue;
+    setShowContinuePrompt(shouldShowContinue);
+  }, [activePayload.nextChapter, isPageLayout, pageIndex, paragraphPages.length]);
 
   // Sync continue button DOM state after any React re-render so the class isn't lost
   useLayoutEffect(() => {
@@ -1382,6 +1551,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       const nextMinutesLeft = Math.max(0, Math.ceil(totalReadingMinutes * (1 - currentProgress / 100)));
       mobileMinutesLabelRef.current.textContent = nextMinutesLeft > 0 ? `~${nextMinutesLeft} phút` : "";
       mobileMinutesLabelRef.current.hidden = nextMinutesLeft <= 0;
+    }
+    if (headingEtaLabelRef.current) {
+      const nextMinutesLeft = Math.max(0, Math.ceil(totalReadingMinutes * (1 - currentProgress / 100)));
+      headingEtaLabelRef.current.textContent = nextMinutesLeft > 0 ? ` · còn ~${nextMinutesLeft} phút` : "";
+      headingEtaLabelRef.current.hidden = nextMinutesLeft <= 0;
     }
   });
 
@@ -1443,7 +1617,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     container.querySelectorAll<HTMLElement>("[data-paragraph-index]").forEach((node) => observer.observe(node));
 
     return () => observer.disconnect();
-  }, [paragraphs]);
+  }, [paragraphs, shouldVirtualizeParagraphs, paragraphVirtualizer.range?.startIndex, paragraphVirtualizer.range?.endIndex]);
 
   const loadNextChapters = useCallback(() => {
     if (!chapterCursor || loadingChapters) return;
@@ -1582,6 +1756,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }
 
   function scrollToParagraph(paragraphIndex: number, behavior: ScrollBehavior = "smooth") {
+    if (shouldVirtualizeParagraphs) {
+      paragraphVirtualizer.scrollToIndex(paragraphIndex, {
+        align: "center",
+        behavior: prefersReducedMotion() ? "auto" : behavior
+      });
+      return;
+    }
     const paragraph = paragraphContainerRef.current?.querySelector<HTMLElement>(`[data-paragraph-index="${paragraphIndex}"]`);
     if (!paragraph) return;
     paragraph.scrollIntoView({
@@ -1658,7 +1839,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       selectionStart,
       selectionEnd: selectionStart + selectedText.length,
       x,
-      y
+      y,
+      glossaryCharacter: lookupGlossarySelection(selectedText, glossaryIndex)
     };
   }
 
@@ -1724,9 +1906,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     if (!selectionAction?.text) return;
     try {
       await navigator.clipboard.writeText(selectionAction.text);
-      setSwipeNotice("Đã copy đoạn chọn");
+      setSwipeNotice("Đã sao chép đoạn chọn");
     } catch {
-      setSwipeNotice("Không copy được đoạn chọn");
+      setSwipeNotice("Không sao chép được đoạn chọn");
     }
     setSelectionAction(null);
     window.getSelection()?.removeAllRanges();
@@ -1785,6 +1967,82 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
   }
 
+  async function shareSelectedContent() {
+    if (!selectionAction?.text) return;
+    try {
+      const result = await shareSelectedQuote({
+        quote: selectionAction.text,
+        storyTitle: activePayload.story.title,
+        chapterTitle: activePayload.chapter.title,
+        chapterNumber: activePayload.chapter.chapterNumber,
+        storyPath: storyHref(activePayload.story, activePayload.chapter.chapterNumber)
+      });
+      setSwipeNotice(result === "shared" ? "Đã chia sẻ trích đoạn" : "Đã sao chép trích đoạn");
+    } catch {
+      setSwipeNotice("Không chia sẻ được trích đoạn");
+    }
+    setSelectionAction(null);
+    window.getSelection()?.removeAllRanges();
+  }
+
+  function dismissResumeBanner() {
+    dismissResumeHint(activePayload.story.id, activePayload.chapter.chapterNumber);
+    setShowResumeBanner(false);
+  }
+
+  function continueFromResume() {
+    const historyItem = store.getState().history.items.find((item) => item.storyId === activePayload.story.id);
+    const localScroll = Number(window.localStorage.getItem(storageKey));
+    const savedScroll =
+      Number.isFinite(localScroll) && localScroll > 0
+        ? localScroll
+        : historyItem?.chapterNumber === activePayload.chapter.chapterNumber
+          ? historyItem.scrollPosition
+          : 0;
+
+    if (savedScroll > 0) {
+      window.scrollTo({ top: savedScroll, behavior: "auto" });
+    } else if (resumeHint?.paragraphIndex != null && resumeHint.paragraphIndex > 0) {
+      scrollToParagraph(resumeHint.paragraphIndex, "auto");
+    }
+
+    dismissResumeBanner();
+  }
+
+  function persistParagraphBookmark(bookmark: ParagraphBookmark) {
+    const next = upsertParagraphBookmark(paragraphBookmarks, bookmark);
+    setParagraphBookmarks(next);
+    writeParagraphBookmarks(next);
+    saveParagraphBookmarkOnServer(bookmark)
+      .then((remoteBookmark) => {
+        if (!remoteBookmark) return;
+        setParagraphBookmarks((current) => {
+          const merged = upsertParagraphBookmark(current, remoteBookmark);
+          writeParagraphBookmarks(merged);
+          return merged;
+        });
+      })
+      .catch(() => undefined);
+  }
+
+  function openParagraphNoteEditor(paragraphIndex: number) {
+    const bookmark = currentChapterParagraphBookmarks.find((item) => item.paragraphIndex === paragraphIndex);
+    if (!bookmark) return;
+    setParagraphNoteEditor({ paragraphIndex, note: bookmark.note ?? "" });
+  }
+
+  function saveParagraphNote() {
+    if (!paragraphNoteEditor) return;
+    const bookmark = currentChapterParagraphBookmarks.find((item) => item.paragraphIndex === paragraphNoteEditor.paragraphIndex);
+    if (!bookmark) return;
+    persistParagraphBookmark({
+      ...bookmark,
+      note: paragraphNoteEditor.note.trim() ? paragraphNoteEditor.note.trim().slice(0, 500) : null
+    });
+    setParagraphNoteEditor(null);
+    setSwipeNotice("Đã lưu ghi chú đoạn");
+  }
+
   function toggleParagraphBookmark(paragraphIndex: number, paragraph: string) {
     const exists = bookmarkedParagraphIndexes.has(paragraphIndex);
     const next = exists
@@ -1802,6 +2060,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           paragraphIndex,
           excerpt: paragraph.slice(0, 120),
           progressPercent: Math.round(progressRef.current * 100) / 100,
+          note: null,
           createdAt: new Date().toISOString()
         });
 
@@ -1829,6 +2088,34 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           .catch(() => undefined);
       }
     }
+  }
+
+  function renderParagraphTools(index: number, paragraph: string, bookmarked: boolean) {
+    const hasNote = Boolean(currentChapterParagraphBookmarks.find((item) => item.paragraphIndex === index)?.note);
+    return (
+      <>
+        <button
+          className="paragraph-bookmark-button"
+          type="button"
+          aria-label={bookmarked ? "Bỏ dấu đoạn" : "Đánh dấu đoạn"}
+          title={bookmarked ? "Bỏ dấu đoạn" : "Đánh dấu đoạn"}
+          onClick={() => toggleParagraphBookmark(index, paragraph)}
+        >
+          {bookmarked ? <BookMarked size={13} /> : <Highlighter size={13} />}
+        </button>
+        {bookmarked ? (
+          <button
+            className={`paragraph-note-button ${hasNote ? "paragraph-note-button-active" : ""}`}
+            type="button"
+            aria-label="Ghi chú đoạn"
+            title={hasNote ? "Sửa ghi chú đoạn" : "Thêm ghi chú đoạn"}
+            onClick={() => openParagraphNoteEditor(index)}
+          >
+            <StickyNote size={13} />
+          </button>
+        ) : null}
+      </>
+    );
   }
 
   async function openNextChapterFast() {
@@ -1866,7 +2153,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
   }
 
-  function showSwipeNotice(message: string) {
+  function showSwipeNotice(message: string, durationMs = 1100) {
     setSwipeNotice(message);
     if (swipeNoticeTimerRef.current) {
       window.clearTimeout(swipeNoticeTimerRef.current);
@@ -1874,7 +2161,58 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     swipeNoticeTimerRef.current = window.setTimeout(() => {
       setSwipeNotice(null);
       swipeNoticeTimerRef.current = null;
-    }, 1100);
+    }, durationMs);
+  }
+
+  function toggleReaderSkillEffects() {
+    dispatch(setReaderSkillEffectsEnabled(!skillEffectsEnabled));
+  }
+
+  function toggleTapEdgeNavigation() {
+    dispatch(setReaderTapEdgeEnabled(!tapEdgeEnabled));
+  }
+
+  function toggleLayoutMode(nextMode?: ReaderLayoutMode) {
+    const mode = nextMode ?? (layoutMode === "page" ? "scroll" : "page");
+    dispatch(setReaderLayoutMode(mode));
+    if (mode === "page") {
+      setAutoScrollEnabled(false);
+      setPageIndex(0);
+    }
+  }
+
+  function goToPage(nextIndex: number) {
+    const clamped = Math.min(paragraphPages.length - 1, Math.max(0, nextIndex));
+    setPageIndex(clamped);
+    const firstParagraph = paragraphPages[clamped]?.[0];
+    if (typeof firstParagraph === "number") {
+      activeParagraphIndexRef.current = firstParagraph;
+      window.localStorage.setItem(paragraphPositionKey, String(firstParagraph));
+    }
+    const pageProgress = paragraphPages.length > 0 ? ((clamped + 1) / paragraphPages.length) * 100 : 0;
+    progressRef.current = pageProgress;
+    if (progressBarRef.current) {
+      progressBarRef.current.style.transform = `scaleX(${pageProgress / 100})`;
+    }
+  }
+
+  function handleTapEdgeNav(direction: "previous" | "next") {
+    if (isPageLayout) {
+      if (direction === "next") {
+        if (pageIndex < paragraphPages.length - 1) {
+          const next = pageIndex + 1;
+          goToPage(next);
+          showSwipeNotice(`Trang ${next + 1}/${paragraphPages.length}`);
+          return;
+        }
+      } else if (pageIndex > 0) {
+        const prev = pageIndex - 1;
+        goToPage(prev);
+        showSwipeNotice(`Trang ${prev + 1}/${paragraphPages.length}`);
+        return;
+      }
+    }
+    void navigateBySwipe(direction);
   }
 
   async function navigateBySwipe(direction: "previous" | "next") {
@@ -1899,7 +2237,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   function canStartReaderSwipe(target: EventTarget | null) {
     if (!(target instanceof HTMLElement)) return false;
-    return !target.closest("a, button, input, textarea, select, audio, .chapter-comments, .reader-mobile-dock, .reader-mobile-sheet, .background-audio");
+    return !target.closest("a, button, input, textarea, select, audio, .chapter-comments, .reader-mobile-dock, .reader-mobile-sheet, .background-audio, .reader-tap-edge");
   }
 
   function handleReaderPointerDown(event: ReactPointerEvent<HTMLElement>) {
@@ -2067,6 +2405,32 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   const pageTitle = `Chương ${chapterNumber} - ${cleanTitle}`;
   const minutesLeft = Math.max(0, Math.ceil(totalReadingMinutes * (1 - progressRef.current / 100)));
+
+  useEffect(() => {
+    if (!compactReader) return;
+    if (wasMobilePresetBootstrapped()) return;
+
+    const current = store.getState().readerStyle.config;
+    if (!isDefaultReaderStyleConfig(current)) {
+      markMobilePresetBootstrapped();
+      return;
+    }
+
+    dispatch(setReaderStyle(READER_COMFORT_PRESETS.mobile.config));
+    markMobilePresetBootstrapped();
+  }, [compactReader, dispatch]);
+
+  useEffect(() => {
+    if (!compactReader) return;
+    if (!shouldShowSwipeHint(payload.story.id)) return;
+
+    markSwipeHintShown(payload.story.id);
+    const timer = window.setTimeout(() => {
+      showSwipeNotice(READER_SWIPE_HINT_MESSAGE, READER_SWIPE_HINT_DURATION_MS);
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [compactReader, payload.story.id]);
+
   const floatingReaderActions = floatingActionsMounted
     ? createPortal(
         <div
@@ -2079,8 +2443,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             className={`scroll-top-button ${showScrollTop ? "scroll-top-button-visible" : ""}`}
             ref={scrollTopButtonRef}
             type="button"
-            title="Scroll to top"
-            aria-label="Scroll to top"
+            title="Cuộn lên đầu"
+            aria-label="Cuộn lên đầu"
             aria-hidden={!showScrollTop}
             tabIndex={showScrollTop ? 0 : -1}
             onClick={scrollToTop}
@@ -2110,13 +2474,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   return (
     <main
       ref={readerShellRef}
-      className={`reader-shell ${focusModeEnabled ? "reader-shell-focus-mode" : ""}`}
+      className={`reader-shell ${focusModeEnabled ? "reader-shell-focus-mode" : ""} ${isPageLayout ? "reader-shell-layout-page" : ""}`}
       data-theme={theme}
       data-font={fontFamily}
       style={readerShellStyle}
     >
       {focusModeEnabled ? null : <MotionFX variant="reader" />}
-      {focusModeEnabled ? null : <SkillEffectLayer storyId={activePayload.story.id} chapterId={activePayload.chapter.id} />}
+      {focusModeEnabled || !skillEffectsEnabled ? null : (
+        <SkillEffectLayer storyId={activePayload.story.id} chapterId={activePayload.chapter.id} />
+      )}
       {focusModeEnabled ? null : <BackgroundAudioPlayer />}
       <div className="reader-progress" aria-hidden="true">
         {decorativeWebglEnabled && !focusModeEnabled ? <ThreeReaderProgress progress={mobileProgress} /> : null}
@@ -2162,22 +2528,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       ) : null}
 
       {selectionAction ? (
-        <div
-          className="reader-selection-actions"
-          style={{ left: selectionAction.x, top: selectionAction.y }}
-          onMouseDown={(event) => event.preventDefault()}
-          role="toolbar"
-          aria-label="Text selection actions"
-        >
-          <button type="button" onClick={copySelectedContent}>
-            Copy
-          </button>
-          {currentUser?.isAdmin ? (
-            <button type="button" onClick={editSelectedContent}>
-              Edit
-            </button>
-          ) : null}
-        </div>
+        <ReaderSelectionToolbar
+          x={selectionAction.x}
+          y={selectionAction.y}
+          glossaryCharacter={selectionAction.glossaryCharacter}
+          isAdmin={Boolean(currentUser?.isAdmin)}
+          onCopy={copySelectedContent}
+          onShare={shareSelectedContent}
+          onEdit={editSelectedContent}
+        />
       ) : null}
 
       {floatingReaderActions}
@@ -2280,11 +2639,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           <div className="reader-control-group reader-session-group">
             <UserIdentity compact className="reader-identity" />
             <NotificationBell className="reader-notification" />
-            {isMobile || <CultivationPanel compact className="reader-cultivation" />}
+            {compactReader || <CultivationPanel compact className="reader-cultivation" />}
           </div>
           <div className="reader-control-group reader-action-group" ref={readerOverflowRef}>
             <FollowButton story={activePayload.story} compact />
-            {!isMobile ? (
+            {!compactReader ? (
               <FloatingTooltip label="Thêm tùy chọn">
                 <button
                   className={`icon-button ${readerOverflowOpen || currentBookmark || focusModeEnabled || audioPanelOpen || offlineReady ? "icon-button-active" : ""}`}
@@ -2298,7 +2657,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 </button>
               </FloatingTooltip>
             ) : null}
-            {!isMobile && readerOverflowOpen ? (
+            {!compactReader && readerOverflowOpen ? (
               <div className="reader-overflow-panel" id="reader-overflow-panel">
                 <button
                   className={`reader-overflow-item ${currentBookmark ? "reader-overflow-item-active" : ""}`}
@@ -2334,6 +2693,30 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   {offlineLoading ? <LoaderCircle size={15} className="spin" /> : <WifiOff size={15} />}
                   {offlineReady ? `Đã tải ${cachedChapters.length} chương offline` : "Tải offline"}
                 </button>
+                <button
+                  className={`reader-overflow-item ${skillEffectsEnabled ? "reader-overflow-item-active" : ""}`}
+                  type="button"
+                  onClick={() => { toggleReaderSkillEffects(); setReaderOverflowOpen(false); }}
+                >
+                  <Highlighter size={15} />
+                  {skillEffectsEnabled ? "Tắt hiệu ứng tu luyện" : "Bật hiệu ứng tu luyện"}
+                </button>
+                <button
+                  className={`reader-overflow-item ${tapEdgeEnabled ? "reader-overflow-item-active" : ""}`}
+                  type="button"
+                  onClick={() => { toggleTapEdgeNavigation(); setReaderOverflowOpen(false); }}
+                >
+                  <ChevronLeft size={15} />
+                  {tapEdgeEnabled ? "Tắt chạm cạnh" : "Bật chạm cạnh đổi chương"}
+                </button>
+                <button
+                  className={`reader-overflow-item ${isPageLayout ? "reader-overflow-item-active" : ""}`}
+                  type="button"
+                  onClick={() => { toggleLayoutMode(); setReaderOverflowOpen(false); }}
+                >
+                  <BookOpen size={15} />
+                  {isPageLayout ? "Chế độ cuộn" : "Chế độ trang"}
+                </button>
                 <div className="reader-overflow-sep" />
                 <div className="reader-overflow-shortcuts">
                   <p className="reader-overflow-shortcuts-title">Phím tắt</p>
@@ -2344,7 +2727,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 </div>
               </div>
             ) : null}
-            {!isMobile ? (
+            {!compactReader ? (
               <FloatingTooltip label={desktopSidebarOpen ? "Đóng mục lục" : "Mở mục lục"}>
                 <button
                   className="icon-button desktop-sidebar-trigger"
@@ -2360,29 +2743,20 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               </FloatingTooltip>
             ) : null}
           </div>
-          {isMobile &&
-          <button
-            className="icon-button reader-sheet-trigger"
-            type="button"
-            title="Reader menu"
-            aria-expanded={mobileSheetOpen}
-            aria-controls="reader-mobile-sheet"
-            onClick={() => setMobileSheetOpen(true)}
-          >
-            <Settings2 size={17} />
-          </button>}
-          <div className="segmented" aria-label="Theme">
-            <button type="button" title="Light" aria-pressed={theme === "light"} onClick={() => dispatch(setReaderTheme("light"))}>
-              <Sun size={15} />
-            </button>
-            <button type="button" title="Sepia" aria-pressed={theme === "sepia"} onClick={() => dispatch(setReaderTheme("sepia"))}>
-              <BookOpen size={15} />
-            </button>
-            <button type="button" title="Dark" aria-pressed={theme === "dark"} onClick={() => dispatch(setReaderTheme("dark"))}>
-              <Moon size={15} />
-            </button>
-          </div>
-          {!isMobile ? (
+          {!compactReader ? (
+            <div className="segmented" aria-label="Theme">
+              <button type="button" title="Light" aria-pressed={theme === "light"} onClick={() => dispatch(setReaderTheme("light"))}>
+                <Sun size={15} />
+              </button>
+              <button type="button" title="Sepia" aria-pressed={theme === "sepia"} onClick={() => dispatch(setReaderTheme("sepia"))}>
+                <BookOpen size={15} />
+              </button>
+              <button type="button" title="Dark" aria-pressed={theme === "dark"} onClick={() => dispatch(setReaderTheme("dark"))}>
+                <Moon size={15} />
+              </button>
+            </div>
+          ) : null}
+          {!compactReader ? (
             <button
               className="icon-button format-trigger"
               type="button"
@@ -2472,6 +2846,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 onChange={(event) => dispatch(setReaderContentWidth(Number(event.target.value)))}
               />
             </label>
+            <div className="segmented reader-layout-mode" aria-label="Chế độ đọc">
+              <button type="button" aria-pressed={layoutMode === "scroll"} onClick={() => toggleLayoutMode("scroll")}>
+                Cuộn
+              </button>
+              <button type="button" aria-pressed={layoutMode === "page"} onClick={() => toggleLayoutMode("page")}>
+                Trang
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -2493,9 +2875,40 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   <X size={17} />
                 </button>
               </div>
+              <nav className="reader-sheet-tabs" role="tablist" aria-label="Mục công cụ đọc">
+                <button
+                  className={`reader-sheet-tab ${mobileSheetTab === "read" ? "reader-sheet-tab-active" : ""}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={mobileSheetTab === "read"}
+                  onClick={() => setMobileSheetTab("read")}
+                >
+                  Đọc
+                </button>
+                <button
+                  className={`reader-sheet-tab ${mobileSheetTab === "settings" ? "reader-sheet-tab-active" : ""}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={mobileSheetTab === "settings"}
+                  onClick={() => setMobileSheetTab("settings")}
+                >
+                  Cài đặt
+                </button>
+                <button
+                  className={`reader-sheet-tab ${mobileSheetTab === "offline" ? "reader-sheet-tab-active" : ""}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={mobileSheetTab === "offline"}
+                  onClick={() => setMobileSheetTab("offline")}
+                >
+                  Offline
+                </button>
+              </nav>
             </div>
 
             <div className="reader-mobile-sheet-scroll" ref={mobileSheetScrollRef}>
+            {mobileSheetTab === "read" ? (
+              <>
             <div className="reader-sheet-current">
               <div>
                 <span>Tiến độ</span>
@@ -2535,11 +2948,123 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               </button>
             </div>
 
-            <details className="reader-sheet-section reader-sheet-collapsible" onToggle={keepSheetSectionVisible}>
-              <summary>
-                <span>Cài đọc</span>
-                <Settings2 size={15} />
-              </summary>
+            <div className="reader-sheet-chapter-nav" aria-label="Điều hướng chương">
+              <Link
+                className="reader-sheet-nav-card"
+                aria-disabled={!activePayload.previousChapter}
+                href={activePayload.previousChapter ? storyHref(activePayload.story, activePayload.previousChapter.chapterNumber) : "#"}
+                onClick={(event) => {
+                  if (activePayload.previousChapter) markChapterListNavigation(activePayload.previousChapter.chapterNumber);
+                  setMobileSheetOpen(false);
+                  maybeOpenCachedChapter(event, activePayload.previousChapter?.chapterNumber);
+                }}
+              >
+                <ChevronLeft size={16} />
+                <span>
+                  <small>Trước</small>
+                  {activePayload.previousChapter ? activePayload.previousChapter.title : "Không có chương trước"}
+                </span>
+              </Link>
+              <Link
+                className="reader-sheet-nav-card"
+                aria-disabled={!activePayload.nextChapter}
+                href={activePayload.nextChapter ? storyHref(activePayload.story, activePayload.nextChapter.chapterNumber) : "#"}
+                onClick={(event) => {
+                  if (activePayload.nextChapter) markChapterListNavigation(activePayload.nextChapter.chapterNumber);
+                  setMobileSheetOpen(false);
+                  maybeOpenCachedChapter(event, activePayload.nextChapter?.chapterNumber);
+                }}
+              >
+                <span>
+                  <small>Sau</small>
+                  {activePayload.nextChapter ? activePayload.nextChapter.title : "Không có chương sau"}
+                </span>
+                <ChevronRight size={16} />
+              </Link>
+            </div>
+
+            {storyBookmarks.length > 0 ? (
+              <div className="reader-sheet-section reader-sheet-bookmarks">
+                <span>Dấu ấn truyện này</span>
+                <div className="reader-sheet-bookmark-row">
+                  {storyBookmarks.slice(0, 8).map((bookmark) => (
+                    <Link
+                      className={`reader-sheet-bookmark ${bookmark.chapterNumber === activePayload.chapter.chapterNumber ? "reader-sheet-bookmark-active" : ""}`}
+                      href={storyHref(activePayload.story, bookmark.chapterNumber)}
+                      key={`${bookmark.storyId}-${bookmark.chapterNumber}`}
+                      onClick={(event) => jumpToBookmark(event, bookmark)}
+                    >
+                      <BookMarked size={14} />
+                      <span>
+                        <strong>Ch.{bookmark.chapterNumber}</strong>
+                        <small>{Math.round(bookmark.progressPercent)}%</small>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {currentChapterParagraphBookmarks.length > 0 ? (
+              <div className="reader-sheet-section reader-sheet-bookmarks">
+                <span>Dấu đoạn chương này</span>
+                <div className="reader-sheet-paragraph-bookmarks">
+                  {currentChapterParagraphBookmarks.slice(0, 8).map((bookmark) => (
+                    <div className="reader-sheet-paragraph-bookmark-row" key={bookmark.id}>
+                      <button
+                        className="reader-sheet-paragraph-bookmark"
+                        type="button"
+                        onClick={() => {
+                          setMobileSheetOpen(false);
+                          window.requestAnimationFrame(() => scrollToParagraph(bookmark.paragraphIndex));
+                        }}
+                      >
+                        <BookMarked size={14} />
+                        <span>
+                          {bookmark.excerpt}
+                          {bookmark.note ? <small>{bookmark.note}</small> : null}
+                        </span>
+                      </button>
+                      <button
+                        className="reader-sheet-paragraph-note"
+                        type="button"
+                        aria-label="Ghi chú đoạn"
+                        onClick={() => {
+                          setMobileSheetOpen(false);
+                          openParagraphNoteEditor(bookmark.paragraphIndex);
+                        }}
+                      >
+                        <StickyNote size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="reader-sheet-section">
+              <span>Tự cuộn</span>
+              <div className="reader-sheet-section-body">
+                <label className="reader-range-control reader-sheet-range">
+                  <span>Tốc độ {autoScrollSpeed}px/nhịp</span>
+                  <input
+                    type="range"
+                    min={80}
+                    max={360}
+                    step={20}
+                    value={autoScrollSpeed}
+                    onChange={(event) => setAutoScrollSpeed(Number(event.target.value))}
+                  />
+                </label>
+              </div>
+            </div>
+              </>
+            ) : null}
+
+            {mobileSheetTab === "settings" ? (
+              <>
+            <div className="reader-sheet-section">
+              <span>Cài đọc</span>
               <div className="reader-sheet-section-body">
                 <div className="segmented reader-sheet-segmented" aria-label="Theme">
                   <button type="button" aria-pressed={theme === "light"} onClick={() => dispatch(setReaderTheme("light"))}>
@@ -2550,6 +3075,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   </button>
                   <button type="button" aria-pressed={theme === "dark"} onClick={() => dispatch(setReaderTheme("dark"))}>
                     <Moon size={15} />
+                  </button>
+                </div>
+                <div className="segmented reader-sheet-segmented reader-layout-mode" aria-label="Chế độ đọc">
+                  <button type="button" aria-pressed={layoutMode === "scroll"} onClick={() => toggleLayoutMode("scroll")}>
+                    Cuộn
+                  </button>
+                  <button type="button" aria-pressed={layoutMode === "page"} onClick={() => toggleLayoutMode("page")}>
+                    Trang
                   </button>
                 </div>
                 <div className="reader-sheet-font-row">
@@ -2617,13 +3150,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   />
                 </label>
               </div>
-            </details>
+            </div>
 
-            <details className="reader-sheet-section reader-sheet-collapsible" onToggle={keepSheetSectionVisible}>
-              <summary>
-                <span>Preset đọc</span>
-                <ClipboardCheck size={15} />
-              </summary>
+            <div className="reader-sheet-section">
+              <span>Preset đọc</span>
               <div className="reader-sheet-grid reader-sheet-section-body">
                 {(Object.entries(READER_COMFORT_PRESETS) as Array<[keyof typeof READER_COMFORT_PRESETS, (typeof READER_COMFORT_PRESETS)[keyof typeof READER_COMFORT_PRESETS]]>).map(([key, preset]) => {
                   const PresetIcon = PRESET_ICON_COMPONENT[key];
@@ -2635,27 +3165,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   );
                 })}
               </div>
-            </details>
+            </div>
 
-            <details className="reader-sheet-section reader-sheet-collapsible" onToggle={keepSheetSectionVisible}>
-              <summary>
-                <span>Tiện ích</span>
-                <Headphones size={15} />
-              </summary>
+            <div className="reader-sheet-section">
+              <span>Tiện ích</span>
               <div className="reader-sheet-grid reader-sheet-section-body">
                 <AmbientSoundPlayer />
-                <button className="reader-sheet-action" type="button" disabled={!activePayload.chapter.audioUrl}>
+                <button className="reader-sheet-action" type="button" disabled={!activePayload.chapter.audioUrl} onClick={scrollToAudioPanel}>
                   <Headphones size={16} />
-                  {activePayload.chapter.audioUrl ? "Audio chương" : "Chưa audio"}
-                </button>
-                <button
-                  className={`reader-sheet-action reader-sheet-status ${offlineReady ? "reader-sheet-status-ready" : ""}`}
-                  type="button"
-                  disabled={offlineLoading}
-                  onClick={() => refreshOfflineCache(true)}
-                >
-                  {offlineLoading ? <LoaderCircle size={16} className="spin" /> : <WifiOff size={16} />}
-                  {offlineReady ? "Đã tải" : offlineLoading ? "Đang tải" : "Offline"}
+                  {activePayload.chapter.audioUrl ? "Nghe audio" : "Tạo audio"}
                 </button>
                 <button
                   className={`reader-sheet-action ${wakeLockActive ? "reader-sheet-action-active" : ""}`}
@@ -2683,6 +3201,33 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   {readerDimEnabled ? "Dịu mắt" : "Lọc sáng"}
                 </button>
                 <button
+                  className={`reader-sheet-action ${skillEffectsEnabled ? "reader-sheet-action-active" : ""}`}
+                  type="button"
+                  aria-pressed={skillEffectsEnabled}
+                  onClick={toggleReaderSkillEffects}
+                >
+                  <Highlighter size={16} />
+                  {skillEffectsEnabled ? "Tắt hiệu ứng" : "Hiệu ứng tu luyện"}
+                </button>
+                <button
+                  className={`reader-sheet-action ${tapEdgeEnabled ? "reader-sheet-action-active" : ""}`}
+                  type="button"
+                  aria-pressed={tapEdgeEnabled}
+                  onClick={toggleTapEdgeNavigation}
+                >
+                  <ChevronLeft size={16} />
+                  {tapEdgeEnabled ? "Tắt chạm cạnh" : "Chạm cạnh đổi chương"}
+                </button>
+                <button
+                  className={`reader-sheet-action ${isPageLayout ? "reader-sheet-action-active" : ""}`}
+                  type="button"
+                  aria-pressed={isPageLayout}
+                  onClick={() => toggleLayoutMode()}
+                >
+                  <BookOpen size={16} />
+                  {isPageLayout ? "Chế độ cuộn" : "Chế độ trang"}
+                </button>
+                <button
                   className={`reader-sheet-action ${focusModeEnabled ? "reader-sheet-action-active" : ""}`}
                   type="button"
                   aria-pressed={focusModeEnabled}
@@ -2694,152 +3239,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   {focusModeEnabled ? <Eye size={16} /> : <EyeOff size={16} />}
                   {focusModeEnabled ? "Đang focus" : "Focus"}
                 </button>
-                <button className={`reader-sheet-action ${audioPanelOpen ? "reader-sheet-action-active" : ""}`} type="button" onClick={scrollToAudioPanel}>
-                  <Headphones size={16} />
-                  {activePayload.chapter.audioUrl ? "Nghe audio" : "Tạo audio"}
-                </button>
               </div>
-            </details>
-            {offlineError ? <p className="reader-sheet-error">{offlineError}</p> : null}
-            {wakeLockError ? <p className="reader-sheet-error">{wakeLockError}</p> : null}
-
-            <div className="reader-sheet-chapter-nav" aria-label="Điều hướng chương">
-              <Link
-                className="reader-sheet-nav-card"
-                aria-disabled={!activePayload.previousChapter}
-                href={activePayload.previousChapter ? storyHref(activePayload.story, activePayload.previousChapter.chapterNumber) : "#"}
-                onClick={(event) => {
-                  if (activePayload.previousChapter) markChapterListNavigation(activePayload.previousChapter.chapterNumber);
-                  setMobileSheetOpen(false);
-                  maybeOpenCachedChapter(event, activePayload.previousChapter?.chapterNumber);
-                }}
-              >
-                <ChevronLeft size={16} />
-                <span>
-                  <small>Trước</small>
-                  {activePayload.previousChapter ? activePayload.previousChapter.title : "Không có chương trước"}
-                </span>
-              </Link>
-              <Link
-                className="reader-sheet-nav-card"
-                aria-disabled={!activePayload.nextChapter}
-                href={activePayload.nextChapter ? storyHref(activePayload.story, activePayload.nextChapter.chapterNumber) : "#"}
-                onClick={(event) => {
-                  if (activePayload.nextChapter) markChapterListNavigation(activePayload.nextChapter.chapterNumber);
-                  setMobileSheetOpen(false);
-                  maybeOpenCachedChapter(event, activePayload.nextChapter?.chapterNumber);
-                }}
-              >
-                <span>
-                  <small>Sau</small>
-                  {activePayload.nextChapter ? activePayload.nextChapter.title : "Không có chương sau"}
-                </span>
-                <ChevronRight size={16} />
-              </Link>
             </div>
 
-            {storyBookmarks.length > 0 ? (
-              <div className="reader-sheet-section reader-sheet-bookmarks">
-                <span>Dấu ấn truyện này</span>
-                <div className="reader-sheet-bookmark-row">
-                  {storyBookmarks.slice(0, 8).map((bookmark) => (
-                    <Link
-                      className={`reader-sheet-bookmark ${bookmark.chapterNumber === activePayload.chapter.chapterNumber ? "reader-sheet-bookmark-active" : ""}`}
-                      href={storyHref(activePayload.story, bookmark.chapterNumber)}
-                      key={`${bookmark.storyId}-${bookmark.chapterNumber}`}
-                      onClick={(event) => jumpToBookmark(event, bookmark)}
-                    >
-                      <BookMarked size={14} />
-                      <span>
-                        <strong>Ch.{bookmark.chapterNumber}</strong>
-                        <small>{Math.round(bookmark.progressPercent)}%</small>
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {currentChapterParagraphBookmarks.length > 0 ? (
-              <div className="reader-sheet-section reader-sheet-bookmarks">
-                <span>Dấu đoạn chương này</span>
-                <div className="reader-sheet-paragraph-bookmarks">
-                  {currentChapterParagraphBookmarks.slice(0, 8).map((bookmark) => (
-                    <button
-                      className="reader-sheet-paragraph-bookmark"
-                      type="button"
-                      key={bookmark.id}
-                      onClick={() => {
-                        setMobileSheetOpen(false);
-                        window.requestAnimationFrame(() => scrollToParagraph(bookmark.paragraphIndex));
-                      }}
-                    >
-                      <BookMarked size={14} />
-                      <span>{bookmark.excerpt}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            <details className="reader-sheet-section reader-sheet-collapsible" onToggle={keepSheetSectionVisible}>
-              <summary>
-                <span>Bố cục nâng cao</span>
-                <Plus size={15} />
-              </summary>
-              <div className="reader-sheet-section-body">
-                <label className="reader-range-control reader-sheet-range">
-                  <span>Tự cuộn {autoScrollSpeed}px/nhịp</span>
-                  <input
-                    type="range"
-                    min={80}
-                    max={360}
-                    step={20}
-                    value={autoScrollSpeed}
-                    onChange={(event) => setAutoScrollSpeed(Number(event.target.value))}
-                  />
-                </label>
-              </div>
-            </details>
-
-            <details className="reader-sheet-section reader-sheet-collapsible" onToggle={keepSheetSectionVisible}>
-              <summary>
-                <span>Đọc offline</span>
-                <strong>{sortedCachedChapters.length > 0 ? `${sortedCachedChapters.length} chương` : "Chưa tải"}</strong>
-                <WifiOff size={15} />
-              </summary>
-              <div className="reader-sheet-section-body reader-offline-cache-panel">
-                {sortedCachedChapters.length > 0 ? (
-                  <>
-                    <p>
-                      Các chương đã tải có thể mở ngay cả khi mất mạng. Chương hiện tại sẽ được đánh dấu nổi bật.
-                    </p>
-                    <div className="offline-chapter-grid">
-                      {sortedCachedChapters.map((record) => (
-                        <button
-                          className={`offline-chapter-pill ${record.chapterNumber === activePayload.chapter.chapterNumber ? "offline-chapter-pill-active" : ""}`}
-                          type="button"
-                          key={record.key}
-                          onClick={() => openCachedChapter(record.chapterNumber)}
-                        >
-                          Ch.{record.chapterNumber}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                ) : <small>Chưa có chương đã tải.</small>}
-              </div>
-            </details>
-
             {currentUser?.isAdmin ? (
-              <details className="reader-sheet-section reader-sheet-collapsible" open={qualityPanelOpen} onToggle={(event) => {
-                setQualityPanelOpen(event.currentTarget.open);
-                keepSheetSectionVisible(event);
-              }}>
-                <summary>
-                  <span>Quality tools</span>
-                  <ClipboardCheck size={15} />
-                </summary>
+              <div className="reader-sheet-section">
+                <span>Quality tools</span>
                 <div className="reader-quality-panel reader-sheet-section-body">
                   <dl>
                     <div>
@@ -2869,8 +3274,51 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                     ))}
                   </div>
                 </div>
-              </details>
+              </div>
             ) : null}
+              </>
+            ) : null}
+
+            {mobileSheetTab === "offline" ? (
+              <>
+            <div className="reader-sheet-section">
+              <span>Tải chương offline</span>
+              <div className="reader-sheet-section-body reader-offline-cache-panel">
+                <button
+                  className={`reader-sheet-action reader-sheet-status ${offlineReady ? "reader-sheet-status-ready" : ""}`}
+                  type="button"
+                  disabled={offlineLoading}
+                  onClick={() => refreshOfflineCache(true)}
+                >
+                  {offlineLoading ? <LoaderCircle size={16} className="spin" /> : <WifiOff size={16} />}
+                  {offlineReady ? `Đã tải ${cachedChapters.length} chương` : offlineLoading ? "Đang tải…" : "Tải chương gần đây"}
+                </button>
+                <p>
+                  Các chương đã tải mở được khi mất mạng. Chương hiện tại được đánh dấu nổi bật.
+                </p>
+                {sortedCachedChapters.length > 0 ? (
+                  <div className="offline-chapter-grid">
+                    {sortedCachedChapters.map((record) => (
+                      <button
+                        className={`offline-chapter-pill ${record.chapterNumber === activePayload.chapter.chapterNumber ? "offline-chapter-pill-active" : ""}`}
+                        type="button"
+                        key={record.key}
+                        onClick={() => openCachedChapter(record.chapterNumber)}
+                      >
+                        Ch.{record.chapterNumber}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <small>Chưa có chương đã tải.</small>
+                )}
+              </div>
+            </div>
+              </>
+            ) : null}
+
+            {offlineError ? <p className="reader-sheet-error">{offlineError}</p> : null}
+            {wakeLockError ? <p className="reader-sheet-error">{wakeLockError}</p> : null}
             </div>{/* end reader-mobile-sheet-scroll */}
           </Drawer.Content>
         </Drawer.Portal>
@@ -2995,6 +3443,22 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             />
           ) : null}
           <div className="reader-article">
+            {tapEdgeEnabled && !focusModeEnabled && !adminEdit ? (
+              <>
+                <button
+                  className="reader-tap-edge reader-tap-edge-left"
+                  type="button"
+                  aria-label="Chương trước"
+                  onClick={() => void handleTapEdgeNav("previous")}
+                />
+                <button
+                  className="reader-tap-edge reader-tap-edge-right"
+                  type="button"
+                  aria-label="Chương sau"
+                  onClick={() => void handleTapEdgeNav("next")}
+                />
+              </>
+            ) : null}
             <header className="reader-heading">
               {adminEdit?.field === "chapterTitle" ? (
                 <input
@@ -3030,10 +3494,40 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 )}
                 {" · "}
                 {activePayload.story.totalChapters || chapters.length} chương
-                {activePayload.chapter.textSource ? ` · ${activePayload.chapter.textSource}` : ""}
+                {currentUser?.isAdmin && activePayload.chapter.textSource ? ` · ${activePayload.chapter.textSource}` : ""}
                 {totalReadingMinutes > 0 ? ` · ~${totalReadingMinutes} phút đọc` : ""}
+                {totalReadingMinutes > 0 ? (
+                  <span className="reader-heading-eta" ref={headingEtaLabelRef} hidden />
+                ) : null}
               </p>
             </header>
+
+            {showResumeBanner && resumeHint ? (
+              <ReaderResumeBanner
+                paragraphIndex={resumeHint.paragraphIndex}
+                progressPercent={resumeHint.progressPercent}
+                onContinue={continueFromResume}
+                onDismiss={dismissResumeBanner}
+              />
+            ) : null}
+
+            {activePayload.previousChapterRecap ? (
+              <ReaderChapterRecap recap={activePayload.previousChapterRecap} previousChapter={activePayload.previousChapter} />
+            ) : null}
+
+            {paragraphNoteEditor ? (
+              <ReaderParagraphNoteEditor
+                excerpt={
+                  currentChapterParagraphBookmarks.find((item) => item.paragraphIndex === paragraphNoteEditor.paragraphIndex)?.excerpt ??
+                  paragraphs[paragraphNoteEditor.paragraphIndex]?.slice(0, 120) ??
+                  ""
+                }
+                note={paragraphNoteEditor.note}
+                onChange={(value) => setParagraphNoteEditor((current) => (current ? { ...current, note: value } : current))}
+                onSave={saveParagraphNote}
+                onClose={() => setParagraphNoteEditor(null)}
+              />
+            ) : null}
 
             {audioPanelOpen ? (
               <section className="audio-panel" aria-label="Chapter audio" ref={audioPanelRef}>
@@ -3056,11 +3550,114 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               {adminEdit?.field === "content" ? (
                 <textarea ref={adminContentEditorRef} className="admin-content-editor" value={adminEdit.value} autoFocus onChange={(event) => setAdminEdit((current) => current?.field === "content" ? { ...current, value: event.target.value } : current)} />
               ) : paragraphs.length > 0 ? (
+                isPageLayout ? (
+                  <div className="reader-page-shell" style={{ minHeight: pageViewportHeight }}>
+                    <div className="reader-page-indicator" aria-live="polite">
+                      Trang {pageIndex + 1} / {paragraphPages.length}
+                    </div>
+                    {currentPageParagraphIndexes.map((index) => {
+                      const paragraph = paragraphs[index] ?? "";
+                      const bookmarked = bookmarkedParagraphIndexes.has(index);
+                      return (
+                        <p
+                          className={
+                            bookmarked
+                              ? currentChapterParagraphBookmarks.some((item) => item.paragraphIndex === index && item.note)
+                                ? "reader-paragraph reader-paragraph-bookmarked reader-paragraph-has-note"
+                                : "reader-paragraph reader-paragraph-bookmarked"
+                              : "reader-paragraph"
+                          }
+                          data-paragraph-index={index}
+                          key={`${index}-${paragraph.slice(0, 12)}`}
+                          onDoubleClick={(event) => {
+                            const target = event.target instanceof Element ? event.target : null;
+                            if (target?.closest("button")) return;
+                            event.preventDefault();
+                            suppressSelectionActionUntilRef.current = Date.now() + 450;
+                            window.getSelection()?.removeAllRanges();
+                            startContentAdminEdit({ paragraphIndex: index, caretOffset: contentCaretOffsetFromPoint(event, index) });
+                          }}
+                        >
+                          {renderParagraphTools(index, paragraph, bookmarked)}
+                          <span className="reader-paragraph-text">{paragraph}</span>
+                        </p>
+                      );
+                    })}
+                    <div className="reader-page-nav" aria-label="Điều hướng trang">
+                      <button className="reader-page-nav-button" type="button" disabled={pageIndex <= 0} onClick={() => goToPage(pageIndex - 1)}>
+                        <ChevronLeft size={16} />
+                        Trang trước
+                      </button>
+                      <button
+                        className="reader-page-nav-button"
+                        type="button"
+                        disabled={pageIndex >= paragraphPages.length - 1}
+                        onClick={() => goToPage(pageIndex + 1)}
+                      >
+                        Trang sau
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ) : shouldVirtualizeParagraphs ? (
+                  <div
+                    className="reader-content-virtual"
+                    style={{ height: paragraphVirtualizer.getTotalSize(), width: "100%", position: "relative" }}
+                  >
+                    {paragraphVirtualizer.getVirtualItems().map((virtualRow) => {
+                      const index = virtualRow.index;
+                      const paragraph = paragraphs[index] ?? "";
+                      const bookmarked = bookmarkedParagraphIndexes.has(index);
+                      return (
+                        <div
+                          key={virtualRow.key}
+                          data-index={index}
+                          ref={paragraphVirtualizer.measureElement}
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            transform: `translateY(${virtualRow.start - paragraphVirtualizer.options.scrollMargin}px)`
+                          }}
+                        >
+                          <p
+                            className={
+                            bookmarked
+                              ? currentChapterParagraphBookmarks.some((item) => item.paragraphIndex === index && item.note)
+                                ? "reader-paragraph reader-paragraph-bookmarked reader-paragraph-has-note"
+                                : "reader-paragraph reader-paragraph-bookmarked"
+                              : "reader-paragraph"
+                          }
+                            data-paragraph-index={index}
+                            onDoubleClick={(event) => {
+                              const target = event.target instanceof Element ? event.target : null;
+                              if (target?.closest("button")) return;
+                              event.preventDefault();
+                              suppressSelectionActionUntilRef.current = Date.now() + 450;
+                              window.getSelection()?.removeAllRanges();
+                              startContentAdminEdit({ paragraphIndex: index, caretOffset: contentCaretOffsetFromPoint(event, index) });
+                            }}
+                          >
+                            {renderParagraphTools(index, paragraph, bookmarked)}
+                            <span className="reader-paragraph-text">{paragraph}</span>
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
                 paragraphs.map((paragraph, index) => {
                   const bookmarked = bookmarkedParagraphIndexes.has(index);
                   return (
                     <p
-                      className={bookmarked ? "reader-paragraph reader-paragraph-bookmarked" : "reader-paragraph"}
+                      className={
+                        bookmarked
+                          ? currentChapterParagraphBookmarks.some((item) => item.paragraphIndex === index && item.note)
+                            ? "reader-paragraph reader-paragraph-bookmarked reader-paragraph-has-note"
+                            : "reader-paragraph reader-paragraph-bookmarked"
+                          : "reader-paragraph"
+                      }
                       data-paragraph-index={index}
                       key={`${index}-${paragraph.slice(0, 12)}`}
                       onDoubleClick={(event) => {
@@ -3072,19 +3669,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                         startContentAdminEdit({ paragraphIndex: index, caretOffset: contentCaretOffsetFromPoint(event, index) });
                       }}
                     >
-                      <button
-                        className="paragraph-bookmark-button"
-                        type="button"
-                        aria-label={bookmarked ? "Bỏ dấu đoạn" : "Đánh dấu đoạn"}
-                        title={bookmarked ? "Bỏ dấu đoạn" : "Đánh dấu đoạn"}
-                        onClick={() => toggleParagraphBookmark(index, paragraph)}
-                      >
-                        {bookmarked ? <BookMarked size={13} /> : <Highlighter size={13} />}
-                      </button>
+                      {renderParagraphTools(index, paragraph, bookmarked)}
                       <span className="reader-paragraph-text">{paragraph}</span>
                     </p>
                   );
                 })
+                )
               ) : (
                 <div className="reader-empty">
                   <p>

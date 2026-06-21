@@ -13,6 +13,7 @@ type ParagraphBookmarkRow = {
   paragraph_index: number;
   excerpt: string;
   progress_percent: string;
+  note: string | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -27,6 +28,7 @@ function mapParagraphBookmark(row: ParagraphBookmarkRow) {
     paragraphIndex: row.paragraph_index,
     excerpt: row.excerpt,
     progressPercent: Number(row.progress_percent),
+    note: row.note,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString()
   };
@@ -56,7 +58,7 @@ export async function GET(request: Request) {
     `
       SELECT id, story_id, chapter_id, chapter_number, chapter_title,
         paragraph_index, excerpt, progress_percent::text AS progress_percent,
-        created_at, updated_at
+        note, created_at, updated_at
       FROM reader_paragraph_bookmarks
       WHERE ${where.join(" AND ")}
       ORDER BY updated_at DESC
@@ -80,6 +82,7 @@ export async function POST(request: Request) {
     paragraphIndex?: unknown;
     excerpt?: unknown;
     progressPercent?: unknown;
+    note?: unknown;
   };
 
   const storyId = typeof body.storyId === "string" ? body.storyId : "";
@@ -89,6 +92,7 @@ export async function POST(request: Request) {
   const paragraphIndex = Number(body.paragraphIndex);
   const excerpt = typeof body.excerpt === "string" ? body.excerpt.trim().slice(0, 320) : "";
   const progressPercent = Math.min(100, Math.max(0, Number(body.progressPercent) || 0));
+  const note = typeof body.note === "string" && body.note.trim() ? body.note.trim().slice(0, 500) : null;
 
   if (!storyId || !Number.isInteger(chapterNumber) || chapterNumber < 1 || !Number.isInteger(paragraphIndex) || paragraphIndex < 0) {
     return NextResponse.json({ error: "Invalid paragraph bookmark payload" }, { status: 400 });
@@ -98,21 +102,22 @@ export async function POST(request: Request) {
     `
       INSERT INTO reader_paragraph_bookmarks (
         user_id, story_id, chapter_id, chapter_number, chapter_title,
-        paragraph_index, excerpt, progress_percent, created_at, updated_at
+        paragraph_index, excerpt, progress_percent, note, created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), now())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), now())
       ON CONFLICT (user_id, story_id, chapter_number, paragraph_index)
       DO UPDATE SET
         chapter_id = EXCLUDED.chapter_id,
         chapter_title = EXCLUDED.chapter_title,
         excerpt = EXCLUDED.excerpt,
         progress_percent = EXCLUDED.progress_percent,
+        note = COALESCE(EXCLUDED.note, reader_paragraph_bookmarks.note),
         updated_at = now()
       RETURNING id, story_id, chapter_id, chapter_number, chapter_title,
         paragraph_index, excerpt, progress_percent::text AS progress_percent,
-        created_at, updated_at
+        note, created_at, updated_at
     `,
-    [user.id, storyId, chapterId, chapterNumber, chapterTitle, paragraphIndex, excerpt, progressPercent]
+    [user.id, storyId, chapterId, chapterNumber, chapterTitle, paragraphIndex, excerpt, progressPercent, note]
   );
 
   return NextResponse.json({ item: mapParagraphBookmark(rows[0]) });

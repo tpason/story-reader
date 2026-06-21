@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { cultivationProfileForAuthor } from "@/lib/cultivation";
 import { query } from "@/lib/db";
+import { computeStreakFromReadDates, streakBonusXp } from "@/lib/reading-streak";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +19,9 @@ type CommentRow = {
   updated_at: Date;
   deleted_at: Date | null;
   username: string;
+  user_role: string;
   author_xp: string;
+  read_dates: Date[] | null;
 };
 
 type ChapterRow = {
@@ -49,36 +53,17 @@ function cleanCommentJson(value: unknown, fallbackText: string) {
   return value;
 }
 
-function cultivationFromXp(xpValue: string) {
-  const totalXp = Math.max(0, Number(xpValue) || 0);
-  const realms = [
-    { name: "Luyện Khí", startsAtLevel: 1, imageKey: "qi" },
-    { name: "Trúc Cơ", startsAtLevel: 10, imageKey: "foundation" },
-    { name: "Kim Đan", startsAtLevel: 20, imageKey: "core" },
-    { name: "Nguyên Anh", startsAtLevel: 35, imageKey: "soul" },
-    { name: "Hóa Thần", startsAtLevel: 55, imageKey: "spirit" },
-    { name: "Luyện Hư", startsAtLevel: 80, imageKey: "void" },
-    { name: "Hợp Thể", startsAtLevel: 110, imageKey: "union" },
-    { name: "Đại Thừa", startsAtLevel: 150, imageKey: "ascension" }
-  ];
-
-  let level = 1;
-  let remainingXp = totalXp;
-  while (remainingXp >= Math.floor(600 * Math.pow(level, 1.6))) {
-    remainingXp -= Math.floor(600 * Math.pow(level, 1.6));
-    level += 1;
-  }
-
-  const realm = [...realms].reverse().find((item) => level >= item.startsAtLevel) ?? realms[0];
-  return {
-    level,
-    realm: realm.name,
-    realmStage: level - realm.startsAtLevel + 1,
-    realmImageKey: realm.imageKey
-  };
+function cultivationFromXp(xpValue: string, readDates: Date[] | null, isAdmin: boolean) {
+  const readingXp = Math.max(0, Number(xpValue) || 0);
+  const streak = computeStreakFromReadDates(
+    (readDates ?? []).map((date) => date.toISOString().slice(0, 10))
+  );
+  const totalXp = readingXp + streakBonusXp(streak.currentStreak);
+  return cultivationProfileForAuthor(totalXp, isAdmin);
 }
 
 function mapComment(row: CommentRow) {
+  const isAdmin = row.user_role === "admin";
   return {
     id: row.id,
     storyId: row.story_id,
@@ -92,7 +77,8 @@ function mapComment(row: CommentRow) {
     author: {
       id: row.user_id,
       username: row.username,
-      cultivation: cultivationFromXp(row.author_xp)
+      isAdmin,
+      cultivation: cultivationFromXp(row.author_xp, row.read_dates, isAdmin)
     }
   };
 }
@@ -106,15 +92,25 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cha
         SELECT user_id, COALESCE(SUM(max_read_chapter_number), 0) * 100 AS author_xp
         FROM reader_reading_progress
         GROUP BY user_id
+      ),
+      author_read_days AS (
+        SELECT
+          user_id,
+          ARRAY_AGG(DISTINCT (last_read_at AT TIME ZONE 'UTC')::date ORDER BY (last_read_at AT TIME ZONE 'UTC')::date DESC) AS read_dates
+        FROM reader_reading_progress
+        GROUP BY user_id
       )
       SELECT
         c.id, c.story_id, c.chapter_id, c.user_id, c.parent_id, c.content_text,
         c.created_at, c.updated_at, c.deleted_at,
         u.username,
-        COALESCE(ap.author_xp, 0)::text AS author_xp
+        u.role AS user_role,
+        COALESCE(ap.author_xp, 0)::text AS author_xp,
+        ard.read_dates
       FROM chapter_comments c
       JOIN reader_users u ON u.id = c.user_id
       LEFT JOIN author_progress ap ON ap.user_id = c.user_id
+      LEFT JOIN author_read_days ard ON ard.user_id = c.user_id
       WHERE c.chapter_id = $1
       ORDER BY COALESCE(c.parent_id, c.id), c.parent_id NULLS FIRST, c.created_at ASC
       LIMIT 240
@@ -201,15 +197,26 @@ export async function POST(request: Request, { params }: { params: Promise<{ cha
         FROM reader_reading_progress
         WHERE user_id = $3
         GROUP BY user_id
+      ),
+      author_read_days AS (
+        SELECT
+          user_id,
+          ARRAY_AGG(DISTINCT (last_read_at AT TIME ZONE 'UTC')::date ORDER BY (last_read_at AT TIME ZONE 'UTC')::date DESC) AS read_dates
+        FROM reader_reading_progress
+        WHERE user_id = $3
+        GROUP BY user_id
       )
       SELECT
         i.id, i.story_id, i.chapter_id, i.user_id, i.parent_id, i.content_text,
         i.created_at, i.updated_at, i.deleted_at,
         u.username,
-        COALESCE(ap.author_xp, 0)::text AS author_xp
+        u.role AS user_role,
+        COALESCE(ap.author_xp, 0)::text AS author_xp,
+        ard.read_dates
       FROM inserted i
       JOIN reader_users u ON u.id = i.user_id
       LEFT JOIN author_progress ap ON ap.user_id = i.user_id
+      LEFT JOIN author_read_days ard ON ard.user_id = i.user_id
     `,
     [chapter.story_id, chapter.id, user.id, parentId, JSON.stringify(contentJson), content]
   );

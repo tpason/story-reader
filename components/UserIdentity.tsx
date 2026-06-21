@@ -3,8 +3,10 @@
 import { BookOpenCheck, Bell, LogIn, LogOut, UserPlus, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { CultivationAvatar } from "@/components/CultivationAvatar";
 import { fetchCurrentUser } from "@/lib/api-client";
-import { avatarGradient, avatarInitial, clearCurrentUser, storeCurrentUser, type StoredReaderUser } from "@/lib/identity";
+import { getCultivationState } from "@/lib/cultivation";
+import { clearCurrentUser, storeCurrentUser, type StoredReaderUser } from "@/lib/identity";
 import { persistor, setCurrentUser } from "@/lib/store";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 
@@ -27,9 +29,16 @@ function RoleBadge({ isAdmin, signedIn }: { isAdmin?: boolean; signedIn: boolean
 export function UserIdentity({ compact = false, panel = false, className = "" }: UserIdentityProps) {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.identity.user);
+  const history = useAppSelector((state) => state.history.items);
+  const streak = useAppSelector((state) => state.readingStreak);
   const identityHydrated = useAppSelector((state) => state.identity.hydrated);
   const [loading, setLoading] = useState(!identityHydrated);
   const [modalOpen, setModalOpen] = useState(false);
+
+  const cultivation = useMemo(
+    () => getCultivationState(history, Boolean(user), streak.currentStreak, Boolean(user?.isAdmin)),
+    [history, streak.currentStreak, user]
+  );
 
   const persistUser = useCallback(async (currentUser: StoredReaderUser | null) => {
     dispatch(setCurrentUser(currentUser));
@@ -64,10 +73,9 @@ export function UserIdentity({ compact = false, panel = false, className = "" }:
     };
   }, [modalOpen]);
 
-  const avatarStyle = useMemo(() => {
-    const gradient = avatarGradient(user?.username ?? "tan-tu");
-    return { "--avatar-from": gradient.from, "--avatar-to": gradient.to } as React.CSSProperties;
-  }, [user?.username]);
+  const avatarTitle = user
+    ? `${cultivation.realm} tầng ${cultivation.realmStage} · Lv.${cultivation.level}`
+    : undefined;
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
@@ -87,9 +95,16 @@ export function UserIdentity({ compact = false, panel = false, className = "" }:
           aria-expanded={modalOpen}
           onClick={() => setModalOpen(true)}
         >
-          <span className={`identity-avatar ${user ? "" : "identity-avatar-muted"}`} style={user ? avatarStyle : undefined}>
-            {user ? avatarInitial(user.username) : "T"}
-          </span>
+          <CultivationAvatar
+            username={user?.username ?? "tan-tu"}
+            level={cultivation.level}
+            realmImageKey={cultivation.realmImageKey}
+            size="sm"
+            muted={!user}
+            isAdmin={Boolean(user?.isAdmin)}
+            title={avatarTitle}
+            className="identity-avatar-slot"
+          />
           <span className="identity-copy">
             <small>{user?.isAdmin ? "Quản trị" : user ? "Đạo hữu" : loading ? "Đang dò khí tức" : "Tán tu"}</small>
             <strong>{user ? user.username : "Chưa nhập môn"}</strong>
@@ -113,9 +128,16 @@ export function UserIdentity({ compact = false, panel = false, className = "" }:
               </div>
 
               <div className="identity-modal-profile">
-                <div className="identity-avatar identity-avatar-large" style={user ? avatarStyle : undefined}>
-                  {user ? avatarInitial(user.username) : "T"}
-                </div>
+                <CultivationAvatar
+                  username={user?.username ?? "tan-tu"}
+                  level={cultivation.level}
+                  realmImageKey={cultivation.realmImageKey}
+                  size="lg"
+                  muted={!user}
+                  isAdmin={Boolean(user?.isAdmin)}
+                  title={avatarTitle}
+                  className="identity-avatar-slot identity-avatar-slot-large"
+                />
                 <p>
                   {user
                     ? user.email || "Tài khoản này đang sync tàng thư, follow và tiến độ đọc qua database."
@@ -159,9 +181,16 @@ export function UserIdentity({ compact = false, panel = false, className = "" }:
 
   return (
     <section className={`identity-panel ${className}`} aria-label="Reader identity">
-      <div className="identity-avatar identity-avatar-large" style={avatarStyle}>
-        {user ? avatarInitial(user.username) : "T"}
-      </div>
+      <CultivationAvatar
+        username={user?.username ?? "tan-tu"}
+        level={cultivation.level}
+        realmImageKey={cultivation.realmImageKey}
+        size="lg"
+        muted={!user}
+        isAdmin={Boolean(user?.isAdmin)}
+        title={avatarTitle}
+        className="identity-avatar-slot identity-avatar-slot-large"
+      />
       <div className="identity-panel-body">
         <p className="eyebrow">{user ? "Đạo hữu" : "Tán tu"}</p>
         <div className="identity-title-row">

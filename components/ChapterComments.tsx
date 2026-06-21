@@ -6,7 +6,13 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchCurrentUser } from "@/lib/api-client";
-import { avatarGradient, avatarInitial } from "@/lib/identity";
+import {
+  commentAuraVars,
+  commentPrestigeLabel,
+  commentPrestigeTier,
+  cultivationAuraTier
+} from "@/lib/cultivation";
+import { CultivationAvatar } from "@/components/CultivationAvatar";
 import { prefersReducedMotion } from "@/lib/browser";
 import { SkillCaster } from "@/components/SkillCaster";
 import type { SkillCastEvent } from "@/components/SkillEffectLayer";
@@ -28,15 +34,35 @@ const CommentForm = dynamic(
 );
 
 function CommentAvatar({ author }: { author: CommentAuthor }) {
-  const gradient = avatarGradient(author.username);
   return (
-    <span
-      className="comment-avatar"
-      data-realm={author.cultivation.realmImageKey}
-      style={{ "--avatar-from": gradient.from, "--avatar-to": gradient.to } as React.CSSProperties}
+    <CultivationAvatar
+      username={author.username}
+      level={author.cultivation.level}
+      realmImageKey={author.cultivation.realmImageKey}
+      size="md"
+      isAdmin={Boolean(author.isAdmin)}
+      className="comment-avatar-slot"
       title={`${author.cultivation.realm} tầng ${author.cultivation.realmStage}`}
-    >
-      {avatarInitial(author.username)}
+    />
+  );
+}
+
+function PrestigeBadge({ author }: { author: CommentAuthor }) {
+  if (author.isAdmin) {
+    return (
+      <span className="comment-prestige-badge" data-prestige="admin">
+        Tổng quản
+      </span>
+    );
+  }
+
+  const tier = commentPrestigeTier(author.cultivation.level);
+  const label = commentPrestigeLabel(tier);
+  if (!label) return null;
+
+  return (
+    <span className="comment-prestige-badge" data-prestige={tier}>
+      {label}
     </span>
   );
 }
@@ -49,14 +75,13 @@ function RealmChip({ author }: { author: CommentAuthor }) {
   );
 }
 
-function commentAuraStyle(author: CommentAuthor) {
-  const level = Math.max(1, author.cultivation.level);
-  const glow = Math.min(0.34, 0.08 + level * 0.012);
-  const speed = Math.max(4.6, 9.5 - level * 0.18);
+function commentBodyProps(author: CommentAuthor) {
+  const prestige = author.isAdmin ? "grandmaster" : commentPrestigeTier(author.cultivation.level);
   return {
-    "--comment-glow": glow.toFixed(2),
-    "--comment-border-speed": `${speed.toFixed(1)}s`
-  } as React.CSSProperties;
+    prestige,
+    auraTier: cultivationAuraTier(author.cultivation.level),
+    style: commentAuraVars(author.cultivation.level)
+  };
 }
 
 function CommentText({ text }: { text: string }) {
@@ -309,13 +334,26 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
       {!loading && comments.length === 0 ? <p className="comments-empty">Chưa có đạo hữu nào luận đạo ở chương này.</p> : null}
 
       <div className="comment-thread-list" ref={listRef}>
-        {comments.map((comment) => (
+        {comments.map((comment) => {
+          const commentBody = commentBodyProps(comment.author);
+          return (
           <article className="comment-thread" key={comment.id} data-comment-thread>
-            <div className="comment-item" data-comment-id={comment.id}>
+            <div
+              className="comment-item"
+              data-comment-id={comment.id}
+              data-prestige={commentBody.prestige}
+            >
               <CommentAvatar author={comment.author} />
-              <div className="comment-body" data-realm={comment.author.cultivation.realmImageKey} style={commentAuraStyle(comment.author)}>
+              <div
+                className="comment-body"
+                data-realm={comment.author.cultivation.realmImageKey}
+                data-prestige={commentBody.prestige}
+                data-aura-tier={commentBody.auraTier}
+                style={commentBody.style}
+              >
                 <div className="comment-meta">
                   <strong>{comment.author.username}</strong>
+                  <PrestigeBadge author={comment.author} />
                   <RealmChip author={comment.author} />
                 </div>
                 <CommentText text={comment.contentText} />
@@ -331,12 +369,26 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
               </div>
             </div>
 
-            {(repliesByParent.get(comment.id) ?? []).map((reply) => (
-              <div className="comment-item comment-reply" key={reply.id} data-comment-id={reply.id}>
+            {(repliesByParent.get(comment.id) ?? []).map((reply) => {
+              const replyBody = commentBodyProps(reply.author);
+              return (
+              <div
+                className="comment-item comment-reply"
+                key={reply.id}
+                data-comment-id={reply.id}
+                data-prestige={replyBody.prestige}
+              >
                 <CommentAvatar author={reply.author} />
-                <div className="comment-body" data-realm={reply.author.cultivation.realmImageKey} style={commentAuraStyle(reply.author)}>
+                <div
+                  className="comment-body"
+                  data-realm={reply.author.cultivation.realmImageKey}
+                  data-prestige={replyBody.prestige}
+                  data-aura-tier={replyBody.auraTier}
+                  style={replyBody.style}
+                >
                   <div className="comment-meta">
                     <strong>{reply.author.username}</strong>
+                    <PrestigeBadge author={reply.author} />
                     <RealmChip author={reply.author} />
                   </div>
                   <CommentText text={reply.contentText} />
@@ -345,7 +397,8 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
 
             {replyingTo === comment.id ? (
               <div className="comment-reply-form">
@@ -353,7 +406,8 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
               </div>
             ) : null}
           </article>
-        ))}
+        );
+        })}
       </div>
     </div>
   </section>

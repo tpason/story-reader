@@ -9,6 +9,8 @@ import {
   StoryRecommendationsSection,
 } from "@/components/story/StoryRecommendationSections";
 import { buildStoryMetadata } from "@/lib/metadata";
+import { buildStoryBookJsonLd } from "@/lib/json-ld";
+import { JsonLdScript } from "@/components/JsonLdScript";
 import { getCachedStory, listChapters } from "@/lib/stories";
 import { isStoryUuid, storyKeyToId } from "@/lib/urls";
 
@@ -42,22 +44,25 @@ export default async function StoryLanding({ params }: { params: Promise<{ story
   ]);
 
   return (
-    <StoryDetailClient
-      story={story}
-      chapters={chapters.items}
-      totalChapters={chapters.total}
-      recommendationsSlot={
-        <Suspense fallback={<RecommendationsSkeleton />}>
-          <StoryRecommendationsSection storyId={storyId} />
-        </Suspense>
-      }
-      sameAuthorSlot={
-        story.author ? (
-          <Suspense fallback={<SameAuthorSkeleton />}>
-            <SameAuthorStoriesSection author={story.author} excludeStoryId={storyId} />
+    <>
+      <JsonLdScript data={buildStoryBookJsonLd(story)} />
+      <StoryDetailClient
+        story={story}
+        chapters={chapters.items}
+        totalChapters={chapters.total}
+        recommendationsSlot={
+          <Suspense fallback={<RecommendationsSkeleton />}>
+            <StoryRecommendationsSection storyId={storyId} />
           </Suspense>
-        ) : null
-      }
-    />
+        }
+        sameAuthorSlot={
+          story.author ? (
+            <Suspense fallback={<SameAuthorSkeleton />}>
+              <SameAuthorStoriesSection author={story.author} excludeStoryId={storyId} />
+            </Suspense>
+          ) : null
+        }
+      />
+    </>
   );
 }

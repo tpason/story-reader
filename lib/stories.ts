@@ -4,7 +4,7 @@ import { unstable_cache } from "next/cache";
 import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
 import { READER_CONTENT_FORMAT_VERSION } from "@/lib/formatNovelContent";
-import type { CategorySummary, ChapterDetail, ChapterSummary, CursorPage, Paginated, ReaderPayload, StoryDiscoveryItem, StorySummary } from "@/lib/types";
+import { buildPreviousChapterRecap } from "@/lib/reader-chapter-recap";
 
 const DEFAULT_PAGE_SIZE = 24;
 const MAX_PAGE_SIZE = 80;
@@ -1086,6 +1086,17 @@ export async function getReaderPayload(storyId: string, chapterNumber: number): 
       SELECT
         c.id, c.story_id, c.chapter_number, c.title, c.is_downloaded, c.is_polished, c.is_translated,
         c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
+        c.raw_text_content, c.translated_text_content, c.polished_text_content,
+        CASE
+          WHEN c.reader_formatted_content_version = $3
+           AND (
+             c.reader_formatted_source_hash = md5(COALESCE(c.polished_text_content, c.translated_text_content, c.raw_text_content, ''))
+             OR COALESCE(c.polished_text_content, c.translated_text_content, c.raw_text_content) IS NULL
+           )
+          THEN c.reader_formatted_text_content
+          ELSE NULL
+        END AS reader_formatted_text_content,
+        c.reader_formatted_content_version,
         (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
         COALESCE(c.polished_at, c.downloaded_at, c.updated_at, c.created_at) AS chapter_updated_at
       FROM chapters c
@@ -1093,7 +1104,7 @@ export async function getReaderPayload(storyId: string, chapterNumber: number): 
       ORDER BY c.chapter_number DESC
       LIMIT 1
     `,
-    [storyId, chapterNumber]
+    [storyId, chapterNumber, READER_CONTENT_FORMAT_VERSION]
   );
   const nextRows = await query<ChapterRow>(
     `
@@ -1126,12 +1137,23 @@ export async function getReaderPayload(storyId: string, chapterNumber: number): 
     audioHlsUrl: current.hasAudio ? `/api/chapters/${current.id}/audio/hls/master.m3u8` : null
   };
 
+  let previousChapterRecap: string | null = null;
+  if (previousRows[0]) {
+    const previousFormatted = readerFormattedContent(previousRows[0]);
+    const previousContent =
+      previousFormatted ??
+      textContent(previousRows[0]) ??
+      (await readProjectTextFile(textPath(previousRows[0])));
+    previousChapterRecap = buildPreviousChapterRecap(previousContent);
+  }
+
   return {
     story,
     chapter,
     chapters: chapterPage.items,
     previousChapter: previousRows[0] ? mapChapter(previousRows[0]) : null,
     nextChapter: nextRows[0] ? mapChapter(nextRows[0]) : null,
+    previousChapterRecap,
     previousChapterCursor: chapterPage.previousCursor ?? null,
     chapterCursor: chapterPage.nextCursor
   };

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ReaderClient } from "@/components/ReaderClient";
 import { buildChapterMetadata } from "@/lib/metadata";
+import { buildChapterArticleJsonLd } from "@/lib/json-ld";
+import { JsonLdScript } from "@/components/JsonLdScript";
 import { getCachedChapterHead, getCachedStory, getReaderPayload } from "@/lib/stories";
 import { isStoryUuid, storyKeyToId } from "@/lib/urls";
 
@@ -41,5 +43,10 @@ export default async function ReaderPage({
 
   const payload = await getReaderPayload(storyId, parsedChapter);
 
-  return <ReaderClient payload={payload} />;
+  return (
+    <>
+      <JsonLdScript data={buildChapterArticleJsonLd(payload.story, payload.chapter)} />
+      <ReaderClient payload={payload} />
+    </>
+  );
 }
