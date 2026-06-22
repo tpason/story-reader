@@ -128,6 +128,8 @@ import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import { useReaderDim } from "@/hooks/useReaderDim";
 import { useWakeLock } from "@/hooks/useWakeLock";
+import { useAutoScroll } from "@/hooks/useAutoScroll";
+import { getPageScrollMetrics, scrollPageTo } from "@/lib/reader-scroll";
 
 const ThreeReaderProgress = dynamic(() => import("@/components/ThreeReaderProgress").then((mod) => mod.ThreeReaderProgress), {
   ssr: false
@@ -143,10 +145,6 @@ const ThreeReaderAtmosphere = dynamic(() => import("@/components/ThreeReaderAtmo
 });
 
 
-const AUTO_SCROLL_START_DELAY_MS = 140;
-const AUTO_SCROLL_TOUCH_GUARD_MS = 420;
-const AUTO_SCROLL_READ_PAUSE_MS = 4200;
-const AUTO_SCROLL_STEP_DURATION_MS = 620;
 const COMPACT_VIEWPORT_QUERY = "(max-width: 839px)";
 const READER_PARAGRAPH_POSITION_PREFIX = "reader:paragraph-position";
 const MOBILE_PROGRESS_COMMIT_INTERVAL_MS = 900;
@@ -182,21 +180,6 @@ const PRESET_ICON_COMPONENT = {
   wide: Type
 } as const;
 
-function getPageScrollMetrics() {
-  const doc = document.documentElement;
-  const body = document.body;
-  const scrollingElement = document.scrollingElement ?? doc;
-  const scrollTop = scrollingElement.scrollTop || window.scrollY || window.pageYOffset || doc.scrollTop || body.scrollTop || 0;
-  const scrollHeight = Math.max(scrollingElement.scrollHeight, doc.scrollHeight, body.scrollHeight, doc.clientHeight);
-  const viewportHeight = window.innerHeight || doc.clientHeight || 1;
-  return {
-    scrollTop,
-    scrollHeight,
-    viewportHeight,
-    maxScrollTop: Math.max(0, scrollHeight - viewportHeight)
-  };
-}
-
 type MobileSheetTab = ReaderSheetTab;
 
 type AdminEditField = "storyTitle" | "author" | "chapterTitle" | "content";
@@ -217,28 +200,6 @@ type ReaderSelectionAction = {
   y: number;
   glossaryCharacter: GlossaryCharacter | null;
 } | null;
-
-function scrollPageTo(top: number) {
-  const nextTop = Math.max(0, Math.round(top));
-  const doc = document.documentElement;
-  const body = document.body;
-  const scrollingElement = document.scrollingElement ?? doc;
-  const previousDocScrollBehavior = doc.style.scrollBehavior;
-  const previousBodyScrollBehavior = body.style.scrollBehavior;
-
-  doc.style.scrollBehavior = "auto";
-  body.style.scrollBehavior = "auto";
-  scrollingElement.scrollTop = nextTop;
-  doc.scrollTop = nextTop;
-  body.scrollTop = nextTop;
-
-  if (Math.abs(window.scrollY - nextTop) > 1) {
-    window.scrollTo({ top: nextTop, behavior: "auto" });
-  }
-
-  doc.style.scrollBehavior = previousDocScrollBehavior;
-  body.style.scrollBehavior = previousBodyScrollBehavior;
-}
 
 type DocumentWithPointCaret = Document & {
   caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
@@ -272,8 +233,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [offlineError, setOfflineError] = useState<string | null>(null);
   const [sheetProgress, setSheetProgress] = useState(0);
   const [mobileProgress, setMobileProgress] = useState(0);
-  const [autoScrollEnabled, setAutoScrollEnabled] = useState(false);
-  const [autoScrollSpeed, setAutoScrollSpeed] = useState(180);
   const [focusModeEnabled, setFocusModeEnabled] = useState(false);
   const [readerOverflowOpen, setReaderOverflowOpen] = useState(false);
   const readerOverflowRef = useRef<HTMLDivElement>(null);
@@ -393,12 +352,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     startParagraphIndex: 0,
     startProgressPercent: 0
   });
-  const autoScrollFrameRef = useRef<number | null>(null);
-  const autoScrollLastTimeRef = useRef<number | null>(null);
-  const autoScrollRemainderRef = useRef(0);
-  const autoScrollStartTimerRef = useRef<number | null>(null);
-  const autoScrollStepTimerRef = useRef<number | null>(null);
-  const autoScrollTouchGuardUntilRef = useRef(0);
   const lastScrollTopRef = useRef(0);
   const compactViewportRef = useRef(false);
   const mobileMenuOpenRef = useRef(false);
@@ -514,6 +467,17 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     scrollMargin: paragraphScrollMargin
   });
   const isPageLayout = layoutMode === "page";
+  const {
+    enabled: autoScrollEnabled,
+    speed: autoScrollSpeed,
+    setSpeed: setAutoScrollSpeed,
+    stop: stopAutoScroll,
+    toggle: toggleAutoScroll,
+  } = useAutoScroll({
+    blocked: mobileMenuOpen || mobileSheetOpen,
+    disabled: isPageLayout,
+    onStart: () => setMobileSheetOpen(false),
+  });
   const pageHeadingReserve = compactReader ? 148 : 168;
   const paragraphPages = useMemo(() => {
     const pageOptions = {
@@ -713,10 +677,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, []);
 
   useEffect(() => {
-    if (isPageLayout && autoScrollEnabled) setAutoScrollEnabled(false);
-  }, [autoScrollEnabled, isPageLayout]);
-
-  useEffect(() => {
     writeReaderSheetTab(mobileSheetTab);
   }, [mobileSheetTab]);
 
@@ -894,7 +854,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setMobileFormatOpen(false);
     setMobileSheetOpen(false);
     setReaderOverflowOpen(false);
-    setAutoScrollEnabled(false);
+    stopAutoScroll();
     setChapterSearch("");
     setChapterSearchOpen(false);
     setChapterSearchQuery("");
@@ -1118,128 +1078,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   useEffect(() => {
     refreshOfflineCache(false);
   }, [refreshOfflineCache]);
-
-  useEffect(() => {
-    if (!autoScrollEnabled || mobileMenuOpen || mobileSheetOpen) {
-      if (autoScrollStepTimerRef.current) {
-        window.clearTimeout(autoScrollStepTimerRef.current);
-        autoScrollStepTimerRef.current = null;
-      }
-      if (autoScrollFrameRef.current) {
-        window.cancelAnimationFrame(autoScrollFrameRef.current);
-        autoScrollFrameRef.current = null;
-      }
-      autoScrollLastTimeRef.current = null;
-      autoScrollRemainderRef.current = 0;
-      return;
-    }
-
-    function scheduleNextStep(delayMs: number) {
-      if (autoScrollStepTimerRef.current) {
-        window.clearTimeout(autoScrollStepTimerRef.current);
-      }
-      autoScrollStepTimerRef.current = window.setTimeout(() => {
-        autoScrollStepTimerRef.current = null;
-        runStep();
-      }, delayMs);
-    }
-
-    function animateStep(from: number, to: number, startedAt: number) {
-      if (document.visibilityState === "hidden") {
-        autoScrollFrameRef.current = null;
-        scheduleNextStep(2000);
-        return;
-      }
-
-      const elapsed = performance.now() - startedAt;
-      const progress = Math.min(1, elapsed / AUTO_SCROLL_STEP_DURATION_MS);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      scrollPageTo(from + (to - from) * eased);
-
-      if (progress < 1) {
-        autoScrollFrameRef.current = window.requestAnimationFrame(() => animateStep(from, to, startedAt));
-        return;
-      }
-
-      autoScrollFrameRef.current = null;
-      scheduleNextStep(AUTO_SCROLL_READ_PAUSE_MS);
-    }
-
-    function runStep() {
-      const metrics = getPageScrollMetrics();
-      const remaining = metrics.maxScrollTop - metrics.scrollTop;
-
-      if (remaining <= 4) {
-        setAutoScrollEnabled(false);
-        autoScrollFrameRef.current = null;
-        if (autoScrollStepTimerRef.current) {
-          window.clearTimeout(autoScrollStepTimerRef.current);
-          autoScrollStepTimerRef.current = null;
-        }
-        autoScrollRemainderRef.current = 0;
-        return;
-      }
-
-      const viewportAwareStep = Math.min(window.innerHeight * 0.42, Math.max(80, autoScrollSpeed));
-      const targetTop = Math.min(metrics.maxScrollTop, metrics.scrollTop + Math.min(remaining, viewportAwareStep));
-      autoScrollFrameRef.current = window.requestAnimationFrame(() => animateStep(metrics.scrollTop, targetTop, performance.now()));
-    }
-
-    scheduleNextStep(720);
-    return () => {
-      if (autoScrollStepTimerRef.current) {
-        window.clearTimeout(autoScrollStepTimerRef.current);
-        autoScrollStepTimerRef.current = null;
-      }
-      if (autoScrollFrameRef.current) {
-        window.cancelAnimationFrame(autoScrollFrameRef.current);
-        autoScrollFrameRef.current = null;
-      }
-      autoScrollLastTimeRef.current = null;
-      autoScrollRemainderRef.current = 0;
-    };
-  }, [autoScrollEnabled, autoScrollSpeed, mobileMenuOpen, mobileSheetOpen]);
-
-  useEffect(() => {
-    if (!autoScrollEnabled) return;
-
-    const stopAutoScroll = () => setAutoScrollEnabled(false);
-    const stopOnTouchMove = () => {
-      if (performance.now() < autoScrollTouchGuardUntilRef.current) return;
-      stopAutoScroll();
-    };
-    const stopOnKey = (event: KeyboardEvent) => {
-      if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", " ", "Escape"].includes(event.key)) {
-        stopAutoScroll();
-      }
-    };
-
-    window.addEventListener("wheel", stopAutoScroll, { passive: true });
-    window.addEventListener("touchmove", stopOnTouchMove, { passive: true });
-    window.addEventListener("keydown", stopOnKey);
-    return () => {
-      window.removeEventListener("wheel", stopAutoScroll);
-      window.removeEventListener("touchmove", stopOnTouchMove);
-      window.removeEventListener("keydown", stopOnKey);
-    };
-  }, [autoScrollEnabled]);
-
-  useEffect(() => {
-    return () => {
-      if (autoScrollStartTimerRef.current) {
-        window.clearTimeout(autoScrollStartTimerRef.current);
-        autoScrollStartTimerRef.current = null;
-      }
-      if (autoScrollStepTimerRef.current) {
-        window.clearTimeout(autoScrollStepTimerRef.current);
-        autoScrollStepTimerRef.current = null;
-      }
-      if (autoScrollFrameRef.current) {
-        window.cancelAnimationFrame(autoScrollFrameRef.current);
-        autoScrollFrameRef.current = null;
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (!mobileSheetOpen) return;
@@ -2370,7 +2208,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     const mode = nextMode ?? (layoutMode === "page" ? "scroll" : "page");
     dispatch(setReaderLayoutMode(mode));
     if (mode === "page") {
-      setAutoScrollEnabled(false);
+      stopAutoScroll();
       setPageIndex(0);
     }
   }
@@ -2547,47 +2385,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       });
     });
     setMobileSheetOpen(false);
-  }
-
-  function startAutoScroll() {
-    if (autoScrollStartTimerRef.current) {
-      window.clearTimeout(autoScrollStartTimerRef.current);
-      autoScrollStartTimerRef.current = null;
-    }
-    autoScrollRemainderRef.current = 0;
-    autoScrollLastTimeRef.current = null;
-    autoScrollTouchGuardUntilRef.current = performance.now() + AUTO_SCROLL_START_DELAY_MS + AUTO_SCROLL_TOUCH_GUARD_MS;
-    setMobileSheetOpen(false);
-    autoScrollStartTimerRef.current = window.setTimeout(() => {
-      autoScrollStartTimerRef.current = null;
-      setAutoScrollEnabled(true);
-    }, AUTO_SCROLL_START_DELAY_MS);
-  }
-
-  function stopAutoScroll() {
-    if (autoScrollStartTimerRef.current) {
-      window.clearTimeout(autoScrollStartTimerRef.current);
-      autoScrollStartTimerRef.current = null;
-    }
-    if (autoScrollStepTimerRef.current) {
-      window.clearTimeout(autoScrollStepTimerRef.current);
-      autoScrollStepTimerRef.current = null;
-    }
-    if (autoScrollFrameRef.current) {
-      window.cancelAnimationFrame(autoScrollFrameRef.current);
-      autoScrollFrameRef.current = null;
-    }
-    setAutoScrollEnabled(false);
-    autoScrollRemainderRef.current = 0;
-    autoScrollLastTimeRef.current = null;
-  }
-
-  function toggleAutoScroll() {
-    if (autoScrollEnabled) {
-      stopAutoScroll();
-      return;
-    }
-    startAutoScroll();
   }
 
   const chapterNumber = activePayload.chapter.chapterNumber;
