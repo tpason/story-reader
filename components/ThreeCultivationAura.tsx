@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, CircleGeometry, DoubleSide, DynamicDrawUsage, Group, Mesh, MeshBasicMaterial, Object3D, PerspectiveCamera, Points, PointsMaterial, Scene, Shape, ShapeGeometry, SRGBColorSpace, TorusGeometry, WebGLRenderer } from "three";
+import { canUseWebGL } from "@/lib/webgl-capability";
 
 type ThreeCultivationAuraProps = {
   realm: string;
@@ -72,7 +73,7 @@ export function ThreeCultivationAura({ realm, level, progressPercent }: ThreeCul
 
   useEffect(() => {
     const host = hostRef.current;
-    if (!host) return;
+    if (!host || !canUseWebGL()) return;
     const container = host;
     const [primary, secondary] = colorsForRealm(realm);
     const scene = new Scene();

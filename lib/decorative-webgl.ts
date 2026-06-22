@@ -2,6 +2,7 @@
 
 import { readReaderPerformanceMode } from "@/lib/reader-performance-mode";
 import { prefersReducedMotion } from "@/lib/browser";
+import { canUseWebGL } from "@/lib/webgl-capability";
 import { useEffect, useState } from "react";
 
 type BatteryManager = EventTarget & {
@@ -91,5 +92,5 @@ export function useDecorativeWebglEnabled(options: DecorativeWebglOptions = {}) 
     };
   }, [allowCompact, compactMaxWidth]);
 
-  return enabled && !prefersReducedMotion();
+  return enabled && !prefersReducedMotion() && canUseWebGL();
 }

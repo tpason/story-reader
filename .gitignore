@@ -21,6 +21,10 @@ docs/
 .codex/
 .vscode/
 .tmp_screens/
+test-results/
+e2e-report/
+playwright-report/
+playwright/.cache/
 
 # OS/editor backup files
 *~

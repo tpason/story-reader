@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, CircleGeometry, CylinderGeometry, DoubleSide, DynamicDrawUsage, Group, Mesh, MeshBasicMaterial, Object3D, PerspectiveCamera, Points, PointsMaterial, Scene, TorusGeometry, WebGLRenderer } from "three";
+import { canUseWebGL } from "@/lib/webgl-capability";
 
 type ThreeReaderProgressProps = {
   progress: number;
@@ -17,7 +18,7 @@ export function ThreeReaderProgress({ progress }: ThreeReaderProgressProps) {
 
   useEffect(() => {
     const host = hostRef.current;
-    if (!host) return;
+    if (!host || !canUseWebGL()) return;
     const container = host;
     const scene = new Scene();
     const camera = new PerspectiveCamera(32, 1, 0.1, 20);

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { AdditiveBlending, AmbientLight, BoxGeometry, BufferAttribute, BufferGeometry, CapsuleGeometry, CircleGeometry, Color, ConeGeometry, CylinderGeometry, DirectionalLight, DoubleSide, ExtrudeGeometry, Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Shape, SphereGeometry, TorusGeometry, Vector2, WebGLRenderer } from "three";
+import { canUseWebGL } from "@/lib/webgl-capability";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
@@ -1138,7 +1139,7 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
 
   useEffect(() => {
     const host = hostRef.current;
-    if (!host) return;
+    if (!host || !canUseWebGL()) return;
     const container = host;
 
     const palette = scalePalette(getPalette(skillId));
