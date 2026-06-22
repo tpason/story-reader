@@ -14973,3 +14973,72 @@ html[data-reader-realtime-fx="off"] .notification-bell-live .notification-dot {
     animation: none;
   }
 }
+
+/* REALTIME UX v4 — caught up, card tilt mobile, discover static glow */
+.notification-item-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.notification-item-row .notification-item {
+  min-width: 0;
+}
+
+.notification-caught-up-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 34px;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, #26a882 28%, var(--hairline) 72%);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--canvas) 92%, rgba(38, 168, 130, 0.08) 8%);
+  color: #2f8f72;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notification-caught-up-btn:hover {
+  background: color-mix(in srgb, #26a882 14%, var(--canvas) 86%);
+}
+
+.update-card-row {
+  display: grid;
+  gap: 8px;
+}
+
+.update-card-row .update-card {
+  min-width: 0;
+}
+
+.update-caught-up-btn {
+  justify-self: start;
+}
+
+@media (min-width: 840px) {
+  .discover-list-card--static-glow {
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+  }
+}
+
+@media (max-width: 839px) {
+  .discover-list-card--static-glow {
+    border-color: color-mix(in srgb, #26a882 22%, var(--hairline) 78%);
+    box-shadow: inset 0 0 0 1px rgba(240, 208, 106, 0.12);
+  }
+
+  .discover-list-card--static-glow.discover-list-card-fresh {
+    box-shadow:
+      0 0 0 1px rgba(38, 168, 130, 0.2),
+      inset 0 0 0 1px rgba(240, 208, 106, 0.16);
+  }
+
+  .story-card,
+  .discovery-card {
+    transform: none !important;
+  }
+}

@@ -11,9 +11,9 @@ import {
   useFloating,
   useInteractions
 } from "@floating-ui/react";
-import { Bell, BellRing, Feather, LoaderCircle, ScrollText, Sparkles, Wifi } from "lucide-react";
+import { Bell, BellRing, Check, Feather, LoaderCircle, ScrollText, Sparkles, Wifi } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import dynamic from "next/dynamic";
 import { SpiritBurstCanvas } from "@/components/SpiritBurstCanvas";
 import { useReaderRealtimeLive } from "@/components/ReaderRealtimeProvider";
@@ -24,6 +24,8 @@ import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
 import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
 import type { ReadingHistoryItem } from "@/lib/reading-history";
 import { useReaderRealtimeFx } from "@/lib/useReaderRealtimeFx";
+import { useNotificationCaughtUp } from "@/lib/useNotificationCaughtUp";
+import { adjustNotificationItems, markNotificationCaughtUp } from "@/lib/notification-caught-up";
 import { useAppSelector } from "@/lib/store-hooks";
 import { NOTIFY_COPY } from "@/lib/xianxia-notify-copy";
 import { storyHref } from "@/lib/urls";
@@ -66,6 +68,51 @@ function buildNotificationUrl(history: ReadingHistoryItem[], follows: FollowedSt
   return `/api/notifications${params.size > 0 ? `?${params.toString()}` : ""}`;
 }
 
+function NotificationItemRow({
+  item,
+  animationDelay,
+  onDismissPanel
+}: {
+  item: NotificationItem;
+  animationDelay: number;
+  onDismissPanel: () => void;
+}) {
+  function dismissCaughtUp(event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    markNotificationCaughtUp(item.storyId, item.totalChapters);
+  }
+
+  return (
+    <div className="notification-item-row notification-item-animated" style={{ animationDelay: `${animationDelay}ms` }}>
+      <Link
+        className="notification-item"
+        href={
+          item.nextChapter
+            ? storyHref({ id: item.storyId, title: item.storyTitle }, item.nextChapter)
+            : storyHref({ id: item.storyId, title: item.storyTitle })
+        }
+        onClick={onDismissPanel}
+      >
+        <strong>{item.storyTitle}</strong>
+        <span>
+          {NOTIFY_COPY.unreadBadge(item.unread)} ·{" "}
+          {item.nextChapter ? NOTIFY_COPY.readNext(item.nextChapter) : "Mở từ đầu"}
+        </span>
+      </Link>
+      <button
+        type="button"
+        className="notification-caught-up-btn"
+        title={NOTIFY_COPY.markCaughtUpHint}
+        aria-label={NOTIFY_COPY.markCaughtUp}
+        onClick={dismissCaughtUp}
+      >
+        <Check size={14} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
 export function NotificationBell({ className = "" }: { className?: string }) {
   const history = useAppSelector((state) => state.history.items);
   const follows = useAppSelector((state) => state.follows.items);
@@ -78,7 +125,18 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const decorativeWebglEnabled = useDecorativeWebglEnabled({ allowCompact: true, compactMaxWidth: 720 });
   const { mode: fxMode } = useReaderRealtimeFx();
   const fxBurstEnabled = fxMode === "full";
-  const unreadChapters = payload?.unreadChapters ?? 0;
+  const caughtUpMap = useNotificationCaughtUp();
+  const displayPayload = useMemo(() => {
+    if (!payload) return null;
+    const items = adjustNotificationItems(payload.items);
+    return {
+      ...payload,
+      items,
+      unreadStories: items.length,
+      unreadChapters: items.reduce((total, item) => total + item.unread, 0)
+    };
+  }, [payload, caughtUpMap]);
+  const unreadChapters = displayPayload?.unreadChapters ?? 0;
   const storyIds = useMemo(() => follows.map((item) => item.storyId), [follows]);
   const followIds = useMemo(() => new Set(follows.map((item) => item.storyId)), [follows]);
   const readingIds = useMemo(
@@ -91,7 +149,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
     [history]
   );
   const { readingItems, followItems } = useMemo(() => {
-    const items = payload?.items ?? [];
+    const items = displayPayload?.items ?? [];
     const reading: NotificationItem[] = [];
     const followOnly: NotificationItem[] = [];
     for (const item of items) {
@@ -100,7 +158,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
       else reading.push(item);
     }
     return { readingItems: reading.slice(0, 5), followItems: followOnly.slice(0, 5) };
-  }, [followIds, payload?.items, readingIds]);
+  }, [displayPayload?.items, followIds, readingIds]);
   const queryKey = useMemo(() => JSON.stringify({ userId, history: history.map((item) => [item.storyId, item.maxReadChapterNumber]), follows: storyIds }), [history, storyIds, userId]);
 
   const refresh = useCallback(() => {
@@ -226,7 +284,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
                 </span>
               </div>
 
-              {payload?.items.length ? (
+              {displayPayload?.items.length ? (
                 <div className="notification-sections">
                   {readingItems.length ? (
                     <div className="notification-section">
@@ -236,23 +294,12 @@ export function NotificationBell({ className = "" }: { className?: string }) {
                       </h3>
                       <div className="notification-list">
                         {readingItems.map((item, index) => (
-                          <Link
-                            className="notification-item notification-item-animated"
-                            href={
-                              item.nextChapter
-                                ? storyHref({ id: item.storyId, title: item.storyTitle }, item.nextChapter)
-                                : storyHref({ id: item.storyId, title: item.storyTitle })
-                            }
+                          <NotificationItemRow
+                            item={item}
                             key={item.storyId}
-                            style={{ animationDelay: `${index * 45}ms` }}
-                            onClick={() => setOpen(false)}
-                          >
-                            <strong>{item.storyTitle}</strong>
-                            <span>
-                              {NOTIFY_COPY.unreadBadge(item.unread)} ·{" "}
-                              {item.nextChapter ? NOTIFY_COPY.readNext(item.nextChapter) : "Mở từ đầu"}
-                            </span>
-                          </Link>
+                            animationDelay={index * 45}
+                            onDismissPanel={() => setOpen(false)}
+                          />
                         ))}
                       </div>
                     </div>
@@ -265,23 +312,12 @@ export function NotificationBell({ className = "" }: { className?: string }) {
                       </h3>
                       <div className="notification-list">
                         {followItems.map((item, index) => (
-                          <Link
-                            className="notification-item notification-item-animated"
-                            href={
-                              item.nextChapter
-                                ? storyHref({ id: item.storyId, title: item.storyTitle }, item.nextChapter)
-                                : storyHref({ id: item.storyId, title: item.storyTitle })
-                            }
+                          <NotificationItemRow
+                            item={item}
                             key={item.storyId}
-                            style={{ animationDelay: `${(readingItems.length + index) * 45}ms` }}
-                            onClick={() => setOpen(false)}
-                          >
-                            <strong>{item.storyTitle}</strong>
-                            <span>
-                              {NOTIFY_COPY.unreadBadge(item.unread)} ·{" "}
-                              {item.nextChapter ? NOTIFY_COPY.readNext(item.nextChapter) : "Mở từ đầu"}
-                            </span>
-                          </Link>
+                            animationDelay={(readingItems.length + index) * 45}
+                            onDismissPanel={() => setOpen(false)}
+                          />
                         ))}
                       </div>
                     </div>

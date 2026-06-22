@@ -3,8 +3,8 @@
 import { ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { memo } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
 import { StoryCover } from "@/components/StoryCover";
+import { useCardTiltHandlers } from "@/hooks/useCardTiltHandlers";
 import { storyDisplayDescription, storyCategoryLabel } from "@/lib/story-description";
 import type { StorySummary } from "@/lib/types";
 import { storyHref } from "@/lib/urls";
@@ -31,25 +31,6 @@ export type StoryCardProps = {
   onSetAdminEdit: (edit: AdminStoryListEditState) => void;
 };
 
-function updateCardTilt(event: ReactPointerEvent<HTMLElement>) {
-  const card = event.currentTarget;
-  const rect = card.getBoundingClientRect();
-  const x = (event.clientX - rect.left) / Math.max(1, rect.width);
-  const y = (event.clientY - rect.top) / Math.max(1, rect.height);
-  card.style.setProperty("--tilt-x", `${(0.5 - y) * 9}deg`);
-  card.style.setProperty("--tilt-y", `${(x - 0.5) * 10}deg`);
-  card.style.setProperty("--tilt-glow-x", `${x * 100}%`);
-  card.style.setProperty("--tilt-glow-y", `${y * 100}%`);
-}
-
-function resetCardTilt(event: ReactPointerEvent<HTMLElement>) {
-  const card = event.currentTarget;
-  card.style.setProperty("--tilt-x", "0deg");
-  card.style.setProperty("--tilt-y", "0deg");
-  card.style.setProperty("--tilt-glow-x", "50%");
-  card.style.setProperty("--tilt-glow-y", "50%");
-}
-
 export const StoryCard = memo(function StoryCard({
   story,
   storyHistory,
@@ -58,6 +39,7 @@ export const StoryCard = memo(function StoryCard({
   onStartEdit,
   onSetAdminEdit,
 }: StoryCardProps) {
+  const tiltHandlers = useCardTiltHandlers();
   const newChapterCount = storyHistory
     ? Math.max(0, story.totalChapters - storyHistory.maxReadChapterNumber)
     : 0;
@@ -75,8 +57,7 @@ export const StoryCard = memo(function StoryCard({
     <Link
       className="story-card"
       href={storyHistory ? storyHref(story, storyHistory.chapterNumber) : storyHref(story)}
-      onPointerMove={updateCardTilt}
-      onPointerLeave={resetCardTilt}
+      {...tiltHandlers}
     >
       <StoryCover src={story.coverImageUrl} title={story.title} />
       <div className="story-card-body">

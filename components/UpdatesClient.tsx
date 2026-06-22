@@ -1,8 +1,8 @@
 "use client";
 
-import { Bell, BookOpenCheck, Feather, ScrollText, Sparkles } from "lucide-react";
+import { Bell, BookOpenCheck, Check, Feather, ScrollText, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, type MouseEvent, type ReactNode } from "react";
 import { MotionFX } from "@/components/MotionFX";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { StoryCover } from "@/components/StoryCover";
@@ -12,6 +12,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
+import { computeNotificationUnread, effectiveMaxReadForNotify, isNotificationStoryVisible, markNotificationCaughtUp } from "@/lib/notification-caught-up";
+import { useNotificationCaughtUp } from "@/lib/useNotificationCaughtUp";
 import { fetchReadingProgress } from "@/lib/api-client";
 import { historyToFollowItem } from "@/lib/follows";
 import { mergeHistoryItems } from "@/lib/store";
@@ -28,33 +30,52 @@ type UpdateEntry = {
 
 function UpdateCard({ entry, fresh }: { entry: UpdateEntry; fresh: boolean }) {
   const { item, progress, unread, nextChapter } = entry;
+
+  function dismissCaughtUp(event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    markNotificationCaughtUp(item.storyId, item.totalChapters);
+  }
+
   return (
-    <Link
-      className={`update-card ${fresh ? "update-card-fresh" : ""}`.trim()}
-      href={
-        nextChapter
-          ? storyHref({ id: item.storyId, title: item.storyTitle }, nextChapter)
-          : storyHref({ id: item.storyId, title: item.storyTitle })
-      }
-    >
-      <StoryCover src={item.coverImageUrl} title={item.storyTitle} />
-      <div className="update-card-body">
-        <div className="story-card-heading">
-          <h2 className="story-card-title">{item.storyTitle}</h2>
-          <span className="read-badge read-badge-active">{NOTIFY_COPY.unreadBadge(unread)}</span>
+    <div className={`update-card-row ${fresh ? "update-card-row-fresh" : ""}`.trim()}>
+      <Link
+        className={`update-card ${fresh ? "update-card-fresh" : ""}`.trim()}
+        href={
+          nextChapter
+            ? storyHref({ id: item.storyId, title: item.storyTitle }, nextChapter)
+            : storyHref({ id: item.storyId, title: item.storyTitle })
+        }
+      >
+        <StoryCover src={item.coverImageUrl} title={item.storyTitle} />
+        <div className="update-card-body">
+          <div className="story-card-heading">
+            <h2 className="story-card-title">{item.storyTitle}</h2>
+            <span className="read-badge read-badge-active">{NOTIFY_COPY.unreadBadge(unread)}</span>
+          </div>
+          <div className="story-meta">
+            {item.author ? <span>{item.author}</span> : null}
+            {item.primaryCategoryName ? <span>{item.primaryCategoryName}</span> : null}
+            <span>{item.totalChapters} chương</span>
+            {progress ? <span>Đã đọc {progress.maxReadChapterNumber}</span> : <span>Chưa bắt đầu</span>}
+          </div>
+          <p className="story-description">
+            {nextChapter ? NOTIFY_COPY.readNext(nextChapter) : "Mở mục lục để bắt đầu đọc truyện này."}
+          </p>
         </div>
-        <div className="story-meta">
-          {item.author ? <span>{item.author}</span> : null}
-          {item.primaryCategoryName ? <span>{item.primaryCategoryName}</span> : null}
-          <span>{item.totalChapters} chương</span>
-          {progress ? <span>Đã đọc {progress.maxReadChapterNumber}</span> : <span>Chưa bắt đầu</span>}
-        </div>
-        <p className="story-description">
-          {nextChapter ? NOTIFY_COPY.readNext(nextChapter) : "Mở mục lục để bắt đầu đọc truyện này."}
-        </p>
-      </div>
-      <BookOpenCheck size={18} className="update-card-icon" />
-    </Link>
+        <BookOpenCheck size={18} className="update-card-icon" />
+      </Link>
+      <button
+        type="button"
+        className="notification-caught-up-btn update-caught-up-btn"
+        title={NOTIFY_COPY.markCaughtUpHint}
+        aria-label={NOTIFY_COPY.markCaughtUp}
+        onClick={dismissCaughtUp}
+      >
+        <Check size={16} aria-hidden="true" />
+        <span>{NOTIFY_COPY.markCaughtUp}</span>
+      </button>
+    </div>
   );
 }
 
@@ -90,9 +111,10 @@ export function UpdatesClient() {
   const follows = useAppSelector((state) => state.follows.items);
   const history = useAppSelector((state) => state.history.items);
   const { isFresh } = useFreshStoryRealtime({ refreshProgress: true });
-  const historyByStory = new Map(history.map((item) => [item.storyId, item]));
-  const followedByStory = new Map(follows.map((item) => [item.storyId, item]));
+  const historyByStory = useMemo(() => new Map(history.map((item) => [item.storyId, item])), [history]);
   const followIdSet = useMemo(() => new Set(follows.map((item) => item.storyId)), [follows]);
+
+  const caughtUpMap = useNotificationCaughtUp();
 
   useEffect(() => {
     fetchReadingProgress()
@@ -100,23 +122,29 @@ export function UpdatesClient() {
       .catch(() => undefined);
   }, [dispatch]);
 
-  history.forEach((item) => {
-    if (!followedByStory.has(item.storyId)) followedByStory.set(item.storyId, historyToFollowItem(item));
-  });
-
-  const updates = [...followedByStory.values()]
-    .map((item) => {
-      const progress = historyByStory.get(item.storyId);
-      const maxRead = progress?.maxReadChapterNumber ?? 0;
-      return {
-        item,
-        progress,
-        unread: Math.max(0, item.totalChapters - maxRead),
-        nextChapter: maxRead > 0 ? Math.min(item.totalChapters, maxRead + 1) : null
-      };
-    })
-    .filter((entry) => entry.unread > 0)
-    .sort((a, b) => b.unread - a.unread || Date.parse(b.item.updatedAt) - Date.parse(a.item.updatedAt));
+  const updates = useMemo(() => {
+    const byStory = new Map(follows.map((item) => [item.storyId, item]));
+    history.forEach((item) => {
+      if (!byStory.has(item.storyId)) byStory.set(item.storyId, historyToFollowItem(item));
+    });
+    const progressMap = new Map(history.map((item) => [item.storyId, item]));
+    return [...byStory.values()]
+      .map((item) => {
+        const progress = progressMap.get(item.storyId);
+        const maxRead = progress?.maxReadChapterNumber ?? 0;
+        if (!isNotificationStoryVisible(item.storyId, item.totalChapters, maxRead)) return null;
+        const unread = computeNotificationUnread(item.storyId, item.totalChapters, maxRead);
+        const effectiveRead = effectiveMaxReadForNotify(item.storyId, maxRead);
+        return {
+          item,
+          progress,
+          unread,
+          nextChapter: unread > 0 ? Math.min(item.totalChapters, effectiveRead + 1) : null
+        };
+      })
+      .filter((entry): entry is UpdateEntry => entry !== null && entry.unread > 0)
+      .sort((a, b) => b.unread - a.unread || Date.parse(b.item.updatedAt) - Date.parse(a.item.updatedAt));
+  }, [caughtUpMap, follows, history]);
 
   const hasReading = (storyId: string) => (historyByStory.get(storyId)?.maxReadChapterNumber ?? 0) > 0;
   const readingUpdates = updates.filter((entry) => hasReading(entry.item.storyId));

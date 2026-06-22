@@ -33,7 +33,7 @@ export function DiscoverListClient({ items, kind }: DiscoverListClientProps) {
     <div className="discover-list">
       {items.map((story) => (
         <Link
-          className={`discover-list-card ${isFresh(story.id) ? "discover-list-card-fresh" : ""}`.trim()}
+          className={`discover-list-card discover-list-card--static-glow ${isFresh(story.id) ? "discover-list-card-fresh" : ""}`.trim()}
           href={storyHref(story)}
           key={story.id}
         >
