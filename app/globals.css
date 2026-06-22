@@ -304,6 +304,9 @@ select {
   right: 0;
   z-index: 80;
   width: min(360px, calc(100vw - 24px));
+  max-height: min(420px, calc(100dvh - 80px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--hairline);
   border-radius: 12px;
   padding: 12px;
@@ -311,6 +314,11 @@ select {
     radial-gradient(circle at 88% 8%, rgba(245, 215, 94, 0.18), transparent 30%),
     var(--canvas);
   box-shadow: 0 22px 55px rgba(10, 21, 48, 0.18);
+}
+
+.notification-panel-portal {
+  position: fixed;
+  z-index: 1210;
 }
 
 .notification-panel-header {
@@ -3153,6 +3161,47 @@ select {
   .skill-effect-mobile .skill-cast-label::before,
   .skill-effect-mobile .skill-cast-label-orb {
     animation: none;
+  }
+}
+
+@media (max-width: 839px) {
+  .identity-modal {
+    align-items: end;
+    padding: 0;
+  }
+
+  .identity-modal-panel {
+    width: 100%;
+    max-height: calc(100dvh - max(12px, env(safe-area-inset-top)));
+    border-radius: 14px 14px 0 0;
+    padding: 18px 16px max(24px, calc(18px + env(safe-area-inset-bottom)));
+  }
+
+  .identity-modal-header {
+    padding-bottom: 14px;
+  }
+
+  .identity-modal-profile {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 12px;
+    margin-top: 18px;
+    padding: 13px;
+  }
+
+  .identity-modal-actions {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 16px;
+  }
+
+  .identity-modal-actions-guest {
+    margin-top: 24px;
+    padding-top: 22px;
+  }
+
+  .identity-modal-actions-guest .auth-submit {
+    margin-top: 4px;
   }
 }
 

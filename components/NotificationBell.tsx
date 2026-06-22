@@ -1,5 +1,15 @@
 "use client";
 
+import {
+  FloatingPortal,
+  autoUpdate,
+  flip,
+  offset,
+  shift,
+  useDismiss,
+  useFloating,
+  useInteractions
+} from "@floating-ui/react";
 import { Bell, BellRing, LoaderCircle, Wifi } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -118,30 +128,49 @@ export function NotificationBell({ className = "" }: { className?: string }) {
 
   useEffect(() => {
     if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (!target?.closest(".notification-bell")) setOpen(false);
-    };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
-    window.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onKeyDown);
-    };
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
+
+  const { context, floatingStyles, refs } = useFloating({
+    open,
+    onOpenChange: setOpen,
+    placement: "bottom-end",
+    strategy: "fixed",
+    middleware: [offset(10), flip(), shift({ padding: 12 })],
+    whileElementsMounted: autoUpdate
+  });
+  const dismiss = useDismiss(context);
+  const { getReferenceProps, getFloatingProps } = useInteractions([dismiss]);
 
   return (
     <div className={`notification-bell ${className}`}>
-      <button className="icon-button notification-trigger" type="button" aria-label="Thông báo chương mới" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+      <button
+        className="icon-button notification-trigger"
+        type="button"
+        aria-label="Thông báo chương mới"
+        aria-expanded={open}
+        ref={refs.setReference}
+        {...getReferenceProps({
+          onClick: () => setOpen((value) => !value)
+        })}
+      >
         {unreadChapters > 0 ? <BellRing size={17} /> : <Bell size={17} />}
         {unreadChapters > 0 ? <span className="notification-dot">{unreadChapters > 99 ? "99+" : unreadChapters}</span> : null}
       </button>
 
       {open ? (
-        <section className="notification-panel" aria-label="Thông báo">
+        <FloatingPortal>
+          <section
+            className="notification-panel notification-panel-portal"
+            aria-label="Thông báo"
+            ref={refs.setFloating}
+            style={floatingStyles}
+            {...getFloatingProps()}
+          >
           <div className="notification-panel-header">
             <div>
               <p className="eyebrow">Thông báo</p>
@@ -174,7 +203,8 @@ export function NotificationBell({ className = "" }: { className?: string }) {
           <Link className="notification-more" href="/updates" onClick={() => setOpen(false)}>
             Xem toàn bộ
           </Link>
-        </section>
+          </section>
+        </FloatingPortal>
       ) : null}
     </div>
   );

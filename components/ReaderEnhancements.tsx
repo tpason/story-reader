@@ -1,6 +1,8 @@
 "use client";
 
 import { BookOpen, Share2, StickyNote, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { GlossaryCharacter } from "@/lib/reader-glossary";
 import type { ChapterSummary } from "@/lib/types";
 
@@ -119,28 +121,54 @@ type ReaderParagraphNoteEditorProps = {
 };
 
 export function ReaderParagraphNoteEditor({ excerpt, note, onChange, onSave, onClose }: ReaderParagraphNoteEditorProps) {
-  return (
-    <div className="reader-paragraph-note-editor" role="dialog" aria-label="Ghi chú đoạn">
-      <div className="reader-paragraph-note-editor-header">
-        <StickyNote size={16} />
-        <strong>Ghi chú đoạn</strong>
-        <button type="button" className="reader-paragraph-note-close" aria-label="Đóng" onClick={onClose}>
-          <X size={15} />
-        </button>
+  const [portalReady, setPortalReady] = useState(false);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onClose]);
+
+  if (!portalReady) return null;
+
+  return createPortal(
+    <div className="reader-note-modal" role="dialog" aria-modal="true" aria-label="Ghi chú đoạn">
+      <button className="reader-note-modal-backdrop" type="button" aria-label="Đóng ghi chú đoạn" onClick={onClose} />
+      <div className="reader-paragraph-note-editor reader-note-modal-panel">
+        <div className="reader-paragraph-note-editor-header">
+          <StickyNote size={16} />
+          <strong>Ghi chú đoạn</strong>
+          <button type="button" className="reader-paragraph-note-close" aria-label="Đóng" onClick={onClose}>
+            <X size={15} />
+          </button>
+        </div>
+        <p className="reader-paragraph-note-excerpt">{excerpt}</p>
+        <textarea
+          className="reader-paragraph-note-input"
+          value={note}
+          maxLength={500}
+          autoFocus
+          placeholder="Ghi nhớ manh mối, nhân vật, suy nghĩ…"
+          onChange={(event) => onChange(event.target.value)}
+        />
+        <div className="reader-paragraph-note-actions">
+          <button type="button" className="chip" onClick={onSave}>
+            Lưu ghi chú
+          </button>
+        </div>
       </div>
-      <p className="reader-paragraph-note-excerpt">{excerpt}</p>
-      <textarea
-        className="reader-paragraph-note-input"
-        value={note}
-        maxLength={500}
-        placeholder="Ghi nhớ manh mối, nhân vật, suy nghĩ…"
-        onChange={(event) => onChange(event.target.value)}
-      />
-      <div className="reader-paragraph-note-actions">
-        <button type="button" className="chip" onClick={onSave}>
-          Lưu ghi chú
-        </button>
-      </div>
-    </div>
+    </div>,
+    document.body
   );
 }

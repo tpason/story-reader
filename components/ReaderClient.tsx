@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { Drawer } from "vaul";
 import { useVirtualizer, useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useQueryClient } from "@tanstack/react-query";
-import { autoUpdate, flip, offset, shift, useDismiss, useFloating, useInteractions } from "@floating-ui/react";
+import { autoUpdate, flip, FloatingPortal, offset, shift, useDismiss, useFloating, useInteractions } from "@floating-ui/react";
 import Fuse from "fuse.js";
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -343,6 +343,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     open: mobileFormatOpen,
     onOpenChange: setMobileFormatOpen,
     placement: "bottom-end",
+    strategy: "fixed",
     middleware: [offset(10), flip(), shift({ padding: 12 })],
     whileElementsMounted: autoUpdate
   });
@@ -3165,16 +3166,18 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               <Type size={16} />
             </button>
           ) : null}
-          <div
-            className={`format-controls ${mobileFormatOpen ? "format-controls-open" : ""}`}
-            id="format-controls"
-            ref={(node) => {
-              formatPanelRef.current = node;
-              formatFloatingRefs.setFloating(node);
-            }}
-            style={formatFloatingStyles}
-            {...getFormatFloatingProps()}
-          >
+          {mobileFormatOpen ? (
+            <FloatingPortal>
+              <div
+                className="format-controls format-controls-open format-controls-portal"
+                id="format-controls"
+                ref={(node) => {
+                  formatPanelRef.current = node;
+                  formatFloatingRefs.setFloating(node);
+                }}
+                style={formatFloatingStyles}
+                {...getFormatFloatingProps()}
+              >
             <button
               className="icon-button"
               type="button"
@@ -3245,7 +3248,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 Trang
               </button>
             </div>
-          </div>
+              </div>
+            </FloatingPortal>
+          ) : null}
         </div>
       </header>
 
@@ -3301,10 +3306,17 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             {mobileSheetTab === "read" ? (
               <>
             {compactReader ? (
+              <>
               <div className="reader-sheet-section reader-sheet-account-row">
                 <UserIdentity compact className="reader-identity-mobile" />
                 <NotificationBell className="reader-notification-mobile" />
               </div>
+              <div className="reader-sheet-section reader-sheet-account-row reader-sheet-account-row-secondary">
+                <CultivationPanel compact className="reader-cultivation-mobile" />
+                <FollowButton story={activePayload.story} compact />
+                <ReaderStatsPill sessionMinutes={sessionMinutes} />
+              </div>
+              </>
             ) : null}
             <div className="reader-sheet-current">
               <div>
@@ -3969,19 +3981,22 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               <ReaderChapterRecap recap={activePayload.previousChapterRecap} previousChapter={activePayload.previousChapter} />
             ) : null}
 
-            {paragraphNoteEditor ? (
-              <ReaderParagraphNoteEditor
-                excerpt={
-                  currentChapterParagraphBookmarks.find((item) => item.paragraphIndex === paragraphNoteEditor.paragraphIndex)?.excerpt ??
-                  paragraphs[paragraphNoteEditor.paragraphIndex]?.slice(0, 120) ??
-                  ""
-                }
-                note={paragraphNoteEditor.note}
-                onChange={(value) => setParagraphNoteEditor((current) => (current ? { ...current, note: value } : current))}
-                onSave={saveParagraphNote}
-                onClose={() => setParagraphNoteEditor(null)}
-              />
-            ) : null}
+            {paragraphNoteEditor && floatingActionsMounted
+              ? createPortal(
+                  <ReaderParagraphNoteEditor
+                    excerpt={
+                      currentChapterParagraphBookmarks.find((item) => item.paragraphIndex === paragraphNoteEditor.paragraphIndex)?.excerpt ??
+                      paragraphs[paragraphNoteEditor.paragraphIndex]?.slice(0, 120) ??
+                      ""
+                    }
+                    note={paragraphNoteEditor.note}
+                    onChange={(value) => setParagraphNoteEditor((current) => (current ? { ...current, note: value } : current))}
+                    onSave={saveParagraphNote}
+                    onClose={() => setParagraphNoteEditor(null)}
+                  />,
+                  document.body
+                )
+              : null}
 
             {audioPanelOpen ? (
               <section className="audio-panel" aria-label="Chapter audio" ref={audioPanelRef}>
