@@ -127,6 +127,7 @@ import {
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import { useReaderDim } from "@/hooks/useReaderDim";
+import { useWakeLock } from "@/hooks/useWakeLock";
 
 const ThreeReaderProgress = dynamic(() => import("@/components/ThreeReaderProgress").then((mod) => mod.ThreeReaderProgress), {
   ssr: false
@@ -141,16 +142,6 @@ const ThreeReaderAtmosphere = dynamic(() => import("@/components/ThreeReaderAtmo
   ssr: false
 });
 
-type WakeLockSentinelLike = EventTarget & {
-  released: boolean;
-  release: () => Promise<void>;
-};
-
-type NavigatorWithWakeLock = Navigator & {
-  wakeLock?: {
-    request: (type: "screen") => Promise<WakeLockSentinelLike>;
-  };
-};
 
 const AUTO_SCROLL_START_DELAY_MS = 140;
 const AUTO_SCROLL_TOUCH_GUARD_MS = 420;
@@ -298,9 +289,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setEnabled: setReaderDimEnabled,
     setLevel: setReaderDimLevel,
   } = useReaderDim();
-  const [wakeLockSupported, setWakeLockSupported] = useState(false);
-  const [wakeLockActive, setWakeLockActive] = useState(false);
-  const [wakeLockError, setWakeLockError] = useState<string | null>(null);
+  const {
+    supported: wakeLockSupported,
+    active: wakeLockActive,
+    error: wakeLockError,
+    toggle: toggleWakeLock,
+  } = useWakeLock();
   const [swipeNotice, setSwipeNotice] = useState<string | null>(null);
   const [freshChapterHint, setFreshChapterHint] = useState<ReaderChapterFreshHintState | null>(null);
   const [shellFreshPulse, setShellFreshPulse] = useState(false);
@@ -411,8 +405,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const mobileSheetOpenRef = useRef(false);
   const readerChromeHiddenRef = useRef(false);
   const readerShellRef = useRef<HTMLElement | null>(null);
-  const wakeLockRef = useRef<WakeLockSentinelLike | null>(null);
-  const wakeLockRequestedRef = useRef(false);
   const swipeStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
   const swipeNoticeTimerRef = useRef<number | null>(null);
   const restoredScrollKeyRef = useRef<string | null>(null);
@@ -1248,59 +1240,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       }
     };
   }, []);
-
-  const releaseWakeLock = useCallback(() => {
-    wakeLockRequestedRef.current = false;
-    const lock = wakeLockRef.current;
-    wakeLockRef.current = null;
-    setWakeLockActive(false);
-    if (lock && !lock.released) {
-      lock.release().catch(() => undefined);
-    }
-  }, []);
-
-  const requestWakeLock = useCallback(async () => {
-    const wakeLock = (navigator as NavigatorWithWakeLock).wakeLock;
-    if (!wakeLock) {
-      setWakeLockError("Trình duyệt này chưa hỗ trợ giữ sáng màn hình.");
-      setWakeLockSupported(false);
-      return;
-    }
-
-    try {
-      setWakeLockError(null);
-      wakeLockRequestedRef.current = true;
-      const lock = await wakeLock.request("screen");
-      wakeLockRef.current = lock;
-      setWakeLockActive(true);
-      lock.addEventListener("release", () => {
-        if (wakeLockRef.current === lock) {
-          wakeLockRef.current = null;
-          setWakeLockActive(false);
-        }
-      });
-    } catch {
-      wakeLockRequestedRef.current = false;
-      setWakeLockError("Không bật được giữ sáng. Hãy thử lại sau một thao tác chạm.");
-      setWakeLockActive(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    setWakeLockSupported(Boolean((navigator as NavigatorWithWakeLock).wakeLock));
-
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible" && wakeLockRequestedRef.current && !wakeLockRef.current) {
-        requestWakeLock();
-      }
-    };
-
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      releaseWakeLock();
-    };
-  }, [releaseWakeLock, requestWakeLock]);
 
   useEffect(() => {
     if (!mobileSheetOpen) return;
@@ -3103,11 +3042,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   type="button"
                   title={wakeLockSupported ? "Giữ màn hình sáng khi đọc" : "Trình duyệt có thể chưa hỗ trợ"}
                   onClick={() => {
-                    if (wakeLockActive || wakeLockRequestedRef.current) {
-                      releaseWakeLock();
-                    } else {
-                      void requestWakeLock();
-                    }
+                    toggleWakeLock();
                     setReaderOverflowOpen(false);
                   }}
                 >
@@ -3650,13 +3585,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   type="button"
                   title={wakeLockSupported ? "Giữ màn hình sáng khi đọc" : "Trình duyệt có thể chưa hỗ trợ"}
                   aria-pressed={wakeLockActive}
-                  onClick={() => {
-                    if (wakeLockActive || wakeLockRequestedRef.current) {
-                      releaseWakeLock();
-                    } else {
-                      requestWakeLock();
-                    }
-                  }}
+                  onClick={() => toggleWakeLock()}
                 >
                   {wakeLockActive ? <Eye size={16} /> : <EyeOff size={16} />}
                   {wakeLockActive ? "Đang sáng" : "Giữ sáng"}
