@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { isMobile, prefersReducedMotion } from "@/lib/browser";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import { desktopSkillIntensity, isSkillWebglActive, shouldRenderCssLayer, SKILL_POLICY } from "@/lib/skill-visual";
+import { formatSkillCastLabel, SKILL_PANEL_COPY } from "@/lib/skill-copy";
 
 const ThreeSkillEffectCanvas = dynamic(() => import("@/components/ThreeSkillEffectCanvas").then((mod) => mod.ThreeSkillEffectCanvas), {
   ssr: false
@@ -178,8 +179,15 @@ function SkillEffect({ effect }: { effect: EffectState }) {
       {effect.mobileOptimized ? <MobileEnergyRings skillId={sid} /> : <MysticSeal skillId={sid} />}
       <div className={`skill-cast-label skill-cast-label-${sid}`}>
         <span className="skill-cast-label-orb" />
-        <span className="skill-cast-label-text">
-          {effect.caster.username} thi triển {effect.skillName}
+        <span className="skill-cast-label-stack">
+          <span className="skill-cast-label-kicker">{SKILL_PANEL_COPY.castKicker}</span>
+          <span className="skill-cast-label-text">
+            {formatSkillCastLabel({
+              skillName: effect.skillName,
+              username: effect.caster.username,
+              realm: effect.caster.realm
+            })}
+          </span>
         </span>
       </div>
       {show("particles") ? <ParticleField skillId={sid} compact={effect.mobileOptimized} /> : null}
