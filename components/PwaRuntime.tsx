@@ -8,24 +8,56 @@ import {
   subscribePush,
   unsubscribePush
 } from "@/lib/push-client";
+import { NOTIFY_COPY } from "@/lib/xianxia-notify-copy";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-const DISMISS_KEY = "pwa-install-dismissed-until";
-const DISMISS_DAYS = 30;
+const INSTALL_DISMISS_KEY = "pwa-install-dismissed-until";
+const PUSH_BANNER_DISMISS_KEY = "pwa-push-banner-dismissed-until";
+const INSTALL_DISMISS_DAYS = 30;
+const PUSH_BANNER_DISMISS_DAYS = 14;
+const INSTALL_BANNER_DELAY_MS = 9_000;
+const PUSH_BANNER_DELAY_MS = 22_000;
+const PUSH_AFTER_INSTALL_MS = 4_000;
+
+function isDismissedUntil(key: string) {
+  const until = window.localStorage.getItem(key);
+  return Boolean(until && Date.now() < Number(until));
+}
+
+function schedulePushBanner(onFire: () => void, delayMs: number) {
+  return window.setTimeout(() => {
+    if (isDismissedUntil(PUSH_BANNER_DISMISS_KEY)) return;
+    if (window.localStorage.getItem(PUSH_SUBSCRIBED_KEY) === "1") return;
+    onFire();
+  }, delayMs);
+}
 
 export function PwaRuntime() {
   const deferredRef = useRef<BeforeInstallPromptEvent | null>(null);
   const swRegRef = useRef<ServiceWorkerRegistration | null>(null);
+  const pushTimerRef = useRef<number | null>(null);
   const [visible, setVisible] = useState(false);
   const [pushVisible, setPushVisible] = useState(false);
   const [pushSubscribed, setPushSubscribed] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const enablePwa =
     process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_ENABLE_PWA === "1";
+
+  function clearPushTimer() {
+    if (pushTimerRef.current) {
+      window.clearTimeout(pushTimerRef.current);
+      pushTimerRef.current = null;
+    }
+  }
+
+  function queuePushBanner(delayMs = PUSH_BANNER_DELAY_MS) {
+    clearPushTimer();
+    pushTimerRef.current = schedulePushBanner(() => setPushVisible(true), delayMs);
+  }
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -46,19 +78,24 @@ export function PwaRuntime() {
         swRegRef.current = registration;
         registration.update().catch(() => undefined);
 
-        // Check if already subscribed
-        registration.pushManager.getSubscription().then((sub) => {
-          readPushSubscribed(registration).then(setPushSubscribed).catch(() => {
-            setPushSubscribed(!!sub && window.localStorage.getItem(PUSH_SUBSCRIBED_KEY) === "1");
-          });
-        }).catch(() => undefined);
+        registration.pushManager
+          .getSubscription()
+          .then((sub) => {
+            readPushSubscribed(registration)
+              .then(setPushSubscribed)
+              .catch(() => {
+                setPushSubscribed(!!sub && window.localStorage.getItem(PUSH_SUBSCRIBED_KEY) === "1");
+              });
+          })
+          .catch(() => undefined);
       })
       .catch(() => undefined);
 
     const onChunkError = (event: ErrorEvent) => {
       const message = `${event.message ?? ""} ${event.error?.message ?? ""}`;
       if (!/ChunkLoadError|Loading chunk|failed to fetch dynamically imported module/i.test(message)) return;
-      navigator.serviceWorker.getRegistrations()
+      navigator.serviceWorker
+        .getRegistrations()
         .then((registrations) => Promise.all(registrations.map((r) => r.unregister())))
         .finally(() => window.location.reload());
     };
@@ -71,17 +108,15 @@ export function PwaRuntime() {
     };
   }, [enablePwa]);
 
-  // Install banner
   useEffect(() => {
-    const dismissed = window.localStorage.getItem(DISMISS_KEY);
-    if (dismissed && Date.now() < Number(dismissed)) return;
+    if (isDismissedUntil(INSTALL_DISMISS_KEY)) return;
 
     let showTimer: ReturnType<typeof setTimeout>;
 
     const onPrompt = (event: Event) => {
       event.preventDefault();
       deferredRef.current = event as BeforeInstallPromptEvent;
-      showTimer = setTimeout(() => setVisible(true), 9000);
+      showTimer = setTimeout(() => setVisible(true), INSTALL_BANNER_DELAY_MS);
     };
 
     window.addEventListener("beforeinstallprompt", onPrompt);
@@ -91,26 +126,24 @@ export function PwaRuntime() {
     };
   }, []);
 
-  // Push banner — show after a delay if not subscribed and push is supported
   useEffect(() => {
     if (!("PushManager" in window)) return;
-    if (window.localStorage.getItem(PUSH_SUBSCRIBED_KEY)) return;
+    if (window.localStorage.getItem(PUSH_SUBSCRIBED_KEY) === "1") return;
+    if (isDismissedUntil(PUSH_BANNER_DISMISS_KEY)) return;
 
-    const timer = setTimeout(() => {
-      if (!visible) setPushVisible(true);
-    }, 20000);
+    queuePushBanner();
+    return () => clearPushTimer();
+  }, []);
 
-    return () => clearTimeout(timer);
+  useEffect(() => {
+    if (visible) setPushVisible(false);
   }, [visible]);
 
-  function dismiss() {
+  function dismissInstall() {
     setVisible(false);
-    const until = Date.now() + DISMISS_DAYS * 86_400_000;
-    window.localStorage.setItem(DISMISS_KEY, String(until));
-    // Show push banner shortly after
-    setTimeout(() => {
-      if (!window.localStorage.getItem(PUSH_SUBSCRIBED_KEY)) setPushVisible(true);
-    }, 3000);
+    const until = Date.now() + INSTALL_DISMISS_DAYS * 86_400_000;
+    window.localStorage.setItem(INSTALL_DISMISS_KEY, String(until));
+    queuePushBanner(PUSH_AFTER_INSTALL_MS);
   }
 
   async function install() {
@@ -120,17 +153,16 @@ export function PwaRuntime() {
     await deferred.prompt();
     const { outcome } = await deferred.userChoice;
     if (outcome === "dismissed") {
-      const until = Date.now() + DISMISS_DAYS * 86_400_000;
-      window.localStorage.setItem(DISMISS_KEY, String(until));
+      const until = Date.now() + INSTALL_DISMISS_DAYS * 86_400_000;
+      window.localStorage.setItem(INSTALL_DISMISS_KEY, String(until));
     }
     deferredRef.current = null;
+    queuePushBanner(PUSH_AFTER_INSTALL_MS);
   }
 
   async function enablePush() {
     setPushLoading(true);
     try {
-      // Guard: verify auth before prompting for OS-level permission — /api/auth/me
-      // always returns 200, so check the body for a non-null user.
       const authRes = await fetch("/api/auth/me").catch(() => null);
       const authData = authRes ? ((await authRes.json().catch(() => null)) as { user: unknown } | null) : null;
       if (!authData?.user) {
@@ -143,22 +175,12 @@ export function PwaRuntime() {
         setPushVisible(false);
         return;
       }
-      const swReg = swRegRef.current;
-      if (!swReg) {
-        // Fallback: get registration from browser
-        const reg = await navigator.serviceWorker.ready;
-        swRegRef.current = reg;
-        const ok = await subscribePush(reg);
-        if (ok) {
-          window.localStorage.setItem(PUSH_SUBSCRIBED_KEY, "1");
-          setPushSubscribed(true);
-        }
-      } else {
-        const ok = await subscribePush(swReg);
-        if (ok) {
-          window.localStorage.setItem(PUSH_SUBSCRIBED_KEY, "1");
-          setPushSubscribed(true);
-        }
+      const swReg = swRegRef.current ?? (await navigator.serviceWorker.ready);
+      swRegRef.current = swReg;
+      const ok = await subscribePush(swReg);
+      if (ok) {
+        window.localStorage.setItem(PUSH_SUBSCRIBED_KEY, "1");
+        setPushSubscribed(true);
       }
       setPushVisible(false);
     } catch {
@@ -184,7 +206,8 @@ export function PwaRuntime() {
 
   function dismissPush() {
     setPushVisible(false);
-    window.localStorage.setItem(PUSH_SUBSCRIBED_KEY, "dismissed");
+    const until = Date.now() + PUSH_BANNER_DISMISS_DAYS * 86_400_000;
+    window.localStorage.setItem(PUSH_BANNER_DISMISS_KEY, String(until));
   }
 
   return (
@@ -201,7 +224,7 @@ export function PwaRuntime() {
             <button className="pwa-install-btn" type="button" onClick={install}>
               Thêm ngay
             </button>
-            <button className="pwa-install-dismiss" type="button" aria-label="Đóng" onClick={dismiss}>
+            <button className="pwa-install-dismiss" type="button" aria-label="Đóng" onClick={dismissInstall}>
               ×
             </button>
           </div>
@@ -209,21 +232,14 @@ export function PwaRuntime() {
       )}
 
       {pushVisible && !visible && (
-        <div className="pwa-install-banner pwa-push-banner" role="region" aria-label="Thông báo chương mới">
+        <div className="pwa-install-banner pwa-push-banner" role="region" aria-label={NOTIFY_COPY.pushTitle}>
           <div className="pwa-install-content">
             <Bell size={16} className="pwa-install-icon" />
-            <span className="pwa-install-text">
-              Bật thông báo khi truyện <strong>đang đọc</strong> có chương mới
-            </span>
+            <span className="pwa-install-text">{NOTIFY_COPY.pushBody}</span>
           </div>
           <div className="pwa-install-actions">
-            <button
-              className="pwa-install-btn"
-              type="button"
-              onClick={enablePush}
-              disabled={pushLoading}
-            >
-              {pushLoading ? "Đang bật…" : "Bật thông báo"}
+            <button className="pwa-install-btn" type="button" onClick={enablePush} disabled={pushLoading}>
+              {pushLoading ? "Đang bật…" : NOTIFY_COPY.pushCta}
             </button>
             <button className="pwa-install-dismiss" type="button" aria-label="Đóng" onClick={dismissPush}>
               ×
@@ -232,7 +248,6 @@ export function PwaRuntime() {
         </div>
       )}
 
-      {/* Persistent toggle in account page context — exposed via data attr */}
       <span
         className="pwa-push-state"
         data-subscribed={pushSubscribed ? "1" : "0"}
@@ -246,11 +261,11 @@ export function PwaRuntime() {
           type="button"
           onClick={disablePush}
           disabled={pushLoading}
-          title="Tắt thông báo chương mới"
-          aria-label="Tắt thông báo chương mới"
+          title="Tắt linh tin ngoài tab"
+          aria-label="Tắt linh tin ngoài tab"
         >
           <BellOff size={14} />
-          {pushLoading ? "Đang tắt…" : "Đang nhận thông báo"}
+          {pushLoading ? "Đang tắt…" : "Đang nhận linh tin"}
         </button>
       )}
     </>

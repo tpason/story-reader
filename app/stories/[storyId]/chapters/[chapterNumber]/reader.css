@@ -5269,7 +5269,7 @@ html[data-sidebar-resizing="true"] * {
   min-height: 0;
 }
 
-/* ponytail: skill v16–v19 → app/styles/skill-effect-reader.css (imported in chapter layout) */
+/* ponytail: skill v16–v19 + đạo pháp v18 → app/styles/skill-effect-reader.css */
 
 /* ═══════════════════════════════════════════════════════════════════════
    READER v20 — CSS ambiance when WebGL atmosphere is off (≤1099px)
@@ -6022,68 +6022,11 @@ html[data-sidebar-resizing="true"] * {
     overflow-y: auto;
     overscroll-behavior: contain;
   }
+
+  /* READER UX v21 — session tools live in bottom sheet on compact viewport */
+  .reader-topbar .reader-session-group,
+  .reader-action-group > .follow-icon-button {
+    display: none;
+  }
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   XIANXIA SKILLS v18 — đạo pháp panel, ngũ hành badges, cast toast
-   ═══════════════════════════════════════════════════════════════════ */
-
-.skill-caster {
-  border-color: color-mix(in srgb, var(--reader-line) 68%, #2f8f72 32%);
-  background:
-    linear-gradient(130deg, rgba(255, 255, 255, 0.48), transparent 34%),
-    radial-gradient(circle at 12% 18%, rgba(240, 208, 106, 0.22), transparent 36%),
-    radial-gradient(circle at 88% 0%, rgba(47, 143, 114, 0.16), transparent 40%),
-    radial-gradient(circle at 72% 96%, rgba(38, 168, 130, 0.12), transparent 34%),
-    color-mix(in srgb, var(--reader-bg) 96%, var(--reader-ink) 4%);
-}
-
-.skill-caster-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  letter-spacing: 0.02em;
-}
-
-.skill-caster-title svg {
-  color: #2f8f72;
-}
-
-.skill-button-element {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  z-index: 2;
-  padding: 2px 6px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--skill-accent) 36%, transparent);
-  background: color-mix(in srgb, var(--reader-bg) 82%, var(--skill-accent) 18%);
-  color: color-mix(in srgb, var(--skill-accent) 78%, var(--reader-ink) 22%);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  pointer-events: none;
-}
-
-.skill-cast-label-stack {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 2px;
-  text-align: center;
-}
-
-.skill-cast-label-kicker {
-  font-size: 9px;
-  font-weight: 750;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  opacity: 0.82;
-}
-
-.skill-cast-label-text {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-}
