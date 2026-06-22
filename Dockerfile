@@ -6,8 +6,10 @@ RUN npm ci
 FROM node:22-alpine AS builder
 WORKDIR /app
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+ARG NEXT_PUBLIC_READER_WS_URL=
 ENV NEXT_TELEMETRY_DISABLED=1 \
-    NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+    NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
+    NEXT_PUBLIC_READER_WS_URL=$NEXT_PUBLIC_READER_WS_URL
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx next build
@@ -26,4 +28,4 @@ COPY --from=builder /app/server.js ./server.js
 COPY --from=builder /app/next.config.ts ./next.config.ts
 
 EXPOSE 3000
-CMD ["npm", "run", "start:lan"]
+CMD ["npm", "run", "start:ws"]

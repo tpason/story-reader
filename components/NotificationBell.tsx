@@ -12,7 +12,8 @@ import {
 } from "@floating-ui/react";
 import { Bell, BellRing, LoaderCircle, Wifi } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useReaderRealtime } from "@/lib/useReaderRealtime";
 import type { FollowedStoryItem } from "@/lib/follows";
 import type { ReadingHistoryItem } from "@/lib/reading-history";
 import { storyHref } from "@/lib/urls";
@@ -51,13 +52,6 @@ function buildNotificationUrl(history: ReadingHistoryItem[], follows: FollowedSt
   return `/api/notifications${params.size > 0 ? `?${params.toString()}` : ""}`;
 }
 
-function getReaderWebSocketUrl() {
-  if (process.env.NEXT_PUBLIC_READER_WS_URL) return process.env.NEXT_PUBLIC_READER_WS_URL;
-  if (typeof window === "undefined") return "";
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${window.location.host}/reader-ws`;
-}
-
 export function NotificationBell({ className = "" }: { className?: string }) {
   const history = useAppSelector((state) => state.history.items);
   const follows = useAppSelector((state) => state.follows.items);
@@ -65,10 +59,9 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const [payload, setPayload] = useState<NotificationPayload | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [live, setLive] = useState(false);
-  const socketRef = useRef<WebSocket | null>(null);
   const unreadChapters = payload?.unreadChapters ?? 0;
-  const queryKey = useMemo(() => JSON.stringify({ userId, history: history.map((item) => [item.storyId, item.maxReadChapterNumber]), follows: follows.map((item) => item.storyId) }), [follows, history, userId]);
+  const storyIds = useMemo(() => follows.map((item) => item.storyId), [follows]);
+  const queryKey = useMemo(() => JSON.stringify({ userId, history: history.map((item) => [item.storyId, item.maxReadChapterNumber]), follows: storyIds }), [history, storyIds, userId]);
 
   const refresh = useCallback(() => {
     setLoading(true);
@@ -98,33 +91,11 @@ export function NotificationBell({ className = "" }: { className?: string }) {
     };
   }, [refresh]);
 
-  useEffect(() => {
-    const wsUrl = getReaderWebSocketUrl();
-    if (!wsUrl || !("WebSocket" in window)) return;
-
-    const socket = new WebSocket(wsUrl);
-    socketRef.current = socket;
-    socket.onopen = () => {
-      setLive(true);
-      socket.send(JSON.stringify({ type: "subscribe", scope: "reader_updates", userId, storyIds: follows.map((item) => item.storyId) }));
-    };
-    socket.onclose = () => setLive(false);
-    socket.onerror = () => setLive(false);
-    socket.onmessage = (event) => {
-      try {
-        const message = JSON.parse(String(event.data)) as { type?: string };
-        if (message.type === "story_update" || message.type === "notification_update" || message.type === "chapter_update") refresh();
-      } catch {
-        refresh();
-      }
-    };
-
-    return () => {
-      socket.close();
-      socketRef.current = null;
-      setLive(false);
-    };
-  }, [follows, refresh, userId]);
+  const live = useReaderRealtime({
+    userId,
+    storyIds,
+    onEvent: () => refresh()
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -147,7 +118,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const { getReferenceProps, getFloatingProps } = useInteractions([dismiss]);
 
   return (
-    <div className={`notification-bell ${className}`}>
+    <div className={`notification-bell ${className}`} data-notification-live={live ? "true" : "false"}>
       <button
         className="icon-button notification-trigger"
         type="button"

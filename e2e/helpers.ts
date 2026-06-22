@@ -178,3 +178,39 @@ export async function smallestInteractiveTarget(page: Page) {
     return Number.isFinite(smallest) ? smallest : null;
   });
 }
+
+export type ReaderHealthPayload = {
+  ok: boolean;
+  websocket: boolean;
+  timestamp: string;
+};
+
+export async function fetchReaderHealth(page: Page): Promise<ReaderHealthPayload> {
+  const response = await page.request.get("/api/health");
+  expect(response.ok()).toBeTruthy();
+  return (await response.json()) as ReaderHealthPayload;
+}
+
+export function readerRealtimeToken() {
+  return process.env.PLAYWRIGHT_READER_REALTIME_TOKEN ?? process.env.READER_REALTIME_TOKEN ?? "";
+}
+
+export function broadcastAuthHeaders(token?: string) {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const resolved = token ?? readerRealtimeToken();
+  if (resolved) headers.Authorization = `Bearer ${resolved}`;
+  return headers;
+}
+
+export async function openNotificationPanel(page: Page) {
+  await page.getByRole("button", { name: "Thông báo chương mới" }).first().click();
+  await expect(page.locator(".notification-panel")).toBeVisible();
+}
+
+export async function expectNotificationLive(page: Page, live = true) {
+  const bell = page.locator(".notification-bell").first();
+  await expect(bell).toHaveAttribute("data-notification-live", live ? "true" : "false", { timeout: 15_000 });
+  await openNotificationPanel(page);
+  await expect(page.locator(".notification-live")).toContainText(live ? "Live" : "Polling");
+  if (live) await expect(page.locator(".notification-live-on")).toBeVisible();
+}

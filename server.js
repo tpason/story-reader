@@ -125,5 +125,10 @@ app.prepare().then(() => {
   server.listen(port, hostname, () => {
     console.log(`> Story reader ready on http://${hostname}:${port}`);
     console.log(`> WebSocket ready on ws://${hostname}:${port}/reader-ws`);
+    if (!dev && !process.env.READER_REALTIME_TOKEN) {
+      console.warn(
+        "> WARN: READER_REALTIME_TOKEN is unset — POST /api/realtime/broadcast will reject pipeline notifications."
+      );
+    }
   });
 });

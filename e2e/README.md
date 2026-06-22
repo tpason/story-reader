@@ -29,15 +29,54 @@ npm run test:e2e
 # Desktop only
 npm run test:e2e -- --project=desktop
 
+# Realtime / WebSocket specs only (requires dev:ws — see below)
+npm run test:e2e:realtime
+
 # Open last HTML report
 npx playwright show-report e2e-report
 ```
 
 ## Environment
 
-| Variable | Default |
-|---|---|
-| `PLAYWRIGHT_BASE_URL` | `http://127.0.0.1:3003` |
+| Variable | Default | Notes |
+|---|---|---|
+| `PLAYWRIGHT_BASE_URL` | `http://127.0.0.1:3003` | Target server |
+| `PLAYWRIGHT_READER_PATH` | fixed slug path | Override reader fixture URL |
+| `PLAYWRIGHT_READER_REALTIME_TOKEN` | — | Match server `READER_REALTIME_TOKEN` for broadcast auth tests |
+
+## Realtime tests (`e2e/realtime.spec.ts`)
+
+Most specs **skip** unless `/api/health` reports `"websocket": true`.
+
+```bash
+# Terminal 1 — WebSocket server (not plain npm run dev)
+cd story_reader && PORT=3003 npm run dev:ws
+
+# Terminal 2
+cd story_reader && npm run test:e2e:realtime
+```
+
+Generate a strong token for auth coverage:
+
+```bash
+bash docker/scripts/generate-reader-realtime-token.sh
+# or:
+bash docker/scripts/print-reader-realtime-env.sh
+export READER_REALTIME_TOKEN=<paste>
+export PLAYWRIGHT_READER_REALTIME_TOKEN=$READER_REALTIME_TOKEN
+PORT=3003 npm run dev:ws   # terminal 1
+PLAYWRIGHT_READER_REALTIME_TOKEN=$READER_REALTIME_TOKEN npm run test:e2e:realtime
+```
+
+| Spec | Needs `dev:ws` | Needs token env |
+|---|---|---|
+| `health endpoint returns ok` | No | No |
+| `broadcast returns 503` | No (plain `next dev`) | No |
+| `broadcast accepts notification_update` | Yes | No (dev without token) |
+| `broadcast rejects missing token` | Yes | Yes |
+| `notification bell connects on home` | Yes | No |
+
+Live state is exposed on `.notification-bell[data-notification-live="true"]` and inside the open notification panel.
 
 ## What the audit covers
 
@@ -49,6 +88,8 @@ npx playwright show-report e2e-report
 - Mobile dock + settings sheet tabs
 - Horizontal overflow
 - Paginated reading mode
+- Identity modal (portal / mobile sheet)
+- Realtime health, broadcast API, notification Live indicator
 - Console error capture (warnings in attachments)
 
 Findings are attached per test as `*-audit*.json` for triage.
