@@ -8,6 +8,7 @@
  *
  * Shared classes (.admin-*, .story-mobile-cta, .icon-button, .scroll-top-button)
  * are duplicated in globals.css so non-reader pages still get them.
+ * Skill keyframe animations: app/styles/skill-effect-animations.css (via globals @import).
  * reader.css loads AFTER globals.css (nested layout), so reader.css wins
  * on reader pages — same rules = no visual difference.
  */
@@ -2488,9 +2489,9 @@ html[data-sidebar-resizing="true"] * {
 }
 
 .skill-button-sword_flight {
-  --skill-accent: #7c3aed;
-  --skill-secondary: #38bdf8;
-  --skill-hot: #ffffff;
+  --skill-accent: #2f8f72;
+  --skill-secondary: #f0d06a;
+  --skill-hot: #f5f0e6;
   --skill-border-speed: 4.8s;
 }
 
@@ -2516,9 +2517,9 @@ html[data-sidebar-resizing="true"] * {
 }
 
 .skill-button-starfall {
-  --skill-accent: #0ea5e9;
-  --skill-secondary: #a78bfa;
-  --skill-hot: #ffffff;
+  --skill-accent: #1e6b8a;
+  --skill-secondary: #f0d06a;
+  --skill-hot: #eef6ff;
   --skill-border-speed: 4.4s;
 }
 
@@ -3540,9 +3541,9 @@ html[data-sidebar-resizing="true"] * {
 }
 
 .skill-cast-label-sword_flight {
-  --cast-accent: #a78bfa;
-  --cast-secondary: #38bdf8;
-  --cast-hot: #ffffff;
+  --cast-accent: #2f8f72;
+  --cast-secondary: #f0d06a;
+  --cast-hot: #f5f0e6;
 }
 
 .skill-cast-label-lotus_domain {
@@ -3564,8 +3565,8 @@ html[data-sidebar-resizing="true"] * {
 }
 
 .skill-cast-label-starfall {
-  --cast-accent: #7dd3fc;
-  --cast-secondary: #c4b5fd;
+  --cast-accent: #38a0c4;
+  --cast-secondary: #f0d06a;
   --cast-hot: #ffffff;
 }
 
@@ -5293,7 +5294,7 @@ html[data-sidebar-resizing="true"] * {
 
 .skill-effect-webgl .skill-webgl-scene-sword_flight,
 .skill-effect-webgl .skill-webgl-scene-van_kiem {
-  filter: drop-shadow(0 0 18px rgba(167, 139, 250, 0.22));
+  filter: drop-shadow(0 0 18px rgba(240, 208, 106, 0.22));
 }
 
 .skill-effect-webgl .skill-webgl-scene-bean_soldiers {
@@ -5318,9 +5319,9 @@ html[data-sidebar-resizing="true"] * {
 }
 
 .skill-button-van_kiem {
-  --skill-accent: #9333ea;
-  --skill-secondary: #e879f9;
-  --skill-hot: #faf5ff;
+  --skill-accent: #c8962e;
+  --skill-secondary: #e8e0d0;
+  --skill-hot: #fffbeb;
   --skill-border-speed: 4.6s;
 }
 
@@ -5345,8 +5346,8 @@ html[data-sidebar-resizing="true"] * {
 }
 
 .skill-backdrop-van_kiem {
-  --skill-wash: rgba(147, 51, 234, 0.36);
-  --skill-wash-strong: rgba(232, 121, 249, 0.28);
+  --skill-wash: rgba(200, 150, 46, 0.32);
+  --skill-wash-strong: rgba(240, 208, 106, 0.24);
 }
 
 .skill-backdrop-dao_hoa_tan {
@@ -5367,9 +5368,9 @@ html[data-sidebar-resizing="true"] * {
 }
 
 .mystic-seal-van_kiem {
-  --seal-color: rgba(167, 139, 250, 0.88);
-  --seal-color-hot: rgba(255, 255, 255, 0.72);
-  --seal-color-cool: rgba(232, 121, 249, 0.72);
+  --seal-color: rgba(240, 208, 106, 0.88);
+  --seal-color-hot: rgba(255, 255, 255, 0.78);
+  --seal-color-cool: rgba(200, 150, 46, 0.72);
 }
 
 .mystic-seal-dao_hoa_tan {
@@ -5390,7 +5391,7 @@ html[data-sidebar-resizing="true"] * {
 }
 
 .skill-particles-van_kiem {
-  --particle-color: rgba(196, 181, 253, 0.92);
+  --particle-color: rgba(240, 208, 106, 0.92);
 }
 
 .skill-particles-dao_hoa_tan {
@@ -5409,8 +5410,8 @@ html[data-sidebar-resizing="true"] * {
 }
 
 .skill-cast-label-van_kiem {
-  --cast-accent: #c084fc;
-  --cast-secondary: #e879f9;
+  --cast-accent: #c8962e;
+  --cast-secondary: #f5e6b8;
   --cast-hot: #ffffff;
 }
 
@@ -5456,389 +5457,11 @@ html[data-sidebar-resizing="true"] * {
 
 /* ── Mobile energy ring colors ── */
 .mobile-energy-rings-hoa_long    { --ring-color: rgba(251, 146,  60, 0.9); }
-.mobile-energy-rings-van_kiem    { --ring-color: rgba(167, 139, 250, 0.9); }
+.mobile-energy-rings-van_kiem    { --ring-color: rgba(240, 208, 106, 0.88); }
 .mobile-energy-rings-dao_hoa_tan { --ring-color: rgba(249, 168, 212, 0.9); }
 .mobile-energy-rings-thien_dia_an { --ring-color: rgba(251, 191,  36, 0.9); }
 
-/* ═══════════════════════════════════════════════════════════════
-   CSS EFFECT — Hỏa Long Kiếp (Fire Dragon)
-   ═══════════════════════════════════════════════════════════════ */
-
-@keyframes fireTongueRide {
-  0%   { transform: translateX(-112%) scaleY(var(--tongue-scale, 1)); opacity: 0; }
-  8%   { opacity: 1; }
-  82%  { opacity: 0.82; }
-  100% { transform: translateX(118%) scaleY(calc(var(--tongue-scale, 1) * 0.4)); opacity: 0; }
-}
-
-@keyframes fireEmberRise {
-  0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
-  14%  { opacity: 0.92; }
-  62%  { opacity: 0.7; }
-  100% { transform: translateY(-64px) translateX(calc(var(--ember-side, 1) * 18px)) scale(0.16); opacity: 0; }
-}
-
-.fire-dragon {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.fire-tongue {
-  position: absolute;
-  left: 0;
-  top: var(--tongue-top, 42%);
-  width: 86%;
-  height: 7px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 90, 10, 0.72) 12%,
-    rgba(255, 195, 20, 0.96) 42%,
-    rgba(255, 230, 80, 0.9) 68%,
-    rgba(255, 80, 0, 0.42) 88%,
-    transparent 100%
-  );
-  filter: blur(2.5px);
-  border-radius: 0 50% 50% 0;
-  transform: translateX(-112%) scaleY(var(--tongue-scale, 1));
-  animation: fireTongueRide var(--skill-duration, 8200ms) ease-in-out var(--tongue-delay, 0ms) both;
-}
-
-.fire-embers {
-  position: absolute;
-  inset: 0;
-}
-
-.fire-embers i {
-  position: absolute;
-  bottom: 28%;
-  left: var(--ember-left, 50%);
-  width: var(--ember-size, 4px);
-  height: var(--ember-size, 4px);
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(255, 255, 200, 0.95) 38%, rgba(255, 100, 0, 0.9) 100%);
-  box-shadow:
-    0 0 7px 2px rgba(255, 130, 0, 0.82),
-    0 0 16px 5px rgba(255, 60, 0, 0.42);
-  animation: fireEmberRise calc(var(--skill-duration, 8200ms) * 0.5) ease-in var(--ember-delay, 0ms) both;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   CSS EFFECT — Vạn Kiếm Quy Tông (Sword Rain)
-   ═══════════════════════════════════════════════════════════════ */
-
-@keyframes swordRainDrop {
-  0%   { top: -14%; opacity: 0; }
-  5%   { opacity: 0.96; }
-  87%  { opacity: 0.9; }
-  95%  { opacity: 0; }
-  100% { top: 120%; opacity: 0; }
-}
-
-.sword-rain {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-}
-
-.sword-drop {
-  position: absolute;
-  left: var(--sword-left, 50%);
-  top: -14%;
-  width: 3px;
-  height: 52px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.96) 0%,
-    rgba(216, 180, 254, 0.9) 32%,
-    rgba(147, 51, 234, 0.66) 74%,
-    transparent 100%
-  );
-  box-shadow:
-    0 0 8px 3px rgba(167, 139, 250, 0.84),
-    0 0 24px 7px rgba(139, 92, 246, 0.42);
-  animation: swordRainDrop var(--skill-duration, 7600ms) ease-in var(--sword-delay, 0ms) both;
-  transform-origin: center bottom;
-  transform: rotate(var(--sword-tilt, 0deg));
-}
-
-.sword-drop::before {
-  content: '';
-  position: absolute;
-  top: -11px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-bottom: 14px solid rgba(255, 255, 255, 0.94);
-  filter: drop-shadow(0 -3px 8px rgba(167, 139, 250, 1));
-}
-
-.sword-drop::after {
-  content: '';
-  position: absolute;
-  top: 54%;
-  left: 50%;
-  transform: translate(-50%, 0) rotate(90deg);
-  width: 16px;
-  height: 3px;
-  background: rgba(196, 181, 253, 0.88);
-  box-shadow: 0 0 7px 2px rgba(139, 92, 246, 0.92);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   CSS EFFECT — Đào Hoa Tán (Petal Cascade)
-   ═══════════════════════════════════════════════════════════════ */
-
-@keyframes petalDrift {
-  0%   { transform: translateY(0) translateX(0) rotate(var(--petal-rot, 0deg)); opacity: 0; }
-  7%   { opacity: 0.88; }
-  50%  { transform: translateY(52vh) translateX(calc(var(--petal-drift, 1) * 22px)) rotate(calc(var(--petal-rot, 0deg) + 200deg)); }
-  90%  { opacity: 0.72; }
-  100% { transform: translateY(114vh) translateX(calc(var(--petal-drift, 1) * 30px)) rotate(calc(var(--petal-rot, 0deg) + 412deg)); opacity: 0; }
-}
-
-.petal-cascade {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-}
-
-.petal {
-  position: absolute;
-  left: var(--petal-left, 50%);
-  top: -8%;
-  width: var(--petal-size, 10px);
-  height: calc(var(--petal-size, 10px) * 1.65);
-  background: radial-gradient(
-    ellipse at 34% 28%,
-    rgba(255, 241, 242, 0.96) 0%,
-    rgba(249, 168, 212, 0.86) 46%,
-    rgba(244, 114, 182, 0.62) 80%,
-    transparent 100%
-  );
-  border-radius: 50% 16% 50% 16%;
-  box-shadow:
-    0 0 9px 2px rgba(244, 114, 182, 0.52),
-    0 0 20px 5px rgba(236, 72, 153, 0.22);
-  transform: rotate(var(--petal-rot, 0deg));
-  animation: petalDrift var(--skill-duration, 9000ms) ease-in var(--petal-delay, 0ms) both;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   CSS EFFECT — Thiên Địa Đại Ấn (Divine Seal)
-   ═══════════════════════════════════════════════════════════════ */
-
-@keyframes divineRingExpand {
-  0%   { transform: translate(-50%, -50%) scale(0.08) rotate(0deg); opacity: 0; }
-  16%  { opacity: 0.92; }
-  84%  { opacity: 0.88; }
-  100% { transform: translate(-50%, -50%) scale(var(--ring-scale, 2.1)) rotate(var(--ring-dir, 360deg)); opacity: 0; }
-}
-
-@keyframes divineRunesOrbit {
-  0%   { transform: rotate(0deg); opacity: 0; }
-  14%  { opacity: 0.94; }
-  86%  { opacity: 0.88; }
-  100% { transform: rotate(420deg); opacity: 0; }
-}
-
-.divine-seal-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-  overflow: visible;
-}
-
-.divine-ring {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  background:
-    transparent padding-box,
-    conic-gradient(
-      var(--ring-color-a, rgba(251, 191, 36, 0.92)) 0%,
-      transparent 22%,
-      var(--ring-color-b, rgba(220, 38, 38, 0.76)) 48%,
-      transparent 68%,
-      var(--ring-color-a, rgba(251, 191, 36, 0.92)) 100%
-    ) border-box;
-  box-shadow:
-    0 0 18px 4px var(--ring-glow, rgba(251, 191, 36, 0.34)),
-    inset 0 0 12px 2px var(--ring-glow-in, rgba(251, 191, 36, 0.14));
-  animation: divineRingExpand var(--skill-duration, 11000ms) ease-out var(--ring-delay, 0ms) both;
-}
-
-.divine-ring-1 {
-  --ring-delay: 0ms;
-  --ring-dir: 360deg;
-  --ring-scale: 1.0;
-  --ring-color-a: rgba(255, 255, 255, 0.94);
-  --ring-color-b: rgba(251, 191, 36, 0.84);
-  --ring-glow: rgba(255, 255, 255, 0.44);
-  --ring-glow-in: rgba(255, 255, 255, 0.18);
-  width: min(38vw, 260px);
-  aspect-ratio: 1;
-  border-width: 3px;
-}
-
-.divine-ring-2 {
-  --ring-delay: 110ms;
-  --ring-dir: -360deg;
-  --ring-scale: 1.55;
-  --ring-color-a: rgba(251, 191, 36, 0.92);
-  --ring-color-b: rgba(220, 38, 38, 0.74);
-  --ring-glow: rgba(251, 191, 36, 0.4);
-  --ring-glow-in: rgba(251, 191, 36, 0.16);
-  width: min(58vw, 400px);
-  aspect-ratio: 1;
-  border-width: 2px;
-}
-
-.divine-ring-3 {
-  --ring-delay: 200ms;
-  --ring-dir: 288deg;
-  --ring-scale: 2.0;
-  --ring-color-a: rgba(220, 38, 38, 0.8);
-  --ring-color-b: rgba(251, 191, 36, 0.7);
-  --ring-glow: rgba(220, 38, 38, 0.32);
-  --ring-glow-in: rgba(220, 38, 38, 0.12);
-  width: min(78vw, 540px);
-  aspect-ratio: 1;
-  border-width: 2px;
-}
-
-.divine-ring-4 {
-  --ring-delay: 290ms;
-  --ring-dir: -310deg;
-  --ring-scale: 2.6;
-  --ring-color-a: rgba(255, 220, 100, 0.72);
-  --ring-color-b: rgba(255, 255, 255, 0.52);
-  --ring-glow: rgba(255, 200, 60, 0.28);
-  --ring-glow-in: rgba(255, 200, 60, 0.1);
-  width: min(98vw, 680px);
-  aspect-ratio: 1;
-  border-width: 1.5px;
-}
-
-.divine-runes {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 1px;
-  height: 1px;
-  animation: divineRunesOrbit var(--skill-duration, 11000ms) ease-in-out both;
-}
-
-.divine-runes i {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 13px;
-  height: 21px;
-  margin: -10.5px -6.5px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(251, 191, 36, 0.82) 100%);
-  clip-path: polygon(50% 0%, 100% 30%, 86% 100%, 14% 100%, 0% 30%);
-  box-shadow:
-    0 0 10px 3px rgba(251, 191, 36, 0.74),
-    0 0 22px 6px rgba(251, 191, 36, 0.32);
-  transform: rotate(calc(var(--rune-n, 0) * 45deg)) translateY(min(-12vw, -84px));
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   Mobile overrides for new skills
-   ═══════════════════════════════════════════════════════════════ */
-
-@media (max-width: 839px) {
-  .fire-tongue {
-    height: 5px;
-    filter: blur(1.5px);
-  }
-
-  .fire-embers {
-    display: none;
-  }
-
-  .sword-drop {
-    height: 36px;
-    box-shadow: 0 0 5px 2px rgba(167, 139, 250, 0.72);
-  }
-
-  .sword-drop::after {
-    width: 12px;
-  }
-
-  .petal {
-    box-shadow: none;
-  }
-
-  .divine-ring-3,
-  .divine-ring-4 {
-    display: none;
-  }
-
-  .divine-runes {
-    display: none;
-  }
-}
-
-/* ── Mobile compact creature layers (SkillEffectLayer compact prop) ── */
-.bean-soldiers--compact {
-  height: 88px;
-  bottom: 36px;
-}
-
-.bean-soldiers--compact .bean-soldier {
-  width: 46px;
-  height: 54px;
-}
-
-.bean-soldiers--compact .bean-soldier-svg {
-  filter:
-    drop-shadow(0 4px 8px rgba(45, 28, 8, 0.22))
-    drop-shadow(0 0 10px rgba(245, 158, 11, 0.22));
-}
-
-.sword-rain--compact .sword-drop {
-  height: 38px;
-  width: 2.5px;
-}
-
-.sword-rain--compact .sword-drop::before {
-  border-left-width: 4px;
-  border-right-width: 4px;
-  border-bottom-width: 11px;
-}
-
-.fire-dragon--compact .fire-tongue {
-  width: 72%;
-  height: 5px;
-}
-
-.skill-effect-mobile .bean-soldiers--compact,
-.skill-effect-mobile .sword-rain--compact,
-.skill-effect-mobile .fire-dragon--compact {
-  z-index: 4;
-}
-
-.skill-effect-mobile.skill-effect-bean_soldiers .skill-backdrop,
-.skill-effect-mobile.skill-effect-van_kiem .skill-backdrop {
-  opacity: 0.88;
-}
-
-.petal-cascade--compact .petal {
-  --petal-size: 7px;
-}
+/* ponytail: skill keyframes imported via globals.css → app/styles/skill-effect-animations.css */
 
 /* ═══════════════════════════════════════════════════════════════════════
    SKILL EFFECTS v18 — desktop epic / mobile CSS-only policy
@@ -6791,54 +6414,4 @@ html[data-sidebar-resizing="true"] * {
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.02em;
-}
-
-.skill-button-sword_flight {
-  --skill-accent: #2f8f72;
-  --skill-secondary: #f0d06a;
-  --skill-hot: #f5f0e6;
-}
-
-.skill-button-starfall {
-  --skill-accent: #1e6b8a;
-  --skill-secondary: #f0d06a;
-  --skill-hot: #eef6ff;
-}
-
-.skill-button-van_kiem {
-  --skill-accent: #c8962e;
-  --skill-secondary: #e8e0d0;
-  --skill-hot: #fffbeb;
-}
-
-.skill-cast-label-sword_flight {
-  --cast-accent: #2f8f72;
-  --cast-secondary: #f0d06a;
-  --cast-hot: #f5f0e6;
-}
-
-.skill-cast-label-starfall {
-  --cast-accent: #38a0c4;
-  --cast-secondary: #f0d06a;
-  --cast-hot: #ffffff;
-}
-
-.skill-cast-label-van_kiem {
-  --cast-accent: #c8962e;
-  --cast-secondary: #f5e6b8;
-  --cast-hot: #ffffff;
-}
-
-.skill-particles-van_kiem {
-  --particle-color: rgba(240, 208, 106, 0.92);
-}
-
-.mystic-seal-van_kiem {
-  --seal-color: rgba(240, 208, 106, 0.88);
-  --seal-color-hot: rgba(255, 255, 255, 0.78);
-  --seal-color-cool: rgba(200, 150, 46, 0.72);
-}
-
-.mobile-energy-rings-van_kiem {
-  --ring-color: rgba(240, 208, 106, 0.88);
 }
