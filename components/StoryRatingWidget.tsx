@@ -12,9 +12,10 @@ type RatingData = {
 
 type Props = {
   storyId: string;
+  compact?: boolean;
 };
 
-export function StoryRatingWidget({ storyId }: Props) {
+export function StoryRatingWidget({ storyId, compact = false }: Props) {
   const user = useAppSelector((s) => s.identity.user);
   const identityHydrated = useAppSelector((s) => s.identity.hydrated);
   const [data, setData] = useState<RatingData | null>(null);
@@ -75,7 +76,7 @@ export function StoryRatingWidget({ storyId }: Props) {
   const avgFormatted = data?.avgRating != null ? data.avgRating.toFixed(1) : null;
 
   return (
-    <section className="story-rating-widget" aria-label="Đánh giá truyện">
+    <section className={`story-rating-widget${compact ? " story-rating-widget-compact" : ""}`} aria-label="Đánh giá truyện">
       <div className="story-rating-header">
         <span className="story-rating-aggregate">
           {avgFormatted ? (

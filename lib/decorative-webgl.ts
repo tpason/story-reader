@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { readReaderPerformanceMode } from "@/lib/reader-performance-mode";
 import { prefersReducedMotion } from "@/lib/browser";
+import { useEffect, useState } from "react";
 
 type BatteryManager = EventTarget & {
   level: number;
@@ -46,13 +47,20 @@ export function useDecorativeWebglEnabled(options: DecorativeWebglOptions = {}) 
     const lowEnd = isLowEndDevice();
 
     function update() {
+      const performanceMode = readReaderPerformanceMode();
+      if (performanceMode === "battery_saver") {
+        setEnabled(false);
+        return;
+      }
+
       // Battery threshold at 25% (was 20%) — conservative for mobile devices
       const isLowBattery = battery !== null && !battery.charging && battery.level < 0.25;
+      const ignoreLowEnd = performanceMode === "full_effects";
       setEnabled(
         !motionQuery.matches &&
         (allowCompact || !compactQuery.matches) &&
         !isLowBattery &&
-        !lowEnd
+        (ignoreLowEnd || !lowEnd)
       );
     }
 
@@ -70,10 +78,12 @@ export function useDecorativeWebglEnabled(options: DecorativeWebglOptions = {}) 
 
     motionQuery.addEventListener("change", update);
     compactQuery.addEventListener("change", update);
+    window.addEventListener("reader:performance-mode", update);
 
     return () => {
       motionQuery.removeEventListener("change", update);
       compactQuery.removeEventListener("change", update);
+      window.removeEventListener("reader:performance-mode", update);
       if (battery) {
         battery.removeEventListener("levelchange", update);
         battery.removeEventListener("chargingchange", update);

@@ -1,7 +1,7 @@
 "use client";
 
 import { animate } from "animejs";
-import { ChevronDown, CornerDownRight, LoaderCircle, MessageCircle, UserPlus } from "lucide-react";
+import { ChevronDown, CornerDownRight, LoaderCircle, MessageCircle, Pencil, Trash2, UserPlus } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -100,6 +100,94 @@ function CommentText({ text }: { text: string }) {
   );
 }
 
+function CommentInlineEditor({
+  chapterId,
+  comment,
+  onSaved,
+  onCancel
+}: {
+  chapterId: string;
+  comment: ChapterComment;
+  onSaved: (comment: ChapterComment) => void;
+  onCancel: () => void;
+}) {
+  const [text, setText] = useState(comment.contentText);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    const response = await fetch(`/api/chapters/${chapterId}/comments/${comment.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: text })
+    });
+    const data = (await response.json().catch(() => ({}))) as { error?: string; item?: ChapterComment };
+    if (!response.ok || !data.item) {
+      setError(data.error ?? "Không sửa được bình luận.");
+      setSaving(false);
+      return;
+    }
+    onSaved(data.item);
+    setSaving(false);
+  }
+
+  return (
+    <div className="comment-inline-editor">
+      <textarea value={text} maxLength={1600} rows={4} onChange={(event) => setText(event.target.value)} />
+      {error ? <p className="comment-inline-editor-error">{error}</p> : null}
+      <div className="comment-inline-editor-actions">
+        <button type="button" className="chip" disabled={saving} onClick={() => void save()}>
+          {saving ? "Đang lưu…" : "Lưu"}
+        </button>
+        <button type="button" className="chip" onClick={onCancel}>
+          Hủy
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CommentOwnerButtons({
+  chapterId,
+  comment,
+  userId,
+  isAdmin,
+  onEdit,
+  onDeleted
+}: {
+  chapterId: string;
+  comment: ChapterComment;
+  userId: string;
+  isAdmin: boolean;
+  onEdit: () => void;
+  onDeleted: (comment: ChapterComment) => void;
+}) {
+  if (comment.deletedAt) return null;
+  if (comment.userId !== userId && !isAdmin) return null;
+
+  async function remove() {
+    if (!window.confirm("Phong ấn bình luận này?")) return;
+    const response = await fetch(`/api/chapters/${chapterId}/comments/${comment.id}`, { method: "DELETE" });
+    const data = (await response.json().catch(() => ({}))) as { item?: ChapterComment };
+    if (data.item) onDeleted(data.item);
+  }
+
+  return (
+    <>
+      <button type="button" onClick={onEdit}>
+        <Pencil size={14} />
+        Sửa
+      </button>
+      <button type="button" onClick={() => void remove()}>
+        <Trash2 size={14} />
+        Xóa
+      </button>
+    </>
+  );
+}
+
 export function ChapterComments({ chapterId }: { chapterId: string }) {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.identity.user);
@@ -112,6 +200,7 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
   const contentRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const [lastCreatedId, setLastCreatedId] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
 
   const repliesByParent = useMemo(() => {
     const map = new Map<string, ChapterComment[]>();
@@ -259,6 +348,7 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
     setIsOpen(false);
     setReplyingTo(null);
     setLastCreatedId(null);
+    setEditingCommentId(null);
   }, [chapterId]);
 
   function addComment(comment: ChapterComment) {
@@ -268,6 +358,15 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
     } else {
       setComments((current) => [...current, comment]);
     }
+  }
+
+  function updateComment(comment: ChapterComment) {
+    if (comment.parentId) {
+      setReplies((current) => current.map((item) => (item.id === comment.id ? comment : item)));
+    } else {
+      setComments((current) => current.map((item) => (item.id === comment.id ? comment : item)));
+    }
+    setEditingCommentId(null);
   }
 
   useEffect(() => {
@@ -373,16 +472,37 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
                   <PrestigeBadge author={comment.author} />
                   <RealmChip author={comment.author} />
                 </div>
-                <CommentText text={comment.contentText} />
-                <div className="comment-actions">
-                  <time dateTime={comment.createdAt}>{new Date(comment.createdAt).toLocaleString("vi-VN")}</time>
-                  {user ? (
-                    <button type="button" onClick={() => setReplyingTo((current) => (current === comment.id ? null : comment.id))}>
-                      <CornerDownRight size={14} />
-                      Hồi đáp
-                    </button>
-                  ) : null}
-                </div>
+                {editingCommentId === comment.id ? (
+                  <CommentInlineEditor
+                    chapterId={chapterId}
+                    comment={comment}
+                    onSaved={updateComment}
+                    onCancel={() => setEditingCommentId(null)}
+                  />
+                ) : (
+                  <>
+                    <CommentText text={comment.contentText} />
+                    <div className="comment-actions">
+                      <time dateTime={comment.createdAt}>{new Date(comment.createdAt).toLocaleString("vi-VN")}</time>
+                      {user ? (
+                        <button type="button" onClick={() => setReplyingTo((current) => (current === comment.id ? null : comment.id))}>
+                          <CornerDownRight size={14} />
+                          Hồi đáp
+                        </button>
+                      ) : null}
+                      {user ? (
+                        <CommentOwnerButtons
+                          chapterId={chapterId}
+                          comment={comment}
+                          userId={user.id}
+                          isAdmin={Boolean(user.isAdmin)}
+                          onEdit={() => setEditingCommentId(comment.id)}
+                          onDeleted={updateComment}
+                        />
+                      ) : null}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -408,10 +528,31 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
                     <PrestigeBadge author={reply.author} />
                     <RealmChip author={reply.author} />
                   </div>
-                  <CommentText text={reply.contentText} />
-                  <div className="comment-actions">
-                    <time dateTime={reply.createdAt}>{new Date(reply.createdAt).toLocaleString("vi-VN")}</time>
-                  </div>
+                  {editingCommentId === reply.id ? (
+                    <CommentInlineEditor
+                      chapterId={chapterId}
+                      comment={reply}
+                      onSaved={updateComment}
+                      onCancel={() => setEditingCommentId(null)}
+                    />
+                  ) : (
+                    <>
+                      <CommentText text={reply.contentText} />
+                      <div className="comment-actions">
+                        <time dateTime={reply.createdAt}>{new Date(reply.createdAt).toLocaleString("vi-VN")}</time>
+                        {user ? (
+                          <CommentOwnerButtons
+                            chapterId={chapterId}
+                            comment={reply}
+                            userId={user.id}
+                            isAdmin={Boolean(user.isAdmin)}
+                            onEdit={() => setEditingCommentId(reply.id)}
+                            onDeleted={updateComment}
+                          />
+                        ) : null}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             );

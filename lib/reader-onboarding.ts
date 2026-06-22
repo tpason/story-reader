@@ -53,3 +53,15 @@ export function writeReaderSheetTab(tab: ReaderSheetTab) {
   if (typeof window === "undefined") return;
   window.sessionStorage.setItem(READER_SHEET_TAB_KEY, tab);
 }
+
+export const READER_FOCUS_MODE_DEFAULT_KEY = "reader:focus-mode-default";
+
+export function readReaderFocusModeDefault() {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(READER_FOCUS_MODE_DEFAULT_KEY) === "1";
+}
+
+export function writeReaderFocusModeDefault(enabled: boolean) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(READER_FOCUS_MODE_DEFAULT_KEY, enabled ? "1" : "0");
+}

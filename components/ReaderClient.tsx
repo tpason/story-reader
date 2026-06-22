@@ -14,7 +14,7 @@ import Fuse from "fuse.js";
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, SyntheticEvent } from "react";
-import { deleteParagraphBookmarkOnServer, fetchParagraphBookmarks, saveParagraphBookmarkOnServer, saveReadingSessionOnServer } from "@/lib/api-client";
+import { deleteParagraphBookmarkOnServer, fetchParagraphBookmarks, saveParagraphBookmarkOnServer, saveReaderPreferencesOnServer, saveReadingSessionOnServer } from "@/lib/api-client";
 import type { ChapterSummary, CursorPage, ReaderPayload } from "@/lib/types";
 import type { ReaderBookmarkItem } from "@/lib/bookmarks";
 import { readParagraphBookmarks, removeParagraphBookmark, upsertParagraphBookmark, writeParagraphBookmarks, type ParagraphBookmark } from "@/lib/paragraph-bookmarks";
@@ -38,7 +38,7 @@ import { isMobile, prefersReducedMotion, shouldReduceReaderBackgroundWork } from
 import { countReadableWords, estimateReadingMinutes } from "@/lib/reading-estimate";
 import { isTodayLocal } from "@/lib/date";
 import { useLiveQuery } from "dexie-react-hooks";
-import { getCachedChapter, offlineDb, preloadNextChapters, type OfflineChapterRecord } from "@/lib/offline-chapters";
+import { getCachedChapter, clearStoryOfflineCache, offlineDb, preloadNextChapters, type OfflineChapterRecord } from "@/lib/offline-chapters";
 import { fetchReaderChapter, readerQueryKeys } from "@/lib/reader-query";
 import {
   setReaderContentWidth,
@@ -74,14 +74,17 @@ import {
 import {
   markMobilePresetBootstrapped,
   markSwipeHintShown,
+  readReaderFocusModeDefault,
   readReaderSheetTab,
   READER_SWIPE_HINT_DURATION_MS,
   READER_SWIPE_HINT_MESSAGE,
   shouldShowSwipeHint,
   wasMobilePresetBootstrapped,
+  writeReaderFocusModeDefault,
   writeReaderSheetTab,
   type ReaderSheetTab
 } from "@/lib/reader-onboarding";
+import { buildParagraphProgressWeights, paragraphIndexForAudioProgress } from "@/lib/reader-audio-sync";
 import { buildParagraphPages, buildParagraphPagesFromHeights, pageIndexForParagraph } from "@/lib/reader-pagination";
 import {
   estimateParagraphHeight,
@@ -94,6 +97,21 @@ import {
   type ReaderResumeHint
 } from "@/lib/reader-resume";
 import { shareSelectedQuote } from "@/lib/reader-share";
+import { renderQuoteShareImage, shareQuoteImage } from "@/lib/reader-quote-image";
+import { findChapterSearchMatches } from "@/lib/reader-in-chapter-search";
+import {
+  readReaderPerformanceMode,
+  writeReaderPerformanceMode,
+  readerPerformanceModeLabel,
+  type ReaderPerformanceMode
+} from "@/lib/reader-performance-mode";
+import {
+  ReaderChapterFooter,
+  ReaderGlossaryDrawer,
+  ReaderInChapterSearchPanel,
+  ReaderStatsPill,
+  renderParagraphSearchText
+} from "@/components/ReaderChapterExtras";
 import {
   ReaderChapterRecap,
   ReaderParagraphNoteEditor,
@@ -296,6 +314,17 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [showResumeBanner, setShowResumeBanner] = useState(false);
   const [resumeHint, setResumeHint] = useState<ReaderResumeHint | null>(null);
   const [glossaryIndex, setGlossaryIndex] = useState<GlossaryIndex>(() => new Map());
+  const [glossaryDrawerOpen, setGlossaryDrawerOpen] = useState(false);
+  const [chapterSearchOpen, setChapterSearchOpen] = useState(false);
+  const [chapterSearchQuery, setChapterSearchQuery] = useState("");
+  const [chapterSearchMatchIndex, setChapterSearchMatchIndex] = useState(0);
+  const [sessionMinutes, setSessionMinutes] = useState(0);
+  const [performanceMode, setPerformanceMode] = useState<ReaderPerformanceMode>(() => readReaderPerformanceMode());
+  const [focusModeDefault, setFocusModeDefault] = useState(() => readReaderFocusModeDefault());
+  const [audioHighlightIndex, setAudioHighlightIndex] = useState<number | null>(null);
+  const [readAlongEnabled, setReadAlongEnabled] = useState(true);
+  const focusDefaultBootstrappedRef = useRef(false);
+  const lastAudioScrollIndexRef = useRef<number | null>(null);
   const [paragraphNoteEditor, setParagraphNoteEditor] = useState<{ paragraphIndex: number; note: string } | null>(null);
   const liveCachedChapters = useLiveQuery(
     () => offlineDb.chapters.where("storyId").equals(payload.story.id).sortBy("chapterNumber"),
@@ -520,6 +549,22 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     measuredParagraphHeights
   ]);
   const currentPageParagraphIndexes = paragraphPages[pageIndex] ?? [];
+  const glossaryCharacters = useMemo(() => {
+    const seen = new Set<string>();
+    const items: GlossaryCharacter[] = [];
+    for (const character of glossaryIndex.values()) {
+      if (seen.has(character.name)) continue;
+      seen.add(character.name);
+      items.push(character);
+    }
+    return items.sort((left, right) => left.name.localeCompare(right.name, "vi"));
+  }, [glossaryIndex]);
+  const chapterSearchMatches = useMemo(
+    () => findChapterSearchMatches(paragraphs, chapterSearchQuery),
+    [paragraphs, chapterSearchQuery]
+  );
+  const activeChapterSearchMatch = chapterSearchMatches[chapterSearchMatchIndex] ?? null;
+  const paragraphAudioWeights = useMemo(() => buildParagraphProgressWeights(paragraphs), [paragraphs]);
 
   useLayoutEffect(() => {
     if (adminEdit?.field !== "content") return;
@@ -852,6 +897,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setReaderOverflowOpen(false);
     setAutoScrollEnabled(false);
     setChapterSearch("");
+    setChapterSearchOpen(false);
+    setChapterSearchQuery("");
+    setGlossaryDrawerOpen(false);
     setCachedPayload(null);
     setShowCompletionOverlay(false);
     setShowResumeBanner(false);
@@ -872,6 +920,38 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       })
       .catch(() => setGlossaryIndex(new Map()));
   }, [activePayload.story.id]);
+
+  useEffect(() => {
+    setChapterSearchMatchIndex(0);
+  }, [chapterSearchQuery, activePayload.chapter.id]);
+
+  useEffect(() => {
+    if (!chapterSearchOpen || chapterSearchMatches.length === 0) return;
+    const match = chapterSearchMatches[chapterSearchMatchIndex];
+    if (!match) return;
+    const node = paragraphContainerRef.current?.querySelector(`[data-paragraph-index="${match.paragraphIndex}"]`);
+    node?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "center" });
+  }, [chapterSearchOpen, chapterSearchMatchIndex, chapterSearchMatches]);
+
+  useEffect(() => {
+    const startedAt = Date.now();
+    setSessionMinutes(0);
+    const timer = window.setInterval(() => {
+      setSessionMinutes(Math.max(0, Math.floor((Date.now() - startedAt) / 60000)));
+    }, 30000);
+    return () => window.clearInterval(timer);
+  }, [activePayload.chapter.id]);
+
+  useEffect(() => {
+    if (focusDefaultBootstrappedRef.current) return;
+    focusDefaultBootstrappedRef.current = true;
+    if (readReaderFocusModeDefault()) setFocusModeEnabled(true);
+  }, []);
+
+  useEffect(() => {
+    setAudioHighlightIndex(null);
+    lastAudioScrollIndexRef.current = null;
+  }, [activePayload.chapter.id]);
 
   useEffect(() => {
     if (!mobileMenuOpen && !mobileSheetOpen) return;
@@ -1316,10 +1396,17 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   // Reader keyboard shortcuts: ←/→ chapter nav, B bookmark, F focus mode, T chapter list
   useEffect(() => {
     function onReaderKey(event: KeyboardEvent) {
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
       const tag = (document.activeElement?.tagName ?? "").toLowerCase();
       if (["input", "textarea", "select"].includes(tag)) return;
       if ((document.activeElement as HTMLElement | null)?.isContentEditable) return;
+
+      if ((event.ctrlKey || event.metaKey) && (event.key === "f" || event.key === "F")) {
+        event.preventDefault();
+        setChapterSearchOpen(true);
+        return;
+      }
+
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
 
       if (event.key === "ArrowRight") {
         if (isPageLayout && pageIndex < paragraphPages.length - 1) {
@@ -1345,6 +1432,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         toggleBookmark();
       } else if (event.key === "f" || event.key === "F") {
         setFocusModeEnabled((prev) => !prev);
+      } else if (event.key === "g" || event.key === "G") {
+        if (glossaryCharacters.length > 0) setGlossaryDrawerOpen((prev) => !prev);
       } else if (event.key === "t" || event.key === "T") {
         if (compactViewportRef.current) {
           setMobileMenuOpen((prev) => !prev);
@@ -1355,7 +1444,63 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
     window.addEventListener("keydown", onReaderKey);
     return () => window.removeEventListener("keydown", onReaderKey);
-  }, [activePayload.nextChapter, activePayload.previousChapter, activePayload.story, isPageLayout, pageIndex, paragraphPages.length, router, toggleBookmark]);
+  }, [activePayload.nextChapter, activePayload.previousChapter, activePayload.story, glossaryCharacters.length, isPageLayout, pageIndex, paragraphPages.length, router, toggleBookmark]);
+
+  function setReaderPerformanceMode(mode: ReaderPerformanceMode) {
+    writeReaderPerformanceMode(mode);
+    setPerformanceMode(mode);
+    window.dispatchEvent(new Event("reader:performance-mode"));
+    void saveReaderPreferencesOnServer({ performanceMode: mode });
+  }
+
+  function setFocusModeDefaultPreference(enabled: boolean) {
+    writeReaderFocusModeDefault(enabled);
+    setFocusModeDefault(enabled);
+    void saveReaderPreferencesOnServer({ focusModeDefault: enabled });
+  }
+
+  const handleAudioPlaybackProgress = useCallback(
+    (snapshot: { progressRatio: number }) => {
+      if (!readAlongEnabled) {
+        setAudioHighlightIndex(null);
+        return;
+      }
+      const nextIndex = paragraphIndexForAudioProgress(paragraphAudioWeights, snapshot.progressRatio);
+      setAudioHighlightIndex(nextIndex);
+      if (lastAudioScrollIndexRef.current === nextIndex) return;
+      lastAudioScrollIndexRef.current = nextIndex;
+      if (!audioPanelOpen || isPageLayout) return;
+      const node = paragraphContainerRef.current?.querySelector(`[data-paragraph-index="${nextIndex}"]`);
+      node?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "center" });
+    },
+    [audioPanelOpen, isPageLayout, paragraphAudioWeights, readAlongEnabled]
+  );
+
+  function paragraphClassName(index: number, bookmarked: boolean, hasNote: boolean) {
+    const classes = ["reader-paragraph"];
+    if (bookmarked) classes.push("reader-paragraph-bookmarked");
+    if (hasNote) classes.push("reader-paragraph-has-note");
+    if (audioHighlightIndex === index) classes.push("reader-paragraph-audio-active");
+    return classes.join(" ");
+  }
+
+  async function clearOfflineCacheForStory() {
+    const removed = await clearStoryOfflineCache(activePayload.story.id);
+    showSwipeNotice(removed > 0 ? `Đã xóa ${removed} chương offline` : "Không có cache offline để xóa");
+  }
+
+  function jumpChapterSearchMatch(direction: "previous" | "next") {
+    if (chapterSearchMatches.length === 0) return;
+    setChapterSearchMatchIndex((current) => {
+      if (direction === "next") return (current + 1) % chapterSearchMatches.length;
+      return (current - 1 + chapterSearchMatches.length) % chapterSearchMatches.length;
+    });
+  }
+
+  function renderParagraphText(paragraphIndex: number, paragraph: string) {
+    if (!chapterSearchQuery.trim()) return paragraph;
+    return renderParagraphSearchText(paragraph, chapterSearchQuery, activeChapterSearchMatch, paragraphIndex);
+  }
 
   useEffect(() => {
     function persistProgress(scrollY: number, currentProgress: number, syncRemote: boolean) {
@@ -2081,6 +2226,28 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     window.getSelection()?.removeAllRanges();
   }
 
+  async function shareSelectedContentAsImage() {
+    if (!selectionAction?.text) return;
+    try {
+      const blob = await renderQuoteShareImage({
+        quote: selectionAction.text,
+        storyTitle: activePayload.story.title,
+        chapterTitle: activePayload.chapter.title ?? "",
+        chapterNumber: activePayload.chapter.chapterNumber
+      });
+      const result = await shareQuoteImage(
+        blob,
+        `trich-doan-${activePayload.story.id}-ch${activePayload.chapter.chapterNumber}.png`,
+        activePayload.story.title
+      );
+      setSwipeNotice(result === "shared" ? "Đã chia sẻ ảnh trích đoạn" : "Đã tải ảnh trích đoạn");
+    } catch {
+      setSwipeNotice("Không tạo được ảnh trích đoạn");
+    }
+    setSelectionAction(null);
+    window.getSelection()?.removeAllRanges();
+  }
+
   function dismissResumeBanner() {
     dismissResumeHint(activePayload.story.id, activePayload.chapter.chapterNumber);
     setShowResumeBanner(false);
@@ -2635,11 +2802,32 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           isAdmin={Boolean(currentUser?.isAdmin)}
           onCopy={copySelectedContent}
           onShare={shareSelectedContent}
+          onShareImage={shareSelectedContentAsImage}
           onEdit={editSelectedContent}
         />
       ) : null}
 
       {floatingReaderActions}
+
+      <ReaderInChapterSearchPanel
+        open={chapterSearchOpen}
+        query={chapterSearchQuery}
+        matchIndex={chapterSearchMatchIndex}
+        matchCount={chapterSearchMatches.length}
+        onQueryChange={setChapterSearchQuery}
+        onClose={() => {
+          setChapterSearchOpen(false);
+          setChapterSearchQuery("");
+        }}
+        onPrevious={() => jumpChapterSearchMatch("previous")}
+        onNext={() => jumpChapterSearchMatch("next")}
+      />
+
+      <ReaderGlossaryDrawer
+        open={glossaryDrawerOpen}
+        characters={glossaryCharacters}
+        onClose={() => setGlossaryDrawerOpen(false)}
+      />
 
       <nav className="reader-mobile-dock" aria-label="Mobile reader quick actions">
         {autoScrollEnabled ? (
@@ -2740,6 +2928,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             <UserIdentity compact className="reader-identity" />
             <NotificationBell className="reader-notification" />
             <CultivationPanel compact className="reader-cultivation" />
+            <ReaderStatsPill sessionMinutes={sessionMinutes} />
           </div>
           <div className="reader-control-group reader-action-group" ref={readerOverflowRef}>
             <FollowButton story={activePayload.story} compact />
@@ -2775,6 +2964,24 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   {focusModeEnabled ? <Eye size={15} /> : <EyeOff size={15} />}
                   {focusModeEnabled ? "Tắt focus mode" : "Focus mode"}
                 </button>
+                <button
+                  className={`reader-overflow-item ${chapterSearchOpen ? "reader-overflow-item-active" : ""}`}
+                  type="button"
+                  onClick={() => { setChapterSearchOpen(true); setReaderOverflowOpen(false); }}
+                >
+                  <Search size={15} />
+                  Tìm trong chương
+                </button>
+                {glossaryCharacters.length > 0 ? (
+                  <button
+                    className={`reader-overflow-item ${glossaryDrawerOpen ? "reader-overflow-item-active" : ""}`}
+                    type="button"
+                    onClick={() => { setGlossaryDrawerOpen(true); setReaderOverflowOpen(false); }}
+                  >
+                    <BookOpen size={15} />
+                    Nhân vật & thuật ngữ
+                  </button>
+                ) : null}
                 <div className="reader-overflow-sep" />
                 <button
                   className={`reader-overflow-item ${audioPanelOpen ? "reader-overflow-item-active" : ""}`}
@@ -2873,6 +3080,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   <div className="reader-shortcut-row"><kbd>←</kbd><kbd>→</kbd><span>{isPageLayout ? "Trang / chương" : "Chương trước / sau"}</span></div>
                   <div className="reader-shortcut-row"><kbd>B</kbd><span>Đánh dấu chương</span></div>
                   <div className="reader-shortcut-row"><kbd>F</kbd><span>Focus mode</span></div>
+                  <div className="reader-shortcut-row"><kbd>G</kbd><span>Nhân vật & thuật ngữ</span></div>
+                  <div className="reader-shortcut-row"><kbd>Ctrl/⌘</kbd><kbd>F</kbd><span>Tìm trong chương</span></div>
                   <div className="reader-shortcut-row"><kbd>T</kbd><span>Mục lục</span></div>
                 </div>
               </div>
@@ -2902,6 +3111,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 <BookOpen size={15} />
               </button>
               <button type="button" title="Dark" aria-pressed={theme === "dark"} onClick={() => dispatch(setReaderTheme("dark"))}>
+                <Moon size={15} />
+              </button>
+              <button type="button" title="OLED" aria-pressed={theme === "oled"} onClick={() => dispatch(setReaderTheme("oled"))}>
                 <Moon size={15} />
               </button>
             </div>
@@ -3226,6 +3438,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   <button type="button" aria-pressed={theme === "dark"} onClick={() => dispatch(setReaderTheme("dark"))}>
                     <Moon size={15} />
                   </button>
+                  <button type="button" aria-pressed={theme === "oled"} onClick={() => dispatch(setReaderTheme("oled"))}>
+                    <Moon size={15} />
+                  </button>
                 </div>
                 <div className="segmented reader-sheet-segmented reader-layout-mode" aria-label="Chế độ đọc">
                   <button type="button" aria-pressed={layoutMode === "scroll"} onClick={() => toggleLayoutMode("scroll")}>
@@ -3318,9 +3533,35 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             </div>
 
             <div className="reader-sheet-section">
+              <span>Hiệu năng</span>
+              <div className="segmented reader-sheet-segmented reader-performance-mode" aria-label="Hiệu năng reader">
+                {(["balanced", "battery_saver", "full_effects"] as ReaderPerformanceMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={performanceMode === mode}
+                    onClick={() => setReaderPerformanceMode(mode)}
+                  >
+                    {readerPerformanceModeLabel(mode)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="reader-sheet-section">
               <span>Tiện ích</span>
               <div className="reader-sheet-grid reader-sheet-section-body">
                 <AmbientSoundPlayer />
+                <button className="reader-sheet-action" type="button" onClick={() => setChapterSearchOpen(true)}>
+                  <Search size={16} />
+                  Tìm trong chương
+                </button>
+                {glossaryCharacters.length > 0 ? (
+                  <button className="reader-sheet-action" type="button" onClick={() => setGlossaryDrawerOpen(true)}>
+                    <BookOpen size={16} />
+                    Nhân vật & thuật ngữ
+                  </button>
+                ) : null}
                 <button className="reader-sheet-action" type="button" disabled={!activePayload.chapter.audioUrl} onClick={scrollToAudioPanel}>
                   <Headphones size={16} />
                   {activePayload.chapter.audioUrl ? "Nghe audio" : "Tạo audio"}
@@ -3389,6 +3630,20 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   {focusModeEnabled ? <Eye size={16} /> : <EyeOff size={16} />}
                   {focusModeEnabled ? "Đang focus" : "Focus"}
                 </button>
+              </div>
+            </div>
+
+            <div className="reader-sheet-section">
+              <span>Focus mặc định</span>
+              <div className="reader-sheet-section-body">
+                <label className="reader-sheet-toggle">
+                  <input
+                    type="checkbox"
+                    checked={focusModeDefault}
+                    onChange={(event) => setFocusModeDefaultPreference(event.target.checked)}
+                  />
+                  <span>Tự bật focus mode khi mở reader</span>
+                </label>
               </div>
             </div>
 
@@ -3472,6 +3727,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 ) : (
                   <small>Chưa có chương đã tải.</small>
                 )}
+                <button className="reader-sheet-action" type="button" onClick={() => void clearOfflineCacheForStory()}>
+                  <RotateCcw size={16} />
+                  Xóa cache offline truyện này
+                </button>
               </div>
             </div>
               </>
@@ -3697,6 +3956,16 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   hlsUrl={activePayload.chapter.audioHlsUrl}
                   title={activePayload.chapter.title}
                   autoStartToken={audioAutoStartToken}
+                  autoNextChapterUrl={
+                    activePayload.nextChapter
+                      ? storyHref(activePayload.story, activePayload.nextChapter.chapterNumber)
+                      : null
+                  }
+                  onAutoNextChapter={() => void openNextChapterFast()}
+                  onSleepTimerEnd={() => showSwipeNotice("Hẹn giờ nghe đã dừng audio")}
+                  readAlongEnabled={readAlongEnabled}
+                  onReadAlongEnabledChange={setReadAlongEnabled}
+                  onPlaybackProgress={handleAudioPlaybackProgress}
                 />
               </section>
             ) : null}
@@ -3713,7 +3982,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   {paragraphs.map((paragraph, index) => (
                     <p className="reader-paragraph" data-measure-index={index} key={`measure-${index}`}>
                       <span className="reader-page-measure-gutter" />
-                      <span className="reader-paragraph-text">{paragraph}</span>
+                      <span className="reader-paragraph-text">{renderParagraphText(index, paragraph)}</span>
                     </p>
                   ))}
                 </div>
@@ -3729,15 +3998,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                     {currentPageParagraphIndexes.map((index) => {
                       const paragraph = paragraphs[index] ?? "";
                       const bookmarked = bookmarkedParagraphIndexes.has(index);
+                      const hasNote = currentChapterParagraphBookmarks.some((item) => item.paragraphIndex === index && item.note);
                       return (
                         <p
-                          className={
-                            bookmarked
-                              ? currentChapterParagraphBookmarks.some((item) => item.paragraphIndex === index && item.note)
-                                ? "reader-paragraph reader-paragraph-bookmarked reader-paragraph-has-note"
-                                : "reader-paragraph reader-paragraph-bookmarked"
-                              : "reader-paragraph"
-                          }
+                          className={paragraphClassName(index, bookmarked, hasNote)}
                           data-paragraph-index={index}
                           key={`${index}-${paragraph.slice(0, 12)}`}
                           onDoubleClick={(event) => {
@@ -3750,7 +4014,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                           }}
                         >
                           {renderParagraphTools(index, paragraph, bookmarked)}
-                          <span className="reader-paragraph-text">{paragraph}</span>
+                          <span className="reader-paragraph-text">{renderParagraphText(index, paragraph)}</span>
                         </p>
                       );
                     })}
@@ -3779,6 +4043,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                       const index = virtualRow.index;
                       const paragraph = paragraphs[index] ?? "";
                       const bookmarked = bookmarkedParagraphIndexes.has(index);
+                      const hasNote = currentChapterParagraphBookmarks.some((item) => item.paragraphIndex === index && item.note);
                       return (
                         <div
                           key={virtualRow.key}
@@ -3793,13 +4058,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                           }}
                         >
                           <p
-                            className={
-                            bookmarked
-                              ? currentChapterParagraphBookmarks.some((item) => item.paragraphIndex === index && item.note)
-                                ? "reader-paragraph reader-paragraph-bookmarked reader-paragraph-has-note"
-                                : "reader-paragraph reader-paragraph-bookmarked"
-                              : "reader-paragraph"
-                          }
+                            className={paragraphClassName(index, bookmarked, hasNote)}
                             data-paragraph-index={index}
                             onDoubleClick={(event) => {
                               const target = event.target instanceof Element ? event.target : null;
@@ -3811,7 +4070,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                             }}
                           >
                             {renderParagraphTools(index, paragraph, bookmarked)}
-                            <span className="reader-paragraph-text">{paragraph}</span>
+                            <span className="reader-paragraph-text">{renderParagraphText(index, paragraph)}</span>
                           </p>
                         </div>
                       );
@@ -3820,15 +4079,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 ) : (
                 paragraphs.map((paragraph, index) => {
                   const bookmarked = bookmarkedParagraphIndexes.has(index);
+                  const hasNote = currentChapterParagraphBookmarks.some((item) => item.paragraphIndex === index && item.note);
                   return (
                     <p
-                      className={
-                        bookmarked
-                          ? currentChapterParagraphBookmarks.some((item) => item.paragraphIndex === index && item.note)
-                            ? "reader-paragraph reader-paragraph-bookmarked reader-paragraph-has-note"
-                            : "reader-paragraph reader-paragraph-bookmarked"
-                          : "reader-paragraph"
-                      }
+                      className={paragraphClassName(index, bookmarked, hasNote)}
                       data-paragraph-index={index}
                       key={`${index}-${paragraph.slice(0, 12)}`}
                       onDoubleClick={(event) => {
@@ -3841,7 +4095,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                       }}
                     >
                       {renderParagraphTools(index, paragraph, bookmarked)}
-                      <span className="reader-paragraph-text">{paragraph}</span>
+                      <span className="reader-paragraph-text">{renderParagraphText(index, paragraph)}</span>
                     </p>
                   );
                 })
@@ -3857,6 +4111,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             </section>
 
             <ChapterComments chapterId={activePayload.chapter.id} />
+
+            <ReaderChapterFooter storyId={activePayload.story.id} excludeStoryId={activePayload.story.id} />
 
             <nav className="chapter-nav" aria-label="Previous and next chapter">
               <Link

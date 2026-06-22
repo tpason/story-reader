@@ -65,6 +65,16 @@ export async function listCachedStoryChapters(storyId: string) {
     .catch(() => []);
 }
 
+export async function clearStoryOfflineCache(storyId: string) {
+  if (!canUseIndexedDb()) return 0;
+  return offlineDb.chapters.where("storyId").equals(storyId).delete().catch(() => 0);
+}
+
+export async function deleteOfflineChapter(storyId: string, chapterNumber: number) {
+  if (!canUseIndexedDb()) return;
+  await offlineDb.chapters.delete(chapterKey(storyId, chapterNumber)).catch(() => undefined);
+}
+
 export async function preloadNextChapters(payload: ReaderPayload, count = 3) {
   await cacheReaderPayload(payload);
 

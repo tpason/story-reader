@@ -3,11 +3,13 @@
 import { useLayoutEffect, useRef } from "react";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
-import { fetchBookmarks, fetchCurrentUser, fetchFollowedStories, fetchReaderPreferences, saveReaderPreferencesOnServer, syncFollowedStoriesToServer } from "@/lib/api-client";
+import { fetchBookmarks, fetchCurrentUser, fetchFollowedStories, fetchRemoteReaderPreferences, saveReaderPreferencesOnServer, syncFollowedStoriesToServer } from "@/lib/api-client";
 import { readLocalBookmarks } from "@/lib/bookmarks";
 import { readLocalFollows } from "@/lib/follows";
 import { readCurrentUser } from "@/lib/identity";
 import { readReaderStyleConfig } from "@/lib/reader-preferences";
+import { writeReaderPerformanceMode } from "@/lib/reader-performance-mode";
+import { writeReaderFocusModeDefault } from "@/lib/reader-onboarding";
 import { readLocalHistory } from "@/lib/reading-history";
 import {
   markBookmarksHydrated,
@@ -87,9 +89,13 @@ function StoreHydrator({ children }: { children: React.ReactNode }) {
       if (!userId || remotePreferencesSyncedUserRef.current === userId) return;
 
       remotePreferencesSyncedUserRef.current = userId;
-      fetchReaderPreferences()
-        .then((readerStyle) => {
-          if (readerStyle) store.dispatch(setReaderStyle(readerStyle));
+      fetchRemoteReaderPreferences()
+        .then((preferences) => {
+          if (!preferences) return;
+          store.dispatch(setReaderStyle(preferences.readerStyle));
+          writeReaderPerformanceMode(preferences.performanceMode);
+          writeReaderFocusModeDefault(preferences.focusModeDefault);
+          window.dispatchEvent(new Event("reader:performance-mode"));
         })
         .catch(() => {
           remotePreferencesSyncedUserRef.current = null;
@@ -143,9 +149,21 @@ function StoreHydrator({ children }: { children: React.ReactNode }) {
         const nextState = store.getState();
         const nextReaderStyle = JSON.stringify(nextState.readerStyle.config);
 
-        if (nextState.identity.user && nextReaderStyle !== previousReaderStyle) {
-          previousReaderStyle = nextReaderStyle;
-          saveReaderPreferencesOnServer(nextState.readerStyle.config);
+        if (nextState.identity.user) {
+          const payload: {
+            readerStyle?: typeof nextState.readerStyle.config;
+            performanceMode?: import("@/lib/reader-performance-mode").ReaderPerformanceMode;
+            focusModeDefault?: boolean;
+          } = {};
+
+          if (nextReaderStyle !== previousReaderStyle) {
+            payload.readerStyle = nextState.readerStyle.config;
+            previousReaderStyle = nextReaderStyle;
+          }
+
+          if (Object.keys(payload).length > 0) {
+            saveReaderPreferencesOnServer(payload);
+          }
         }
       }, 220);
     });

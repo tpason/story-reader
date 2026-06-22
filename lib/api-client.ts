@@ -5,7 +5,55 @@ import type { ReaderBookmarkItem } from "@/lib/bookmarks";
 import type { FollowedStoryItem } from "@/lib/follows";
 import type { ParagraphBookmark } from "@/lib/paragraph-bookmarks";
 import type { ReaderStyleConfig } from "@/lib/reader-preferences";
+import type { ReaderPerformanceMode } from "@/lib/reader-performance-mode";
+import { sanitizeReaderStyleConfig } from "@/lib/reader-preferences";
 import type { ReadingHistoryItem } from "@/lib/reading-history";
+
+export type RemoteReaderPreferences = {
+  readerStyle: ReaderStyleConfig;
+  performanceMode: ReaderPerformanceMode;
+  focusModeDefault: boolean;
+};
+
+function sanitizePerformanceMode(value: unknown): ReaderPerformanceMode {
+  if (value === "battery_saver" || value === "full_effects" || value === "balanced") return value;
+  return "balanced";
+}
+
+export async function fetchRemoteReaderPreferences(): Promise<RemoteReaderPreferences | null> {
+  const response = await fetch("/api/reader/preferences");
+  if (!response.ok) return null;
+  const data = (await response.json().catch(() => ({}))) as {
+    preferences?: {
+      readerStyle?: ReaderStyleConfig;
+      performanceMode?: unknown;
+      focusModeDefault?: unknown;
+    } | null;
+  };
+  if (!data.preferences) return null;
+  return {
+    readerStyle: sanitizeReaderStyleConfig(data.preferences.readerStyle),
+    performanceMode: sanitizePerformanceMode(data.preferences.performanceMode),
+    focusModeDefault: Boolean(data.preferences.focusModeDefault)
+  };
+}
+
+export async function fetchReaderPreferences() {
+  const remote = await fetchRemoteReaderPreferences();
+  return remote?.readerStyle ?? null;
+}
+
+export async function saveReaderPreferencesOnServer(input: {
+  readerStyle?: ReaderStyleConfig;
+  performanceMode?: ReaderPerformanceMode;
+  focusModeDefault?: boolean;
+}) {
+  await fetch("/api/reader/preferences", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  }).catch(() => undefined);
+}
 
 export async function fetchCurrentUser() {
   const response = await fetch("/api/auth/me");
@@ -18,21 +66,6 @@ export async function fetchReadingProgress(signal?: AbortSignal) {
   const response = await fetch("/api/reading-progress", { signal });
   const data = (await response.json().catch(() => ({}))) as { items?: ReadingHistoryItem[] };
   return data.items ?? [];
-}
-
-export async function fetchReaderPreferences() {
-  const response = await fetch("/api/reader/preferences");
-  if (!response.ok) return null;
-  const data = (await response.json().catch(() => ({}))) as { preferences?: { readerStyle?: ReaderStyleConfig } | null };
-  return data.preferences?.readerStyle ?? null;
-}
-
-export async function saveReaderPreferencesOnServer(readerStyle: ReaderStyleConfig) {
-  await fetch("/api/reader/preferences", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ readerStyle })
-  }).catch(() => undefined);
 }
 
 export async function saveReadingSessionOnServer(payload: unknown) {

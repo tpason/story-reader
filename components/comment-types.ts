@@ -13,8 +13,11 @@ export type CommentAuthor = {
 export type ChapterComment = {
   id: string;
   parentId: string | null;
+  userId: string;
   contentText: string;
   createdAt: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
   author: CommentAuthor;
 };
 

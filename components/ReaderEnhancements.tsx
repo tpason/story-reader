@@ -59,6 +59,7 @@ type ReaderSelectionToolbarProps = {
   isAdmin: boolean;
   onCopy: () => void;
   onShare: () => void;
+  onShareImage?: () => void;
   onEdit: () => void;
 };
 
@@ -70,6 +71,7 @@ export function ReaderSelectionToolbar({
   isAdmin,
   onCopy,
   onShare,
+  onShareImage,
   onEdit
 }: ReaderSelectionToolbarProps) {
   return (
@@ -94,6 +96,11 @@ export function ReaderSelectionToolbar({
         <Share2 size={14} />
         Chia sẻ
       </button>
+      {onShareImage ? (
+        <button type="button" onClick={onShareImage}>
+          Ảnh
+        </button>
+      ) : null}
       {isAdmin ? (
         <button type="button" onClick={onEdit}>
           Sửa

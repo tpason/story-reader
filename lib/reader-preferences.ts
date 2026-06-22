@@ -1,4 +1,4 @@
-export type ReaderTheme = "light" | "sepia" | "dark";
+export type ReaderTheme = "light" | "sepia" | "dark" | "oled";
 export type ReaderFontFamily = "literata" | "noto-serif" | "sora" | "merriweather" | "serif" | "sans";
 export type ReaderLayoutMode = "scroll" | "page";
 
@@ -39,7 +39,7 @@ export const DEFAULT_READER_STYLE_CONFIG: ReaderStyleConfig = {
 const DEFAULTS = DEFAULT_READER_STYLE_CONFIG;
 
 function isTheme(value: unknown): value is ReaderTheme {
-  return value === "light" || value === "sepia" || value === "dark";
+  return value === "light" || value === "sepia" || value === "dark" || value === "oled";
 }
 
 function isFontFamily(value: unknown): value is ReaderFontFamily {

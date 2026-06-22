@@ -12,6 +12,7 @@ import {
   MediaVolumeRange
 } from "media-chrome/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { computeFileModeProgress, computeSegmentModeProgress } from "@/lib/reader-audio-sync";
 
 type ChapterAudioPlayerProps = {
   chapterId: string;
@@ -19,6 +20,17 @@ type ChapterAudioPlayerProps = {
   hlsUrl?: string | null;
   title: string;
   autoStartToken?: number;
+  autoNextChapterUrl?: string | null;
+  onAutoNextChapter?: () => void;
+  onSleepTimerEnd?: () => void;
+  readAlongEnabled?: boolean;
+  onReadAlongEnabledChange?: (enabled: boolean) => void;
+  onPlaybackProgress?: (snapshot: {
+    progressRatio: number;
+    segmentIndex: number | null;
+    currentTime: number;
+    duration: number;
+  }) => void;
 };
 
 type SegmentStatusItem = {
@@ -49,7 +61,19 @@ function isHlsSource(url: string) {
   return /\.m3u8(?:$|\?)/i.test(url);
 }
 
-export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoStartToken = 0 }: ChapterAudioPlayerProps) {
+export function ChapterAudioPlayer({
+  chapterId,
+  audioUrl,
+  hlsUrl,
+  title,
+  autoStartToken = 0,
+  autoNextChapterUrl = null,
+  onAutoNextChapter,
+  onSleepTimerEnd,
+  readAlongEnabled: readAlongEnabledProp,
+  onReadAlongEnabledChange,
+  onPlaybackProgress
+}: ChapterAudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hlsInstanceRef = useRef<HlsType | null>(null);
   const autoStartSeenRef = useRef(0);
@@ -101,8 +125,36 @@ export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoSta
   const [segmentNotice, setSegmentNotice] = useState<string | null>(null);
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState<number | null>(null);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [autoNextEnabled, setAutoNextEnabled] = useState(false);
+  const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | null>(null);
+  const sleepTimerRef = useRef<number | null>(null);
+  const [readAlongEnabledInternal, setReadAlongEnabledInternal] = useState(true);
+  const lastProgressEmitRef = useRef(-1);
+  const readAlongEnabled = readAlongEnabledProp ?? readAlongEnabledInternal;
+  const setReadAlongEnabled = onReadAlongEnabledChange ?? setReadAlongEnabledInternal;
   const sourceKind = useMemo(() => (primaryUrl && isHlsSource(primaryUrl) ? "hls" : "file"), [primaryUrl]);
   const segmentQueueActive = !audioUrl && !readyHlsUrl;
+
+  const emitPlaybackProgress = useCallback(() => {
+    if (!readAlongEnabled || !onPlaybackProgress) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const progressRatio = segmentQueueActive
+      ? computeSegmentModeProgress(segmentStatus?.segments ?? [], currentSegmentIndex, audio.currentTime)
+      : computeFileModeProgress(audio.currentTime, audio.duration);
+
+    const rounded = Math.round(progressRatio * 1000);
+    if (rounded === lastProgressEmitRef.current) return;
+    lastProgressEmitRef.current = rounded;
+
+    onPlaybackProgress({
+      progressRatio,
+      segmentIndex: currentSegmentIndex,
+      currentTime: audio.currentTime,
+      duration: audio.duration
+    });
+  }, [currentSegmentIndex, onPlaybackProgress, readAlongEnabled, segmentQueueActive, segmentStatus?.segments]);
 
   // Revoke pre-fetched blob URL on unmount.
   useEffect(() => {
@@ -113,6 +165,20 @@ export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoSta
       if (p) URL.revokeObjectURL(p.blobUrl);
     };
   }, [clearManagedTimeouts]);
+
+  useEffect(() => {
+    if (sleepTimerRef.current) window.clearTimeout(sleepTimerRef.current);
+    if (!sleepTimerMinutes) return undefined;
+    sleepTimerRef.current = window.setTimeout(() => {
+      sleepTimerRef.current = null;
+      audioRef.current?.pause();
+      setSleepTimerMinutes(null);
+      onSleepTimerEnd?.();
+    }, sleepTimerMinutes * 60_000);
+    return () => {
+      if (sleepTimerRef.current) window.clearTimeout(sleepTimerRef.current);
+    };
+  }, [sleepTimerMinutes, onSleepTimerEnd]);
 
   // MediaSession metadata (track title for lock-screen / OS media overlay).
   useEffect(() => {
@@ -605,6 +671,40 @@ export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoSta
             <option value="1.3">1.3x</option>
           </select>
         </label>
+        <label>
+          <span>Hẹn giờ</span>
+          <select
+            value={sleepTimerMinutes ?? 0}
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              setSleepTimerMinutes(next > 0 ? next : null);
+            }}
+          >
+            <option value="0">Tắt</option>
+            <option value="15">15 phút</option>
+            <option value="30">30 phút</option>
+            <option value="45">45 phút</option>
+            <option value="60">60 phút</option>
+          </select>
+        </label>
+        {autoNextChapterUrl ? (
+          <label className="chapter-audio-auto-next">
+            <input
+              type="checkbox"
+              checked={autoNextEnabled}
+              onChange={(event) => setAutoNextEnabled(event.target.checked)}
+            />
+            <span>Chương sau</span>
+          </label>
+        ) : null}
+        <label className="chapter-audio-auto-next">
+          <input
+            type="checkbox"
+            checked={readAlongEnabled}
+            onChange={(event) => setReadAlongEnabled(event.target.checked)}
+          />
+          <span>Đọc theo audio</span>
+        </label>
       </div>
 
       <MediaController audio className="chapter-audio-controller">
@@ -639,12 +739,22 @@ export function ChapterAudioPlayer({ chapterId, audioUrl, hlsUrl, title, autoSta
             if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
           }}
           onEnded={() => {
-            if (segmentQueueActive) playNextReadySegment();
+            if (segmentQueueActive) {
+              const played = playNextReadySegment();
+              if (!played && autoNextEnabled && onAutoNextChapter && segmentStatus?.complete) {
+                onAutoNextChapter();
+              }
+              return;
+            }
+            if (autoNextEnabled && autoNextChapterUrl && onAutoNextChapter) {
+              onAutoNextChapter();
+            }
           }}
           onTimeUpdate={() => {
             const audio = audioRef.current;
             if (!audio || !Number.isFinite(audio.duration)) return;
             if (audio.duration - audio.currentTime <= 8) warmNextSegment();
+            emitPlaybackProgress();
           }}
           onError={() => {
             const audio = audioRef.current;
