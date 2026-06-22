@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { AdditiveBlending, AmbientLight, BoxGeometry, BufferAttribute, BufferGeometry, CapsuleGeometry, CircleGeometry, Color, ConeGeometry, CylinderGeometry, DirectionalLight, DoubleSide, ExtrudeGeometry, Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Shape, SphereGeometry, TorusGeometry, Vector2, WebGLRenderer } from "three";
 import { canUseWebGL } from "@/lib/webgl-capability";
 import { getSkillBloomConfig, getSkillWebglPalette, scaleSkillPalette, type SkillPalette } from "@/lib/skill-webgl-palettes";
+import { seededNoise } from "@/lib/skill-webgl-utils";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
@@ -233,11 +234,6 @@ type DivineSealRig = {
 
 function isRainSkill(skillId: string) {
   return skillId === "summon_rain" || skillId === "celestial_rain";
-}
-
-function seededNoise(seed: number) {
-  const x = Math.sin(seed * 12.9898) * 43758.5453;
-  return x - Math.floor(x);
 }
 
 function createParticleField(skillId: string, palette: SkillPalette) {

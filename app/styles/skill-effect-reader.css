@@ -1,0 +1,332 @@
+/* Reader-only skill polish: WebGL stack policy, v17 tokens, mobile compact layers */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SKILL EFFECTS v16 — WebGL-primary mode (no CSS+WebGL double stack)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.skill-effect-webgl .skill-webgl-scene {
+  mix-blend-mode: normal;
+  opacity: 1;
+}
+
+.skill-effect-webgl .mystic-seal {
+  opacity: 0.34;
+}
+
+.skill-effect-webgl .skill-backdrop {
+  opacity: 0.72;
+}
+
+.skill-effect-webgl.skill-effect-sword_flight .mystic-seal,
+.skill-effect-webgl.skill-effect-bean_soldiers .mystic-seal,
+.skill-effect-webgl.skill-effect-van_kiem .mystic-seal,
+.skill-effect-webgl.skill-effect-hoa_long .mystic-seal {
+  display: none;
+}
+
+.skill-effect-webgl .skill-webgl-scene-sword_flight,
+.skill-effect-webgl .skill-webgl-scene-van_kiem {
+  filter: drop-shadow(0 0 18px rgba(240, 208, 106, 0.22));
+}
+
+.skill-effect-webgl .skill-webgl-scene-bean_soldiers {
+  filter: drop-shadow(0 0 14px rgba(245, 158, 11, 0.18));
+}
+
+.reader-shell[data-theme="dark"] .skill-effect-webgl .skill-webgl-scene {
+  opacity: 0.96;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SKILL EFFECTS v17 — 4 newer đạo pháp tokens (hoa long / vạn kiếm / đào hoa / thiên địa ấn)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Skill button accent colors ── */
+.skill-button-hoa_long {
+  --skill-accent: #ea580c;
+  --skill-secondary: #fbbf24;
+  --skill-hot: #fff7ed;
+  --skill-border-speed: 4.2s;
+}
+
+.skill-button-van_kiem {
+  --skill-accent: #c8962e;
+  --skill-secondary: #e8e0d0;
+  --skill-hot: #fffbeb;
+  --skill-border-speed: 4.6s;
+}
+
+.skill-button-dao_hoa_tan {
+  --skill-accent: #ec4899;
+  --skill-secondary: #f9a8d4;
+  --skill-hot: #fff1f2;
+  --skill-border-speed: 7.8s;
+}
+
+.skill-button-thien_dia_an {
+  --skill-accent: #d97706;
+  --skill-secondary: #dc2626;
+  --skill-hot: #fffbeb;
+  --skill-border-speed: 3.2s;
+}
+
+/* ── Backdrop wash colors ── */
+.skill-backdrop-hoa_long {
+  --skill-wash: rgba(234, 88, 12, 0.38);
+  --skill-wash-strong: rgba(251, 191, 36, 0.3);
+}
+
+.skill-backdrop-van_kiem {
+  --skill-wash: rgba(200, 150, 46, 0.32);
+  --skill-wash-strong: rgba(240, 208, 106, 0.24);
+}
+
+.skill-backdrop-dao_hoa_tan {
+  --skill-wash: rgba(236, 72, 153, 0.26);
+  --skill-wash-strong: rgba(249, 168, 212, 0.24);
+}
+
+.skill-backdrop-thien_dia_an {
+  --skill-wash: rgba(217, 119, 6, 0.44);
+  --skill-wash-strong: rgba(220, 38, 38, 0.36);
+}
+
+/* ── Mystic seal ring colors ── */
+.mystic-seal-hoa_long {
+  --seal-color: rgba(251, 146, 60, 0.88);
+  --seal-color-hot: rgba(255, 255, 255, 0.72);
+  --seal-color-cool: rgba(251, 191, 36, 0.68);
+}
+
+.mystic-seal-van_kiem {
+  --seal-color: rgba(240, 208, 106, 0.88);
+  --seal-color-hot: rgba(255, 255, 255, 0.78);
+  --seal-color-cool: rgba(200, 150, 46, 0.72);
+}
+
+.mystic-seal-dao_hoa_tan {
+  --seal-color: rgba(249, 168, 212, 0.86);
+  --seal-color-hot: rgba(255, 241, 242, 0.78);
+  --seal-color-cool: rgba(252, 231, 243, 0.72);
+}
+
+.mystic-seal-thien_dia_an {
+  --seal-color: rgba(251, 191, 36, 0.94);
+  --seal-color-hot: rgba(255, 255, 255, 0.86);
+  --seal-color-cool: rgba(220, 38, 38, 0.72);
+}
+
+/* ── Particle field colors ── */
+.skill-particles-hoa_long {
+  --particle-color: rgba(251, 146, 60, 0.94);
+}
+
+.skill-particles-van_kiem {
+  --particle-color: rgba(240, 208, 106, 0.92);
+}
+
+.skill-particles-dao_hoa_tan {
+  --particle-color: rgba(249, 168, 212, 0.92);
+}
+
+.skill-particles-thien_dia_an {
+  --particle-color: rgba(251, 191, 36, 0.96);
+}
+
+/* ── Cast label accent colors ── */
+.skill-cast-label-hoa_long {
+  --cast-accent: #fb923c;
+  --cast-secondary: #fbbf24;
+  --cast-hot: #fff7ed;
+}
+
+.skill-cast-label-van_kiem {
+  --cast-accent: #c8962e;
+  --cast-secondary: #f5e6b8;
+  --cast-hot: #ffffff;
+}
+
+.skill-cast-label-dao_hoa_tan {
+  --cast-accent: #f472b6;
+  --cast-secondary: #f9a8d4;
+  --cast-hot: #fff1f2;
+}
+
+.skill-cast-label-thien_dia_an {
+  --cast-accent: #fbbf24;
+  --cast-secondary: #ef4444;
+  --cast-hot: #ffffff;
+}
+
+/* ── Mystic seal size overrides ── */
+.skill-effect-hoa_long .mystic-seal {
+  top: 44%;
+  width: min(62vw, 450px);
+  opacity: 0.52;
+}
+
+.skill-effect-van_kiem .mystic-seal {
+  width: min(72vw, 520px);
+}
+
+.skill-effect-dao_hoa_tan .mystic-seal {
+  width: min(80vw, 580px);
+}
+
+.skill-effect-thien_dia_an .mystic-seal {
+  width: min(90vw, 680px);
+  filter: drop-shadow(0 0 28px rgba(251, 191, 36, 0.52));
+}
+
+/* ── WebGL canvas opacity ── */
+.skill-effect-hoa_long .skill-webgl-scene,
+.skill-effect-van_kiem .skill-webgl-scene,
+.skill-effect-dao_hoa_tan .skill-webgl-scene,
+.skill-effect-thien_dia_an .skill-webgl-scene {
+  opacity: 1;
+}
+
+/* ── Mobile energy ring colors ── */
+.mobile-energy-rings-hoa_long    { --ring-color: rgba(251, 146,  60, 0.9); }
+.mobile-energy-rings-van_kiem    { --ring-color: rgba(240, 208, 106, 0.88); }
+.mobile-energy-rings-dao_hoa_tan { --ring-color: rgba(249, 168, 212, 0.9); }
+.mobile-energy-rings-thien_dia_an { --ring-color: rgba(251, 191,  36, 0.9); }
+
+/* ponytail: skill keyframes imported via globals.css → app/styles/skill-effect-animations.css */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SKILL EFFECTS v18 — desktop epic / mobile CSS-only policy
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.skill-effect-desktop-epic .skill-backdrop {
+  opacity: 0.92;
+  animation-duration: calc(var(--skill-duration, 5600ms) * 1.05);
+}
+
+.skill-effect-desktop-epic .mystic-seal {
+  opacity: 0.42;
+  filter: drop-shadow(0 0 28px rgba(200, 150, 46, 0.2));
+}
+
+.skill-effect-desktop-epic .skill-cast-label {
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.35));
+}
+
+.skill-effect-desktop-epic .skill-webgl-scene {
+  filter: saturate(1.08) contrast(1.04);
+}
+
+.skill-effect-mobile .wind-blade--compact .petal-storm {
+  display: none;
+}
+
+.skill-effect-mobile .rain-field--compact .rain-curtain {
+  opacity: 0.55;
+}
+
+.skill-effect-mobile .thunder-flash--compact .thunder-bolt-main {
+  opacity: 0.85;
+}
+
+.skill-effect-mobile .divine-seal-overlay--compact .divine-ring-3,
+.skill-effect-mobile .divine-seal-overlay--compact .divine-ring-4 {
+  display: none;
+}
+
+.skill-effect-mobile .sword-flight--compact .sword-afterimage {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SKILL EFFECTS v19 — mobile lotus / starfall compact layers
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@keyframes skill-starfall-drop {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -18%, 0) rotate(var(--meteor-tilt, -18deg)) scaleY(0.4);
+  }
+  12% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(12vw, 88vh, 0) rotate(var(--meteor-tilt, -18deg)) scaleY(1);
+  }
+}
+
+@keyframes skill-lotus-bloom {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(calc(var(--lotus-scale, 1) * 0.35));
+  }
+  35% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(calc(var(--lotus-scale, 1) * 1.15));
+  }
+}
+
+.starfall-meteors {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 3;
+}
+
+.starfall-meteor {
+  position: absolute;
+  top: -8%;
+  left: var(--meteor-left, 50%);
+  width: 2px;
+  height: 42px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(186, 230, 253, 0.15));
+  box-shadow: 0 0 14px rgba(186, 230, 253, 0.55);
+  animation: skill-starfall-drop calc(var(--skill-duration, 5600ms) * 0.55) ease-in forwards;
+  animation-delay: var(--meteor-delay, 0ms);
+}
+
+.starfall-meteors--compact .starfall-meteor {
+  height: 30px;
+  opacity: 0.82;
+}
+
+.lotus-blossoms {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.lotus-blossom {
+  position: absolute;
+  left: var(--lotus-left, 50%);
+  top: var(--lotus-top, 50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50% 50% 50% 0;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: radial-gradient(circle at 35% 35%, rgba(255, 228, 240, 0.95), rgba(249, 168, 212, 0.35) 58%, rgba(26, 107, 90, 0.12));
+  box-shadow: 0 0 16px rgba(249, 168, 212, 0.35);
+  animation: skill-lotus-bloom calc(var(--skill-duration, 5600ms) * 0.62) ease-out forwards;
+  animation-delay: var(--lotus-delay, 0ms);
+}
+
+.lotus-blossoms--compact .lotus-blossom {
+  width: 16px;
+  height: 16px;
+}
+
+.skill-particles--compact span:nth-child(n + 11) {
+  display: none;
+}
+
+.skill-effect-mobile.skill-effect-starfall .skill-backdrop,
+.skill-effect-mobile.skill-effect-lotus_domain .skill-backdrop {
+  opacity: 0.9;
+}
+
