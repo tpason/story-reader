@@ -182,6 +182,8 @@ export async function smallestInteractiveTarget(page: Page) {
 export type ReaderHealthPayload = {
   ok: boolean;
   websocket: boolean;
+  wsClients?: number;
+  nodeEnv?: string;
   timestamp: string;
 };
 

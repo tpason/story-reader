@@ -125,7 +125,7 @@ export async function PATCH(
   if (!existing || existing.deleted_at) {
     return NextResponse.json({ error: "Không tìm thấy bình luận." }, { status: 404 });
   }
-  if (existing.user_id !== user.id && user.role !== "admin") {
+  if (existing.user_id !== user.id && !user.isAdmin) {
     return NextResponse.json({ error: "Không có quyền sửa bình luận này." }, { status: 403 });
   }
 
@@ -168,7 +168,7 @@ export async function DELETE(
   if (!existing || existing.deleted_at) {
     return NextResponse.json({ error: "Không tìm thấy bình luận." }, { status: 404 });
   }
-  if (existing.user_id !== user.id && user.role !== "admin") {
+  if (existing.user_id !== user.id && !user.isAdmin) {
     return NextResponse.json({ error: "Không có quyền xóa bình luận này." }, { status: 403 });
   }
 

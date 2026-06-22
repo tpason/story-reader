@@ -3,7 +3,7 @@ const next = require("next");
 const { WebSocketServer } = require("ws");
 
 const dev = process.env.NODE_ENV !== "production";
-const hostname = process.env.HOSTNAME || "0.0.0.0";
+const hostname = process.env.READER_BIND_HOST || process.env.HOST || "0.0.0.0";
 const port = Number(process.env.PORT || 3000);
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
@@ -51,6 +51,11 @@ app.prepare().then(() => {
 
     return delivered;
   };
+
+  globalThis.__readerBroadcastMeta = () => ({
+    clients: clients.size,
+    dev
+  });
 
   wss.on("connection", (socket) => {
     clients.set(socket, {

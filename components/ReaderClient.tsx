@@ -31,6 +31,7 @@ import { FollowButton } from "@/components/FollowButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import { BackgroundAudioPlayer } from "@/components/BackgroundAudioPlayer";
 import { ChapterTransition } from "@/components/ChapterTransition";
+import { ReaderChapterFreshHint, type ReaderChapterFreshHintState } from "@/components/ReaderChapterFreshHint";
 import { AmbientSoundPlayer } from "@/components/AmbientSoundPlayer";
 import { FloatingTooltip } from "@/components/FloatingTooltip";
 import { formatNovelContent } from "@/lib/formatNovelContent";
@@ -40,6 +41,8 @@ import { isTodayLocal } from "@/lib/date";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getCachedChapter, clearStoryOfflineCache, offlineDb, preloadNextChapters, type OfflineChapterRecord } from "@/lib/offline-chapters";
 import { fetchReaderChapter, readerQueryKeys } from "@/lib/reader-query";
+import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
+import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
 import {
   setReaderContentWidth,
   setReaderFontFamily,
@@ -60,6 +63,7 @@ import {
 import {
   isDefaultReaderStyleConfig,
   DEFAULT_READER_STYLE_CONFIG,
+  sanitizeReaderStyleConfig,
   READER_CONTENT_WIDTH_MAX,
   READER_CONTENT_WIDTH_MIN,
   READER_FONT_SIZE_MAX,
@@ -301,6 +305,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const [wakeLockError, setWakeLockError] = useState<string | null>(null);
   const [swipeNotice, setSwipeNotice] = useState<string | null>(null);
+  const [freshChapterHint, setFreshChapterHint] = useState<ReaderChapterFreshHintState | null>(null);
+  const [shellFreshPulse, setShellFreshPulse] = useState(false);
+  const freshHintTimerRef = useRef<number | null>(null);
   const [compactReader, setCompactReader] = useState(false);
   const [mobileSheetTab, setMobileSheetTab] = useState<MobileSheetTab>(() => readReaderSheetTab());
   const [paragraphScrollMargin, setParagraphScrollMargin] = useState(0);
@@ -2074,7 +2081,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   function applyComfortPreset(presetKey: keyof typeof READER_COMFORT_PRESETS) {
     const preset = READER_COMFORT_PRESETS[presetKey];
-    dispatch(setReaderStyle(preset.config));
+    dispatch(
+      setReaderStyle(
+        sanitizeReaderStyleConfig({
+          ...store.getState().readerStyle.config,
+          ...preset.config
+        })
+      )
+    );
     if (presetKey === "focus") setFocusModeEnabled(true);
     if (presetKey === "mobile") {
       setReaderDimEnabled(false);
@@ -2690,7 +2704,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       return;
     }
 
-    dispatch(setReaderStyle(READER_COMFORT_PRESETS.mobile.config));
+    dispatch(
+      setReaderStyle(
+        sanitizeReaderStyleConfig({
+          ...current,
+          ...READER_COMFORT_PRESETS.mobile.config
+        })
+      )
+    );
     markMobilePresetBootstrapped();
   }, [compactReader, dispatch]);
 
@@ -2704,6 +2725,40 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }, 900);
     return () => window.clearTimeout(timer);
   }, [compactReader, payload.story.id]);
+
+  const dismissFreshChapterHint = useCallback(() => {
+    if (freshHintTimerRef.current) {
+      window.clearTimeout(freshHintTimerRef.current);
+      freshHintTimerRef.current = null;
+    }
+    setFreshChapterHint(null);
+    setShellFreshPulse(false);
+  }, []);
+
+  const handleReaderRealtime = useCallback(
+    (event: ReaderRealtimeEvent) => {
+      if (event.type !== "chapter_update" || event.storyId !== activePayload.story.id || !event.chapterNumber) return;
+
+      queryClient.invalidateQueries({
+        queryKey: readerQueryKeys.chapter(activePayload.story.id, event.chapterNumber)
+      });
+
+      if (event.chapterNumber === activePayload.chapter.chapterNumber) {
+        setFreshChapterHint({ chapterNumber: event.chapterNumber, kind: "current" });
+        setShellFreshPulse(true);
+      } else if (event.chapterNumber > activePayload.chapter.chapterNumber) {
+        setFreshChapterHint({ chapterNumber: event.chapterNumber, kind: "next" });
+      }
+
+      if (freshHintTimerRef.current) window.clearTimeout(freshHintTimerRef.current);
+      freshHintTimerRef.current = window.setTimeout(() => {
+        dismissFreshChapterHint();
+      }, 12000);
+    },
+    [activePayload.chapter.chapterNumber, activePayload.story.id, dismissFreshChapterHint, queryClient]
+  );
+
+  useReaderRealtimeListener(handleReaderRealtime);
 
   const floatingReaderActions = floatingActionsMounted
     ? createPortal(
@@ -2748,7 +2803,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   return (
     <main
       ref={readerShellRef}
-      className={`reader-shell ${focusModeEnabled ? "reader-shell-focus-mode" : ""} ${isPageLayout ? "reader-shell-layout-page" : ""}`}
+      className={`reader-shell ${focusModeEnabled ? "reader-shell-focus-mode" : ""} ${isPageLayout ? "reader-shell-layout-page" : ""} ${shellFreshPulse ? "reader-shell-fresh-pulse" : ""}`}
       data-theme={theme}
       data-font={fontFamily}
       style={readerShellStyle}
@@ -2769,6 +2824,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           {swipeNotice}
         </div>
       ) : null}
+
+      <ReaderChapterFreshHint
+        storyId={activePayload.story.id}
+        storyTitle={activePayload.story.title}
+        hint={freshChapterHint}
+        onDismiss={dismissFreshChapterHint}
+      />
 
       <ChapterTransition trigger={chapterTransitionTrigger} direction={chapterTransitionDirection} />
 

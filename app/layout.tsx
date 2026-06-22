@@ -10,6 +10,8 @@ import { StoreProvider } from "@/components/StoreProvider";
 import { XianxiaWorldBackgroundClient } from "@/components/XianxiaWorldBackgroundClient";
 import "./globals.css";
 
+export const dynamic = "force-dynamic";
+
 const literata = Literata({
   axes: ["opsz"],
   subsets: ["latin", "latin-ext", "vietnamese"],

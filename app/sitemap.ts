@@ -5,6 +5,9 @@ import { storyHref } from "@/lib/urls";
 
 const STATIC_PATHS = ["/", "/discover", "/updates", "/reading-history", "/categories", "/login", "/signup"];
 
+// DB is not available during `docker build`; generate sitemap at request time instead.
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = getSiteUrl();
   const now = new Date();

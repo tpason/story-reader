@@ -10,6 +10,52 @@ npm run dev
 
 The app reads metadata from Postgres using `STORY_DATABASE_URL`.
 
+## Daily development (no Docker rebuild)
+
+Edit UI on the host with hot reload + WebSocket. Docker `story-reader` on `:3000` can stay running for the rest of the stack.
+
+```bash
+# From repo root — loads root .env, DB @127.0.0.1:54329, app @ :3003
+bash docker/scripts/dev-story-reader.sh
+
+# Or from story_reader/
+npm run dev:local
+```
+
+Open **http://127.0.0.1:3003**. Pipeline workers in Docker should use (in root `.env` while developing):
+
+```env
+READER_REALTIME_DEV_URL=http://host.docker.internal:3003
+```
+
+`READER_REALTIME_URL=http://story-reader:3000` stays for production — workers prefer `READER_REALTIME_DEV_URL` when set. Restart workers after changing `.env`.
+
+Quick commands from repo root:
+
+```bash
+make reader-dev          # hot reload dev server
+make reader-verify       # curl health + broadcast (safe)
+make reader-test-unit    # node unit tests only
+```
+
+Verify (curl only — safe, no Playwright):
+
+```bash
+bash docker/scripts/verify-reader-dev.sh
+# or API-only E2E: cd story_reader && npm run test:e2e:realtime:api
+```
+
+Avoid running full `test:e2e:realtime` while the server is still compiling — can spike RAM and crash the machine.
+
+Alternative: dev inside Docker with volume mount (first start runs `npm ci`):
+
+```bash
+docker compose stop story-reader   # optional — frees :3000
+docker compose --profile dev up -d story-reader-dev
+```
+
+Production deploy still uses `docker compose build story-reader && docker compose up -d story-reader` when you are done editing.
+
 ```bash
 cp .env.example .env.local
 ```

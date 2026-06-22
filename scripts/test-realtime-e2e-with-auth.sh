@@ -10,8 +10,9 @@ export PLAYWRIGHT_BASE_URL="${PLAYWRIGHT_BASE_URL:-http://127.0.0.1:3003}"
 
 echo "Using PLAYWRIGHT_BASE_URL=$PLAYWRIGHT_BASE_URL"
 echo "Start server in another terminal:"
-echo "  READER_REALTIME_TOKEN=$TOKEN PORT=3003 npm run dev:ws"
+echo "  bash docker/scripts/dev-story-reader.sh"
+echo "  # or: READER_REALTIME_TOKEN=$TOKEN PORT=3003 npm run dev:ws"
 echo
 
 cd "$ROOT/story_reader"
-npm run test:e2e:realtime
+npm run test:e2e:realtime:api

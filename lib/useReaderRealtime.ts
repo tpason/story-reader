@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getReaderWebSocketUrl, isReaderRealtimeEventType } from "@/lib/reader-realtime";
+import { parseReaderRealtimeEvent, type ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
+import { dispatchReaderRealtimeEvent } from "@/lib/reader-realtime-bus";
 
 type UseReaderRealtimeOptions = {
   userId: string | null;
   storyIds: string[];
-  onEvent: (messageType: string) => void;
+  onEvent: (event: ReaderRealtimeEvent) => void;
   enabled?: boolean;
 };
 
@@ -74,10 +76,11 @@ export function useReaderRealtime({
       if (disposed) return;
       setLive(false);
       clearReconnectTimer();
+      const jitter = Math.floor(Math.random() * retryMs * 0.25);
       reconnectTimer = setTimeout(() => {
         retryMs = Math.min(retryMs * 2, MAX_RECONNECT_MS);
         connect();
-      }, retryMs);
+      }, retryMs + jitter);
     };
 
     const connect = () => {
@@ -95,11 +98,18 @@ export function useReaderRealtime({
       socket.onerror = () => setLive(false);
       socket.onmessage = (event) => {
         try {
-          const message = JSON.parse(String(event.data)) as { type?: string };
-          const type = message.type || "";
-          if (isReaderRealtimeEventType(type)) onEventRef.current(type);
+          const parsed = parseReaderRealtimeEvent(JSON.parse(String(event.data)));
+          if (isReaderRealtimeEventType(parsed.type)) {
+            onEventRef.current(parsed);
+            dispatchReaderRealtimeEvent(parsed);
+            return;
+          }
+          if (parsed.type !== "connected" && parsed.type !== "subscribed") {
+            onEventRef.current(parsed);
+            dispatchReaderRealtimeEvent(parsed);
+          }
         } catch {
-          onEventRef.current("unknown");
+          onEventRef.current({ type: "unknown" });
         }
       };
     };

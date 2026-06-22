@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:ws": "node server.js",
+    "dev:local": "bash scripts/dev-local.sh",
     "dev:lan": "next dev -H 0.0.0.0 -p ${PORT:-3000}",
     "build": "next build --experimental-debug-memory-usage",
     "format:reader-content": "npx tsc scripts/backfill-reader-formatted-content.ts lib/formatNovelContent.ts --outDir .cache/reader-format-job --module commonjs --target ES2022 --moduleResolution node --esModuleInterop --skipLibCheck && node .cache/reader-format-job/scripts/backfill-reader-formatted-content.js",
@@ -16,6 +17,7 @@
     "test:unit": "node --experimental-strip-types --test tests/*.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:realtime": "playwright test e2e/realtime.spec.ts --project=desktop",
+    "test:e2e:realtime:api": "playwright test e2e/realtime.spec.ts --project=desktop --grep \"reader realtime API\"",
     "test:e2e:realtime:auth": "bash scripts/test-realtime-e2e-with-auth.sh",
     "test:e2e:desktop": "playwright test --project=desktop",
     "test:e2e:mobile": "playwright test --project=mobile",

@@ -1,5 +1,6 @@
 "use client";
 
+import { animate } from "animejs";
 import {
   FloatingPortal,
   autoUpdate,
@@ -12,12 +13,23 @@ import {
 } from "@floating-ui/react";
 import { Bell, BellRing, LoaderCircle, Wifi } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useReaderRealtime } from "@/lib/useReaderRealtime";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { RealtimeChapterToast, type RealtimeToastPayload } from "@/components/RealtimeChapterToast";
+import { SpiritBurstCanvas } from "@/components/SpiritBurstCanvas";
+import { prefersReducedMotion } from "@/lib/browser";
+import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import type { FollowedStoryItem } from "@/lib/follows";
+import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
 import type { ReadingHistoryItem } from "@/lib/reading-history";
-import { storyHref } from "@/lib/urls";
 import { useAppSelector } from "@/lib/store-hooks";
+import { useReaderRealtime } from "@/lib/useReaderRealtime";
+import { storyHref } from "@/lib/urls";
+
+const ThreeNotificationOrb = dynamic(
+  () => import("@/components/ThreeNotificationOrb").then((mod) => mod.ThreeNotificationOrb),
+  { ssr: false }
+);
 
 type NotificationItem = {
   storyId: string;
@@ -52,6 +64,14 @@ function buildNotificationUrl(history: ReadingHistoryItem[], follows: FollowedSt
   return `/api/notifications${params.size > 0 ? `?${params.toString()}` : ""}`;
 }
 
+function resolveStoryTitle(event: ReaderRealtimeEvent, follows: FollowedStoryItem[], payload: NotificationPayload | null) {
+  if (!event.storyId) return undefined;
+  return (
+    follows.find((item) => item.storyId === event.storyId)?.storyTitle ??
+    payload?.items.find((item) => item.storyId === event.storyId)?.storyTitle
+  );
+}
+
 export function NotificationBell({ className = "" }: { className?: string }) {
   const history = useAppSelector((state) => state.history.items);
   const follows = useAppSelector((state) => state.follows.items);
@@ -59,6 +79,10 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const [payload, setPayload] = useState<NotificationPayload | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [burstKey, setBurstKey] = useState(0);
+  const [toast, setToast] = useState<RealtimeToastPayload | null>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const decorativeWebglEnabled = useDecorativeWebglEnabled({ allowCompact: true, compactMaxWidth: 720 });
   const unreadChapters = payload?.unreadChapters ?? 0;
   const storyIds = useMemo(() => follows.map((item) => item.storyId), [follows]);
   const queryKey = useMemo(() => JSON.stringify({ userId, history: history.map((item) => [item.storyId, item.maxReadChapterNumber]), follows: storyIds }), [history, storyIds, userId]);
@@ -75,12 +99,35 @@ export function NotificationBell({ className = "" }: { className?: string }) {
       .finally(() => setLoading(false));
   }, [follows, history]);
 
+  const handleRealtimeEvent = useCallback(
+    (event: ReaderRealtimeEvent) => {
+      refresh();
+      if (event.type !== "chapter_update" && event.type !== "story_update" && event.type !== "notification_update") {
+        return;
+      }
+      setBurstKey((value) => value + 1);
+      setToast({
+        id: Date.now(),
+        event,
+        storyTitle: resolveStoryTitle(event, follows, payload)
+      });
+    },
+    [follows, payload, refresh]
+  );
+
+  const live = useReaderRealtime({
+    userId,
+    storyIds,
+    onEvent: handleRealtimeEvent
+  });
+
   useEffect(() => {
     refresh();
   }, [refresh, queryKey]);
 
   useEffect(() => {
-    const timer = window.setInterval(refresh, 60000);
+    const pollMs = live ? 120_000 : 30_000;
+    const timer = window.setInterval(refresh, pollMs);
     const onVisibilityChange = () => {
       if (!document.hidden) refresh();
     };
@@ -89,13 +136,18 @@ export function NotificationBell({ className = "" }: { className?: string }) {
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [refresh]);
+  }, [live, refresh]);
 
-  const live = useReaderRealtime({
-    userId,
-    storyIds,
-    onEvent: () => refresh()
-  });
+  useEffect(() => {
+    if (!open || prefersReducedMotion() || !panelRef.current) return;
+    animate(panelRef.current, {
+      y: [-8, 0],
+      opacity: [0, 1],
+      scale: [0.97, 1],
+      duration: 420,
+      ease: "outExpo"
+    });
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -118,65 +170,86 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const { getReferenceProps, getFloatingProps } = useInteractions([dismiss]);
 
   return (
-    <div className={`notification-bell ${className}`} data-notification-live={live ? "true" : "false"}>
-      <button
-        className="icon-button notification-trigger"
-        type="button"
-        aria-label="Thông báo chương mới"
-        aria-expanded={open}
-        ref={refs.setReference}
-        {...getReferenceProps({
-          onClick: () => setOpen((value) => !value)
-        })}
+    <>
+      <div
+        className={`notification-bell ${live ? "notification-bell-live" : ""} ${className}`.trim()}
+        data-notification-live={live ? "true" : "false"}
       >
-        {unreadChapters > 0 ? <BellRing size={17} /> : <Bell size={17} />}
-        {unreadChapters > 0 ? <span className="notification-dot">{unreadChapters > 99 ? "99+" : unreadChapters}</span> : null}
-      </button>
+        <SpiritBurstCanvas trigger={decorativeWebglEnabled ? 0 : burstKey} className="notification-spirit-burst" />
+        {decorativeWebglEnabled ? <ThreeNotificationOrb trigger={burstKey} className="notification-spirit-burst" /> : null}
+        <button
+          className="icon-button notification-trigger"
+          type="button"
+          aria-label="Thông báo chương mới"
+          aria-expanded={open}
+          ref={refs.setReference}
+          {...getReferenceProps({
+            onClick: () => setOpen((value) => !value)
+          })}
+        >
+          {unreadChapters > 0 ? <BellRing size={17} /> : <Bell size={17} />}
+          {unreadChapters > 0 ? <span className="notification-dot">{unreadChapters > 99 ? "99+" : unreadChapters}</span> : null}
+        </button>
 
-      {open ? (
-        <FloatingPortal>
-          <section
-            className="notification-panel notification-panel-portal"
-            aria-label="Thông báo"
-            ref={refs.setFloating}
-            style={floatingStyles}
-            {...getFloatingProps()}
-          >
-          <div className="notification-panel-header">
-            <div>
-              <p className="eyebrow">Thông báo</p>
-              <h2>Chương mới</h2>
-            </div>
-            <span className={`notification-live ${live ? "notification-live-on" : ""}`}>
-              {loading ? <LoaderCircle size={13} className="spin" /> : <Wifi size={13} />}
-              {live ? "Live" : "Polling"}
-            </span>
-          </div>
+        {open ? (
+          <FloatingPortal>
+            <section
+              className="notification-panel notification-panel-portal"
+              aria-label="Thông báo"
+              ref={(node) => {
+                refs.setFloating(node);
+                panelRef.current = node;
+              }}
+              style={floatingStyles}
+              {...getFloatingProps()}
+            >
+              <div className="notification-panel-header">
+                <div>
+                  <p className="eyebrow">Thông báo</p>
+                  <h2>Chương mới</h2>
+                </div>
+                <span className={`notification-live ${live ? "notification-live-on" : ""}`}>
+                  {loading ? <LoaderCircle size={13} className="spin" /> : <Wifi size={13} />}
+                  {live ? "Live" : "Polling"}
+                </span>
+              </div>
 
-          {payload?.items.length ? (
-            <div className="notification-list">
-              {payload.items.slice(0, 6).map((item) => (
-                <Link
-                  className="notification-item"
-                  href={item.nextChapter ? storyHref({ id: item.storyId, title: item.storyTitle }, item.nextChapter) : storyHref({ id: item.storyId, title: item.storyTitle })}
-                  key={item.storyId}
-                  onClick={() => setOpen(false)}
-                >
-                  <strong>{item.storyTitle}</strong>
-                  <span>Mới +{item.unread} chương · đọc tiếp {item.nextChapter ? `chương ${item.nextChapter}` : "từ đầu"}</span>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="notification-empty">Chưa có chương mới từ truyện đã theo dõi.</p>
-          )}
+              {payload?.items.length ? (
+                <div className="notification-list">
+                  {payload.items.slice(0, 6).map((item, index) => (
+                    <Link
+                      className="notification-item notification-item-animated"
+                      href={
+                        item.nextChapter
+                          ? storyHref({ id: item.storyId, title: item.storyTitle }, item.nextChapter)
+                          : storyHref({ id: item.storyId, title: item.storyTitle })
+                      }
+                      key={item.storyId}
+                      style={{ animationDelay: `${index * 45}ms` }}
+                      onClick={() => setOpen(false)}
+                    >
+                      <strong>{item.storyTitle}</strong>
+                      <span>
+                        Mới +{item.unread} chương · đọc tiếp {item.nextChapter ? `chương ${item.nextChapter}` : "từ đầu"}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="notification-empty">Chưa có chương mới từ truyện đã theo dõi.</p>
+              )}
 
-          <Link className="notification-more" href="/updates" onClick={() => setOpen(false)}>
-            Xem toàn bộ
-          </Link>
-          </section>
-        </FloatingPortal>
-      ) : null}
-    </div>
+              <Link className="notification-more" href="/updates" onClick={() => setOpen(false)}>
+                Xem toàn bộ
+              </Link>
+            </section>
+          </FloatingPortal>
+        ) : null}
+      </div>
+
+      <FloatingPortal>
+        <RealtimeChapterToast toast={toast} onDismiss={() => setToast(null)} />
+      </FloatingPortal>
+    </>
   );
 }

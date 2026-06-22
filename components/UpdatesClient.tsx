@@ -2,7 +2,7 @@
 
 import { Bell, BookOpenCheck, Inbox } from "lucide-react";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { MotionFX } from "@/components/MotionFX";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { StoryCover } from "@/components/StoryCover";
@@ -11,14 +11,19 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { fetchReadingProgress } from "@/lib/api-client";
 import { historyToFollowItem } from "@/lib/follows";
+import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
+import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
 import { mergeHistoryItems } from "@/lib/store";
 import { storyHref } from "@/lib/urls";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
+
+const FRESH_CARD_MS = 9000;
 
 export function UpdatesClient() {
   const dispatch = useAppDispatch();
   const follows = useAppSelector((state) => state.follows.items);
   const history = useAppSelector((state) => state.history.items);
+  const [freshStoryIds, setFreshStoryIds] = useState<Set<string>>(() => new Set());
   const historyByStory = new Map(history.map((item) => [item.storyId, item]));
   const followedByStory = new Map(follows.map((item) => [item.storyId, item]));
 
@@ -27,6 +32,35 @@ export function UpdatesClient() {
       .then((progressItems) => dispatch(mergeHistoryItems(progressItems)))
       .catch(() => undefined);
   }, [dispatch]);
+
+  const markStoryFresh = useCallback((storyId: string) => {
+    setFreshStoryIds((current) => new Set(current).add(storyId));
+    window.setTimeout(() => {
+      setFreshStoryIds((current) => {
+        if (!current.has(storyId)) return current;
+        const next = new Set(current);
+        next.delete(storyId);
+        return next;
+      });
+    }, FRESH_CARD_MS);
+  }, []);
+
+  const handleRealtime = useCallback(
+    (event: ReaderRealtimeEvent) => {
+      if (!event.storyId) return;
+      if (event.type === "chapter_update" || event.type === "story_update" || event.type === "notification_update") {
+        markStoryFresh(event.storyId);
+        if (event.type !== "notification_update") {
+          fetchReadingProgress()
+            .then((progressItems) => dispatch(mergeHistoryItems(progressItems)))
+            .catch(() => undefined);
+        }
+      }
+    },
+    [dispatch, markStoryFresh]
+  );
+
+  useReaderRealtimeListener(handleRealtime);
 
   history.forEach((item) => {
     if (!followedByStory.has(item.storyId)) followedByStory.set(item.storyId, historyToFollowItem(item));
@@ -88,7 +122,7 @@ export function UpdatesClient() {
           <section className="updates-list" aria-label="Chương mới">
             {updates.map(({ item, progress, unread, nextChapter }) => (
               <Link
-                className="update-card"
+                className={`update-card ${freshStoryIds.has(item.storyId) ? "update-card-fresh" : ""}`.trim()}
                 href={nextChapter ? storyHref({ id: item.storyId, title: item.storyTitle }, nextChapter) : storyHref({ id: item.storyId, title: item.storyTitle })}
                 key={item.storyId}
               >

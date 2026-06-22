@@ -3,12 +3,13 @@
 import { useEffect, useRef } from "react";
 import { AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, CanvasTexture, CircleGeometry, Color, DoubleSide, DynamicDrawUsage, Group, Material, Mesh, MeshBasicMaterial, NormalBlending, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Shape, ShapeGeometry, Sprite, SpriteMaterial, SRGBColorSpace, Texture, TorusGeometry, WebGLRenderer } from "three";
 import { makeFluffyCloudTexture, makeMistBandTexture } from "@/lib/three-cloud-utils";
+import type { ReaderTheme } from "@/lib/reader-preferences";
 
 type ThreeReaderAtmosphereProps = {
   chapterNumber: number;
   progress: number;
   autoScrollEnabled: boolean;
-  theme: "light" | "sepia" | "dark";
+  theme: ReaderTheme;
 };
 
 type XianxiaSkyRig = {
@@ -39,6 +40,12 @@ const THEME_COLORS = {
     secondary: "#f0d06a",
     paper: "#1e1a16",
     opacity: 0.58
+  },
+  oled: {
+    primary: "#1f9a78",
+    secondary: "#e8c84a",
+    paper: "#0a0a0a",
+    opacity: 0.52
   }
 } satisfies Record<ThreeReaderAtmosphereProps["theme"], { primary: string; secondary: string; paper: string; opacity: number }>;
 

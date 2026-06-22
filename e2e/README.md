@@ -48,12 +48,22 @@ npx playwright show-report e2e-report
 
 Most specs **skip** unless `/api/health` reports `"websocket": true`.
 
-```bash
-# Terminal 1 — WebSocket server (not plain npm run dev)
-cd story_reader && PORT=3003 npm run dev:ws
+### Crash safety (important)
 
-# Terminal 2
-cd story_reader && npm run test:e2e:realtime
+`dev:ws` + Playwright **full** realtime suite can spike RAM/CPU (reader page ~3000 modules, exit 139 segfault reported). Prefer:
+
+1. **Daily dev:** `bash docker/scripts/dev-story-reader.sh` — hot reload, no Docker rebuild
+2. **Light verify:** `npm run test:e2e:realtime:api` — health + broadcast API only (no homepage UI)
+3. **Full UI tests:** run only when needed, server already warm, do not run `next build` in parallel
+
+`next.config.ts` sets `experimental.cpus: 1` and `images.unoptimized` in dev to reduce load.
+
+```bash
+# Terminal 1 (from repo root)
+bash docker/scripts/dev-story-reader.sh
+
+# Terminal 2 — API-only (safer)
+cd story_reader && npm run test:e2e:realtime:api
 ```
 
 Generate a strong token for auth coverage:

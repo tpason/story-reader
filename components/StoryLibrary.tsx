@@ -2,7 +2,7 @@
 
 import { BookOpen, BookOpenCheck, ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
-import React, { memo, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { CursorPage, StorySummary } from "@/lib/types";
@@ -14,6 +14,10 @@ import { useAppSelector } from "@/lib/store-hooks";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
 import { useStoryLibraryAdminEdit, type AdminStoryListEditField, type AdminStoryListEditState } from "@/hooks/useStoryLibraryAdminEdit";
 import { useStoryLibraryFeed } from "@/hooks/useStoryLibraryFeed";
+import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
+import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
+
+const FRESH_STORY_MS = 9000;
 
 export type StoryLibraryMode = "default" | "search" | "browse";
 
@@ -91,12 +95,13 @@ type StoryCardProps = {
   isAdmin: boolean;
   adminEditForCard: AdminStoryListEditState;
   highlight?: string;
+  fresh?: boolean;
   priority?: boolean;
   onStartEdit: (story: StorySummary, field: AdminStoryListEditField, value: string | null | undefined) => void;
   onSetAdminEdit: (edit: AdminStoryListEditState) => void;
 };
 
-const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminEditForCard, highlight, priority, onStartEdit, onSetAdminEdit }: StoryCardProps) {
+const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminEditForCard, highlight, fresh, priority, onStartEdit, onSetAdminEdit }: StoryCardProps) {
   const newChapterCount = storyHistory ? Math.max(0, story.totalChapters - storyHistory.maxReadChapterNumber) : 0;
   const statusLabel = storyHistory
     ? newChapterCount > 0
@@ -109,7 +114,7 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
 
   return (
     <Link
-      className="story-card"
+      className={`story-card ${fresh ? "story-card-fresh" : ""}`.trim()}
       href={storyHistory ? storyHref(story, storyHistory.chapterNumber) : storyHref(story)}
       onPointerMove={updateCardTilt}
       onPointerLeave={resetCardTilt}
@@ -244,6 +249,32 @@ export function StoryLibrary({ initialPage, searchActive = false, mode, query }:
   });
   useReadingProgressSync();
 
+  const [freshStoryIds, setFreshStoryIds] = useState<Set<string>>(() => new Set());
+
+  const markStoryFresh = useCallback((storyId: string) => {
+    setFreshStoryIds((current) => new Set(current).add(storyId));
+    window.setTimeout(() => {
+      setFreshStoryIds((current) => {
+        if (!current.has(storyId)) return current;
+        const next = new Set(current);
+        next.delete(storyId);
+        return next;
+      });
+    }, FRESH_STORY_MS);
+  }, []);
+
+  useReaderRealtimeListener(
+    useCallback(
+      (event: ReaderRealtimeEvent) => {
+        if (!event.storyId) return;
+        if (event.type === "chapter_update" || event.type === "story_update" || event.type === "notification_update") {
+          markStoryFresh(event.storyId);
+        }
+      },
+      [markStoryFresh]
+    )
+  );
+
   const historyByStory = useMemo(() => new Map(history.map((item) => [item.storyId, item])), [history]);
   const recentItems = useMemo(() => history.slice(0, 6), [history]);
 
@@ -287,7 +318,11 @@ export function StoryLibrary({ initialPage, searchActive = false, mode, query }:
           </div>
           <div className="continue-row">
             {recentItems.map((item) => (
-              <Link className="continue-card" href={storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber)} key={item.storyId}>
+              <Link
+                className={`continue-card ${freshStoryIds.has(item.storyId) ? "continue-card-fresh" : ""}`.trim()}
+                href={storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber)}
+                key={item.storyId}
+              >
                 <BookOpenCheck size={16} />
                 <span>{item.storyTitle}</span>
                 <small>Chương {item.chapterNumber}</small>
@@ -315,6 +350,7 @@ export function StoryLibrary({ initialPage, searchActive = false, mode, query }:
               isAdmin={!!currentUser?.isAdmin}
               adminEditForCard={adminEdit?.storyId === story.id ? adminEdit : null}
               highlight={query.q || undefined}
+              fresh={freshStoryIds.has(story.id)}
               priority={index < 6}
               onStartEdit={startAdminEdit}
               onSetAdminEdit={setAdminEdit}

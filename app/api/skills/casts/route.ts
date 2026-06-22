@@ -59,7 +59,6 @@ function castPayload(row: CastRow) {
     caster: {
       id: row.user_id,
       username: row.username,
-      level: row.caster_level,
       ...realm
     }
   };

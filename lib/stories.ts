@@ -5,6 +5,16 @@ import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
 import { READER_CONTENT_FORMAT_VERSION } from "@/lib/formatNovelContent";
 import { buildPreviousChapterRecap } from "@/lib/reader-chapter-recap";
+import type {
+  CategorySummary,
+  ChapterDetail,
+  ChapterSummary,
+  CursorPage,
+  Paginated,
+  ReaderPayload,
+  StoryDiscoveryItem,
+  StorySummary
+} from "@/lib/types";
 
 const DEFAULT_PAGE_SIZE = 24;
 const MAX_PAGE_SIZE = 80;
