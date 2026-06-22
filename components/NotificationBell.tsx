@@ -11,7 +11,7 @@ import {
   useFloating,
   useInteractions
 } from "@floating-ui/react";
-import { Bell, BellRing, LoaderCircle, Wifi } from "lucide-react";
+import { Bell, BellRing, Feather, LoaderCircle, ScrollText, Sparkles, Wifi } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
@@ -24,6 +24,7 @@ import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
 import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
 import type { ReadingHistoryItem } from "@/lib/reading-history";
 import { useAppSelector } from "@/lib/store-hooks";
+import { NOTIFY_COPY } from "@/lib/xianxia-notify-copy";
 import { storyHref } from "@/lib/urls";
 
 const ThreeNotificationOrb = dynamic(
@@ -76,6 +77,27 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const decorativeWebglEnabled = useDecorativeWebglEnabled({ allowCompact: true, compactMaxWidth: 720 });
   const unreadChapters = payload?.unreadChapters ?? 0;
   const storyIds = useMemo(() => follows.map((item) => item.storyId), [follows]);
+  const followIds = useMemo(() => new Set(follows.map((item) => item.storyId)), [follows]);
+  const readingIds = useMemo(
+    () =>
+      new Set(
+        history
+          .filter((item) => (item.maxReadChapterNumber || item.chapterNumber || 0) > 0)
+          .map((item) => item.storyId)
+      ),
+    [history]
+  );
+  const { readingItems, followItems } = useMemo(() => {
+    const items = payload?.items ?? [];
+    const reading: NotificationItem[] = [];
+    const followOnly: NotificationItem[] = [];
+    for (const item of items) {
+      if (readingIds.has(item.storyId)) reading.push(item);
+      else if (followIds.has(item.storyId)) followOnly.push(item);
+      else reading.push(item);
+    }
+    return { readingItems: reading.slice(0, 5), followItems: followOnly.slice(0, 5) };
+  }, [followIds, payload?.items, readingIds]);
   const queryKey = useMemo(() => JSON.stringify({ userId, history: history.map((item) => [item.storyId, item.maxReadChapterNumber]), follows: storyIds }), [history, storyIds, userId]);
 
   const refresh = useCallback(() => {
@@ -164,7 +186,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
         <button
           className="icon-button notification-trigger"
           type="button"
-          aria-label="Thông báo chương mới"
+          aria-label={NOTIFY_COPY.bellAria}
           aria-expanded={open}
           ref={refs.setReference}
           {...getReferenceProps({
@@ -179,7 +201,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
           <FloatingPortal>
             <section
               className="notification-panel notification-panel-portal"
-              aria-label="Thông báo"
+              aria-label={NOTIFY_COPY.panelTitle}
               ref={(node) => {
                 refs.setFloating(node);
                 panelRef.current = node;
@@ -189,42 +211,86 @@ export function NotificationBell({ className = "" }: { className?: string }) {
             >
               <div className="notification-panel-header">
                 <div>
-                  <p className="eyebrow">Thông báo</p>
-                  <h2>Chương mới</h2>
+                  <p className="eyebrow">
+                    <Sparkles size={12} aria-hidden="true" />
+                    {NOTIFY_COPY.eyebrow}
+                  </p>
+                  <h2>{NOTIFY_COPY.panelTitle}</h2>
                 </div>
                 <span className={`notification-live ${live ? "notification-live-on" : ""}`}>
                   {loading ? <LoaderCircle size={13} className="spin" /> : <Wifi size={13} />}
-                  {live ? "Live" : "Polling"}
+                  {live ? NOTIFY_COPY.live : NOTIFY_COPY.polling}
                 </span>
               </div>
 
               {payload?.items.length ? (
-                <div className="notification-list">
-                  {payload.items.slice(0, 6).map((item, index) => (
-                    <Link
-                      className="notification-item notification-item-animated"
-                      href={
-                        item.nextChapter
-                          ? storyHref({ id: item.storyId, title: item.storyTitle }, item.nextChapter)
-                          : storyHref({ id: item.storyId, title: item.storyTitle })
-                      }
-                      key={item.storyId}
-                      style={{ animationDelay: `${index * 45}ms` }}
-                      onClick={() => setOpen(false)}
-                    >
-                      <strong>{item.storyTitle}</strong>
-                      <span>
-                        Mới +{item.unread} chương · đọc tiếp {item.nextChapter ? `chương ${item.nextChapter}` : "từ đầu"}
-                      </span>
-                    </Link>
-                  ))}
+                <div className="notification-sections">
+                  {readingItems.length ? (
+                    <div className="notification-section">
+                      <h3 className="notification-section-title">
+                        <ScrollText size={14} aria-hidden="true" />
+                        {NOTIFY_COPY.sectionReading}
+                      </h3>
+                      <div className="notification-list">
+                        {readingItems.map((item, index) => (
+                          <Link
+                            className="notification-item notification-item-animated"
+                            href={
+                              item.nextChapter
+                                ? storyHref({ id: item.storyId, title: item.storyTitle }, item.nextChapter)
+                                : storyHref({ id: item.storyId, title: item.storyTitle })
+                            }
+                            key={item.storyId}
+                            style={{ animationDelay: `${index * 45}ms` }}
+                            onClick={() => setOpen(false)}
+                          >
+                            <strong>{item.storyTitle}</strong>
+                            <span>
+                              {NOTIFY_COPY.unreadBadge(item.unread)} ·{" "}
+                              {item.nextChapter ? NOTIFY_COPY.readNext(item.nextChapter) : "Mở từ đầu"}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {followItems.length ? (
+                    <div className="notification-section">
+                      <h3 className="notification-section-title">
+                        <Feather size={14} aria-hidden="true" />
+                        {NOTIFY_COPY.sectionFollow}
+                      </h3>
+                      <div className="notification-list">
+                        {followItems.map((item, index) => (
+                          <Link
+                            className="notification-item notification-item-animated"
+                            href={
+                              item.nextChapter
+                                ? storyHref({ id: item.storyId, title: item.storyTitle }, item.nextChapter)
+                                : storyHref({ id: item.storyId, title: item.storyTitle })
+                            }
+                            key={item.storyId}
+                            style={{ animationDelay: `${(readingItems.length + index) * 45}ms` }}
+                            onClick={() => setOpen(false)}
+                          >
+                            <strong>{item.storyTitle}</strong>
+                            <span>
+                              {NOTIFY_COPY.unreadBadge(item.unread)} ·{" "}
+                              {item.nextChapter ? NOTIFY_COPY.readNext(item.nextChapter) : "Mở từ đầu"}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ) : (
-                <p className="notification-empty">Chưa có chương mới từ truyện đã theo dõi.</p>
+                <p className="notification-empty">{NOTIFY_COPY.empty}</p>
               )}
 
               <Link className="notification-more" href="/updates" onClick={() => setOpen(false)}>
-                Xem toàn bộ
+                <ScrollText size={14} aria-hidden="true" />
+                {NOTIFY_COPY.viewAll}
               </Link>
             </section>
           </FloatingPortal>

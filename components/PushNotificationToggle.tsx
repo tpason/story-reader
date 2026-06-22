@@ -1,6 +1,7 @@
 "use client";
 
-import { Bell, BellOff, LoaderCircle } from "lucide-react";
+import { Bell, BellOff, Feather, LoaderCircle, Sparkles } from "lucide-react";
+import { NOTIFY_COPY } from "@/lib/xianxia-notify-copy";
 import { useCallback, useEffect, useState } from "react";
 import {
   enablePushNotifications,
@@ -61,12 +62,18 @@ export function PushNotificationToggle() {
   }
 
   return (
-    <div className="push-settings-card" role="region" aria-label="Thông báo chương mới">
+    <div className="push-settings-card" role="region" aria-label={NOTIFY_COPY.eyebrow}>
       <div className="push-settings-copy">
-        <p className="eyebrow">Linh tin</p>
-        <h2>Thông báo khi tab đóng</h2>
+        <p className="eyebrow">
+          <Sparkles size={12} aria-hidden="true" />
+          {NOTIFY_COPY.eyebrow}
+        </p>
+        <h2>
+          <Feather size={18} aria-hidden="true" />
+          {NOTIFY_COPY.pushTitle}
+        </h2>
         <p>
-          Nhận thông báo khi truyện đạo hữu <strong>đang đọc hoặc theo dõi</strong> có chương mới — kể cả khi không mở Linh
+          Nhận linh tin khi truyện đạo hữu <strong>đang tu hoặc theo dõi</strong> có chương mới — kể cả khi không mở Linh
           Quyển Các. Chỉ gửi khi đạo hữu chưa đọc tới chương đó.
         </p>
       </div>
@@ -77,7 +84,7 @@ export function PushNotificationToggle() {
         disabled={loading}
       >
         {loading ? <LoaderCircle size={14} className="spin" /> : subscribed ? <BellOff size={14} /> : <Bell size={14} />}
-        {loading ? "Đang xử lý…" : subscribed ? "Đang bật — nhấn để tắt" : "Bật thông báo chương mới"}
+        {loading ? "Đang xử lý…" : subscribed ? "Đang bật — nhấn để tắt" : NOTIFY_COPY.pushCta}
       </button>
     </div>
   );

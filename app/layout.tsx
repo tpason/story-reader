@@ -6,6 +6,7 @@ import { AppBootSplash } from "@/components/AppBootSplash";
 import { GlobalThemeProvider } from "@/components/GlobalThemeProvider";
 import { PwaRuntime } from "@/components/PwaRuntime";
 import { ReaderRealtimeProvider } from "@/components/ReaderRealtimeProvider";
+import { RealtimeShimmerLegend } from "@/components/RealtimeShimmerLegend";
 import { RealtimeToastHost } from "@/components/RealtimeToastHost";
 import { QueryProvider } from "@/components/QueryProvider";
 import { StoreProvider } from "@/components/StoreProvider";
@@ -83,6 +84,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <QueryProvider>
             <ReaderRealtimeProvider>
               <RealtimeToastHost />
+              <RealtimeShimmerLegend />
               <Suspense fallback={null}>
                 <XianxiaWorldBackgroundClient />
               </Suspense>
