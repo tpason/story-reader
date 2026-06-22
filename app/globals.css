@@ -14469,13 +14469,32 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
   background: color-mix(in srgb, var(--canvas) 88%, rgba(38, 168, 130, 0.1) 12%);
 }
 
-/* Reader — follow + push engagement (phase 3) */
+/* ═══════════════════════════════════════════════════════════════════════
+   REALTIME UX v1 — overlay stack + engagement prompt (Phase A)
+   z-index: fresh-hint 1350 < engagement 1360 < continue-fab 1370 < toast 1400
+   reader mobile-dock stays ~48 (chrome layer, below floating promos)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --xi-z-fresh-hint: 1350;
+  --xi-z-engagement: 1360;
+  --xi-z-continue-fab: 1370;
+  --xi-z-realtime-toast: 1400;
+}
+
+.reader-chapter-fresh-hint {
+  z-index: var(--xi-z-fresh-hint);
+}
+
+.realtime-chapter-toast {
+  z-index: var(--xi-z-realtime-toast);
+}
 
 .reader-engagement-prompt {
   position: fixed;
   right: max(16px, env(safe-area-inset-right));
   top: max(72px, calc(56px + env(safe-area-inset-top)));
-  z-index: 1340;
+  z-index: var(--xi-z-engagement);
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 10px;
@@ -14486,6 +14505,7 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
   border-radius: 12px;
   background: color-mix(in srgb, var(--canvas) 94%, rgba(38, 168, 130, 0.08) 6%);
   box-shadow: 0 16px 40px rgba(38, 168, 130, 0.12);
+  overflow: hidden;
 }
 
 .reader-engagement-prompt-glow {
@@ -14497,6 +14517,8 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
 }
 
 .reader-engagement-prompt-copy {
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: 8px;
   font-size: 0.88rem;
@@ -14507,99 +14529,6 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
 .reader-engagement-prompt-copy strong {
   color: var(--charcoal);
   font-size: 0.95rem;
-}
-
-.reader-engagement-follow {
-  justify-self: start;
-}
-
-.reader-engagement-push-btn {
-  justify-self: start;
-  padding: 7px 12px;
-  border: 1px solid color-mix(in srgb, #26a882 40%, var(--hairline) 60%);
-  border-radius: 999px;
-  background: color-mix(in srgb, #26a882 12%, var(--canvas) 88%);
-  color: var(--charcoal);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.reader-engagement-push-btn:disabled {
-  opacity: 0.65;
-  cursor: wait;
-}
-
-.reader-engagement-prompt-close {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.05);
-  color: var(--steel);
-  cursor: pointer;
-}
-
-@media (max-width: 839px) {
-  .reader-engagement-prompt {
-    top: auto;
-    bottom: calc(88px + env(safe-area-inset-bottom));
-    right: max(12px, env(safe-area-inset-right));
-    left: max(12px, env(safe-area-inset-left));
-    width: auto;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .reader-engagement-prompt-glow {
-    display: none;
-  }
-}
-
-/* Reader — follow + push engagement prompt (phase 3) */
-
-.reader-engagement-prompt {
-  position: fixed;
-  right: max(16px, env(safe-area-inset-right));
-  bottom: calc(88px + env(safe-area-inset-bottom));
-  z-index: 1340;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 10px;
-  align-items: start;
-  width: min(360px, calc(100vw - 24px));
-  padding: 12px 12px 12px 14px;
-  border: 1px solid color-mix(in srgb, #26a882 28%, var(--hairline) 72%);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--canvas) 94%, rgba(38, 168, 130, 0.08) 6%);
-  box-shadow: 0 16px 40px rgba(28, 25, 22, 0.14);
-}
-
-.reader-engagement-prompt-glow {
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: radial-gradient(circle at 20% 0%, rgba(240, 208, 106, 0.2), transparent 55%);
-  pointer-events: none;
-}
-
-.reader-engagement-prompt-copy {
-  display: grid;
-  gap: 8px;
-  position: relative;
-  z-index: 1;
-}
-
-.reader-engagement-prompt-copy strong {
-  font-size: 0.95rem;
-}
-
-.reader-engagement-prompt-copy span {
-  color: var(--steel);
-  font-size: 0.86rem;
-  line-height: 1.45;
 }
 
 .reader-engagement-follow {
@@ -14624,6 +14553,8 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
 }
 
 .reader-engagement-prompt-close {
+  position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
   width: 28px;
@@ -14635,11 +14566,30 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
   cursor: pointer;
 }
 
+.reader-shell .reader-continue-fab {
+  z-index: var(--xi-z-continue-fab);
+}
+
 @media (max-width: 839px) {
   .reader-engagement-prompt {
-    left: 12px;
-    right: 12px;
+    top: auto;
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
     width: auto;
+    bottom: calc(152px + env(safe-area-inset-bottom));
+  }
+
+  .realtime-chapter-toast {
+    bottom: calc(18px + env(safe-area-inset-bottom));
+  }
+
+  .reader-chapter-fresh-hint {
     bottom: calc(74px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-engagement-prompt-glow {
+    display: none;
   }
 }

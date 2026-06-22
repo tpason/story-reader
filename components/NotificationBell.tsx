@@ -15,15 +15,15 @@ import { Bell, BellRing, LoaderCircle, Wifi } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { RealtimeChapterToast, type RealtimeToastPayload } from "@/components/RealtimeChapterToast";
 import { SpiritBurstCanvas } from "@/components/SpiritBurstCanvas";
+import { useReaderRealtimeLive } from "@/components/ReaderRealtimeProvider";
 import { prefersReducedMotion } from "@/lib/browser";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import type { FollowedStoryItem } from "@/lib/follows";
+import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
 import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
 import type { ReadingHistoryItem } from "@/lib/reading-history";
 import { useAppSelector } from "@/lib/store-hooks";
-import { useReaderRealtime } from "@/lib/useReaderRealtime";
 import { storyHref } from "@/lib/urls";
 
 const ThreeNotificationOrb = dynamic(
@@ -64,14 +64,6 @@ function buildNotificationUrl(history: ReadingHistoryItem[], follows: FollowedSt
   return `/api/notifications${params.size > 0 ? `?${params.toString()}` : ""}`;
 }
 
-function resolveStoryTitle(event: ReaderRealtimeEvent, follows: FollowedStoryItem[], payload: NotificationPayload | null) {
-  if (!event.storyId) return undefined;
-  return (
-    follows.find((item) => item.storyId === event.storyId)?.storyTitle ??
-    payload?.items.find((item) => item.storyId === event.storyId)?.storyTitle
-  );
-}
-
 export function NotificationBell({ className = "" }: { className?: string }) {
   const history = useAppSelector((state) => state.history.items);
   const follows = useAppSelector((state) => state.follows.items);
@@ -80,7 +72,6 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [burstKey, setBurstKey] = useState(0);
-  const [toast, setToast] = useState<RealtimeToastPayload | null>(null);
   const panelRef = useRef<HTMLElement>(null);
   const decorativeWebglEnabled = useDecorativeWebglEnabled({ allowCompact: true, compactMaxWidth: 720 });
   const unreadChapters = payload?.unreadChapters ?? 0;
@@ -106,20 +97,13 @@ export function NotificationBell({ className = "" }: { className?: string }) {
         return;
       }
       setBurstKey((value) => value + 1);
-      setToast({
-        id: Date.now(),
-        event,
-        storyTitle: resolveStoryTitle(event, follows, payload)
-      });
     },
-    [follows, payload, refresh]
+    [refresh]
   );
 
-  const live = useReaderRealtime({
-    userId,
-    storyIds,
-    onEvent: handleRealtimeEvent
-  });
+  const live = useReaderRealtimeLive();
+
+  useReaderRealtimeListener(handleRealtimeEvent);
 
   useEffect(() => {
     refresh();
@@ -246,10 +230,6 @@ export function NotificationBell({ className = "" }: { className?: string }) {
           </FloatingPortal>
         ) : null}
       </div>
-
-      <FloatingPortal>
-        <RealtimeChapterToast toast={toast} onDismiss={() => setToast(null)} />
-      </FloatingPortal>
     </>
   );
 }

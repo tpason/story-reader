@@ -20,18 +20,20 @@ import { useAppSelector } from "@/lib/store-hooks";
 type ReaderEngagementPromptProps = {
   story: StorySummary;
   chapterNumber: number;
+  /** Hide while chapter fresh hint or other bottom promos are visible */
+  suppressed?: boolean;
 };
 
 type PromptMode = "follow" | "push" | null;
 
-export function ReaderEngagementPrompt({ story, chapterNumber }: ReaderEngagementPromptProps) {
+export function ReaderEngagementPrompt({ story, chapterNumber, suppressed = false }: ReaderEngagementPromptProps) {
   const user = useAppSelector((state) => state.identity.user);
   const followed = useAppSelector((state) => state.follows.items.some((item) => item.storyId === story.id));
   const [mode, setMode] = useState<PromptMode>(null);
   const [pushLoading, setPushLoading] = useState(false);
 
   useEffect(() => {
-    if (!user || chapterNumber < READER_ENGAGE_MIN_CHAPTER) {
+    if (suppressed || !user || chapterNumber < READER_ENGAGE_MIN_CHAPTER) {
       setMode(null);
       return;
     }
@@ -69,9 +71,9 @@ export function ReaderEngagementPrompt({ story, chapterNumber }: ReaderEngagemen
     return () => {
       cancelled = true;
     };
-  }, [chapterNumber, followed, story.id, user]);
+  }, [chapterNumber, followed, story.id, suppressed, user]);
 
-  if (!mode) return null;
+  if (!mode || suppressed) return null;
 
   function dismiss() {
     dismissReaderEngagement(story.id);

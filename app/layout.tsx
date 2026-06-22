@@ -5,6 +5,8 @@ import { GlobalScrollTop } from "@/components/GlobalScrollTop";
 import { AppBootSplash } from "@/components/AppBootSplash";
 import { GlobalThemeProvider } from "@/components/GlobalThemeProvider";
 import { PwaRuntime } from "@/components/PwaRuntime";
+import { ReaderRealtimeProvider } from "@/components/ReaderRealtimeProvider";
+import { RealtimeToastHost } from "@/components/RealtimeToastHost";
 import { QueryProvider } from "@/components/QueryProvider";
 import { StoreProvider } from "@/components/StoreProvider";
 import { XianxiaWorldBackgroundClient } from "@/components/XianxiaWorldBackgroundClient";
@@ -79,12 +81,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <GlobalThemeProvider />
           <AppBootSplash />
           <QueryProvider>
-            <Suspense fallback={null}>
-              <XianxiaWorldBackgroundClient />
-            </Suspense>
-            <PwaRuntime />
-            {children}
-            <GlobalScrollTop />
+            <ReaderRealtimeProvider>
+              <RealtimeToastHost />
+              <Suspense fallback={null}>
+                <XianxiaWorldBackgroundClient />
+              </Suspense>
+              <PwaRuntime />
+              {children}
+              <GlobalScrollTop />
+            </ReaderRealtimeProvider>
           </QueryProvider>
         </StoreProvider>
       </body>

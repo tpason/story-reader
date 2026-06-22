@@ -2833,7 +2833,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         onDismiss={dismissFreshChapterHint}
       />
 
-      <ReaderEngagementPrompt story={activePayload.story} chapterNumber={activePayload.chapter.chapterNumber} />
+      <ReaderEngagementPrompt
+        story={activePayload.story}
+        chapterNumber={activePayload.chapter.chapterNumber}
+        suppressed={Boolean(freshChapterHint)}
+      />
 
       <ChapterTransition trigger={chapterTransitionTrigger} direction={chapterTransitionDirection} />
 
