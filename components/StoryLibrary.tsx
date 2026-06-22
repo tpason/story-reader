@@ -2,7 +2,7 @@
 
 import { BookOpen, BookOpenCheck, ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useMemo } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { CursorPage, StorySummary } from "@/lib/types";
@@ -14,10 +14,7 @@ import { useAppSelector } from "@/lib/store-hooks";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
 import { useStoryLibraryAdminEdit, type AdminStoryListEditField, type AdminStoryListEditState } from "@/hooks/useStoryLibraryAdminEdit";
 import { useStoryLibraryFeed } from "@/hooks/useStoryLibraryFeed";
-import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
-import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
-
-const FRESH_STORY_MS = 9000;
+import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 
 export type StoryLibraryMode = "default" | "search" | "browse";
 
@@ -248,32 +245,7 @@ export function StoryLibrary({ initialPage, searchActive = false, mode, query }:
     queryClient
   });
   useReadingProgressSync();
-
-  const [freshStoryIds, setFreshStoryIds] = useState<Set<string>>(() => new Set());
-
-  const markStoryFresh = useCallback((storyId: string) => {
-    setFreshStoryIds((current) => new Set(current).add(storyId));
-    window.setTimeout(() => {
-      setFreshStoryIds((current) => {
-        if (!current.has(storyId)) return current;
-        const next = new Set(current);
-        next.delete(storyId);
-        return next;
-      });
-    }, FRESH_STORY_MS);
-  }, []);
-
-  useReaderRealtimeListener(
-    useCallback(
-      (event: ReaderRealtimeEvent) => {
-        if (!event.storyId) return;
-        if (event.type === "chapter_update" || event.type === "story_update" || event.type === "notification_update") {
-          markStoryFresh(event.storyId);
-        }
-      },
-      [markStoryFresh]
-    )
-  );
+  const { isFresh } = useFreshStoryRealtime();
 
   const historyByStory = useMemo(() => new Map(history.map((item) => [item.storyId, item])), [history]);
   const recentItems = useMemo(() => history.slice(0, 6), [history]);
@@ -319,7 +291,7 @@ export function StoryLibrary({ initialPage, searchActive = false, mode, query }:
           <div className="continue-row">
             {recentItems.map((item) => (
               <Link
-                className={`continue-card ${freshStoryIds.has(item.storyId) ? "continue-card-fresh" : ""}`.trim()}
+                className={`continue-card ${isFresh(item.storyId) ? "continue-card-fresh" : ""}`.trim()}
                 href={storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber)}
                 key={item.storyId}
               >
@@ -350,7 +322,7 @@ export function StoryLibrary({ initialPage, searchActive = false, mode, query }:
               isAdmin={!!currentUser?.isAdmin}
               adminEditForCard={adminEdit?.storyId === story.id ? adminEdit : null}
               highlight={query.q || undefined}
-              fresh={freshStoryIds.has(story.id)}
+              fresh={isFresh(story.id)}
               priority={index < 6}
               onStartEdit={startAdminEdit}
               onSetAdminEdit={setAdminEdit}

@@ -3,12 +3,14 @@
 import { BellRing, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { StoryCover } from "@/components/StoryCover";
+import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import { storyHref } from "@/lib/urls";
 import { useAppSelector } from "@/lib/store-hooks";
 
 export function FollowedStoriesPanel() {
   const follows = useAppSelector((state) => state.follows.items);
   const history = useAppSelector((state) => state.history.items);
+  const { isFresh } = useFreshStoryRealtime();
 
   if (follows.length === 0) return null;
 
@@ -40,7 +42,7 @@ export function FollowedStoriesPanel() {
 
           return (
             <Link
-              className="followed-card"
+              className={`followed-card ${isFresh(item.storyId) ? "followed-card-fresh" : ""}`.trim()}
               href={targetChapter ? storyHref({ id: item.storyId, title: item.storyTitle }, targetChapter) : storyHref({ id: item.storyId, title: item.storyTitle })}
               key={item.storyId}
             >
