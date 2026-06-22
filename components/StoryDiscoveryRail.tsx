@@ -3,8 +3,8 @@
 import { Clock3, Sparkles, WandSparkles } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import type { PointerEvent as ReactPointerEvent } from "react";
 import { StoryCover } from "@/components/StoryCover";
+import { useCardTiltHandlers } from "@/hooks/useCardTiltHandlers";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import { formatDiscoveryChapterLabel, formatRelativeActivity } from "@/lib/discovery-format";
 import { storyDisplayDescription } from "@/lib/story-description";
@@ -26,26 +26,8 @@ type StoryDiscoveryRailProps = {
   updatedStories: StoryDiscoveryItem[];
 };
 
-function updateDiscoveryTilt(event: ReactPointerEvent<HTMLElement>) {
-  const card = event.currentTarget;
-  const rect = card.getBoundingClientRect();
-  const x = (event.clientX - rect.left) / Math.max(1, rect.width);
-  const y = (event.clientY - rect.top) / Math.max(1, rect.height);
-  card.style.setProperty("--tilt-x", `${(0.5 - y) * 8}deg`);
-  card.style.setProperty("--tilt-y", `${(x - 0.5) * 9}deg`);
-  card.style.setProperty("--tilt-glow-x", `${x * 100}%`);
-  card.style.setProperty("--tilt-glow-y", `${y * 100}%`);
-}
-
-function resetDiscoveryTilt(event: ReactPointerEvent<HTMLElement>) {
-  const card = event.currentTarget;
-  card.style.setProperty("--tilt-x", "0deg");
-  card.style.setProperty("--tilt-y", "0deg");
-  card.style.setProperty("--tilt-glow-x", "50%");
-  card.style.setProperty("--tilt-glow-y", "50%");
-}
-
 function DiscoveryGroup({ eyebrow, title, description, items, variant, href, isFresh }: DiscoveryGroupProps) {
+  const tiltHandlers = useCardTiltHandlers(0.9);
   if (items.length === 0) return null;
 
   const Icon = variant === "polished" ? WandSparkles : Clock3;
@@ -70,8 +52,7 @@ function DiscoveryGroup({ eyebrow, title, description, items, variant, href, isF
             className={`discovery-card ${isFresh(story.id) ? "discovery-card-fresh" : ""}`.trim()}
             href={storyHref(story)}
             key={`${variant}-${story.id}`}
-            onPointerMove={updateDiscoveryTilt}
-            onPointerLeave={resetDiscoveryTilt}
+            {...tiltHandlers}
           >
             <StoryCover src={story.coverImageUrl} title={story.title} />
             <div className="discovery-card-body">

@@ -1,21 +1,37 @@
 "use client";
 
-import { CloudRain, Flame, Leaf, LoaderCircle, Shield, Sparkles, Swords, UsersRound, Zap } from "lucide-react";
+import {
+  CloudLightning,
+  CloudRain,
+  Flame,
+  Flower2,
+  LoaderCircle,
+  Sparkles,
+  Stamp,
+  Swords,
+  UsersRound,
+  Wind,
+  Zap
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { fetchReadingProgress } from "@/lib/api-client";
 import { getCultivationLevelFromXp, effectiveCultivationLevel, XP_PER_CHAPTER } from "@/lib/cultivation";
-import { visibleSkillsForAdmin, type ReaderSkill } from "@/lib/skills";
 import type { StoredReaderUser } from "@/lib/identity";
+import { SKILL_ELEMENT_LABEL, SKILL_PANEL_COPY } from "@/lib/skill-copy";
+import { visibleSkillsForAdmin, type ReaderSkill } from "@/lib/skills";
 
-function SkillIcon({ icon }: { icon: ReaderSkill["icon"] }) {
-  if (icon === "rain") return <CloudRain size={15} />;
-  if (icon === "soldiers") return <UsersRound size={15} />;
-  if (icon === "sword") return <Swords size={15} />;
-  if (icon === "thunder") return <Zap size={15} />;
-  if (icon === "shield") return <Shield size={15} />;
-  if (icon === "sparkles") return <Sparkles size={15} />;
-  if (icon === "flame") return <Flame size={15} />;
-  return <Leaf size={15} />;
+function SkillIcon({ skill }: { skill: ReaderSkill }) {
+  if (skill.id === "lotus_domain") return <Flower2 size={15} />;
+  if (skill.id === "thien_dia_an") return <Stamp size={15} />;
+  if (skill.id === "celestial_rain") return <CloudLightning size={15} />;
+  if (skill.icon === "rain") return <CloudRain size={15} />;
+  if (skill.icon === "soldiers") return <UsersRound size={15} />;
+  if (skill.icon === "sword") return <Swords size={15} />;
+  if (skill.icon === "thunder") return <Zap size={15} />;
+  if (skill.icon === "shield") return <Stamp size={15} />;
+  if (skill.icon === "sparkles") return <Sparkles size={15} />;
+  if (skill.icon === "flame") return <Flame size={15} />;
+  return <Wind size={15} />;
 }
 
 function formatCooldown(seconds: number) {
@@ -66,6 +82,14 @@ function playSkillSound(skillId: string) {
   });
 
   window.setTimeout(() => context.close().catch(() => undefined), 760);
+}
+
+function skillButtonSubtitle(skill: ReaderSkill, locked: boolean, cooldown: number, isAdmin: boolean) {
+  if (cooldown > 0) return `${formatCooldown(cooldown)} ${SKILL_PANEL_COPY.cooldownSuffix}`;
+  if (locked) return `Cần Lv.${skill.minLevel}`;
+  if (skill.adminOnly) return `Thiên pháp · ${skill.name}`;
+  const element = SKILL_ELEMENT_LABEL[skill.id];
+  return element ? `${element} · ${skill.name}` : skill.name;
 }
 
 export function SkillCaster({
@@ -141,7 +165,7 @@ export function SkillCaster({
     };
 
     if (!response.ok) {
-      setError(data.error ?? "Không thi triển được đạo pháp.");
+      setError(data.error ?? SKILL_PANEL_COPY.castError);
       if (data.cooldownRemainingSeconds) {
         setCooldowns((current) => ({ ...current, [skill.id]: data.cooldownRemainingSeconds ?? 0 }));
       }
@@ -156,12 +180,17 @@ export function SkillCaster({
   }
 
   return (
-    <div className="skill-caster" aria-label="Đạo pháp">
+    <div className="skill-caster" aria-label={SKILL_PANEL_COPY.title}>
       <div className="skill-caster-heading">
-        <span>Đạo pháp</span>
+        <span className="skill-caster-title">
+          <Sparkles size={14} aria-hidden="true" />
+          {SKILL_PANEL_COPY.title}
+        </span>
         <span className="skill-caster-meta">
-          <span className={`role-badge role-badge-${isAdmin ? "admin" : user ? "user" : "guest"}`}>{isAdmin ? "Admin" : user ? "Đạo hữu" : "Guest"}</span>
-          <small>{user ? `Lv.${displayLevel}` : "Tán tu chỉ xem"}</small>
+          <span className={`role-badge role-badge-${isAdmin ? "admin" : user ? "user" : "guest"}`}>
+            {isAdmin ? "Thiên đạo" : user ? "Đạo hữu" : "Tán tu"}
+          </span>
+          <small>{user ? `Tu vi Lv.${displayLevel}` : SKILL_PANEL_COPY.subtitleGuest}</small>
         </span>
       </div>
       <div className="skill-row">
@@ -169,10 +198,12 @@ export function SkillCaster({
           const cooldown = cooldowns[skill.id] ?? 0;
           const locked = !user || (!isAdmin && level < skill.minLevel);
           const disabled = locked || cooldown > 0 || Boolean(castingSkillId);
+          const element = SKILL_ELEMENT_LABEL[skill.id];
           return (
             <button
               className={`skill-button skill-button-${skill.id}`}
               data-admin={skill.adminOnly ? "true" : undefined}
+              data-element={element}
               data-locked={locked ? "true" : undefined}
               data-cooling={cooldown > 0 ? "true" : undefined}
               type="button"
@@ -184,12 +215,17 @@ export function SkillCaster({
               <span className="skill-button-aura" />
               <span className="skill-button-glow" />
               <span className="skill-button-icon">
-                {castingSkillId === skill.id ? <LoaderCircle size={15} className="spin" /> : <SkillIcon icon={skill.icon} />}
+                {castingSkillId === skill.id ? <LoaderCircle size={15} className="spin" /> : <SkillIcon skill={skill} />}
               </span>
               <span className="skill-button-copy">
                 <strong>{skill.shortName}</strong>
-                <small>{cooldown > 0 ? formatCooldown(cooldown) : locked ? `Lv.${skill.minLevel}` : skill.adminOnly ? `Admin · ${skill.name}` : skill.name}</small>
+                <small>{skillButtonSubtitle(skill, locked, cooldown, isAdmin)}</small>
               </span>
+              {element && !locked && cooldown <= 0 ? (
+                <span className="skill-button-element" aria-hidden="true">
+                  {element}
+                </span>
+              ) : null}
               <span className="skill-button-sparks" aria-hidden="true">
                 <i />
                 <i />

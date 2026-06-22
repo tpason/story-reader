@@ -30,6 +30,8 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { BackgroundAudioPlayer } from "@/components/BackgroundAudioPlayer";
 import { ChapterTransition } from "@/components/ChapterTransition";
 import { ReaderChapterFreshHint, type ReaderChapterFreshHintState } from "@/components/ReaderChapterFreshHint";
+import { ReaderEngagementPrompt } from "@/components/ReaderEngagementPrompt";
+import { RealtimeFxPreference } from "@/components/RealtimeFxPreference";
 import { AmbientSoundPlayer } from "@/components/AmbientSoundPlayer";
 import { FloatingTooltip } from "@/components/FloatingTooltip";
 import { formatNovelContent } from "@/lib/formatNovelContent";
@@ -41,6 +43,7 @@ import { getCachedChapter, clearStoryOfflineCache, offlineDb, preloadNextChapter
 import { fetchReaderChapter, readerQueryKeys } from "@/lib/reader-query";
 import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
 import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
+import { isRealtimeShimmerEnabled } from "@/lib/reader-realtime-fx";
 import {
   setReaderContentWidth,
   setReaderFontFamily,
@@ -2220,7 +2223,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
       if (event.chapterNumber === activePayload.chapter.chapterNumber) {
         setFreshChapterHint({ chapterNumber: event.chapterNumber, kind: "current" });
-        setShellFreshPulse(true);
+        if (isRealtimeShimmerEnabled()) setShellFreshPulse(true);
       } else if (event.chapterNumber > activePayload.chapter.chapterNumber) {
         setFreshChapterHint({ chapterNumber: event.chapterNumber, kind: "next" });
       }
@@ -2305,6 +2308,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         storyTitle={activePayload.story.title}
         hint={freshChapterHint}
         onDismiss={dismissFreshChapterHint}
+      />
+
+      <ReaderEngagementPrompt
+        story={activePayload.story}
+        chapterNumber={activePayload.chapter.chapterNumber}
+        suppressed={Boolean(freshChapterHint)}
       />
 
       <ChapterTransition trigger={chapterTransitionTrigger} direction={chapterTransitionDirection} />
@@ -3126,6 +3135,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div className="reader-sheet-section">
+              <span>Linh quang</span>
+              <RealtimeFxPreference compact />
             </div>
 
             <div className="reader-sheet-section">

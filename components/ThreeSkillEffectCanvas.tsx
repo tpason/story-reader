@@ -241,17 +241,17 @@ type DivineSealRig = {
 
 const SKILL_PALETTES: Record<string, SkillPalette> = {
   wind_blade: {
-    primary: "#5eead4",
-    secondary: "#38bdf8",
-    hot: "#fef08a",
+    primary: "#38b8a0",
+    secondary: "#f0d06a",
+    hot: "#fef9c3",
     particleCount: 110,
     ringCount: 3,
     speed: 1.18
   },
   summon_rain: {
-    primary: "#bfdbfe",
-    secondary: "#22d3ee",
-    hot: "#e0f2fe",
+    primary: "#5eb8d4",
+    secondary: "#2dd4bf",
+    hot: "#e8f6fa",
     particleCount: 210,
     ringCount: 5,
     speed: 0.9
@@ -265,16 +265,16 @@ const SKILL_PALETTES: Record<string, SkillPalette> = {
     speed: 0.92
   },
   sword_flight: {
-    primary: "#c4b5fd",
-    secondary: "#38bdf8",
-    hot: "#ffffff",
+    primary: "#2f8f72",
+    secondary: "#f0d06a",
+    hot: "#f5f0e6",
     particleCount: 118,
     ringCount: 4,
     speed: 1.36
   },
   lotus_domain: {
-    primary: "#f9a8d4",
-    secondary: "#2dd4bf",
+    primary: "#e8a0b8",
+    secondary: "#2f8f72",
     hot: "#fef9c3",
     particleCount: 128,
     ringCount: 5,
@@ -297,8 +297,8 @@ const SKILL_PALETTES: Record<string, SkillPalette> = {
     speed: 1.52
   },
   starfall: {
-    primary: "#bae6fd",
-    secondary: "#c4b5fd",
+    primary: "#1e6b8a",
+    secondary: "#f0d06a",
     hot: "#ffffff",
     particleCount: 132,
     ringCount: 4,
@@ -313,8 +313,8 @@ const SKILL_PALETTES: Record<string, SkillPalette> = {
     speed: 1.44
   },
   van_kiem: {
-    primary: "#a855f7",
-    secondary: "#e0c8ff",
+    primary: "#c8962e",
+    secondary: "#f5e6b8",
     hot: "#ffffff",
     particleCount: 100,
     ringCount: 4,
@@ -350,9 +350,9 @@ function scalePalette(palette: SkillPalette): SkillPalette {
 }
 
 const DEFAULT_PALETTE: SkillPalette = {
-  primary: "#f5d75e",
-  secondary: "#60a5fa",
-  hot: "#ffffff",
+  primary: "#2f8f72",
+  secondary: "#f0d06a",
+  hot: "#f5f0e6",
   particleCount: 96,
   ringCount: 3,
   speed: 1

@@ -5288,7 +5288,7 @@ html[data-sidebar-resizing="true"] * {
 .skill-effect-webgl.skill-effect-bean_soldiers .mystic-seal,
 .skill-effect-webgl.skill-effect-van_kiem .mystic-seal,
 .skill-effect-webgl.skill-effect-hoa_long .mystic-seal {
-  opacity: 0.28;
+  display: none;
 }
 
 .skill-effect-webgl .skill-webgl-scene-sword_flight,
@@ -6727,4 +6727,118 @@ html[data-sidebar-resizing="true"] * {
     overflow-y: auto;
     overscroll-behavior: contain;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   XIANXIA SKILLS v18 — đạo pháp panel, ngũ hành badges, cast toast
+   ═══════════════════════════════════════════════════════════════════ */
+
+.skill-caster {
+  border-color: color-mix(in srgb, var(--reader-line) 68%, #2f8f72 32%);
+  background:
+    linear-gradient(130deg, rgba(255, 255, 255, 0.48), transparent 34%),
+    radial-gradient(circle at 12% 18%, rgba(240, 208, 106, 0.22), transparent 36%),
+    radial-gradient(circle at 88% 0%, rgba(47, 143, 114, 0.16), transparent 40%),
+    radial-gradient(circle at 72% 96%, rgba(38, 168, 130, 0.12), transparent 34%),
+    color-mix(in srgb, var(--reader-bg) 96%, var(--reader-ink) 4%);
+}
+
+.skill-caster-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.02em;
+}
+
+.skill-caster-title svg {
+  color: #2f8f72;
+}
+
+.skill-button-element {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 2;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--skill-accent) 36%, transparent);
+  background: color-mix(in srgb, var(--reader-bg) 82%, var(--skill-accent) 18%);
+  color: color-mix(in srgb, var(--skill-accent) 78%, var(--reader-ink) 22%);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.skill-cast-label-stack {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 2px;
+  text-align: center;
+}
+
+.skill-cast-label-kicker {
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.82;
+}
+
+.skill-cast-label-text {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.skill-button-sword_flight {
+  --skill-accent: #2f8f72;
+  --skill-secondary: #f0d06a;
+  --skill-hot: #f5f0e6;
+}
+
+.skill-button-starfall {
+  --skill-accent: #1e6b8a;
+  --skill-secondary: #f0d06a;
+  --skill-hot: #eef6ff;
+}
+
+.skill-button-van_kiem {
+  --skill-accent: #c8962e;
+  --skill-secondary: #e8e0d0;
+  --skill-hot: #fffbeb;
+}
+
+.skill-cast-label-sword_flight {
+  --cast-accent: #2f8f72;
+  --cast-secondary: #f0d06a;
+  --cast-hot: #f5f0e6;
+}
+
+.skill-cast-label-starfall {
+  --cast-accent: #38a0c4;
+  --cast-secondary: #f0d06a;
+  --cast-hot: #ffffff;
+}
+
+.skill-cast-label-van_kiem {
+  --cast-accent: #c8962e;
+  --cast-secondary: #f5e6b8;
+  --cast-hot: #ffffff;
+}
+
+.skill-particles-van_kiem {
+  --particle-color: rgba(240, 208, 106, 0.92);
+}
+
+.mystic-seal-van_kiem {
+  --seal-color: rgba(240, 208, 106, 0.88);
+  --seal-color-hot: rgba(255, 255, 255, 0.78);
+  --seal-color-cool: rgba(200, 150, 46, 0.72);
+}
+
+.mobile-energy-rings-van_kiem {
+  --ring-color: rgba(240, 208, 106, 0.88);
 }

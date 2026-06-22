@@ -1,12 +1,12 @@
 "use client";
 
-import { BookOpen, BookOpenCheck, ChevronRight, Sparkles } from "lucide-react";
+import { BookOpenCheck, ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
-import React, { memo, useMemo } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import { memo, useMemo, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { CursorPage, StorySummary } from "@/lib/types";
 import { StoryCover } from "@/components/StoryCover";
+import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { storyHref } from "@/lib/urls";
 import { CultivationPanel } from "@/components/CultivationPanel";
 import { storyDisplayDescription, storyCategoryLabel } from "@/lib/story-description";
@@ -15,6 +15,7 @@ import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
 import { useStoryLibraryAdminEdit, type AdminStoryListEditField, type AdminStoryListEditState } from "@/hooks/useStoryLibraryAdminEdit";
 import { useStoryLibraryFeed } from "@/hooks/useStoryLibraryFeed";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
+import { useCardTiltHandlers } from "@/hooks/useCardTiltHandlers";
 
 export type StoryLibraryMode = "default" | "search" | "browse";
 
@@ -37,29 +38,9 @@ type StoryLibraryProps = {
   };
 };
 
-function updateCardTilt(event: ReactPointerEvent<HTMLElement>) {
-  const card = event.currentTarget;
-  const rect = card.getBoundingClientRect();
-  const x = (event.clientX - rect.left) / Math.max(1, rect.width);
-  const y = (event.clientY - rect.top) / Math.max(1, rect.height);
-  card.style.setProperty("--tilt-x", `${(0.5 - y) * 9}deg`);
-  card.style.setProperty("--tilt-y", `${(x - 0.5) * 10}deg`);
-  card.style.setProperty("--tilt-glow-x", `${x * 100}%`);
-  card.style.setProperty("--tilt-glow-y", `${y * 100}%`);
-}
-
-function resetCardTilt(event: ReactPointerEvent<HTMLElement>) {
-  const card = event.currentTarget;
-  card.style.setProperty("--tilt-x", "0deg");
-  card.style.setProperty("--tilt-y", "0deg");
-  card.style.setProperty("--tilt-glow-x", "50%");
-  card.style.setProperty("--tilt-glow-y", "50%");
-}
-
-function highlightText(text: string, term: string): React.ReactNode {
+function highlightText(text: string, term: string): ReactNode {
   if (!term || !text) return text;
   const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  // split with capturing group → odd-indexed items are the matched portions
   const parts = text.split(new RegExp(`(${escaped})`, "gi"));
   if (parts.length === 1) return text;
   return parts.map((part, i) =>
@@ -99,6 +80,7 @@ type StoryCardProps = {
 };
 
 const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminEditForCard, highlight, fresh, priority, onStartEdit, onSetAdminEdit }: StoryCardProps) {
+  const tiltHandlers = useCardTiltHandlers();
   const newChapterCount = storyHistory ? Math.max(0, story.totalChapters - storyHistory.maxReadChapterNumber) : 0;
   const statusLabel = storyHistory
     ? newChapterCount > 0
@@ -113,8 +95,7 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
     <Link
       className={`story-card ${fresh ? "story-card-fresh" : ""}`.trim()}
       href={storyHistory ? storyHref(story, storyHistory.chapterNumber) : storyHref(story)}
-      onPointerMove={updateCardTilt}
-      onPointerLeave={resetCardTilt}
+      {...tiltHandlers}
     >
       <StoryCover src={story.coverImageUrl} title={story.title} priority={priority} />
       <div className="story-card-body">
@@ -252,13 +233,10 @@ export function StoryLibrary({ initialPage, searchActive = false, mode, query }:
 
   if (items.length === 0) {
     return (
-      <div className="empty-state">
-        <div>
-          <BookOpen size={28} />
-          <p>Linh Quyển Đại Thư chưa có linh quyển phù hợp.</p>
-          <span>Thử thay đổi điều kiện tìm kiếm hoặc quay lại sau.</span>
-        </div>
-      </div>
+      <XianxiaEmptyState
+        title="Linh Quyển Đại Thư chưa có linh quyển phù hợp."
+        hint="Thử thay đổi điều kiện tìm kiếm hoặc quay lại sau."
+      />
     );
   }
 

@@ -4,6 +4,8 @@ import { useCallback, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { fetchReadingProgress } from "@/lib/api-client";
+import { isRealtimeShimmerEnabled } from "@/lib/reader-realtime-fx";
+import { useReaderRealtimeFx } from "@/lib/useReaderRealtimeFx";
 import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
 import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
 import { mergeHistoryItems } from "@/lib/store";
@@ -31,6 +33,7 @@ export function useFreshStoryRealtime(options: UseFreshStoryRealtimeOptions = {}
   const dispatch = useAppDispatch();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { mode: fxMode } = useReaderRealtimeFx();
   const refreshTimerRef = useRef<number | null>(null);
   const [freshStoryIds, setFreshStoryIds] = useState<Set<string>>(() => new Set());
 
@@ -44,6 +47,7 @@ export function useFreshStoryRealtime(options: UseFreshStoryRealtimeOptions = {}
   }, [refreshRoute, router]);
 
   const markStoryFresh = useCallback((storyId: string) => {
+    if (!isRealtimeShimmerEnabled(fxMode)) return;
     setFreshStoryIds((current) => new Set(current).add(storyId));
     window.setTimeout(() => {
       setFreshStoryIds((current) => {
@@ -53,7 +57,7 @@ export function useFreshStoryRealtime(options: UseFreshStoryRealtimeOptions = {}
         return next;
       });
     }, FRESH_STORY_MS);
-  }, []);
+  }, [fxMode]);
 
   useReaderRealtimeListener(
     useCallback(
@@ -79,7 +83,10 @@ export function useFreshStoryRealtime(options: UseFreshStoryRealtimeOptions = {}
     )
   );
 
-  const isFresh = useCallback((storyId: string) => freshStoryIds.has(storyId), [freshStoryIds]);
+  const isFresh = useCallback(
+    (storyId: string) => isRealtimeShimmerEnabled(fxMode) && freshStoryIds.has(storyId),
+    [freshStoryIds, fxMode]
+  );
 
   return { freshStoryIds, isFresh, markStoryFresh };
 }

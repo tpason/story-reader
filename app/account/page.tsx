@@ -5,6 +5,7 @@ import { CultivationPanel } from "@/components/CultivationPanel";
 import { UserIdentity } from "@/components/UserIdentity";
 import { ProfileShelf } from "@/components/ProfileShelf";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
+import { RealtimeFxPreference } from "@/components/RealtimeFxPreference";
 import { ReadingStatsPanel } from "@/components/ReadingStatsPanel";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -36,10 +37,18 @@ export default function AccountPage() {
           <p>Tán tu vẫn đọc được trên trình duyệt. Sau khi nhập môn, lịch sử đọc và tiến độ tu luyện sẽ được khắc vào Thiên Thư.</p>
         </div>
         <UserIdentity panel />
-        <PushNotificationToggle />
+        <section className="account-linh-tin-block" aria-label="Linh tin">
+          <div className="account-linh-tin-heading">
+            <p className="eyebrow">Linh tin</p>
+            <h2>Thông báo & linh quang</h2>
+            <p>Chương mới ngoài tab và hiệu ứng shimmer khi Thiên Thư cập nhật.</p>
+          </div>
+          <PushNotificationToggle />
+          <RealtimeFxPreference />
+        </section>
         <ProfileShelf />
-        <CultivationPanel />
         <ReadingStatsPanel />
+        <CultivationPanel />
       </section>
     </main>
   );

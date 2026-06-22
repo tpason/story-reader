@@ -1,4 +1,4 @@
-import { BookOpen, Layers3 } from "lucide-react";
+import { Layers3 } from "lucide-react";
 import type { Metadata } from "next";
 import type { Route } from "next";
 import Link from "next/link";
@@ -9,6 +9,8 @@ import { UserIdentity } from "@/components/UserIdentity";
 import { NotificationBell } from "@/components/NotificationBell";
 import { StoryLibrary } from "@/components/StoryLibrary";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
+import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { buildCategoryMetadata } from "@/lib/metadata";
 import { getCategoryBySlug, listStoriesCursor } from "@/lib/stories";
 
@@ -70,20 +72,19 @@ export default async function CategoryPage({
       </header>
 
       <div className="page-wrap">
-        <section className="library-header">
-          <div>
-            <p className="eyebrow">
-              <Link href="/" className="category-breadcrumb-link">Thư viện</Link>
+        <XiPageHeroStrip
+          eyebrow={
+            <>
+              <Link href="/" className="category-breadcrumb-link">
+                Thư viện
+              </Link>
               {" · "}
-              <Layers3 size={13} style={{ display: "inline", verticalAlign: "middle" }} aria-hidden="true" />
-              {" "}Thể loại
-            </p>
-            <h1 className="library-title">{category.name}</h1>
-            <p className="library-subtitle">
-              {category.storyCount.toLocaleString("vi")} truyện trong thể loại này.
-            </p>
-          </div>
-
+              <Layers3 size={13} style={{ display: "inline", verticalAlign: "middle" }} aria-hidden="true" /> Thể loại
+            </>
+          }
+          title={category.name}
+          subtitle={`${category.storyCount.toLocaleString("vi")} linh quyển trong môn phái này.`}
+        >
           <nav className="filters category-sort-row" aria-label="Sắp xếp">
             <Link className={`chip ${!validSort || validSort === "updated" ? "chip-active" : ""}`} href={sortHref("updated")}>
               Mới nhất
@@ -98,15 +99,13 @@ export default async function CategoryPage({
               Tên A–Z
             </Link>
           </nav>
-        </section>
+        </XiPageHeroStrip>
 
         {stories.total === 0 ? (
-          <div className="empty-state">
-            <div>
-              <BookOpen size={28} />
-              <p>Chưa có truyện nào trong thể loại này.</p>
-            </div>
-          </div>
+          <XianxiaEmptyState
+            title="Môn phái này chưa có linh quyển."
+            hint="Quay lại Thư viện hoặc thử thể loại khác."
+          />
         ) : (
           <StoryLibrary
             key={`${slug}-${validSort ?? "updated"}`}

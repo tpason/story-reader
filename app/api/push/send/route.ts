@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sendChapterPushToFollowers } from "@/lib/push-notify";
+import { sendChapterPushToReaders } from "@/lib/push-notify";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   const storyId = typeof body.storyId === "string" ? body.storyId : "";
   if (!storyId) return NextResponse.json({ error: "storyId required" }, { status: 400 });
 
-  const result = await sendChapterPushToFollowers({
+  const result = await sendChapterPushToReaders({
     storyId,
     chapterNumber: Number(body.chapterNumber) || 0,
     storyTitle: typeof body.storyTitle === "string" ? body.storyTitle : null,

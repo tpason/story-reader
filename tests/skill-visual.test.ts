@@ -22,7 +22,9 @@ describe("shouldRenderCssLayer", () => {
   });
 
   it("hides replaced layers when desktop webgl is active", () => {
-    assert.equal(shouldRenderCssLayer("van_kiem", "creatures", false, true), false);
-    assert.equal(shouldRenderCssLayer("van_kiem", "creatures", false, false), true);
+    assert.equal(shouldRenderCssLayer("van_kiem", "swords", false, true), false);
+    assert.equal(shouldRenderCssLayer("van_kiem", "swords", false, false), true);
+    assert.equal(shouldRenderCssLayer("bean_soldiers", "soldiers", false, true), false);
+    assert.equal(shouldRenderCssLayer("sword_flight", "swords", true, false), true);
   });
 });

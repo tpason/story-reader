@@ -11,21 +11,26 @@ export type SkillCssLayer =
   | "rain"
   | "thunder"
   | "creatures"
+  | "soldiers"
+  | "swords"
   | "petals"
   | "seal"
   | "meteors"
   | "lotus";
+
+/** Desktop WebGL — ẩn mystic seal để tránh chồng lên rig 3D (kiếm / binh / long). */
+export const SKILL_WEBGL_HIDES_SEAL = new Set(["bean_soldiers", "sword_flight", "van_kiem", "hoa_long"]);
 
 /** Desktop WebGL replaces these CSS layers (tránh double stack). */
 const WEBGL_REPLACES_CSS: Partial<Record<string, SkillCssLayer[]>> = {
   wind_blade: ["wind", "particles"],
   summon_rain: ["rain", "particles"],
   celestial_rain: ["rain", "particles"],
-  bean_soldiers: ["creatures", "particles"],
-  sword_flight: ["creatures", "particles"],
+  bean_soldiers: ["soldiers", "particles"],
+  sword_flight: ["swords", "particles"],
   heaven_thunder: ["thunder", "particles"],
   hoa_long: ["creatures", "particles"],
-  van_kiem: ["creatures", "particles"],
+  van_kiem: ["swords", "particles"],
   dao_hoa_tan: ["petals", "particles"],
   thien_dia_an: ["seal", "particles"],
   lotus_domain: ["lotus", "particles"],
@@ -37,11 +42,11 @@ const MOBILE_CSS_LAYERS: Partial<Record<string, SkillCssLayer[]>> = {
   wind_blade: ["wind"],
   summon_rain: ["rain"],
   celestial_rain: ["rain"],
-  bean_soldiers: ["creatures"],
-  sword_flight: ["creatures"],
+  bean_soldiers: ["soldiers"],
+  sword_flight: ["swords"],
   heaven_thunder: ["thunder"],
   hoa_long: ["creatures"],
-  van_kiem: ["creatures"],
+  van_kiem: ["swords"],
   dao_hoa_tan: ["petals"],
   thien_dia_an: ["seal"],
   lotus_domain: ["lotus"],
