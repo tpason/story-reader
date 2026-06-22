@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sendChapterPushToFollowers } from "@/lib/push-notify";
 
 export const dynamic = "force-dynamic";
 
@@ -41,5 +42,13 @@ export async function POST(request: NextRequest) {
   };
 
   const delivered = broadcaster(event);
+
+  if (event.type === "chapter_update" && event.storyId && event.chapterNumber) {
+    void sendChapterPushToFollowers({
+      storyId: event.storyId,
+      chapterNumber: event.chapterNumber
+    }).catch(() => undefined);
+  }
+
   return NextResponse.json({ ok: true, delivered, event });
 }

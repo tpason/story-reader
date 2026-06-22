@@ -14429,3 +14429,42 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
     animation: none !important;
   }
 }
+
+/* Account — Web Push settings */
+
+.push-settings-card {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--canvas) 92%, rgba(38, 168, 130, 0.06) 8%);
+}
+
+.push-settings-copy h2 {
+  margin: 4px 0 6px;
+  font-size: 1.05rem;
+}
+
+.push-settings-copy p {
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.push-settings-btn {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.push-settings-btn .spin {
+  animation: spin 900ms linear infinite;
+}
+
+[data-xi-theme="dark"] .push-settings-card {
+  background: color-mix(in srgb, var(--canvas) 88%, rgba(38, 168, 130, 0.1) 12%);
+}

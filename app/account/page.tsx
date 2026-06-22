@@ -4,6 +4,7 @@ import { ReaderLogo } from "@/components/ReaderLogo";
 import { CultivationPanel } from "@/components/CultivationPanel";
 import { UserIdentity } from "@/components/UserIdentity";
 import { ProfileShelf } from "@/components/ProfileShelf";
+import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { ReadingStatsPanel } from "@/components/ReadingStatsPanel";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -35,6 +36,7 @@ export default function AccountPage() {
           <p>Tán tu vẫn đọc được trên trình duyệt. Sau khi nhập môn, lịch sử đọc và tiến độ tu luyện sẽ được khắc vào Thiên Thư.</p>
         </div>
         <UserIdentity panel />
+        <PushNotificationToggle />
         <ProfileShelf />
         <CultivationPanel />
         <ReadingStatsPanel />

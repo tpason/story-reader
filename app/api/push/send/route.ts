@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
-import { query } from "@/lib/db";
-import { sendPush } from "@/lib/push";
-import { slugify } from "@/lib/urls";
+import { sendChapterPushToFollowers } from "@/lib/push-notify";
 
 export const dynamic = "force-dynamic";
-
-type SubRow = { endpoint: string; p256dh: string; auth: string };
 
 export async function POST(request: Request) {
   const secret = process.env.PUSH_SEND_SECRET ?? "";
@@ -23,56 +19,12 @@ export async function POST(request: Request) {
   const storyId = typeof body.storyId === "string" ? body.storyId : "";
   if (!storyId) return NextResponse.json({ error: "storyId required" }, { status: 400 });
 
-  const storyTitle = typeof body.storyTitle === "string" ? body.storyTitle : "Truyện mới cập nhật";
-  const chapterNumber = Number(body.chapterNumber) || 0;
-  const chapterTitle = typeof body.chapterTitle === "string" ? body.chapterTitle : null;
-  const storyKey = `${slugify(storyTitle)}-${storyId}`;
-  const url = chapterNumber
-    ? `/stories/${storyKey}/chapters/${chapterNumber}`
-    : `/stories/${storyKey}`;
-
-  const subs = await query<SubRow>(
-    `
-      SELECT ps.endpoint, ps.p256dh, ps.auth
-      FROM reader_push_subscriptions ps
-      JOIN reader_story_follows rf ON rf.user_id = ps.user_id
-      WHERE rf.story_id = $1
-    `,
-    [storyId]
-  );
-
-  if (subs.length === 0) return NextResponse.json({ sent: 0, expired: 0 });
-
-  const payload = {
-    title: storyTitle,
-    body: chapterTitle
-      ? `Chương ${chapterNumber}: ${chapterTitle}`
-      : `Chương ${chapterNumber} mới`,
-    icon: "/icons/icon-192.svg",
-    badge: "/icons/icon-192.svg",
+  const result = await sendChapterPushToFollowers({
     storyId,
-    chapterNumber,
-    url,
-  };
-
-  const results = await Promise.allSettled(
-    subs.map((sub) => sendPush(sub.endpoint, sub, payload))
-  );
-
-  const expired: string[] = [];
-  results.forEach((result, i) => {
-    if (result.status === "rejected") {
-      const code = (result.reason as { statusCode?: number }).statusCode;
-      if (code === 404 || code === 410) expired.push(subs[i].endpoint);
-    }
+    chapterNumber: Number(body.chapterNumber) || 0,
+    storyTitle: typeof body.storyTitle === "string" ? body.storyTitle : null,
+    chapterTitle: typeof body.chapterTitle === "string" ? body.chapterTitle : null
   });
 
-  if (expired.length > 0) {
-    await query(
-      `DELETE FROM reader_push_subscriptions WHERE endpoint = ANY($1)`,
-      [expired]
-    );
-  }
-
-  return NextResponse.json({ sent: subs.length, expired: expired.length });
+  return NextResponse.json(result);
 }

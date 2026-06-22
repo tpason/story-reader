@@ -2,6 +2,12 @@
 
 import { Bell, BellOff, Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import {
+  PUSH_SUBSCRIBED_KEY,
+  readPushSubscribed,
+  subscribePush,
+  unsubscribePush
+} from "@/lib/push-client";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -9,83 +15,7 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 const DISMISS_KEY = "pwa-install-dismissed-until";
-const PUSH_KEY = "pwa-push-subscribed";
 const DISMISS_DAYS = 30;
-
-async function getVapidPublicKey(): Promise<string | null> {
-  try {
-    const res = await fetch("/api/push/vapid-key");
-    const data = (await res.json()) as { key: string | null };
-    return data.key;
-  } catch {
-    return null;
-  }
-}
-
-async function subscribePush(swReg: ServiceWorkerRegistration): Promise<boolean> {
-  const vapidKey = await getVapidPublicKey();
-  if (!vapidKey) return false;
-
-  // Record the existing endpoint before subscribing so we can detect whether
-  // subscribe() returned an existing subscription or created a new one.
-  const existingEndpoint = (await swReg.pushManager.getSubscription())?.endpoint ?? null;
-
-  const sub = await swReg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(vapidKey),
-  });
-
-  const json = sub.toJSON() as {
-    endpoint: string;
-    keys?: { p256dh?: string; auth?: string };
-  };
-
-  const res = await fetch("/api/push/subscribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      endpoint: json.endpoint,
-      keys: json.keys,
-      userAgent: navigator.userAgent,
-    }),
-  });
-
-  if (!res.ok) {
-    // Only unsubscribe if this is a newly created subscription — if subscribe()
-    // returned the existing one (same endpoint), a transient server failure should
-    // not destroy a working subscription that the server may still hold.
-    if (sub.endpoint !== existingEndpoint) {
-      await sub.unsubscribe().catch(() => undefined);
-    }
-    return false;
-  }
-
-  return true;
-}
-
-async function unsubscribePush(swReg: ServiceWorkerRegistration): Promise<void> {
-  const sub = await swReg.pushManager.getSubscription();
-  if (!sub) return;
-
-  const endpoint = sub.endpoint;
-  await sub.unsubscribe();
-  await fetch("/api/push/subscribe", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ endpoint }),
-  }).catch(() => undefined);
-}
-
-function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; i += 1) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
 
 export function PwaRuntime() {
   const deferredRef = useRef<BeforeInstallPromptEvent | null>(null);
@@ -94,10 +24,12 @@ export function PwaRuntime() {
   const [pushVisible, setPushVisible] = useState(false);
   const [pushSubscribed, setPushSubscribed] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
+  const enablePwa =
+    process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_ENABLE_PWA === "1";
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
-    if (process.env.NODE_ENV !== "production") return;
+    if (!enablePwa) return;
 
     let refreshing = false;
     const onControllerChange = () => {
@@ -116,8 +48,9 @@ export function PwaRuntime() {
 
         // Check if already subscribed
         registration.pushManager.getSubscription().then((sub) => {
-          const wasSubscribed = window.localStorage.getItem(PUSH_KEY) === "1";
-          setPushSubscribed(!!sub && wasSubscribed);
+          readPushSubscribed(registration).then(setPushSubscribed).catch(() => {
+            setPushSubscribed(!!sub && window.localStorage.getItem(PUSH_SUBSCRIBED_KEY) === "1");
+          });
         }).catch(() => undefined);
       })
       .catch(() => undefined);
@@ -136,7 +69,7 @@ export function PwaRuntime() {
       navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
       window.removeEventListener("error", onChunkError);
     };
-  }, []);
+  }, [enablePwa]);
 
   // Install banner
   useEffect(() => {
@@ -161,7 +94,7 @@ export function PwaRuntime() {
   // Push banner — show after a delay if not subscribed and push is supported
   useEffect(() => {
     if (!("PushManager" in window)) return;
-    if (window.localStorage.getItem(PUSH_KEY)) return;
+    if (window.localStorage.getItem(PUSH_SUBSCRIBED_KEY)) return;
 
     const timer = setTimeout(() => {
       if (!visible) setPushVisible(true);
@@ -176,7 +109,7 @@ export function PwaRuntime() {
     window.localStorage.setItem(DISMISS_KEY, String(until));
     // Show push banner shortly after
     setTimeout(() => {
-      if (!window.localStorage.getItem(PUSH_KEY)) setPushVisible(true);
+      if (!window.localStorage.getItem(PUSH_SUBSCRIBED_KEY)) setPushVisible(true);
     }, 3000);
   }
 
@@ -217,13 +150,13 @@ export function PwaRuntime() {
         swRegRef.current = reg;
         const ok = await subscribePush(reg);
         if (ok) {
-          window.localStorage.setItem(PUSH_KEY, "1");
+          window.localStorage.setItem(PUSH_SUBSCRIBED_KEY, "1");
           setPushSubscribed(true);
         }
       } else {
         const ok = await subscribePush(swReg);
         if (ok) {
-          window.localStorage.setItem(PUSH_KEY, "1");
+          window.localStorage.setItem(PUSH_SUBSCRIBED_KEY, "1");
           setPushSubscribed(true);
         }
       }
@@ -240,7 +173,7 @@ export function PwaRuntime() {
     try {
       const swReg = swRegRef.current ?? (await navigator.serviceWorker.ready);
       await unsubscribePush(swReg);
-      window.localStorage.removeItem(PUSH_KEY);
+      window.localStorage.removeItem(PUSH_SUBSCRIBED_KEY);
       setPushSubscribed(false);
     } catch {
       // ignore
@@ -251,7 +184,7 @@ export function PwaRuntime() {
 
   function dismissPush() {
     setPushVisible(false);
-    window.localStorage.setItem(PUSH_KEY, "dismissed");
+    window.localStorage.setItem(PUSH_SUBSCRIBED_KEY, "dismissed");
   }
 
   return (
