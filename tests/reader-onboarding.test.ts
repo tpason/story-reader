@@ -4,10 +4,12 @@ import { isDefaultReaderStyleConfig, sanitizeReaderStyleConfig, DEFAULT_READER_S
 import {
   markMobilePresetBootstrapped,
   markSwipeHintShown,
+  readReaderDesktopSidebarOpen,
   readReaderSkillEffectsEnabled,
   shouldShowSwipeHint,
   swipeHintStorageKey,
   wasMobilePresetBootstrapped,
+  writeReaderDesktopSidebarOpen,
   writeReaderSkillEffectsEnabled
 } from "../lib/reader-onboarding.ts";
 
@@ -75,5 +77,13 @@ describe("reader-onboarding storage", () => {
     assert.equal(readReaderSkillEffectsEnabled(), true);
     writeReaderSkillEffectsEnabled(false);
     assert.equal(readReaderSkillEffectsEnabled(), false);
+  });
+
+  it("persists desktop sidebar open preference", () => {
+    assert.equal(readReaderDesktopSidebarOpen(), null);
+    writeReaderDesktopSidebarOpen(true);
+    assert.equal(readReaderDesktopSidebarOpen(), true);
+    writeReaderDesktopSidebarOpen(false);
+    assert.equal(readReaderDesktopSidebarOpen(), false);
   });
 });

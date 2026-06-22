@@ -75,12 +75,14 @@ import {
   markMobilePresetBootstrapped,
   markSwipeHintShown,
   readReaderFocusModeDefault,
+  readReaderDesktopSidebarOpen,
   readReaderSheetTab,
   READER_SWIPE_HINT_DURATION_MS,
   READER_SWIPE_HINT_MESSAGE,
   shouldShowSwipeHint,
   wasMobilePresetBootstrapped,
   writeReaderFocusModeDefault,
+  writeReaderDesktopSidebarOpen,
   writeReaderSheetTab,
   type ReaderSheetTab
 } from "@/lib/reader-onboarding";
@@ -275,7 +277,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [audioPanelOpen, setAudioPanelOpen] = useState(false);
   const [audioAutoStartToken, setAudioAutoStartToken] = useState(0);
   const [chapterSearch, setChapterSearch] = useState("");
-  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(false);
   const [desktopSidebarWidth, setDesktopSidebarWidth] = useState(292);
   const [offlineLoading, setOfflineLoading] = useState(false);
   const [offlineError, setOfflineError] = useState<string | null>(null);
@@ -946,6 +948,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     if (focusDefaultBootstrappedRef.current) return;
     focusDefaultBootstrappedRef.current = true;
     if (readReaderFocusModeDefault()) setFocusModeEnabled(true);
+  }, []);
+
+  useEffect(() => {
+    const saved = readReaderDesktopSidebarOpen();
+    if (saved !== null) setDesktopSidebarOpen(saved);
   }, []);
 
   useEffect(() => {
@@ -2933,6 +2940,19 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           <div className="reader-control-group reader-action-group" ref={readerOverflowRef}>
             <FollowButton story={activePayload.story} compact />
             {!compactReader ? (
+              <FloatingTooltip label="Tìm trong chương">
+                <button
+                  className={`icon-button ${chapterSearchOpen ? "icon-button-active" : ""}`}
+                  type="button"
+                  title="Tìm trong chương"
+                  aria-pressed={chapterSearchOpen}
+                  onClick={() => setChapterSearchOpen(true)}
+                >
+                  <Search size={16} />
+                </button>
+              </FloatingTooltip>
+            ) : null}
+            {!compactReader ? (
               <FloatingTooltip label="Thêm tùy chọn">
                 <button
                   className={`icon-button ${readerOverflowOpen || currentBookmark || focusModeEnabled || audioPanelOpen || offlineReady ? "icon-button-active" : ""}`}
@@ -3095,7 +3115,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   title={desktopSidebarOpen ? "Đóng mục lục" : "Mở mục lục"}
                   aria-expanded={desktopSidebarOpen}
                   aria-controls="chapter-sidebar"
-                  onClick={() => setDesktopSidebarOpen((value) => !value)}
+                  onClick={() => {
+                    setDesktopSidebarOpen((value) => {
+                      const next = !value;
+                      writeReaderDesktopSidebarOpen(next);
+                      return next;
+                    });
+                  }}
                 >
                   {desktopSidebarOpen ? <X size={17} /> : <Menu size={17} />}
                 </button>

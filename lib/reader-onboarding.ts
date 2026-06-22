@@ -55,6 +55,20 @@ export function writeReaderSheetTab(tab: ReaderSheetTab) {
 }
 
 export const READER_FOCUS_MODE_DEFAULT_KEY = "reader:focus-mode-default";
+export const READER_DESKTOP_SIDEBAR_KEY = "reader:desktop-sidebar-open";
+
+export function readReaderDesktopSidebarOpen(): boolean | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(READER_DESKTOP_SIDEBAR_KEY);
+  if (raw === "1") return true;
+  if (raw === "0") return false;
+  return null;
+}
+
+export function writeReaderDesktopSidebarOpen(open: boolean) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(READER_DESKTOP_SIDEBAR_KEY, open ? "1" : "0");
+}
 
 export function readReaderFocusModeDefault() {
   if (typeof window === "undefined") return false;

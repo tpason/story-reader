@@ -131,9 +131,9 @@ export async function openFormatControls(page: Page) {
 export async function openInChapterSearch(page: Page) {
   await dismissReaderChrome(page);
   await page.locator('[aria-label="Chapter content"]').click();
-  await page.keyboard.press(process.platform === "darwin" ? "Meta+KeyF" : "Control+KeyF");
-  const panel = page.getByRole("search", { name: "Tìm trong chương" });
-  if (!(await panel.isVisible({ timeout: 1500 }).catch(() => false))) {
+  await page.keyboard.press("Control+f");
+  const panel = page.getByRole("searchbox", { name: "Tìm trong chương" });
+  if (!(await panel.isVisible({ timeout: 2000 }).catch(() => false))) {
     throw new Error("In-chapter search panel missing — restart dev server with latest reader bundle");
   }
   await expect(panel).toBeVisible();

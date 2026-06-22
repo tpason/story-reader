@@ -29,7 +29,16 @@ export function ReaderStatsPill({ sessionMinutes }: { sessionMinutes: number }) 
   const streak = useAppSelector((state) => state.readingStreak);
   const bonusXp = streakBonusXp(streak.currentStreak);
 
-  if (sessionMinutes <= 0 && streak.currentStreak <= 0) return null;
+  if (sessionMinutes <= 0 && streak.currentStreak <= 0) {
+    return (
+      <div className="reader-stats-pill reader-stats-pill-idle" aria-label="Thống kê phiên đọc">
+        <span>
+          <BookOpen size={13} aria-hidden="true" />
+          Đang đọc
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="reader-stats-pill" aria-label="Thống kê phiên đọc">
@@ -74,10 +83,11 @@ export function ReaderInChapterSearchPanel({
   if (!open) return null;
 
   return (
-    <div className="reader-in-chapter-search" role="search" aria-label="Tìm trong chương">
+    <div className="reader-in-chapter-search">
       <Search size={16} aria-hidden="true" />
       <input
         type="search"
+        role="searchbox"
         value={query}
         placeholder="Tìm trong chương…"
         aria-label="Tìm trong chương"

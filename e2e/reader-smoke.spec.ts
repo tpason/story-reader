@@ -45,7 +45,15 @@ test.describe("reader smoke", () => {
     } catch (error) {
       test.skip(true, String(error));
     }
-    await page.getByLabel("Tìm trong chương").fill("the");
+    await page.getByRole("searchbox", { name: "Tìm trong chương" }).fill("the");
     await expect(page.locator(".reader-in-chapter-search-count")).toContainText(/\d+\/\d+/);
+  });
+
+  test("in-chapter search opens from topbar button", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "mobile", "Desktop topbar search");
+    await loadReaderFixture(page);
+    await dismissReaderChrome(page);
+    await page.getByRole("button", { name: "Tìm trong chương" }).click();
+    await expect(page.getByRole("searchbox", { name: "Tìm trong chương" })).toBeVisible();
   });
 });
