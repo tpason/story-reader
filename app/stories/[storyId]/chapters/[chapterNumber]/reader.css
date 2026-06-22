@@ -5288,7 +5288,7 @@ html[data-sidebar-resizing="true"] * {
 .skill-effect-webgl.skill-effect-bean_soldiers .mystic-seal,
 .skill-effect-webgl.skill-effect-van_kiem .mystic-seal,
 .skill-effect-webgl.skill-effect-hoa_long .mystic-seal {
-  opacity: 0.28;
+  display: none;
 }
 
 .skill-effect-webgl .skill-webgl-scene-sword_flight,

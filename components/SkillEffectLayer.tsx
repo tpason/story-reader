@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { isMobile, prefersReducedMotion } from "@/lib/browser";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
-import { desktopSkillIntensity, isSkillWebglActive, shouldRenderCssLayer, SKILL_POLICY } from "@/lib/skill-visual";
+import { desktopSkillIntensity, isSkillWebglActive, shouldRenderCssLayer, SKILL_POLICY, SKILL_WEBGL_HIDES_SEAL } from "@/lib/skill-visual";
 import { formatSkillCastLabel, SKILL_PANEL_COPY } from "@/lib/skill-copy";
 
 const ThreeSkillEffectCanvas = dynamic(() => import("@/components/ThreeSkillEffectCanvas").then((mod) => mod.ThreeSkillEffectCanvas), {
@@ -176,7 +176,11 @@ function SkillEffect({ effect }: { effect: EffectState }) {
           intensity={desktopSkillIntensity(effect.intensity)}
         />
       ) : null}
-      {effect.mobileOptimized ? <MobileEnergyRings skillId={sid} /> : <MysticSeal skillId={sid} />}
+      {effect.mobileOptimized ? (
+        <MobileEnergyRings skillId={sid} />
+      ) : skillWebgl && SKILL_WEBGL_HIDES_SEAL.has(sid) ? null : (
+        <MysticSeal skillId={sid} />
+      )}
       <div className={`skill-cast-label skill-cast-label-${sid}`}>
         <span className="skill-cast-label-orb" />
         <span className="skill-cast-label-stack">
@@ -193,11 +197,11 @@ function SkillEffect({ effect }: { effect: EffectState }) {
       {show("particles") ? <ParticleField skillId={sid} compact={effect.mobileOptimized} /> : null}
       {show("wind") ? <WindBlade compact={effect.mobileOptimized} /> : null}
       {show("rain") ? <Rain intense={sid === "celestial_rain"} compact={effect.mobileOptimized} /> : null}
-      {show("creatures") && sid === "bean_soldiers" ? <BeanSoldiers compact={effect.mobileOptimized} /> : null}
-      {show("creatures") && sid === "sword_flight" ? <SwordFlight compact={effect.mobileOptimized} /> : null}
+      {show("soldiers") ? <BeanSoldiers compact={effect.mobileOptimized} /> : null}
+      {show("swords") && sid === "sword_flight" ? <SwordFlight compact={effect.mobileOptimized} /> : null}
       {show("thunder") ? <Thunder compact={effect.mobileOptimized} /> : null}
       {show("creatures") && sid === "hoa_long" ? <FireDragon compact={effect.mobileOptimized} /> : null}
-      {show("creatures") && sid === "van_kiem" ? <SwordRain compact={effect.mobileOptimized} /> : null}
+      {show("swords") && sid === "van_kiem" ? <SwordRain compact={effect.mobileOptimized} /> : null}
       {show("petals") ? <PetalCascade compact={effect.mobileOptimized} /> : null}
       {show("seal") ? <DivineSeal compact={effect.mobileOptimized} /> : null}
       {show("meteors") ? <StarfallMeteors compact={effect.mobileOptimized} /> : null}

@@ -47,8 +47,8 @@ export default function AccountPage() {
           <RealtimeFxPreference />
         </section>
         <ProfileShelf />
-        <CultivationPanel />
         <ReadingStatsPanel />
+        <CultivationPanel />
       </section>
     </main>
   );
