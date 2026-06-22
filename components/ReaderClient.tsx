@@ -127,6 +127,7 @@ import { useReaderPanels } from "@/hooks/useReaderPanels";
 import { useInChapterSearch } from "@/hooks/useInChapterSearch";
 import { useParagraphBookmarksAndNotes } from "@/hooks/useParagraphBookmarksAndNotes";
 import { useReaderChapterList } from "@/hooks/useReaderChapterList";
+import { useReadingSessionMinutes } from "@/hooks/useReadingSessionMinutes";
 import { getPageScrollMetrics, scrollPageTo } from "@/lib/reader-scroll";
 
 const ThreeReaderProgress = dynamic(() => import("@/components/ThreeReaderProgress").then((mod) => mod.ThreeReaderProgress), {
@@ -277,7 +278,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [showResumeBanner, setShowResumeBanner] = useState(false);
   const [resumeHint, setResumeHint] = useState<ReaderResumeHint | null>(null);
   const [glossaryIndex, setGlossaryIndex] = useState<GlossaryIndex>(() => new Map());
-  const [sessionMinutes, setSessionMinutes] = useState(0);
   const [performanceMode, setPerformanceMode] = useState<ReaderPerformanceMode>(() => readReaderPerformanceMode());
   const [focusModeDefault, setFocusModeDefault] = useState(() => readReaderFocusModeDefault());
   const [audioHighlightIndex, setAudioHighlightIndex] = useState<number | null>(null);
@@ -306,6 +306,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const formatDismiss = useDismiss(formatFloatingContext);
   const { getFloatingProps: getFormatFloatingProps, getReferenceProps: getFormatReferenceProps } = useInteractions([formatDismiss]);
   const activePayload = cachedPayload ?? payload;
+  const sessionMinutes = useReadingSessionMinutes(activePayload.chapter.id);
   const chapterSidebarRef = useRef<HTMLElement | null>(null);
   const desktopSidebarButtonRef = useRef<HTMLButtonElement | null>(null);
   const previousChapterSentinelRef = useRef<HTMLDivElement | null>(null);
@@ -839,15 +840,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       })
       .catch(() => setGlossaryIndex(new Map()));
   }, [activePayload.story.id]);
-
-  useEffect(() => {
-    const startedAt = Date.now();
-    setSessionMinutes(0);
-    const timer = window.setInterval(() => {
-      setSessionMinutes(Math.max(0, Math.floor((Date.now() - startedAt) / 60000)));
-    }, 30000);
-    return () => window.clearInterval(timer);
-  }, [activePayload.chapter.id]);
 
   useEffect(() => {
     if (focusDefaultBootstrappedRef.current) return;
