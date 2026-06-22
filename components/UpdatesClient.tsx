@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, BookOpenCheck, Feather, Inbox, ScrollText, Sparkles } from "lucide-react";
+import { Bell, BookOpenCheck, Feather, ScrollText, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, type ReactNode } from "react";
 import { MotionFX } from "@/components/MotionFX";
@@ -9,6 +9,8 @@ import { StoryCover } from "@/components/StoryCover";
 import { UserIdentity } from "@/components/UserIdentity";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
+import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import { fetchReadingProgress } from "@/lib/api-client";
 import { historyToFollowItem } from "@/lib/follows";
@@ -138,30 +140,16 @@ export function UpdatesClient() {
       </header>
 
       <div className="page-wrap">
-        <section className="library-header updates-header">
-          <div>
-            <p className="eyebrow">
-              <Sparkles size={13} aria-hidden="true" />
-              {NOTIFY_COPY.eyebrow}
-            </p>
-            <h1 className="library-title">{NOTIFY_COPY.pageTitle}</h1>
-            <p className="library-subtitle">{NOTIFY_COPY.pageSubtitle}</p>
-          </div>
+        <XiPageHeroStrip className="updates-header" eyebrow={<><Sparkles size={13} aria-hidden="true" />{NOTIFY_COPY.eyebrow}</>} title={NOTIFY_COPY.pageTitle} subtitle={NOTIFY_COPY.pageSubtitle}>
           <div className="updates-summary">
             <Bell size={18} />
             <strong>{updates.length}</strong>
             <span>truyện có linh tin</span>
           </div>
-        </section>
+        </XiPageHeroStrip>
 
         {updates.length === 0 ? (
-          <div className="empty-state updates-empty">
-            <div>
-              <Inbox size={28} />
-              <p>{NOTIFY_COPY.empty}</p>
-              <p className="updates-empty-hint">{NOTIFY_COPY.emptyHint}</p>
-            </div>
-          </div>
+          <XianxiaEmptyState title={NOTIFY_COPY.empty} hint={NOTIFY_COPY.emptyHint} className="updates-empty" />
         ) : (
           <>
             <UpdateSection

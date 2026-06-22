@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { StoryCover } from "@/components/StoryCover";
+import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { formatAbsoluteActivity, formatDiscoveryChapterLabel } from "@/lib/discovery-format";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import type { StoryDiscoveryItem } from "@/lib/types";
@@ -21,11 +22,10 @@ export function DiscoverListClient({ items, kind }: DiscoverListClientProps) {
 
   if (items.length === 0) {
     return (
-      <div className="empty-state">
-        <div>
-          <p>Chưa có truyện phù hợp với bộ lọc này.</p>
-        </div>
-      </div>
+      <XianxiaEmptyState
+        title="Thiên hạ yên tĩnh — chưa có linh quyển phù hợp bộ lọc."
+        hint="Thử đổi tab hoặc bỏ lọc Hôm nay."
+      />
     );
   }
 

@@ -14720,3 +14720,256 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
     bottom: calc(72px + env(safe-area-inset-bottom));
   }
 }
+
+/* REALTIME UX v3 — Phase C: page hero, empty states, FX preference, reader chrome */
+.xi-page-hero-strip {
+  margin-bottom: 4px;
+}
+
+.xi-page-hero-strip-inner {
+  position: relative;
+  display: grid;
+  gap: 16px;
+  padding: 20px 22px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, #c8962e 20%, var(--hairline) 80%);
+  background:
+    radial-gradient(ellipse 80% 55% at 8% 0%, rgba(240, 208, 106, 0.14), transparent 58%),
+    radial-gradient(ellipse 70% 50% at 92% 100%, rgba(38, 168, 130, 0.1), transparent 52%),
+    color-mix(in srgb, var(--canvas) 93%, transparent);
+  overflow: hidden;
+}
+
+.xi-page-hero-strip-glow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(240, 208, 106, 0.07), transparent 42%, rgba(38, 168, 130, 0.06));
+  pointer-events: none;
+}
+
+.xi-page-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.xi-page-hero-strip-actions {
+  position: relative;
+  z-index: 1;
+}
+
+.updates-header .updates-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #26a882 24%, var(--hairline) 76%);
+  background: color-mix(in srgb, var(--canvas) 90%, rgba(38, 168, 130, 0.08) 10%);
+  font-size: 0.88rem;
+  color: var(--steel);
+}
+
+.xianxia-empty-state {
+  border-style: solid;
+  border-color: color-mix(in srgb, #c8962e 16%, var(--hairline) 84%);
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(240, 208, 106, 0.08), transparent 60%),
+    var(--canvas);
+}
+
+.xianxia-empty-state-inner {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.xianxia-empty-state-art {
+  position: relative;
+  width: 120px;
+  height: 72px;
+  margin-bottom: 4px;
+}
+
+.xianxia-empty-cloud {
+  position: absolute;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(240, 208, 106, 0.22));
+  filter: blur(0.2px);
+}
+
+.xi-empty-cloud-a {
+  left: 8px;
+  top: 18px;
+  width: 56px;
+  height: 22px;
+  opacity: 0.85;
+}
+
+.xi-empty-cloud-b {
+  right: 6px;
+  top: 8px;
+  width: 44px;
+  height: 18px;
+  opacity: 0.65;
+}
+
+.xianxia-empty-quill {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  transform: translateX(-50%) rotate(-18deg);
+  color: #2f8f72;
+}
+
+.xianxia-empty-hint {
+  max-width: 36ch;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--steel);
+}
+
+.account-linh-tin-block {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, #26a882 22%, var(--hairline) 78%);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--canvas) 94%, rgba(38, 168, 130, 0.06) 6%);
+}
+
+.account-linh-tin-heading h2 {
+  margin: 4px 0 6px;
+  font-size: 1.15rem;
+  color: var(--charcoal);
+}
+
+.account-linh-tin-heading p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--steel);
+}
+
+.realtime-fx-settings {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--canvas);
+}
+
+.realtime-fx-settings-compact {
+  padding: 10px 0 0;
+  border: 0;
+  background: transparent;
+}
+
+.realtime-fx-settings-copy h2 {
+  margin: 4px 0 6px;
+  font-size: 1rem;
+  color: var(--charcoal);
+}
+
+.realtime-fx-settings-copy p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--steel);
+}
+
+.realtime-fx-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.realtime-fx-segmented button {
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--steel);
+  cursor: pointer;
+}
+
+.realtime-fx-segmented button.chip-active {
+  border-color: color-mix(in srgb, #26a882 40%, var(--hairline) 60%);
+  background: color-mix(in srgb, #26a882 12%, var(--canvas) 88%);
+  color: var(--charcoal);
+}
+
+/* Reader mobile: bell/follow/cultivation live in sheet only (≤839px) — see .reader-session-group rule */
+html[data-reader-realtime-fx="subtle"] .update-card-fresh::after,
+html[data-reader-realtime-fx="subtle"] .story-card-fresh::after,
+html[data-reader-realtime-fx="subtle"] .discovery-card-fresh::before,
+html[data-reader-realtime-fx="subtle"] .discover-list-card-fresh::before,
+html[data-reader-realtime-fx="subtle"] .recommendation-card-fresh::before {
+  animation: none;
+  transform: none;
+  opacity: 0.45;
+}
+
+html[data-reader-realtime-fx="subtle"] .update-card-fresh,
+html[data-reader-realtime-fx="subtle"] .story-card-fresh,
+html[data-reader-realtime-fx="subtle"] .discovery-card-fresh,
+html[data-reader-realtime-fx="subtle"] .discover-list-card-fresh,
+html[data-reader-realtime-fx="subtle"] .recommendation-card-fresh {
+  box-shadow: 0 0 0 1px rgba(38, 168, 130, 0.22);
+}
+
+html[data-reader-realtime-fx="off"] .update-card-fresh::after,
+html[data-reader-realtime-fx="off"] .story-card-fresh::after,
+html[data-reader-realtime-fx="off"] .discovery-card-fresh::before,
+html[data-reader-realtime-fx="off"] .discover-list-card-fresh::before,
+html[data-reader-realtime-fx="off"] .recommendation-card-fresh::before,
+html[data-reader-realtime-fx="off"] .notification-spirit-burst,
+html[data-reader-realtime-fx="off"] .realtime-chapter-toast-glow,
+html[data-reader-realtime-fx="off"] .reader-shell-fresh-pulse,
+html[data-reader-realtime-fx="off"] .reader-chapter-fresh-hint-glow {
+  display: none !important;
+}
+
+html[data-reader-realtime-fx="off"] .update-card-fresh,
+html[data-reader-realtime-fx="off"] .story-card-fresh,
+html[data-reader-realtime-fx="off"] .discovery-card-fresh,
+html[data-reader-realtime-fx="off"] .discover-list-card-fresh,
+html[data-reader-realtime-fx="off"] .recommendation-card-fresh,
+html[data-reader-realtime-fx="off"] .continue-card-fresh,
+html[data-reader-realtime-fx="off"] .followed-card-fresh {
+  border-color: var(--hairline);
+  box-shadow: none;
+  animation: none !important;
+}
+
+html[data-reader-realtime-fx="off"] .realtime-chapter-toast {
+  border-color: var(--hairline);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+}
+
+html[data-reader-realtime-fx="off"] .realtime-chapter-toast-icon {
+  display: none;
+}
+
+html[data-reader-realtime-fx="off"] .notification-bell-live .notification-trigger::before,
+html[data-reader-realtime-fx="off"] .notification-bell-live .notification-dot {
+  animation: none !important;
+}
+
+@media (max-width: 839px) {
+  .xi-page-hero-strip-inner {
+    padding: 16px;
+  }
+
+  .xi-page-hero-strip-actions .filters {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xianxia-empty-cloud {
+    animation: none;
+  }
+}

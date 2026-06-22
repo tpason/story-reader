@@ -1,12 +1,13 @@
 "use client";
 
-import { BookOpen, BookOpenCheck, ChevronRight, Sparkles } from "lucide-react";
+import { BookOpenCheck, ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import React, { memo, useMemo } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { CursorPage, StorySummary } from "@/lib/types";
 import { StoryCover } from "@/components/StoryCover";
+import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { storyHref } from "@/lib/urls";
 import { CultivationPanel } from "@/components/CultivationPanel";
 import { storyDisplayDescription, storyCategoryLabel } from "@/lib/story-description";
@@ -252,13 +253,10 @@ export function StoryLibrary({ initialPage, searchActive = false, mode, query }:
 
   if (items.length === 0) {
     return (
-      <div className="empty-state">
-        <div>
-          <BookOpen size={28} />
-          <p>Linh Quyển Đại Thư chưa có linh quyển phù hợp.</p>
-          <span>Thử thay đổi điều kiện tìm kiếm hoặc quay lại sau.</span>
-        </div>
-      </div>
+      <XianxiaEmptyState
+        title="Linh Quyển Đại Thư chưa có linh quyển phù hợp."
+        hint="Thử thay đổi điều kiện tìm kiếm hoặc quay lại sau."
+      />
     );
   }
 

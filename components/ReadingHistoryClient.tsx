@@ -12,6 +12,8 @@ import { MotionFX } from "@/components/MotionFX";
 import { UserIdentity } from "@/components/UserIdentity";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
+import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import { mergeBookmarkItems, mergeHistoryItems } from "@/lib/store";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
@@ -110,13 +112,16 @@ export function ReadingHistoryClient() {
       </header>
 
       <div className="page-wrap history-wrap">
-        <section className="library-header">
-          <div>
-            <p className="eyebrow">Tàng thư</p>
-            <h1 className="library-title">Hành trình tu luyện của đạo hữu.</h1>
-            <p className="library-subtitle">Tán tu lưu tiến độ trên trình duyệt. Khi nhập môn, tu vi và lịch sử đọc sẽ được khắc vào Thiên Thư.</p>
-          </div>
-        </section>
+        <XiPageHeroStrip
+          eyebrow={
+            <>
+              <ScrollText size={13} aria-hidden="true" />
+              Tàng thư
+            </>
+          }
+          title="Hành trình tu luyện của đạo hữu."
+          subtitle="Tán tu lưu tiến độ trên trình duyệt. Khi nhập môn, tu vi và lịch sử đọc sẽ được khắc vào Thiên Thư."
+        />
 
         <ReadingStats items={items} />
 
@@ -158,9 +163,10 @@ export function ReadingHistoryClient() {
         ) : null}
 
         {!loading && items.length === 0 ? (
-          <div className="empty-state">
-            <p>Tán tu chưa hấp thu chương nào trên trình duyệt này.</p>
-          </div>
+          <XianxiaEmptyState
+            title="Tán tu chưa hấp thu chương nào trên trình duyệt này."
+            hint="Mở một linh quyển và đọc vài chương — hành trình sẽ hiện ở đây."
+          />
         ) : null}
 
         <section className="story-grid" aria-label="Hành trình tu luyện">

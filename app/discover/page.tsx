@@ -7,6 +7,8 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { UserIdentity } from "@/components/UserIdentity";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
+import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { listRecentlyPolishedStoriesPage, listRecentlyUpdatedStoriesPage } from "@/lib/stories";
 
 export const revalidate = 120;
@@ -68,12 +70,17 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
       </header>
 
       <div className="page-wrap">
-        <section className="library-header discover-header">
-          <div>
-            <p className="eyebrow">Khám phá nhanh</p>
-            <h1 className="library-title">{kind === "polished" ? "Truyện vừa được polish" : "Truyện vừa cập nhật"}</h1>
-            <p className="library-subtitle">Theo dõi các truyện có bản đọc mượt hơn hoặc chương mới vừa được cập nhật vào Thiên Thư.</p>
-          </div>
+        <XiPageHeroStrip
+          className="discover-header"
+          eyebrow={
+            <>
+              <Sparkles size={13} aria-hidden="true" />
+              Khám phá nhanh
+            </>
+          }
+          title={kind === "polished" ? "Truyện vừa được polish" : "Truyện vừa cập nhật"}
+          subtitle="Theo dõi linh quyển có bản đọc mượt hơn hoặc chương mới vừa khắc vào Thiên Thư."
+        >
           <div className="filters discover-tabs">
             <Link className={`chip ${kind === "polished" ? "chip-active" : ""}`} href={discoverHref("polished", 1, today, completed)}>
               <WandSparkles size={15} />
@@ -101,7 +108,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
               Đang viết
             </Link>
           </div>
-        </section>
+        </XiPageHeroStrip>
 
         <section className="library-list-section" aria-label={kind === "polished" ? "Vừa polish" : "Vừa cập nhật"}>
           <div className="section-heading-row story-list-heading">
@@ -118,12 +125,10 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
           {page.items.length > 0 ? (
             <DiscoverListClient items={page.items} kind={kind} />
           ) : (
-            <div className="empty-state">
-              <div>
-                <Icon size={28} />
-                <p>Chưa có truyện phù hợp với bộ lọc này.</p>
-              </div>
-            </div>
+            <XianxiaEmptyState
+              title="Thiên hạ yên tĩnh — chưa có linh quyển phù hợp bộ lọc."
+              hint="Thử bỏ lọc Hôm nay hoặc đổi tab Vừa polish / Vừa cập nhật."
+            />
           )}
 
           <nav className="pagination discover-pagination" aria-label="Discovery pagination">

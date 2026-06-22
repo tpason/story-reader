@@ -23,6 +23,7 @@ import type { FollowedStoryItem } from "@/lib/follows";
 import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
 import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
 import type { ReadingHistoryItem } from "@/lib/reading-history";
+import { useReaderRealtimeFx } from "@/lib/useReaderRealtimeFx";
 import { useAppSelector } from "@/lib/store-hooks";
 import { NOTIFY_COPY } from "@/lib/xianxia-notify-copy";
 import { storyHref } from "@/lib/urls";
@@ -75,6 +76,8 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const [burstKey, setBurstKey] = useState(0);
   const panelRef = useRef<HTMLElement>(null);
   const decorativeWebglEnabled = useDecorativeWebglEnabled({ allowCompact: true, compactMaxWidth: 720 });
+  const { mode: fxMode } = useReaderRealtimeFx();
+  const fxBurstEnabled = fxMode === "full";
   const unreadChapters = payload?.unreadChapters ?? 0;
   const storyIds = useMemo(() => follows.map((item) => item.storyId), [follows]);
   const followIds = useMemo(() => new Set(follows.map((item) => item.storyId)), [follows]);
@@ -181,8 +184,8 @@ export function NotificationBell({ className = "" }: { className?: string }) {
         className={`notification-bell ${live ? "notification-bell-live" : ""} ${className}`.trim()}
         data-notification-live={live ? "true" : "false"}
       >
-        <SpiritBurstCanvas trigger={decorativeWebglEnabled ? 0 : burstKey} className="notification-spirit-burst" />
-        {decorativeWebglEnabled ? <ThreeNotificationOrb trigger={burstKey} className="notification-spirit-burst" /> : null}
+        <SpiritBurstCanvas trigger={decorativeWebglEnabled || !fxBurstEnabled ? 0 : burstKey} className="notification-spirit-burst" />
+        {decorativeWebglEnabled && fxBurstEnabled ? <ThreeNotificationOrb trigger={burstKey} className="notification-spirit-burst" /> : null}
         <button
           className="icon-button notification-trigger"
           type="button"
