@@ -22,6 +22,7 @@ import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import { ChapterList } from "@/components/reader/ChapterList";
 import { StoryRatingWidget } from "@/components/StoryRatingWidget";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
+import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import { useStoryChapterPagination } from "@/hooks/useStoryChapterPagination";
 import { useStoryDetailAdminEdit } from "@/hooks/useStoryDetailAdminEdit";
 
@@ -84,12 +85,30 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
   const firstChapter = chapterPage[0] ?? null;
   const continueChapter = history?.chapterNumber ?? firstChapter?.chapterNumber ?? null;
   const maxReadChapter = history?.maxReadChapterNumber ?? 0;
+  const [freshChapterNumber, setFreshChapterNumber] = useState<number | null>(null);
+  const { isFresh } = useFreshStoryRealtime({
+    scopeStoryId: currentStory.id,
+    refreshRoute: true,
+    onEvent: (event) => {
+      if (typeof event.chapterNumber !== "number") return;
+      setFreshChapterNumber(event.chapterNumber);
+      window.setTimeout(() => setFreshChapterNumber((current) => (current === event.chapterNumber ? null : current)), 9000);
+    }
+  });
   const updatedLabel = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(currentStory.updatedAt));
   useReadingProgressSync();
 
   useEffect(() => {
     setDescExpanded(false);
   }, [story.id]);
+
+  useEffect(() => {
+    if (!freshChapterNumber) return;
+    const onPage = chapterPage.some((chapter) => chapter.chapterNumber === freshChapterNumber);
+    if (!onPage && !isLoadingChapters) {
+      loadChapterPage(freshChapterNumber);
+    }
+  }, [chapterPage, freshChapterNumber, isLoadingChapters, loadChapterPage]);
 
   return (
     <main className="app-shell story-detail-shell">
@@ -124,7 +143,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
       ) : null}
 
       <div className="page-wrap">
-        <section className="story-detail-hero">
+        <section className={`story-detail-hero ${isFresh(currentStory.id) ? "story-detail-hero-fresh" : ""}`.trim()}>
           {decorativeWebglEnabled ? (
             <ThreeStoryStage
               coverImageUrl={currentStory.coverImageUrl}
@@ -257,7 +276,11 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
             </div>
             <div className="recommendation-row">
               {recommendations.map((item) => (
-                <Link className="recommendation-card" href={storyHref(item)} key={item.id}>
+                <Link
+                  className={`recommendation-card ${isFresh(item.id) ? "recommendation-card-fresh" : ""}`.trim()}
+                  href={storyHref(item)}
+                  key={item.id}
+                >
                   <StoryCover src={item.coverImageUrl} title={item.title} />
                   <div>
                     <h3>{item.title}</h3>
@@ -310,6 +333,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
             onSearch={searchChapterList}
             onClearSearch={clearChapterSearch}
             onLoadPage={loadChapterPage}
+            freshChapterNumber={freshChapterNumber}
           />
         </section>
       </div>

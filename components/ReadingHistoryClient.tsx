@@ -12,6 +12,7 @@ import { MotionFX } from "@/components/MotionFX";
 import { UserIdentity } from "@/components/UserIdentity";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import { mergeBookmarkItems, mergeHistoryItems } from "@/lib/store";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 
@@ -76,6 +77,7 @@ export function ReadingHistoryClient() {
   const dispatch = useAppDispatch();
   const items = useAppSelector((state) => state.history.items);
   const bookmarks = useAppSelector((state) => state.bookmarks.items);
+  const { isFresh } = useFreshStoryRealtime({ refreshProgress: true });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -170,7 +172,11 @@ export function ReadingHistoryClient() {
               ? item.totalChapters - item.maxReadChapterNumber
               : 0;
             return (
-              <Link className="story-card" href={storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber)} key={item.storyId}>
+              <Link
+                className={`story-card ${isFresh(item.storyId) ? "story-card-fresh" : ""}`.trim()}
+                href={storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber)}
+                key={item.storyId}
+              >
                 <StoryCover src={item.coverImageUrl} title={item.storyTitle} />
                 <div className="story-card-body">
                   <div className="story-card-heading">

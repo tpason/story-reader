@@ -14,6 +14,8 @@ const FRESH_STORY_MS = 9000;
 type UseFreshStoryRealtimeOptions = {
   refreshProgress?: boolean;
   refreshRoute?: boolean;
+  /** Only react to events for this story (e.g. story detail page). */
+  scopeStoryId?: string;
   invalidateQueryKeys?: readonly (readonly string[])[];
   onEvent?: (event: ReaderRealtimeEvent) => void;
 };
@@ -22,6 +24,7 @@ export function useFreshStoryRealtime(options: UseFreshStoryRealtimeOptions = {}
   const {
     refreshProgress = false,
     refreshRoute = false,
+    scopeStoryId,
     invalidateQueryKeys = [],
     onEvent
   } = options;
@@ -56,6 +59,7 @@ export function useFreshStoryRealtime(options: UseFreshStoryRealtimeOptions = {}
     useCallback(
       (event: ReaderRealtimeEvent) => {
         if (!event.storyId) return;
+        if (scopeStoryId && event.storyId !== scopeStoryId) return;
         if (event.type !== "chapter_update" && event.type !== "story_update" && event.type !== "notification_update") {
           return;
         }
@@ -71,7 +75,7 @@ export function useFreshStoryRealtime(options: UseFreshStoryRealtimeOptions = {}
             .catch(() => undefined);
         }
       },
-      [dispatch, invalidateQueryKeys, markStoryFresh, onEvent, queryClient, refreshProgress, scheduleRouteRefresh]
+      [dispatch, invalidateQueryKeys, markStoryFresh, onEvent, queryClient, refreshProgress, scheduleRouteRefresh, scopeStoryId]
     )
   );
 

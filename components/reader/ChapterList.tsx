@@ -14,6 +14,7 @@ type ChapterCardProps = {
   maxReadChapter: number;
   currentStory: StorySummary;
   currentChapterNumber: number | null;
+  fresh?: boolean;
 };
 
 const ChapterCard = memo(function ChapterCard({
@@ -21,6 +22,7 @@ const ChapterCard = memo(function ChapterCard({
   maxReadChapter,
   currentStory,
   currentChapterNumber,
+  fresh = false,
 }: ChapterCardProps) {
   const isRead = chapter.chapterNumber <= maxReadChapter;
   const isNew = maxReadChapter > 0 && chapter.chapterNumber > maxReadChapter;
@@ -29,7 +31,7 @@ const ChapterCard = memo(function ChapterCard({
 
   return (
     <Link
-      className={`story-chapter-card ${isRead ? "story-chapter-read" : ""} ${isCurrent ? "story-chapter-current" : ""}`}
+      className={`story-chapter-card ${isRead ? "story-chapter-read" : ""} ${isCurrent ? "story-chapter-current" : ""} ${fresh ? "story-chapter-card-fresh" : ""}`.trim()}
       href={storyHref(currentStory, chapter.chapterNumber)}
     >
       {isCurrent && <span className="story-chapter-current-bar" aria-hidden="true" />}
@@ -86,6 +88,7 @@ export type ChapterListProps = {
   onSearch: (event?: FormEvent<HTMLFormElement>) => void;
   onClearSearch: () => void;
   onLoadPage: (targetChapter: number) => void;
+  freshChapterNumber?: number | null;
 };
 
 export const ChapterList = memo(function ChapterList({
@@ -111,6 +114,7 @@ export const ChapterList = memo(function ChapterList({
   onSearch,
   onClearSearch,
   onLoadPage,
+  freshChapterNumber = null,
 }: ChapterListProps) {
   if (totalChapters === 0) {
     return (
@@ -223,6 +227,7 @@ export const ChapterList = memo(function ChapterList({
               maxReadChapter={maxReadChapter}
               currentStory={currentStory}
               currentChapterNumber={currentChapterNumber}
+              fresh={freshChapterNumber === chapter.chapterNumber}
             />
           ))}
         </div>
