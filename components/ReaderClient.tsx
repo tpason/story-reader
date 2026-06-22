@@ -101,7 +101,6 @@ import {
 } from "@/lib/reader-resume";
 import { shareSelectedQuote } from "@/lib/reader-share";
 import { renderQuoteShareImage, shareQuoteImage } from "@/lib/reader-quote-image";
-import { findChapterSearchMatches } from "@/lib/reader-in-chapter-search";
 import {
   readReaderPerformanceMode,
   writeReaderPerformanceMode,
@@ -127,6 +126,7 @@ import { useReaderDim } from "@/hooks/useReaderDim";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { useReaderPanels } from "@/hooks/useReaderPanels";
+import { useInChapterSearch } from "@/hooks/useInChapterSearch";
 import { getPageScrollMetrics, scrollPageTo } from "@/lib/reader-scroll";
 
 const ThreeReaderProgress = dynamic(() => import("@/components/ThreeReaderProgress").then((mod) => mod.ThreeReaderProgress), {
@@ -283,9 +283,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [showResumeBanner, setShowResumeBanner] = useState(false);
   const [resumeHint, setResumeHint] = useState<ReaderResumeHint | null>(null);
   const [glossaryIndex, setGlossaryIndex] = useState<GlossaryIndex>(() => new Map());
-  const [chapterSearchOpen, setChapterSearchOpen] = useState(false);
-  const [chapterSearchQuery, setChapterSearchQuery] = useState("");
-  const [chapterSearchMatchIndex, setChapterSearchMatchIndex] = useState(0);
   const [sessionMinutes, setSessionMinutes] = useState(0);
   const [performanceMode, setPerformanceMode] = useState<ReaderPerformanceMode>(() => readReaderPerformanceMode());
   const [focusModeDefault, setFocusModeDefault] = useState(() => readReaderFocusModeDefault());
@@ -529,11 +526,20 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
     return items.sort((left, right) => left.name.localeCompare(right.name, "vi"));
   }, [glossaryIndex]);
-  const chapterSearchMatches = useMemo(
-    () => findChapterSearchMatches(paragraphs, chapterSearchQuery),
-    [paragraphs, chapterSearchQuery]
-  );
-  const activeChapterSearchMatch = chapterSearchMatches[chapterSearchMatchIndex] ?? null;
+  const {
+    open: chapterSearchOpen,
+    setOpen: setChapterSearchOpen,
+    query: chapterSearchQuery,
+    setQuery: setChapterSearchQuery,
+    matchIndex: chapterSearchMatchIndex,
+    matches: chapterSearchMatches,
+    activeMatch: activeChapterSearchMatch,
+    jump: jumpChapterSearchMatch,
+  } = useInChapterSearch({
+    paragraphs,
+    paragraphContainerRef,
+    chapterId: activePayload.chapter.id,
+  });
   const paragraphAudioWeights = useMemo(() => buildParagraphProgressWeights(paragraphs), [paragraphs]);
 
   useLayoutEffect(() => {
@@ -874,18 +880,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       })
       .catch(() => setGlossaryIndex(new Map()));
   }, [activePayload.story.id]);
-
-  useEffect(() => {
-    setChapterSearchMatchIndex(0);
-  }, [chapterSearchQuery, activePayload.chapter.id]);
-
-  useEffect(() => {
-    if (!chapterSearchOpen || chapterSearchMatches.length === 0) return;
-    const match = chapterSearchMatches[chapterSearchMatchIndex];
-    if (!match) return;
-    const node = paragraphContainerRef.current?.querySelector(`[data-paragraph-index="${match.paragraphIndex}"]`);
-    node?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "center" });
-  }, [chapterSearchOpen, chapterSearchMatchIndex, chapterSearchMatches]);
 
   useEffect(() => {
     const startedAt = Date.now();
@@ -1244,14 +1238,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   async function clearOfflineCacheForStory() {
     const removed = await clearStoryOfflineCache(activePayload.story.id);
     showSwipeNotice(removed > 0 ? `Đã xóa ${removed} chương offline` : "Không có cache offline để xóa");
-  }
-
-  function jumpChapterSearchMatch(direction: "previous" | "next") {
-    if (chapterSearchMatches.length === 0) return;
-    setChapterSearchMatchIndex((current) => {
-      if (direction === "next") return (current + 1) % chapterSearchMatches.length;
-      return (current - 1 + chapterSearchMatches.length) % chapterSearchMatches.length;
-    });
   }
 
   function renderParagraphText(paragraphIndex: number, paragraph: string) {
