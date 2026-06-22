@@ -10,12 +10,11 @@ import { Drawer } from "vaul";
 import { useVirtualizer, useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useQueryClient } from "@tanstack/react-query";
 import { autoUpdate, flip, FloatingPortal, offset, shift, useDismiss, useFloating, useInteractions } from "@floating-ui/react";
-import Fuse from "fuse.js";
-import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, SyntheticEvent } from "react";
 import { saveReaderPreferencesOnServer, saveReadingSessionOnServer } from "@/lib/api-client";
-import type { ChapterSummary, CursorPage, ReaderPayload } from "@/lib/types";
+import type { ChapterSummary, ReaderPayload } from "@/lib/types";
 import type { ReaderBookmarkItem } from "@/lib/bookmarks";
 import { storyHref } from "@/lib/urls";
 import { selectCurrentBookmark, selectMaxReadChapter, selectStoryBookmarks } from "@/lib/selectors";
@@ -127,6 +126,7 @@ import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { useReaderPanels } from "@/hooks/useReaderPanels";
 import { useInChapterSearch } from "@/hooks/useInChapterSearch";
 import { useParagraphBookmarksAndNotes } from "@/hooks/useParagraphBookmarksAndNotes";
+import { useReaderChapterList } from "@/hooks/useReaderChapterList";
 import { getPageScrollMetrics, scrollPageTo } from "@/lib/reader-scroll";
 
 const ThreeReaderProgress = dynamic(() => import("@/components/ThreeReaderProgress").then((mod) => mod.ThreeReaderProgress), {
@@ -214,10 +214,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const currentUser = useAppSelector((state) => state.identity.user);
   const maxReadChapter = useAppSelector(useMemo(() => selectMaxReadChapter(payload.story.id), [payload.story.id]));
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [chapters, setChapters] = useState(payload.chapters);
-  const [previousChapterCursor, setPreviousChapterCursor] = useState(payload.previousChapterCursor);
-  const [chapterCursor, setChapterCursor] = useState(payload.chapterCursor);
-  const [loadingChapters, setLoadingChapters] = useState(false);
   const {
     mobileMenuOpen,
     setMobileMenuOpen,
@@ -239,7 +235,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     mobileSheetOpenRef,
   } = useReaderPanels();
   const [audioAutoStartToken, setAudioAutoStartToken] = useState(0);
-  const [chapterSearch, setChapterSearch] = useState("");
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(false);
   const [desktopSidebarWidth, setDesktopSidebarWidth] = useState(292);
   const [offlineLoading, setOfflineLoading] = useState(false);
@@ -316,6 +311,24 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const previousChapterSentinelRef = useRef<HTMLDivElement | null>(null);
   const nextChapterSentinelRef = useRef<HTMLDivElement | null>(null);
   const chapterVirtualizerScrollRef = useRef<HTMLDivElement | null>(null);
+  const {
+    chapters,
+    filteredChapters,
+    loadingChapters,
+    chapterSearch,
+    setChapterSearch,
+    chapterSearchText,
+    previousChapterCursor,
+    chapterCursor,
+    loadNextChapters,
+    loadPreviousChapters,
+  } = useReaderChapterList({
+    payload,
+    storyId: activePayload.story.id,
+    sidebarRef: chapterSidebarRef,
+    previousSentinelRef: previousChapterSentinelRef,
+    nextSentinelRef: nextChapterSentinelRef,
+  });
   const progressBarRef = useRef<HTMLDivElement | null>(null);
   const scrollTopButtonRef = useRef<HTMLButtonElement | null>(null);
   const audioPanelRef = useRef<HTMLElement | null>(null);
@@ -582,33 +595,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     () => [...cachedChapters].sort((left, right) => left.chapterNumber - right.chapterNumber),
     [cachedChapters]
   );
-  const deferredChapterSearch = useDeferredValue(chapterSearch);
-  const chapterSearchText = deferredChapterSearch.trim().toLowerCase();
-  const chapterSearchIndex = useMemo(
-    () =>
-      new Fuse(chapters, {
-        ignoreLocation: true,
-        includeScore: true,
-        keys: [
-          { name: "chapterNumber", weight: 0.38 },
-          { name: "title", weight: 0.62 }
-        ],
-        shouldSort: true,
-        threshold: 0.36
-      }),
-    [chapters]
-  );
-  const filteredChapters = useMemo(() => {
-    if (!chapterSearchText) return chapters;
-    const exactMatches = chapters.filter((chapter) => {
-      const chapterNumber = String(chapter.chapterNumber);
-      const chapterTitle = chapter.title?.toLowerCase() ?? "";
-      return chapterNumber.includes(chapterSearchText) || chapterTitle.includes(chapterSearchText);
-    });
-    const exactIds = new Set(exactMatches.map((chapter) => chapter.id));
-    const fuzzyMatches = chapterSearchIndex.search(chapterSearchText).map((result) => result.item);
-    return [...exactMatches, ...fuzzyMatches.filter((chapter) => !exactIds.has(chapter.id))];
-  }, [chapterSearchIndex, chapterSearchText, chapters]);
   const canVirtualizeChapterList = filteredChapters.length > 80 && (Boolean(chapterSearchText) || (!previousChapterCursor && !chapterCursor));
   const chapterVirtualizer = useVirtualizer({
     count: filteredChapters.length,
@@ -825,15 +811,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, [activePayload.chapter.chapterNumber, activePayload.story.id, forceTopKey, historyHydrated, paragraphPositionKey, storageKey]);
 
   useEffect(() => {
-    setChapters(payload.chapters);
-    setPreviousChapterCursor(payload.previousChapterCursor);
-    setChapterCursor(payload.chapterCursor);
     setMobileMenuOpen(false);
     setMobileFormatOpen(false);
     setMobileSheetOpen(false);
     setReaderOverflowOpen(false);
     stopAutoScroll();
-    setChapterSearch("");
     setChapterSearchOpen(false);
     setChapterSearchQuery("");
     setGlossaryDrawerOpen(false);
@@ -1558,88 +1540,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
     return () => observer.disconnect();
   }, [paragraphs, shouldVirtualizeParagraphs, paragraphVirtualizer.range?.startIndex, paragraphVirtualizer.range?.endIndex]);
-
-  const loadNextChapters = useCallback(() => {
-    if (!chapterCursor || loadingChapters) return;
-    setLoadingChapters(true);
-    queryClient
-      .fetchQuery({
-        queryKey: readerQueryKeys.chapterList(activePayload.story.id, chapterCursor, "next"),
-        queryFn: async () => {
-          const response = await fetch(`/api/stories/${activePayload.story.id}/chapters?cursor=${encodeURIComponent(chapterCursor)}&limit=80`);
-          if (!response.ok) throw new Error("Không tải được danh sách chương");
-          return response.json() as Promise<CursorPage<ChapterSummary>>;
-        },
-        staleTime: 1000 * 60 * 10
-      })
-      .then((page) => {
-        setChapters((current) => {
-          const existing = new Set(current.map((chapter) => chapter.id));
-          return [...current, ...page.items.filter((chapter) => !existing.has(chapter.id))];
-        });
-        setPreviousChapterCursor((current) => current ?? page.previousCursor ?? null);
-        setChapterCursor(page.nextCursor);
-      })
-      .catch(() => undefined)
-      .finally(() => setLoadingChapters(false));
-  }, [chapterCursor, loadingChapters, activePayload.story.id, queryClient]);
-
-  const loadPreviousChapters = useCallback(() => {
-    if (!previousChapterCursor || loadingChapters) return;
-    const sidebar = chapterSidebarRef.current;
-    const previousScrollHeight = sidebar?.scrollHeight ?? 0;
-    const previousScrollTop = sidebar?.scrollTop ?? 0;
-
-    setLoadingChapters(true);
-    queryClient
-      .fetchQuery({
-        queryKey: readerQueryKeys.chapterList(activePayload.story.id, previousChapterCursor, "previous"),
-        queryFn: async () => {
-          const response = await fetch(`/api/stories/${activePayload.story.id}/chapters?cursor=${encodeURIComponent(previousChapterCursor)}&direction=previous&limit=80`);
-          if (!response.ok) throw new Error("Không tải được danh sách chương");
-          return response.json() as Promise<CursorPage<ChapterSummary>>;
-        },
-        staleTime: 1000 * 60 * 10
-      })
-      .then((page) => {
-        setChapters((current) => {
-          const existing = new Set(current.map((chapter) => chapter.id));
-          return [...page.items.filter((chapter) => !existing.has(chapter.id)), ...current];
-        });
-        setPreviousChapterCursor(page.previousCursor ?? null);
-
-        window.requestAnimationFrame(() => {
-          const currentSidebar = chapterSidebarRef.current;
-          if (!currentSidebar) return;
-          currentSidebar.scrollTop = previousScrollTop + Math.max(0, currentSidebar.scrollHeight - previousScrollHeight);
-        });
-      })
-      .catch(() => undefined)
-      .finally(() => setLoadingChapters(false));
-  }, [loadingChapters, activePayload.story.id, previousChapterCursor, queryClient]);
-
-  useEffect(() => {
-    if (chapterSearchText) return;
-    const sidebar = chapterSidebarRef.current;
-    const previousSentinel = previousChapterSentinelRef.current;
-    const nextSentinel = nextChapterSentinelRef.current;
-    if (!sidebar || !previousSentinel || !nextSentinel) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          if (entry.target === previousSentinel) loadPreviousChapters();
-          if (entry.target === nextSentinel) loadNextChapters();
-        });
-      },
-      { root: sidebar, rootMargin: "180px 0px" }
-    );
-
-    observer.observe(previousSentinel);
-    observer.observe(nextSentinel);
-    return () => observer.disconnect();
-  }, [chapterSearchText, loadNextChapters, loadPreviousChapters]);
 
   function scrollToTop() {
     const reduceMotion = prefersReducedMotion();
