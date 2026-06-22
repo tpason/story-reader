@@ -77,3 +77,26 @@ export async function readPushSubscribed(swReg: ServiceWorkerRegistration): Prom
   const wasSubscribed = window.localStorage.getItem(PUSH_SUBSCRIBED_KEY) === "1";
   return !!sub && wasSubscribed;
 }
+
+export function isPushApiSupported(): boolean {
+  return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window;
+}
+
+export async function isVapidConfigured(): Promise<boolean> {
+  const key = await getVapidPublicKey();
+  return !!key;
+}
+
+export async function enablePushNotifications(): Promise<boolean> {
+  const authRes = await fetch("/api/auth/me").catch(() => null);
+  const authData = authRes ? ((await authRes.json().catch(() => null)) as { user: unknown } | null) : null;
+  if (!authData?.user) return false;
+
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") return false;
+
+  const reg = await navigator.serviceWorker.ready;
+  const ok = await subscribePush(reg);
+  if (ok) window.localStorage.setItem(PUSH_SUBSCRIBED_KEY, "1");
+  return ok;
+}

@@ -213,7 +213,7 @@ export function PwaRuntime() {
           <div className="pwa-install-content">
             <Bell size={16} className="pwa-install-icon" />
             <span className="pwa-install-text">
-              Bật thông báo khi có <strong>chương mới</strong>
+              Bật thông báo khi truyện <strong>đang đọc</strong> có chương mới
             </span>
           </div>
           <div className="pwa-install-actions">

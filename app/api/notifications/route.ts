@@ -51,6 +51,12 @@ export async function GET(request: NextRequest) {
   if (user) {
     const rows = await query<NotificationRow>(
       `
+        WITH interested_stories AS (
+          SELECT story_id FROM reader_story_follows WHERE user_id = $1
+          UNION
+          SELECT story_id FROM reader_reading_progress
+          WHERE user_id = $1 AND max_read_chapter_number > 0
+        )
         SELECT
           s.id::text AS story_id,
           COALESCE(NULLIF(s.display_title, ''), s.title) AS story_title,
@@ -59,11 +65,10 @@ export async function GET(request: NextRequest) {
           s.total_chapters,
           COALESCE(rp.max_read_chapter_number, 0) AS max_read_chapter_number,
           s.updated_at
-        FROM reader_story_follows f
-        JOIN stories s ON s.id = f.story_id
-        LEFT JOIN reader_reading_progress rp ON rp.user_id = f.user_id AND rp.story_id = f.story_id
-        WHERE f.user_id = $1
-          AND s.is_active = TRUE
+        FROM interested_stories ist
+        JOIN stories s ON s.id = ist.story_id
+        LEFT JOIN reader_reading_progress rp ON rp.user_id = $1 AND rp.story_id = s.id
+        WHERE s.is_active = TRUE
           AND s.total_chapters > COALESCE(rp.max_read_chapter_number, 0)
         ORDER BY s.updated_at DESC, s.total_chapters DESC
         LIMIT 80

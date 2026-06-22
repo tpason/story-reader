@@ -32,6 +32,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { BackgroundAudioPlayer } from "@/components/BackgroundAudioPlayer";
 import { ChapterTransition } from "@/components/ChapterTransition";
 import { ReaderChapterFreshHint, type ReaderChapterFreshHintState } from "@/components/ReaderChapterFreshHint";
+import { ReaderEngagementPrompt } from "@/components/ReaderEngagementPrompt";
 import { AmbientSoundPlayer } from "@/components/AmbientSoundPlayer";
 import { FloatingTooltip } from "@/components/FloatingTooltip";
 import { formatNovelContent } from "@/lib/formatNovelContent";
@@ -2831,6 +2832,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         hint={freshChapterHint}
         onDismiss={dismissFreshChapterHint}
       />
+
+      <ReaderEngagementPrompt story={activePayload.story} chapterNumber={activePayload.chapter.chapterNumber} />
 
       <ChapterTransition trigger={chapterTransitionTrigger} direction={chapterTransitionDirection} />
 
