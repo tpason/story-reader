@@ -80,15 +80,12 @@ import {
   markSwipeHintShown,
   readReaderFocusModeDefault,
   readReaderDesktopSidebarOpen,
-  readReaderSheetTab,
   READER_SWIPE_HINT_DURATION_MS,
   READER_SWIPE_HINT_MESSAGE,
   shouldShowSwipeHint,
   wasMobilePresetBootstrapped,
   writeReaderFocusModeDefault,
-  writeReaderDesktopSidebarOpen,
-  writeReaderSheetTab,
-  type ReaderSheetTab
+  writeReaderDesktopSidebarOpen
 } from "@/lib/reader-onboarding";
 import { buildParagraphProgressWeights, paragraphIndexForAudioProgress } from "@/lib/reader-audio-sync";
 import { buildParagraphPages, buildParagraphPagesFromHeights, pageIndexForParagraph } from "@/lib/reader-pagination";
@@ -129,6 +126,7 @@ import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import { useReaderDim } from "@/hooks/useReaderDim";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
+import { useReaderPanels } from "@/hooks/useReaderPanels";
 import { getPageScrollMetrics, scrollPageTo } from "@/lib/reader-scroll";
 
 const ThreeReaderProgress = dynamic(() => import("@/components/ThreeReaderProgress").then((mod) => mod.ThreeReaderProgress), {
@@ -180,7 +178,6 @@ const PRESET_ICON_COMPONENT = {
   wide: Type
 } as const;
 
-type MobileSheetTab = ReaderSheetTab;
 
 type AdminEditField = "storyTitle" | "author" | "chapterTitle" | "content";
 
@@ -221,10 +218,26 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [previousChapterCursor, setPreviousChapterCursor] = useState(payload.previousChapterCursor);
   const [chapterCursor, setChapterCursor] = useState(payload.chapterCursor);
   const [loadingChapters, setLoadingChapters] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileFormatOpen, setMobileFormatOpen] = useState(false);
-  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
-  const [audioPanelOpen, setAudioPanelOpen] = useState(false);
+  const {
+    mobileMenuOpen,
+    setMobileMenuOpen,
+    mobileFormatOpen,
+    setMobileFormatOpen,
+    mobileSheetOpen,
+    setMobileSheetOpen,
+    mobileSheetTab,
+    setMobileSheetTab,
+    audioPanelOpen,
+    setAudioPanelOpen,
+    readerOverflowOpen,
+    setReaderOverflowOpen,
+    qualityPanelOpen,
+    setQualityPanelOpen,
+    glossaryDrawerOpen,
+    setGlossaryDrawerOpen,
+    mobileMenuOpenRef,
+    mobileSheetOpenRef,
+  } = useReaderPanels();
   const [audioAutoStartToken, setAudioAutoStartToken] = useState(0);
   const [chapterSearch, setChapterSearch] = useState("");
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(false);
@@ -234,14 +247,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [sheetProgress, setSheetProgress] = useState(0);
   const [mobileProgress, setMobileProgress] = useState(0);
   const [focusModeEnabled, setFocusModeEnabled] = useState(false);
-  const [readerOverflowOpen, setReaderOverflowOpen] = useState(false);
   const readerOverflowRef = useRef<HTMLDivElement>(null);
   const [floatingActionsMounted, setFloatingActionsMounted] = useState(false);
   const [showContinuePrompt, setShowContinuePrompt] = useState(false);
   const [highlightContinuePrompt, setHighlightContinuePrompt] = useState(false);
   const [showCompletionOverlay, setShowCompletionOverlay] = useState(false);
   const [paragraphBookmarks, setParagraphBookmarks] = useState<ParagraphBookmark[]>([]);
-  const [qualityPanelOpen, setQualityPanelOpen] = useState(false);
   const {
     enabled: readerDimEnabled,
     level: readerDimLevel,
@@ -259,7 +270,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [shellFreshPulse, setShellFreshPulse] = useState(false);
   const freshHintTimerRef = useRef<number | null>(null);
   const [compactReader, setCompactReader] = useState(false);
-  const [mobileSheetTab, setMobileSheetTab] = useState<MobileSheetTab>(() => readReaderSheetTab());
   const [paragraphScrollMargin, setParagraphScrollMargin] = useState(0);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageViewportHeight, setPageViewportHeight] = useState(640);
@@ -273,7 +283,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [showResumeBanner, setShowResumeBanner] = useState(false);
   const [resumeHint, setResumeHint] = useState<ReaderResumeHint | null>(null);
   const [glossaryIndex, setGlossaryIndex] = useState<GlossaryIndex>(() => new Map());
-  const [glossaryDrawerOpen, setGlossaryDrawerOpen] = useState(false);
   const [chapterSearchOpen, setChapterSearchOpen] = useState(false);
   const [chapterSearchQuery, setChapterSearchQuery] = useState("");
   const [chapterSearchMatchIndex, setChapterSearchMatchIndex] = useState(0);
@@ -354,8 +363,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   });
   const lastScrollTopRef = useRef(0);
   const compactViewportRef = useRef(false);
-  const mobileMenuOpenRef = useRef(false);
-  const mobileSheetOpenRef = useRef(false);
   const readerChromeHiddenRef = useRef(false);
   const readerShellRef = useRef<HTMLElement | null>(null);
   const swipeStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
@@ -677,10 +684,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, []);
 
   useEffect(() => {
-    writeReaderSheetTab(mobileSheetTab);
-  }, [mobileSheetTab]);
-
-  useEffect(() => {
     if (!isPageLayout) return;
     const update = () => {
       const dockReserve = compactReader ? 96 : 28;
@@ -746,14 +749,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       setQualityPanelOpen(true);
     }
   }, [mobileSheetTab, currentUser]);
-
-  useEffect(() => {
-    mobileMenuOpenRef.current = mobileMenuOpen;
-  }, [mobileMenuOpen]);
-
-  useEffect(() => {
-    mobileSheetOpenRef.current = mobileSheetOpen;
-  }, [mobileSheetOpen]);
 
   useEffect(() => {
     setAudioPanelOpen(false);
