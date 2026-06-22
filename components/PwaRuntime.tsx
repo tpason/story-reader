@@ -8,6 +8,11 @@ import {
   subscribePush,
   unsubscribePush
 } from "@/lib/push-client";
+import {
+  INSTALL_DISMISS_KEY,
+  isPushBannerDismissed,
+  PUSH_BANNER_DISMISS_KEY
+} from "@/lib/pwa-banner";
 import { NOTIFY_COPY } from "@/lib/xianxia-notify-copy";
 
 type BeforeInstallPromptEvent = Event & {
@@ -15,8 +20,6 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-const INSTALL_DISMISS_KEY = "pwa-install-dismissed-until";
-const PUSH_BANNER_DISMISS_KEY = "pwa-push-banner-dismissed-until";
 const INSTALL_DISMISS_DAYS = 30;
 const PUSH_BANNER_DISMISS_DAYS = 14;
 const INSTALL_BANNER_DELAY_MS = 9_000;
@@ -30,7 +33,7 @@ function isDismissedUntil(key: string) {
 
 function schedulePushBanner(onFire: () => void, delayMs: number) {
   return window.setTimeout(() => {
-    if (isDismissedUntil(PUSH_BANNER_DISMISS_KEY)) return;
+    if (isPushBannerDismissed()) return;
     if (window.localStorage.getItem(PUSH_SUBSCRIBED_KEY) === "1") return;
     onFire();
   }, delayMs);
@@ -129,7 +132,7 @@ export function PwaRuntime() {
   useEffect(() => {
     if (!("PushManager" in window)) return;
     if (window.localStorage.getItem(PUSH_SUBSCRIBED_KEY) === "1") return;
-    if (isDismissedUntil(PUSH_BANNER_DISMISS_KEY)) return;
+    if (isPushBannerDismissed()) return;
 
     queuePushBanner();
     return () => clearPushTimer();
