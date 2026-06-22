@@ -14,10 +14,9 @@ import Fuse from "fuse.js";
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, SyntheticEvent } from "react";
-import { deleteParagraphBookmarkOnServer, fetchParagraphBookmarks, saveParagraphBookmarkOnServer, saveReaderPreferencesOnServer, saveReadingSessionOnServer } from "@/lib/api-client";
+import { saveReaderPreferencesOnServer, saveReadingSessionOnServer } from "@/lib/api-client";
 import type { ChapterSummary, CursorPage, ReaderPayload } from "@/lib/types";
 import type { ReaderBookmarkItem } from "@/lib/bookmarks";
-import { readParagraphBookmarks, removeParagraphBookmark, upsertParagraphBookmark, writeParagraphBookmarks, type ParagraphBookmark } from "@/lib/paragraph-bookmarks";
 import { storyHref } from "@/lib/urls";
 import { selectCurrentBookmark, selectMaxReadChapter, selectStoryBookmarks } from "@/lib/selectors";
 import { MotionFX } from "@/components/MotionFX";
@@ -127,6 +126,7 @@ import { useWakeLock } from "@/hooks/useWakeLock";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { useReaderPanels } from "@/hooks/useReaderPanels";
 import { useInChapterSearch } from "@/hooks/useInChapterSearch";
+import { useParagraphBookmarksAndNotes } from "@/hooks/useParagraphBookmarksAndNotes";
 import { getPageScrollMetrics, scrollPageTo } from "@/lib/reader-scroll";
 
 const ThreeReaderProgress = dynamic(() => import("@/components/ThreeReaderProgress").then((mod) => mod.ThreeReaderProgress), {
@@ -252,7 +252,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [showContinuePrompt, setShowContinuePrompt] = useState(false);
   const [highlightContinuePrompt, setHighlightContinuePrompt] = useState(false);
   const [showCompletionOverlay, setShowCompletionOverlay] = useState(false);
-  const [paragraphBookmarks, setParagraphBookmarks] = useState<ParagraphBookmark[]>([]);
   const {
     enabled: readerDimEnabled,
     level: readerDimLevel,
@@ -290,7 +289,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [readAlongEnabled, setReadAlongEnabled] = useState(true);
   const focusDefaultBootstrappedRef = useRef(false);
   const lastAudioScrollIndexRef = useRef<number | null>(null);
-  const [paragraphNoteEditor, setParagraphNoteEditor] = useState<{ paragraphIndex: number; note: string } | null>(null);
   const liveCachedChapters = useLiveQuery(
     () => offlineDb.chapters.where("storyId").equals(payload.story.id).sortBy("chapterNumber"),
     [payload.story.id],
@@ -438,17 +436,23 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     return formatNovelContent(activePayload.chapter.content, undefined, activePayload.chapter.title);
   }, [activePayload.chapter.content, activePayload.chapter.isContentPreformatted, activePayload.chapter.title]);
   const storyBookmarks = useAppSelector(useMemo(() => selectStoryBookmarks(activePayload.story.id), [activePayload.story.id]));
-  const currentChapterParagraphBookmarks = useMemo(
-    () =>
-      paragraphBookmarks
-        .filter((bookmark) => bookmark.storyId === activePayload.story.id && bookmark.chapterNumber === activePayload.chapter.chapterNumber)
-        .sort((left, right) => left.paragraphIndex - right.paragraphIndex),
-    [activePayload.chapter.chapterNumber, activePayload.story.id, paragraphBookmarks]
-  );
-  const bookmarkedParagraphIndexes = useMemo(
-    () => new Set(currentChapterParagraphBookmarks.map((bookmark) => bookmark.paragraphIndex)),
-    [currentChapterParagraphBookmarks]
-  );
+  const {
+    currentChapterParagraphBookmarks,
+    bookmarkedParagraphIndexes,
+    noteEditor: paragraphNoteEditor,
+    setNoteEditor: setParagraphNoteEditor,
+    openNoteEditor: openParagraphNoteEditor,
+    saveNote: saveParagraphNote,
+    toggleBookmark: toggleParagraphBookmark,
+  } = useParagraphBookmarksAndNotes({
+    storyId: activePayload.story.id,
+    chapterId: activePayload.chapter.id,
+    chapterNumber: activePayload.chapter.chapterNumber,
+    chapterTitle: activePayload.chapter.title,
+    currentUser,
+    progressRef,
+    onNotice: setSwipeNotice,
+  });
   const formattedPreviewParagraphs = useMemo(
     () => qualityPanelOpen ? formatNovelContent(activePayload.chapter.content, undefined, activePayload.chapter.title) : null,
     [qualityPanelOpen, activePayload.chapter.content, activePayload.chapter.title]
@@ -616,33 +620,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const storageKey = `reader:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
   const forceTopKey = `reader:force-top:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
   const paragraphPositionKey = `${READER_PARAGRAPH_POSITION_PREFIX}:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
-
-  useEffect(() => {
-    setParagraphBookmarks(readParagraphBookmarks());
-  }, []);
-
-  useEffect(() => {
-    if (!currentUser) return;
-    let cancelled = false;
-
-    fetchParagraphBookmarks(activePayload.story.id)
-      .then((remoteBookmarks) => {
-        if (cancelled || remoteBookmarks.length === 0) return;
-        const localBookmarks = readParagraphBookmarks();
-        const byKey = new Map<string, ParagraphBookmark>();
-        [...localBookmarks, ...remoteBookmarks].forEach((bookmark) => {
-          byKey.set(`${bookmark.storyId}:${bookmark.chapterNumber}:${bookmark.paragraphIndex}`, bookmark);
-        });
-        const merged = [...byKey.values()].sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
-        setParagraphBookmarks(merged);
-        writeParagraphBookmarks(merged);
-      })
-      .catch(() => undefined);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activePayload.story.id, currentUser]);
 
   useEffect(() => {
     const clientSessionId = `${activePayload.story.id}-${activePayload.chapter.chapterNumber}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -2020,87 +1997,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
 
     dismissResumeBanner();
-  }
-
-  function persistParagraphBookmark(bookmark: ParagraphBookmark) {
-    const next = upsertParagraphBookmark(paragraphBookmarks, bookmark);
-    setParagraphBookmarks(next);
-    writeParagraphBookmarks(next);
-    saveParagraphBookmarkOnServer(bookmark)
-      .then((remoteBookmark) => {
-        if (!remoteBookmark) return;
-        setParagraphBookmarks((current) => {
-          const merged = upsertParagraphBookmark(current, remoteBookmark);
-          writeParagraphBookmarks(merged);
-          return merged;
-        });
-      })
-      .catch(() => undefined);
-  }
-
-  function openParagraphNoteEditor(paragraphIndex: number) {
-    const bookmark = currentChapterParagraphBookmarks.find((item) => item.paragraphIndex === paragraphIndex);
-    if (!bookmark) return;
-    setParagraphNoteEditor({ paragraphIndex, note: bookmark.note ?? "" });
-  }
-
-  function saveParagraphNote() {
-    if (!paragraphNoteEditor) return;
-    const bookmark = currentChapterParagraphBookmarks.find((item) => item.paragraphIndex === paragraphNoteEditor.paragraphIndex);
-    if (!bookmark) return;
-    persistParagraphBookmark({
-      ...bookmark,
-      note: paragraphNoteEditor.note.trim() ? paragraphNoteEditor.note.trim().slice(0, 500) : null
-    });
-    setParagraphNoteEditor(null);
-    setSwipeNotice("Đã lưu ghi chú đoạn");
-  }
-
-  function toggleParagraphBookmark(paragraphIndex: number, paragraph: string) {
-    const exists = bookmarkedParagraphIndexes.has(paragraphIndex);
-    const next = exists
-      ? removeParagraphBookmark(paragraphBookmarks, {
-          storyId: activePayload.story.id,
-          chapterNumber: activePayload.chapter.chapterNumber,
-          paragraphIndex
-        })
-      : upsertParagraphBookmark(paragraphBookmarks, {
-          id: `paragraph-${activePayload.story.id}-${activePayload.chapter.chapterNumber}-${paragraphIndex}`,
-          storyId: activePayload.story.id,
-          chapterId: activePayload.chapter.id,
-          chapterNumber: activePayload.chapter.chapterNumber,
-          chapterTitle: activePayload.chapter.title,
-          paragraphIndex,
-          excerpt: paragraph.slice(0, 120),
-          progressPercent: Math.round(progressRef.current * 100) / 100,
-          note: null,
-          createdAt: new Date().toISOString()
-        });
-
-    setParagraphBookmarks(next);
-    writeParagraphBookmarks(next);
-    if (exists) {
-      deleteParagraphBookmarkOnServer(activePayload.story.id, activePayload.chapter.chapterNumber, paragraphIndex);
-    } else {
-      const bookmark = next.find(
-        (item) =>
-          item.storyId === activePayload.story.id &&
-          item.chapterNumber === activePayload.chapter.chapterNumber &&
-          item.paragraphIndex === paragraphIndex
-      );
-      if (bookmark) {
-        saveParagraphBookmarkOnServer(bookmark)
-          .then((remoteBookmark) => {
-            if (!remoteBookmark) return;
-            setParagraphBookmarks((current) => {
-              const merged = upsertParagraphBookmark(current, remoteBookmark);
-              writeParagraphBookmarks(merged);
-              return merged;
-            });
-          })
-          .catch(() => undefined);
-      }
-    }
   }
 
   function renderParagraphTools(index: number, paragraph: string, bookmarked: boolean) {
