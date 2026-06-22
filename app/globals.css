@@ -14205,6 +14205,9 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
   .realtime-chapter-toast-glow,
   .update-card-fresh::after,
   .story-card-fresh::after,
+  .discovery-card-fresh::before,
+  .discover-list-card-fresh::before,
+  .recommendation-card-fresh::before,
   .reader-shell-fresh-pulse,
   .reader-chapter-fresh-hint-glow,
   .continue-card-fresh,
@@ -14216,7 +14219,10 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
 /* Updates + home — shimmer when a story just received a realtime event */
 
 .update-card-fresh,
-.story-card-fresh {
+.story-card-fresh,
+.discovery-card-fresh,
+.discover-list-card-fresh,
+.recommendation-card-fresh {
   border-color: color-mix(in srgb, #26a882 34%, var(--hairline) 66%);
   box-shadow:
     0 12px 28px rgba(38, 168, 130, 0.12),
@@ -14224,7 +14230,10 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
 }
 
 .update-card-fresh::after,
-.story-card-fresh::after {
+.story-card-fresh::after,
+.discovery-card-fresh::before,
+.discover-list-card-fresh::before,
+.recommendation-card-fresh::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -14238,6 +14247,7 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
   transform: translateX(-120%);
   animation: update-card-shimmer 1.8s ease-in-out 2;
   pointer-events: none;
+  z-index: 1;
 }
 
 @keyframes update-card-shimmer {

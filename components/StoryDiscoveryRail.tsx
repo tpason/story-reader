@@ -5,6 +5,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { StoryCover } from "@/components/StoryCover";
+import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import { formatDiscoveryChapterLabel, formatRelativeActivity } from "@/lib/discovery-format";
 import { storyDisplayDescription } from "@/lib/story-description";
 import type { StoryDiscoveryItem } from "@/lib/types";
@@ -17,6 +18,7 @@ type DiscoveryGroupProps = {
   items: StoryDiscoveryItem[];
   variant: "polished" | "updated";
   href: Route;
+  isFresh: (storyId: string) => boolean;
 };
 
 type StoryDiscoveryRailProps = {
@@ -43,7 +45,7 @@ function resetDiscoveryTilt(event: ReactPointerEvent<HTMLElement>) {
   card.style.setProperty("--tilt-glow-y", "50%");
 }
 
-function DiscoveryGroup({ eyebrow, title, description, items, variant, href }: DiscoveryGroupProps) {
+function DiscoveryGroup({ eyebrow, title, description, items, variant, href, isFresh }: DiscoveryGroupProps) {
   if (items.length === 0) return null;
 
   const Icon = variant === "polished" ? WandSparkles : Clock3;
@@ -65,7 +67,7 @@ function DiscoveryGroup({ eyebrow, title, description, items, variant, href }: D
       <div className="discovery-row">
         {items.map((story) => (
           <Link
-            className="discovery-card"
+            className={`discovery-card ${isFresh(story.id) ? "discovery-card-fresh" : ""}`.trim()}
             href={storyHref(story)}
             key={`${variant}-${story.id}`}
             onPointerMove={updateDiscoveryTilt}
@@ -93,6 +95,8 @@ function DiscoveryGroup({ eyebrow, title, description, items, variant, href }: D
 }
 
 export function StoryDiscoveryRail({ polishedStories, updatedStories }: StoryDiscoveryRailProps) {
+  const { isFresh } = useFreshStoryRealtime({ refreshRoute: true });
+
   if (polishedStories.length === 0 && updatedStories.length === 0) return null;
 
   return (
@@ -109,6 +113,7 @@ export function StoryDiscoveryRail({ polishedStories, updatedStories }: StoryDis
           items={polishedStories}
           variant="polished"
           href="/discover?kind=polished"
+          isFresh={isFresh}
         />
         <DiscoveryGroup
           eyebrow="Theo dõi chương mới"
@@ -117,6 +122,7 @@ export function StoryDiscoveryRail({ polishedStories, updatedStories }: StoryDis
           items={updatedStories}
           variant="updated"
           href="/discover?kind=updated"
+          isFresh={isFresh}
         />
       </div>
     </div>

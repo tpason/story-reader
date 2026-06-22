@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { StoryCover } from "@/components/StoryCover";
+import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import { useAppSelector } from "@/lib/store-hooks";
 import { storyHref } from "@/lib/urls";
 
@@ -18,6 +19,10 @@ type RecommendationItem = {
 export function HomeRecommendationsPanel() {
   const user = useAppSelector((s) => s.identity.user);
   const hydrated = useAppSelector((s) => s.identity.hydrated);
+  const { isFresh } = useFreshStoryRealtime({
+    refreshRoute: true,
+    invalidateQueryKeys: [["home-recommendations"]]
+  });
 
   const { data, isLoading } = useQuery<{ items: RecommendationItem[] }>({
     queryKey: ["home-recommendations"],
@@ -43,7 +48,7 @@ export function HomeRecommendationsPanel() {
         {data.items.slice(0, 6).map((story) => (
           <Link
             key={story.id}
-            className="recommendation-card"
+            className={`recommendation-card ${isFresh(story.id) ? "recommendation-card-fresh" : ""}`.trim()}
             href={storyHref(story)}
           >
             <StoryCover src={story.coverImageUrl} title={story.title} />

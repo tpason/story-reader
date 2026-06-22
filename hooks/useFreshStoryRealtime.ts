@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { fetchReadingProgress } from "@/lib/api-client";
 import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
 import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
@@ -11,12 +13,32 @@ const FRESH_STORY_MS = 9000;
 
 type UseFreshStoryRealtimeOptions = {
   refreshProgress?: boolean;
+  refreshRoute?: boolean;
+  invalidateQueryKeys?: readonly (readonly string[])[];
+  onEvent?: (event: ReaderRealtimeEvent) => void;
 };
 
 export function useFreshStoryRealtime(options: UseFreshStoryRealtimeOptions = {}) {
-  const { refreshProgress = false } = options;
+  const {
+    refreshProgress = false,
+    refreshRoute = false,
+    invalidateQueryKeys = [],
+    onEvent
+  } = options;
   const dispatch = useAppDispatch();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const refreshTimerRef = useRef<number | null>(null);
   const [freshStoryIds, setFreshStoryIds] = useState<Set<string>>(() => new Set());
+
+  const scheduleRouteRefresh = useCallback(() => {
+    if (!refreshRoute) return;
+    if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = window.setTimeout(() => {
+      router.refresh();
+      refreshTimerRef.current = null;
+    }, 1500);
+  }, [refreshRoute, router]);
 
   const markStoryFresh = useCallback((storyId: string) => {
     setFreshStoryIds((current) => new Set(current).add(storyId));
@@ -38,13 +60,18 @@ export function useFreshStoryRealtime(options: UseFreshStoryRealtimeOptions = {}
           return;
         }
         markStoryFresh(event.storyId);
+        onEvent?.(event);
+        scheduleRouteRefresh();
+        for (const queryKey of invalidateQueryKeys) {
+          queryClient.invalidateQueries({ queryKey: [...queryKey] });
+        }
         if (refreshProgress && event.type !== "notification_update") {
           fetchReadingProgress()
             .then((items) => dispatch(mergeHistoryItems(items)))
             .catch(() => undefined);
         }
       },
-      [dispatch, markStoryFresh, refreshProgress]
+      [dispatch, invalidateQueryKeys, markStoryFresh, onEvent, queryClient, refreshProgress, scheduleRouteRefresh]
     )
   );
 

@@ -2,13 +2,12 @@ import { BookOpenCheck, Clock3, Sparkles, WandSparkles } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { MotionFX } from "@/components/MotionFX";
+import { DiscoverListClient } from "@/components/DiscoverListClient";
+import { NotificationBell } from "@/components/NotificationBell";
 import { ReaderLogo } from "@/components/ReaderLogo";
-import { StoryCover } from "@/components/StoryCover";
 import { UserIdentity } from "@/components/UserIdentity";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { formatAbsoluteActivity, formatDiscoveryChapterLabel } from "@/lib/discovery-format";
 import { listRecentlyPolishedStoriesPage, listRecentlyUpdatedStoriesPage } from "@/lib/stories";
-import { storyHref } from "@/lib/urls";
 
 export const revalidate = 120;
 
@@ -64,6 +63,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
           <Link href="/account">Động phủ</Link>
         </nav>
         <ThemeToggle />
+        <NotificationBell />
         <UserIdentity compact className="topbar-identity" />
       </header>
 
@@ -116,27 +116,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
           </div>
 
           {page.items.length > 0 ? (
-            <div className="discover-list">
-              {page.items.map((story) => (
-                <Link className="discover-list-card" href={storyHref(story)} key={story.id}>
-                  <StoryCover src={story.coverImageUrl} title={story.title} />
-                  <div>
-                    <div className="discovery-kicker">
-                      <span>{kind === "polished" ? "Vừa polish" : "Chương mới"}</span>
-                      <small>{formatAbsoluteActivity(story.latestActivityAt)}</small>
-                    </div>
-                    <h3>{story.title}</h3>
-                    <p>{formatDiscoveryChapterLabel(story)}</p>
-                    <div className="discovery-meta">
-                      <span>{story.author || "Unknown author"}</span>
-                      <span>{story.totalChapters} chương</span>
-                      {story.polishedChapterCount > 0 ? <span>{story.polishedChapterCount} chương polish</span> : null}
-                      {story.isCompleted ? <span>Hoàn thành</span> : null}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <DiscoverListClient items={page.items} kind={kind} />
           ) : (
             <div className="empty-state">
               <div>
