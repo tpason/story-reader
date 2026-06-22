@@ -17,13 +17,14 @@ import { useNotificationCaughtUp } from "@/lib/useNotificationCaughtUp";
 import { fetchReadingProgress } from "@/lib/api-client";
 import { historyToFollowItem } from "@/lib/follows";
 import { mergeHistoryItems } from "@/lib/store";
+import { type ReadingHistoryItem } from "@/lib/reading-history";
 import { NOTIFY_COPY } from "@/lib/xianxia-notify-copy";
 import { storyHref } from "@/lib/urls";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 
 type UpdateEntry = {
   item: ReturnType<typeof historyToFollowItem>;
-  progress: (typeof history)[number] | undefined;
+  progress: ReadingHistoryItem | undefined;
   unread: number;
   nextChapter: number | null;
 };
@@ -132,9 +133,9 @@ export function UpdatesClient() {
       .map((item) => {
         const progress = progressMap.get(item.storyId);
         const maxRead = progress?.maxReadChapterNumber ?? 0;
-        if (!isNotificationStoryVisible(item.storyId, item.totalChapters, maxRead)) return null;
-        const unread = computeNotificationUnread(item.storyId, item.totalChapters, maxRead);
-        const effectiveRead = effectiveMaxReadForNotify(item.storyId, maxRead);
+        if (!isNotificationStoryVisible(item.storyId, item.totalChapters, maxRead, caughtUpMap)) return null;
+        const unread = computeNotificationUnread(item.storyId, item.totalChapters, maxRead, caughtUpMap);
+        const effectiveRead = effectiveMaxReadForNotify(item.storyId, maxRead, caughtUpMap);
         return {
           item,
           progress,

@@ -24,6 +24,8 @@ export function useReaderRealtime({
   const [live, setLive] = useState(false);
   const onEventRef = useRef(onEvent);
   onEventRef.current = onEvent;
+  const storyIdsRef = useRef(storyIds);
+  storyIdsRef.current = storyIds;
   const storyIdsKey = storyIds.join(",");
 
   useEffect(() => {
@@ -67,7 +69,7 @@ export function useReaderRealtime({
           type: "subscribe",
           scope: "reader_updates",
           userId,
-          storyIds
+          storyIds: storyIdsRef.current
         })
       );
     };

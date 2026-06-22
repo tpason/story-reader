@@ -1,7 +1,7 @@
 "use client";
 
 import { Bell, BellOff, Download } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   PUSH_SUBSCRIBED_KEY,
   readPushSubscribed,
@@ -50,17 +50,17 @@ export function PwaRuntime() {
   const enablePwa =
     process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_ENABLE_PWA === "1";
 
-  function clearPushTimer() {
+  const clearPushTimer = useCallback(() => {
     if (pushTimerRef.current) {
       window.clearTimeout(pushTimerRef.current);
       pushTimerRef.current = null;
     }
-  }
+  }, []);
 
-  function queuePushBanner(delayMs = PUSH_BANNER_DELAY_MS) {
+  const queuePushBanner = useCallback((delayMs = PUSH_BANNER_DELAY_MS) => {
     clearPushTimer();
     pushTimerRef.current = schedulePushBanner(() => setPushVisible(true), delayMs);
-  }
+  }, [clearPushTimer]);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -136,7 +136,7 @@ export function PwaRuntime() {
 
     queuePushBanner();
     return () => clearPushTimer();
-  }, []);
+  }, [clearPushTimer, queuePushBanner]);
 
   useEffect(() => {
     if (visible) setPushVisible(false);

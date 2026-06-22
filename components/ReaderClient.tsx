@@ -611,6 +611,24 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const forceTopKey = `reader:force-top:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
   const paragraphPositionKey = `${READER_PARAGRAPH_POSITION_PREFIX}:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
 
+  const goToPage = useCallback(
+    (nextIndex: number) => {
+      const clamped = Math.min(paragraphPages.length - 1, Math.max(0, nextIndex));
+      setPageIndex(clamped);
+      const firstParagraph = paragraphPages[clamped]?.[0];
+      if (typeof firstParagraph === "number") {
+        activeParagraphIndexRef.current = firstParagraph;
+        window.localStorage.setItem(paragraphPositionKey, String(firstParagraph));
+      }
+      const pageProgress = paragraphPages.length > 0 ? ((clamped + 1) / paragraphPages.length) * 100 : 0;
+      progressRef.current = pageProgress;
+      if (progressBarRef.current) {
+        progressBarRef.current.style.transform = `scaleX(${pageProgress / 100})`;
+      }
+    },
+    [paragraphPages, paragraphPositionKey]
+  );
+
   useEffect(() => {
     const clientSessionId = `${activePayload.story.id}-${activePayload.chapter.chapterNumber}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const startedAt = new Date().toISOString();
@@ -721,13 +739,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     if (mobileSheetTab === "settings" && currentUser?.isAdmin) {
       setQualityPanelOpen(true);
     }
-  }, [mobileSheetTab, currentUser]);
+  }, [mobileSheetTab, currentUser, setQualityPanelOpen]);
 
   useEffect(() => {
     setAudioPanelOpen(false);
     setAdminEdit(null);
     setAdminEditError(null);
-  }, [activePayload.chapter.id]);
+  }, [activePayload.chapter.id, setAdminEdit, setAdminEditError, setAudioPanelOpen]);
 
   useEffect(() => {
     queryClient.setQueryData(readerQueryKeys.chapter(activePayload.story.id, activePayload.chapter.chapterNumber), activePayload);
@@ -812,6 +830,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     if (Number.isInteger(savedParagraph) && savedParagraph > 0) {
       window.setTimeout(() => scrollToParagraph(savedParagraph, "auto"), 90);
     }
+    // scrollToParagraph omitted — restore runs once per chapter/storage key, not on every scroll helper change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePayload.chapter.chapterNumber, activePayload.story.id, forceTopKey, historyHydrated, paragraphPositionKey, storageKey]);
 
   useEffect(() => {
@@ -829,7 +849,20 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setResumeHint(null);
     setParagraphNoteEditor(null);
     completionShownRef.current = false;
-  }, [payload.chapters, payload.previousChapterCursor, payload.chapterCursor]);
+  }, [
+    payload.chapters,
+    payload.previousChapterCursor,
+    payload.chapterCursor,
+    setChapterSearchOpen,
+    setChapterSearchQuery,
+    setGlossaryDrawerOpen,
+    setMobileFormatOpen,
+    setMobileMenuOpen,
+    setMobileSheetOpen,
+    setParagraphNoteEditor,
+    setReaderOverflowOpen,
+    stopAutoScroll
+  ]);
 
   useEffect(() => {
     fetch(`/api/stories/${activePayload.story.id}/char-map`)
@@ -875,7 +908,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
     document.addEventListener("pointerdown", handleOutsidePointerDown);
     return () => document.removeEventListener("pointerdown", handleOutsidePointerDown);
-  }, [mobileMenuOpen]);
+  }, [mobileMenuOpen, setMobileMenuOpen]);
 
   useEffect(() => {
     if (!readerOverflowOpen) return;
@@ -893,7 +926,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       document.removeEventListener("mousedown", handleOutside);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [readerOverflowOpen]);
+  }, [readerOverflowOpen, setReaderOverflowOpen]);
 
   useEffect(() => {
     if (prefersReducedMotion()) return;
@@ -1096,7 +1129,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [mobileSheetOpen]);
+  }, [mobileSheetOpen, setMobileSheetOpen]);
 
   // Reader keyboard shortcuts: ←/→ chapter nav, B bookmark, F focus mode, T chapter list
   useEffect(() => {
@@ -1149,7 +1182,23 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
     window.addEventListener("keydown", onReaderKey);
     return () => window.removeEventListener("keydown", onReaderKey);
-  }, [activePayload.nextChapter, activePayload.previousChapter, activePayload.story, glossaryCharacters.length, isPageLayout, pageIndex, paragraphPages.length, router, toggleBookmark]);
+  }, [
+    activePayload.nextChapter,
+    activePayload.previousChapter,
+    activePayload.story,
+    goToPage,
+    glossaryCharacters.length,
+    isPageLayout,
+    pageIndex,
+    paragraphPages.length,
+    router,
+    setChapterSearchOpen,
+    setDesktopSidebarOpen,
+    setFocusModeEnabled,
+    setGlossaryDrawerOpen,
+    setMobileMenuOpen,
+    toggleBookmark
+  ]);
 
   function setReaderPerformanceMode(mode: ReaderPerformanceMode) {
     writeReaderPerformanceMode(mode);
@@ -1421,7 +1470,20 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       persistProgress(window.scrollY, progressRef.current, true);
       window.removeEventListener("scroll", onScroll);
     };
-  }, [activePayload.chapter, activePayload.nextChapter, activePayload.story, audioPanelOpen, dispatch, isPageLayout, paragraphPositionKey, queryClient, storageKey, totalReadingMinutes]);
+  }, [
+    activePayload.chapter,
+    activePayload.nextChapter,
+    activePayload.story,
+    audioPanelOpen,
+    dispatch,
+    isPageLayout,
+    mobileMenuOpenRef,
+    mobileSheetOpenRef,
+    paragraphPositionKey,
+    queryClient,
+    storageKey,
+    totalReadingMinutes
+  ]);
 
   useEffect(() => {
     if (!isPageLayout) return;
@@ -1982,21 +2044,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     if (mode === "page") {
       stopAutoScroll();
       setPageIndex(0);
-    }
-  }
-
-  function goToPage(nextIndex: number) {
-    const clamped = Math.min(paragraphPages.length - 1, Math.max(0, nextIndex));
-    setPageIndex(clamped);
-    const firstParagraph = paragraphPages[clamped]?.[0];
-    if (typeof firstParagraph === "number") {
-      activeParagraphIndexRef.current = firstParagraph;
-      window.localStorage.setItem(paragraphPositionKey, String(firstParagraph));
-    }
-    const pageProgress = paragraphPages.length > 0 ? ((clamped + 1) / paragraphPages.length) * 100 : 0;
-    progressRef.current = pageProgress;
-    if (progressBarRef.current) {
-      progressBarRef.current.style.transform = `scaleX(${pageProgress / 100})`;
     }
   }
 

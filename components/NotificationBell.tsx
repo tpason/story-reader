@@ -132,7 +132,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const caughtUpMap = useNotificationCaughtUp();
   const displayPayload = useMemo(() => {
     if (!payload) return null;
-    const items = adjustNotificationItems(payload.items);
+    const items = adjustNotificationItems(payload.items, caughtUpMap);
     return {
       ...payload,
       items,

@@ -34,32 +34,24 @@ export function ReaderChapterFreshHint({ storyId, storyTitle, hint, onDismiss }:
 
   if (!hint) return null;
 
-  const copy =
-    hint.kind === "next"
-      ? {
-          title: "Linh khí tụ hội",
-          body: `Chương ${hint.chapterNumber} vừa ấn định — tiếp tục hành trình?`,
-          href: storyHref({ id: storyId, title: storyTitle }, hint.chapterNumber),
-          cta: `Đọc chương ${hint.chapterNumber}`
-        }
-      : {
-          title: "Thiên thư cập nhật",
-          body: `Nội dung chương ${hint.chapterNumber} vừa được polish lại.`,
-          href: null as string | null,
-          cta: null as string | null
-        };
+  const nextChapterHref =
+    hint.kind === "next" ? storyHref({ id: storyId, title: storyTitle }, hint.chapterNumber) : null;
 
   return (
     <aside className="reader-chapter-fresh-hint" role="status" aria-live="polite" ref={cardRef}>
       <div className="reader-chapter-fresh-hint-glow" aria-hidden="true" />
       <Sparkles size={15} aria-hidden="true" />
       <div className="reader-chapter-fresh-hint-copy">
-        <strong>{copy.title}</strong>
-        <span>{copy.body}</span>
-        {copy.href && copy.cta ? (
-          <Link className="reader-chapter-fresh-hint-link" href={copy.href} onClick={onDismiss}>
+        <strong>{hint.kind === "next" ? "Linh khí tụ hội" : "Thiên thư cập nhật"}</strong>
+        <span>
+          {hint.kind === "next"
+            ? `Chương ${hint.chapterNumber} vừa ấn định — tiếp tục hành trình?`
+            : `Nội dung chương ${hint.chapterNumber} vừa được polish lại.`}
+        </span>
+        {nextChapterHref ? (
+          <Link className="reader-chapter-fresh-hint-link" href={nextChapterHref} onClick={onDismiss}>
             <Feather size={13} />
-            {copy.cta}
+            {`Đọc chương ${hint.chapterNumber}`}
           </Link>
         ) : (
           <button type="button" className="reader-chapter-fresh-hint-link" onClick={() => window.location.reload()}>

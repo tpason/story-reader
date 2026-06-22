@@ -2,6 +2,7 @@
 
 import { animate } from "animejs";
 import { Feather, Sparkles, X } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { prefersReducedMotion } from "@/lib/browser";
@@ -19,7 +20,7 @@ type RealtimeChapterToastProps = {
   onDismiss: () => void;
 };
 
-function toastCopy(toast: RealtimeToastPayload) {
+function toastCopy(toast: RealtimeToastPayload): { title: string; body: string; href: Route | null } {
   const { event, storyTitle } = toast;
   if (event.type === "chapter_update" && storyTitle && event.chapterNumber) {
     return {
@@ -40,7 +41,7 @@ function toastCopy(toast: RealtimeToastPayload) {
   return {
     title: "Thiên thư rung chuyển",
     body: "Có chương mới từ truyện đang theo dõi",
-    href: null as string | null
+    href: null
   };
 }
 

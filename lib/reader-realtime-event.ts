@@ -1,7 +1,7 @@
 import type { ReaderRealtimeEventType } from "@/lib/reader-realtime";
 
 export type ReaderRealtimeEvent = {
-  type: ReaderRealtimeEventType | "unknown";
+  type: ReaderRealtimeEventType | "connected" | "subscribed" | "unknown";
   storyId?: string;
   chapterNumber?: number;
   message?: string;
