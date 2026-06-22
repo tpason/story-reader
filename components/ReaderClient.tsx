@@ -126,6 +126,7 @@ import {
 } from "@/components/ReaderEnhancements";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
+import { useReaderDim } from "@/hooks/useReaderDim";
 
 const ThreeReaderProgress = dynamic(() => import("@/components/ThreeReaderProgress").then((mod) => mod.ThreeReaderProgress), {
   ssr: false
@@ -151,7 +152,6 @@ type NavigatorWithWakeLock = Navigator & {
   };
 };
 
-const READER_DIM_STORAGE_KEY = "reader-dim-overlay";
 const AUTO_SCROLL_START_DELAY_MS = 140;
 const AUTO_SCROLL_TOUCH_GUARD_MS = 420;
 const AUTO_SCROLL_READ_PAUSE_MS = 4200;
@@ -190,12 +190,6 @@ const PRESET_ICON_COMPONENT = {
   mobile: BookOpen,
   wide: Type
 } as const;
-
-function clampDimLevel(value: unknown) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return 0.18;
-  return Math.min(0.48, Math.max(0.06, parsed));
-}
 
 function getPageScrollMetrics() {
   const doc = document.documentElement;
@@ -298,9 +292,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [showCompletionOverlay, setShowCompletionOverlay] = useState(false);
   const [paragraphBookmarks, setParagraphBookmarks] = useState<ParagraphBookmark[]>([]);
   const [qualityPanelOpen, setQualityPanelOpen] = useState(false);
-  const [readerDimEnabled, setReaderDimEnabled] = useState(false);
-  const [readerDimLevel, setReaderDimLevel] = useState(0.18);
-  const [readerDimHydrated, setReaderDimHydrated] = useState(false);
+  const {
+    enabled: readerDimEnabled,
+    level: readerDimLevel,
+    setEnabled: setReaderDimEnabled,
+    setLevel: setReaderDimLevel,
+  } = useReaderDim();
   const [wakeLockSupported, setWakeLockSupported] = useState(false);
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const [wakeLockError, setWakeLockError] = useState<string | null>(null);
@@ -1129,33 +1126,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   useEffect(() => {
     refreshOfflineCache(false);
   }, [refreshOfflineCache]);
-
-  useEffect(() => {
-    try {
-      const stored = JSON.parse(window.localStorage.getItem(READER_DIM_STORAGE_KEY) ?? "{}") as {
-        enabled?: boolean;
-        level?: number;
-      };
-      setReaderDimEnabled(Boolean(stored.enabled));
-      setReaderDimLevel(clampDimLevel(stored.level));
-    } catch {
-      setReaderDimEnabled(false);
-      setReaderDimLevel(0.18);
-    } finally {
-      setReaderDimHydrated(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!readerDimHydrated) return;
-    window.localStorage.setItem(
-      READER_DIM_STORAGE_KEY,
-      JSON.stringify({
-        enabled: readerDimEnabled,
-        level: readerDimLevel
-      })
-    );
-  }, [readerDimEnabled, readerDimHydrated, readerDimLevel]);
 
   useEffect(() => {
     if (!autoScrollEnabled || mobileMenuOpen || mobileSheetOpen) {
@@ -3607,7 +3577,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                     step="0.02"
                     value={readerDimLevel}
                     onChange={(event) => {
-                      setReaderDimLevel(clampDimLevel(event.target.value));
+                      setReaderDimLevel(event.target.value);
                       setReaderDimEnabled(true);
                     }}
                   />
