@@ -1,6 +1,6 @@
 "use client";
 
-import { BookMarked, BookOpen, ChevronRight, Clock, Flame, LoaderCircle, Trophy } from "lucide-react";
+import { BookMarked, BookOpen, ChevronRight, Clock, Flame, LoaderCircle, ScrollText, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ReaderLogo } from "@/components/ReaderLogo";

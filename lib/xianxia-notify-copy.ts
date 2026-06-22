@@ -18,8 +18,7 @@ export const NOTIFY_COPY = {
   bellAria: "Linh tin chương mới",
   viewAll: "Mở Tàng linh tin",
   markCaughtUp: "Đón linh tin",
-  markCaughtUpHint: "Ghi nhận đã biết chương mới — ẩn tới khi có chương tiếp theo"
-} as const;
+  markCaughtUpHint: "Ghi nhận đã biết chương mới — ẩn tới khi có chương tiếp theo",
   engageTitle: "Kết linh tin",
   engageBody: "Theo dõi và bật linh tin để biết ngay khi có chương mới — kể cả khi đóng quyển.",
   engageCta: "Theo dõi & bật linh tin",

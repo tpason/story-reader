@@ -20,6 +20,7 @@ import { storyHref } from "@/lib/urls";
 import { useAppSelector } from "@/lib/store-hooks";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import { ChapterList } from "@/components/reader/ChapterList";
+import { StoryDetailPushHint } from "@/components/StoryDetailPushHint";
 import { StoryRatingWidget } from "@/components/StoryRatingWidget";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
@@ -143,6 +144,17 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
       ) : null}
 
       <div className="page-wrap">
+        {freshChapterNumber ? (
+          <div className="story-detail-fresh-banner" role="status" aria-live="polite">
+            <Sparkles size={15} aria-hidden="true" />
+            <span>
+              Linh khí dịch chuyển — chương <strong>{freshChapterNumber}</strong> vừa ấn định
+            </span>
+            <Link className="chip chip-active" href={storyHref(currentStory, freshChapterNumber)}>
+              Đọc ngay
+            </Link>
+          </div>
+        ) : null}
         <section className={`story-detail-hero ${isFresh(currentStory.id) ? "story-detail-hero-fresh" : ""}`.trim()}>
           {decorativeWebglEnabled ? (
             <ThreeStoryStage
@@ -241,6 +253,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
                 Thư viện
               </Link>
             </div>
+            <StoryDetailPushHint storyId={currentStory.id} boosted={Boolean(freshChapterNumber)} />
             {maxReadChapter > 0 && totalChapters > 0 ? (() => {
               const progressPct = Math.min(100, Math.max(0, Math.round((maxReadChapter / totalChapters) * 100)));
               return (

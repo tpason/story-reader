@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import dynamic from "next/dynamic";
 import { SpiritBurstCanvas } from "@/components/SpiritBurstCanvas";
+import { StoryCover } from "@/components/StoryCover";
 import { useReaderRealtimeLive } from "@/components/ReaderRealtimeProvider";
 import { prefersReducedMotion } from "@/lib/browser";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
@@ -85,6 +86,9 @@ function NotificationItemRow({
 
   return (
     <div className="notification-item-row notification-item-animated" style={{ animationDelay: `${animationDelay}ms` }}>
+      <div className="notification-item-cover" aria-hidden="true">
+        <StoryCover src={item.coverImageUrl} title={item.storyTitle} />
+      </div>
       <Link
         className="notification-item"
         href={
