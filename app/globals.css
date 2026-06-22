@@ -765,10 +765,11 @@ select {
 .identity-modal {
   position: fixed;
   inset: 0;
-  z-index: 140;
+  z-index: 1200;
   display: grid;
   place-items: center;
   padding: 18px;
+  isolation: isolate;
 }
 
 .identity-modal-backdrop {
@@ -795,7 +796,6 @@ select {
     radial-gradient(circle at 92% 8%, rgba(245, 215, 94, 0.16), transparent 34%),
     var(--canvas);
   box-shadow: 0 24px 70px rgba(10, 21, 48, 0.22);
-  top: auto;
 }
 
 .identity-modal-header {
@@ -2364,13 +2364,16 @@ select {
 
 .auth-shell {
   position: relative;
+  z-index: 1;
   display: grid;
   min-height: 100vh;
   place-items: center;
-  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: auto;
   padding: 28px;
   background: var(--surface-soft);
   color: var(--ink);
+  isolation: isolate;
 }
 
 .auth-panel {
@@ -3271,7 +3274,6 @@ select {
     max-height: calc(100dvh - max(12px, env(safe-area-inset-top)));
     border-radius: 14px 14px 0 0;
     padding: 18px 16px max(24px, calc(18px + env(safe-area-inset-bottom)));
-    top: auto;
   }
 
   .identity-modal-header {
@@ -3993,8 +3995,8 @@ select {
     display: none;
   }
 
-  .reader-session-group,
-  .reader-action-group {
+  .reader-control-group.reader-session-group,
+  .reader-control-group.reader-action-group {
     display: none;
   }
 

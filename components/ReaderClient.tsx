@@ -2771,13 +2771,16 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
       <ChapterTransition trigger={chapterTransitionTrigger} direction={chapterTransitionDirection} />
 
-      {showCompletionOverlay ? (
-        <StoryCompletionOverlay
-          story={activePayload.story}
-          chaptersRead={maxReadChapter}
-          onDismiss={() => setShowCompletionOverlay(false)}
-        />
-      ) : null}
+      {showCompletionOverlay && floatingActionsMounted
+        ? createPortal(
+            <StoryCompletionOverlay
+              story={activePayload.story}
+              chaptersRead={maxReadChapter}
+              onDismiss={() => setShowCompletionOverlay(false)}
+            />,
+            document.body
+          )
+        : null}
 
       {focusModeEnabled ? (
         <button className="reader-focus-toggle" type="button" aria-label="Tắt focus mode" onClick={() => setFocusModeEnabled(false)}>
@@ -3297,6 +3300,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             <div className="reader-mobile-sheet-scroll" ref={mobileSheetScrollRef}>
             {mobileSheetTab === "read" ? (
               <>
+            {compactReader ? (
+              <div className="reader-sheet-section reader-sheet-account-row">
+                <UserIdentity compact className="reader-identity-mobile" />
+                <NotificationBell className="reader-notification-mobile" />
+              </div>
+            ) : null}
             <div className="reader-sheet-current">
               <div>
                 <span>Tiến độ</span>

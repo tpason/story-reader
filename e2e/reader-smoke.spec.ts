@@ -2,12 +2,16 @@ import { test, expect } from "@playwright/test";
 import { dismissReaderChrome, loadReaderFixture, openFormatControls, openInChapterSearch } from "./helpers";
 
 test.describe("reader smoke", () => {
-  test("loads chapter content and core chrome", async ({ page }) => {
+  test("loads chapter content and core chrome", async ({ page }, testInfo) => {
     await loadReaderFixture(page);
-    await dismissReaderChrome(page);
 
     await expect(page.locator(".reader-progress")).toBeAttached();
-    await expect(page.locator('[aria-label="Reader controls"]')).toBeVisible();
+    if (testInfo.project.name === "mobile") {
+      await expect(page.getByRole("navigation", { name: "Mobile reader quick actions" })).toBeVisible();
+    } else {
+      await dismissReaderChrome(page);
+      await expect(page.locator('[aria-label="Reader controls"]')).toBeVisible();
+    }
     await expect(page.locator(".reader-paragraph").first()).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Previous and next chapter" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Luận đạo chương này" })).toBeVisible();

@@ -3,6 +3,7 @@
 import { BookOpenCheck, Bell, LogIn, LogOut, UserPlus, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { CultivationAvatar } from "@/components/CultivationAvatar";
 import { fetchCurrentUser } from "@/lib/api-client";
 import { getCultivationState } from "@/lib/cultivation";
@@ -34,6 +35,11 @@ export function UserIdentity({ compact = false, panel = false, className = "" }:
   const identityHydrated = useAppSelector((state) => state.identity.hydrated);
   const [loading, setLoading] = useState(!identityHydrated);
   const [modalOpen, setModalOpen] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   const cultivation = useMemo(
     () => getCultivationState(history, Boolean(user), streak.currentStreak, Boolean(user?.isAdmin)),
@@ -83,6 +89,71 @@ export function UserIdentity({ compact = false, panel = false, className = "" }:
     setModalOpen(false);
   }
 
+  const identityModal =
+    modalOpen && portalReady ? (
+      <div className="identity-modal" role="dialog" aria-modal="true" aria-label="Thông tin đạo hữu">
+        <button className="identity-modal-backdrop" type="button" aria-label="Đóng thông tin đạo hữu" onClick={() => setModalOpen(false)} />
+        <section className="identity-modal-panel">
+          <div className="identity-modal-header">
+            <div>
+              <p className="eyebrow">{user?.isAdmin ? "Quản trị tàng thư" : user ? "Đạo hữu" : "Tán tu"}</p>
+              <h2>{user ? user.username : "Chưa nhập môn"}</h2>
+            </div>
+            {loading && !user ? null : <RoleBadge isAdmin={user?.isAdmin} signedIn={Boolean(user)} />}
+            <button className="icon-button" type="button" aria-label="Đóng" onClick={() => setModalOpen(false)}>
+              <X size={17} />
+            </button>
+          </div>
+
+          <div className="identity-modal-profile">
+            <CultivationAvatar
+              username={user?.username ?? "tan-tu"}
+              level={cultivation.level}
+              realmImageKey={cultivation.realmImageKey}
+              size="lg"
+              muted={!user}
+              isAdmin={Boolean(user?.isAdmin)}
+              title={avatarTitle}
+              className="identity-avatar-slot identity-avatar-slot-large"
+            />
+            <p>
+              {user
+                ? user.email || "Tài khoản này đang sync tàng thư, follow và tiến độ đọc qua database."
+                : "Tán tu vẫn đọc được trên thiết bị này. Nhập môn để sync follow và tiến độ qua nhiều thiết bị."}
+            </p>
+          </div>
+
+          <div className={`identity-modal-actions ${user ? "" : "identity-modal-actions-guest"}`}>
+            <Link className="chip" href="/reading-history" onClick={() => setModalOpen(false)}>
+              <BookOpenCheck size={15} />
+              Tàng thư
+            </Link>
+            <Link className="chip" href="/updates" onClick={() => setModalOpen(false)}>
+              <Bell size={15} />
+              Chương mới
+            </Link>
+            {user ? (
+              <button className="chip" type="button" onClick={logout}>
+                <LogOut size={15} />
+                Xuất động phủ
+              </button>
+            ) : (
+              <>
+                <Link className="auth-submit" href="/login" onClick={() => setModalOpen(false)}>
+                  <LogIn size={15} />
+                  Đăng nhập
+                </Link>
+                <Link className="chip" href="/signup" onClick={() => setModalOpen(false)}>
+                  <UserPlus size={15} />
+                  Nhập môn
+                </Link>
+              </>
+            )}
+          </div>
+        </section>
+      </div>
+    ) : null;
+
   if (compact) {
     return (
       <>
@@ -112,69 +183,7 @@ export function UserIdentity({ compact = false, panel = false, className = "" }:
           {loading && !user ? null : <RoleBadge isAdmin={user?.isAdmin} signedIn={Boolean(user)} />}
         </button>
 
-        {modalOpen ? (
-          <div className="identity-modal" role="dialog" aria-modal="true" aria-label="Thông tin đạo hữu">
-            <button className="identity-modal-backdrop" type="button" aria-label="Đóng thông tin đạo hữu" onClick={() => setModalOpen(false)} />
-            <section className="identity-modal-panel">
-              <div className="identity-modal-header">
-                <div>
-                  <p className="eyebrow">{user?.isAdmin ? "Quản trị tàng thư" : user ? "Đạo hữu" : "Tán tu"}</p>
-                  <h2>{user ? user.username : "Chưa nhập môn"}</h2>
-                </div>
-                {loading && !user ? null : <RoleBadge isAdmin={user?.isAdmin} signedIn={Boolean(user)} />}
-                <button className="icon-button" type="button" aria-label="Đóng" onClick={() => setModalOpen(false)}>
-                  <X size={17} />
-                </button>
-              </div>
-
-              <div className="identity-modal-profile">
-                <CultivationAvatar
-                  username={user?.username ?? "tan-tu"}
-                  level={cultivation.level}
-                  realmImageKey={cultivation.realmImageKey}
-                  size="lg"
-                  muted={!user}
-                  isAdmin={Boolean(user?.isAdmin)}
-                  title={avatarTitle}
-                  className="identity-avatar-slot identity-avatar-slot-large"
-                />
-                <p>
-                  {user
-                    ? user.email || "Tài khoản này đang sync tàng thư, follow và tiến độ đọc qua database."
-                    : "Tán tu vẫn đọc được trên thiết bị này. Nhập môn để sync follow và tiến độ qua nhiều thiết bị."}
-                </p>
-              </div>
-
-              <div className={`identity-modal-actions ${user ? "" : "identity-modal-actions-guest"}`}>
-                <Link className="chip" href="/reading-history" onClick={() => setModalOpen(false)}>
-                  <BookOpenCheck size={15} />
-                  Tàng thư
-                </Link>
-                <Link className="chip" href="/updates" onClick={() => setModalOpen(false)}>
-                  <Bell size={15} />
-                  Chương mới
-                </Link>
-                {user ? (
-                  <button className="chip" type="button" onClick={logout}>
-                    <LogOut size={15} />
-                    Xuất động phủ
-                  </button>
-                ) : (
-                  <>
-                    <Link className="auth-submit" href="/login" onClick={() => setModalOpen(false)}>
-                      <LogIn size={15} />
-                      Đăng nhập
-                    </Link>
-                    <Link className="chip" href="/signup" onClick={() => setModalOpen(false)}>
-                      <UserPlus size={15} />
-                      Nhập môn
-                    </Link>
-                  </>
-                )}
-              </div>
-            </section>
-          </div>
-        ) : null}
+        {identityModal ? createPortal(identityModal, document.body) : null}
       </>
     );
   }

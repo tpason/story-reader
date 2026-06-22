@@ -6644,3 +6644,34 @@ html[data-sidebar-resizing="true"] * {
   margin-top: 2px;
   accent-color: var(--link);
 }
+
+/* Mobile reader — account row in sheet + notification panel above chrome */
+.reader-sheet-account-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.reader-sheet-account-row .identity-chip {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.reader-sheet-account-row .reader-identity-mobile .identity-copy strong {
+  max-width: 120px;
+}
+
+@media (max-width: 839px) {
+  .reader-topbar .notification-bell .notification-panel {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 52px);
+    right: 10px;
+    left: 10px;
+    z-index: 1210;
+    width: auto;
+    max-height: calc(100dvh - 68px - env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
