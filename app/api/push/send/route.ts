@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { sendChapterPushToReaders } from "@/lib/push-notify";
+import { secureTokenEqual } from "@/lib/secure-compare";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   const secret = process.env.PUSH_SEND_SECRET ?? "";
-  if (!secret || request.headers.get("x-push-secret") !== secret) {
+  if (!secret || !secureTokenEqual(request.headers.get("x-push-secret"), secret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

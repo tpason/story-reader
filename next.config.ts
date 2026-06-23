@@ -10,6 +10,19 @@ const nextConfig: NextConfig = {
   experimental: {
     cpus: 1
   },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" }
+        ]
+      }
+    ];
+  },
   images: {
     // Dev image optimizer LRUCache can crash node under heavy homepage loads (Playwright E2E).
     unoptimized: process.env.NODE_ENV !== "production",

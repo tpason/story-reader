@@ -4,6 +4,10 @@ import { cleanAuthInput, createSession, createUser, findUserByUsername } from "@
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  if (process.env.READER_SIGNUP_DISABLED === "1") {
+    return NextResponse.json({ error: "Đăng ký tài khoản mới đã tắt." }, { status: 403 });
+  }
+
   try {
     const body = (await request.json()) as { username?: unknown; email?: unknown; password?: unknown };
     const username = cleanAuthInput(body.username);
@@ -28,9 +32,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ user });
   } catch (error) {
-    return NextResponse.json(
-      { error: "Không tạo được tài khoản.", detail: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
-    );
+    console.error("signup failed:", error);
+    return NextResponse.json({ error: "Không tạo được tài khoản." }, { status: 500 });
   }
 }

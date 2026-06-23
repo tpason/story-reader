@@ -25,9 +25,7 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: "Không đăng nhập được.", detail: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
-    );
+    console.error("login failed:", error);
+    return NextResponse.json({ error: "Không đăng nhập được." }, { status: 500 });
   }
 }

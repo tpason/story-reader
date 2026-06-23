@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendChapterPushToReaders } from "@/lib/push-notify";
+import { secureTokenEqual } from "@/lib/secure-compare";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +16,10 @@ function isAuthorized(request: NextRequest) {
   if (!token) return false;
 
   const auth = request.headers.get("authorization");
-  const headerToken = request.headers.get("x-reader-realtime-token");
-  return auth === `Bearer ${token}` || headerToken === token;
+  if (auth?.startsWith("Bearer ")) {
+    return secureTokenEqual(auth.slice(7), token);
+  }
+  return secureTokenEqual(request.headers.get("x-reader-realtime-token"), token);
 }
 
 export async function POST(request: NextRequest) {
