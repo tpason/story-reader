@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { cultivationProfileForAuthor } from "@/lib/cultivation";
 import { query } from "@/lib/db";
+import { commentBanMessage, getCommentBanStatus, listBlockedUserIds } from "@/lib/moderation";
 import { computeStreakFromReadDates, streakBonusXp } from "@/lib/reading-streak";
 
 export const dynamic = "force-dynamic";
@@ -85,6 +86,8 @@ function mapComment(row: CommentRow) {
 
 export async function GET(_request: Request, { params }: { params: Promise<{ chapterId: string }> }) {
   const { chapterId } = await params;
+  const viewer = await getCurrentUser();
+  const blockedIds = viewer ? await listBlockedUserIds(viewer.id) : [];
 
   const rows = await query<CommentRow>(
     `
@@ -118,7 +121,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cha
     [chapterId]
   );
 
-  const comments = rows.map(mapComment);
+  const blockedSet = new Set(blockedIds);
+  const comments = rows.map(mapComment).filter((item) => !blockedSet.has(item.userId));
   return NextResponse.json({
     items: comments.filter((item) => !item.parentId),
     replies: comments.filter((item) => item.parentId)
@@ -129,6 +133,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ cha
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Tán tu chỉ có thể xem luận đạo. Hãy nhập môn để bình luận." }, { status: 401 });
+  }
+
+  const banStatus = await getCommentBanStatus(user.id);
+  if (banStatus.banned) {
+    return NextResponse.json(
+      { error: commentBanMessage(banStatus.until, banStatus.permanent) },
+      { status: 403 }
+    );
   }
 
   const { chapterId } = await params;

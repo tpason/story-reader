@@ -1,7 +1,7 @@
 "use client";
 
 import { animate } from "animejs";
-import { ChevronDown, CornerDownRight, LoaderCircle, MessageCircle, Pencil, Trash2, UserPlus } from "lucide-react";
+import { ChevronDown, CornerDownRight, Flag, LoaderCircle, MessageCircle, Pencil, Trash2, UserPlus, UserX } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -188,6 +188,118 @@ function CommentOwnerButtons({
   );
 }
 
+const REPORT_REASONS = [
+  { value: "spam", label: "Spam / quảng cáo" },
+  { value: "harassment", label: "Quấy rối / xúc phạm" },
+  { value: "spoiler", label: "Spoiler" },
+  { value: "inappropriate", label: "Nội dung không phù hợp" },
+  { value: "other", label: "Khác" }
+] as const;
+
+function CommentModerationButtons({
+  chapterId,
+  comment,
+  userId,
+  onBlocked
+}: {
+  chapterId: string;
+  comment: ChapterComment;
+  userId: string;
+  onBlocked: (blockedUserId: string) => void;
+}) {
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reason, setReason] = useState<(typeof REPORT_REASONS)[number]["value"]>("inappropriate");
+  const [details, setDetails] = useState("");
+  const [busy, setBusy] = useState<"report" | "block" | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  if (comment.deletedAt || comment.userId === userId) return null;
+
+  async function submitReport() {
+    setBusy("report");
+    setMessage(null);
+    const response = await fetch(`/api/chapters/${chapterId}/comments/${comment.id}/report`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason, details })
+    });
+    const data = (await response.json().catch(() => ({}))) as { error?: string };
+    setBusy(null);
+    if (!response.ok) {
+      setMessage(data.error ?? "Không gửi được báo cáo.");
+      return;
+    }
+    setMessage("Đã gửi báo cáo. Tổng quản sẽ xem xét.");
+    setReportOpen(false);
+  }
+
+  async function blockUser() {
+    if (!window.confirm(`Phong ấn luận đạo từ ${comment.author.username}? Bạn sẽ không thấy bình luận của đạo hữu này.`)) {
+      return;
+    }
+    setBusy("block");
+    setMessage(null);
+    const response = await fetch("/api/users/blocks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: comment.userId })
+    });
+    const data = (await response.json().catch(() => ({}))) as { error?: string };
+    setBusy(null);
+    if (!response.ok) {
+      setMessage(data.error ?? "Không phong ấn được.");
+      return;
+    }
+    onBlocked(comment.userId);
+  }
+
+  return (
+    <>
+      <button type="button" disabled={busy !== null} onClick={() => setReportOpen((open) => !open)}>
+        <Flag size={14} />
+        Báo cáo
+      </button>
+      <button type="button" disabled={busy !== null} onClick={() => void blockUser()}>
+        <UserX size={14} />
+        {busy === "block" ? "Đang phong ấn…" : "Phong ấn"}
+      </button>
+      {reportOpen ? (
+        <div className="comment-report-form">
+          <label>
+            Lý do
+            <select value={reason} onChange={(event) => setReason(event.target.value as typeof reason)}>
+              {REPORT_REASONS.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Chi tiết (tuỳ chọn)
+            <textarea
+              value={details}
+              maxLength={500}
+              rows={2}
+              onChange={(event) => setDetails(event.target.value)}
+              placeholder="Mô tả ngắn nếu cần"
+            />
+          </label>
+          <div className="comment-report-form-actions">
+            <button type="button" className="chip" disabled={busy === "report"} onClick={() => void submitReport()}>
+              {busy === "report" ? "Đang gửi…" : "Gửi báo cáo"}
+            </button>
+            <button type="button" className="chip" onClick={() => setReportOpen(false)}>
+              Hủy
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {message ? <p className="comment-moderation-message">{message}</p> : null}
+    </>
+  );
+}
+
 export function ChapterComments({ chapterId }: { chapterId: string }) {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.identity.user);
@@ -351,6 +463,11 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
     setEditingCommentId(null);
   }, [chapterId]);
 
+  function removeBlockedComments(blockedUserId: string) {
+    setComments((current) => current.filter((item) => item.userId !== blockedUserId));
+    setReplies((current) => current.filter((item) => item.userId !== blockedUserId));
+  }
+
   function addComment(comment: ChapterComment) {
     setLastCreatedId(comment.id);
     if (comment.parentId) {
@@ -491,6 +608,14 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
                         </button>
                       ) : null}
                       {user ? (
+                        <CommentModerationButtons
+                          chapterId={chapterId}
+                          comment={comment}
+                          userId={user.id}
+                          onBlocked={removeBlockedComments}
+                        />
+                      ) : null}
+                      {user ? (
                         <CommentOwnerButtons
                           chapterId={chapterId}
                           comment={comment}
@@ -540,6 +665,14 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
                       <CommentText text={reply.contentText} />
                       <div className="comment-actions">
                         <time dateTime={reply.createdAt}>{new Date(reply.createdAt).toLocaleString("vi-VN")}</time>
+                        {user ? (
+                          <CommentModerationButtons
+                            chapterId={chapterId}
+                            comment={reply}
+                            userId={user.id}
+                            onBlocked={removeBlockedComments}
+                          />
+                        ) : null}
                         {user ? (
                           <CommentOwnerButtons
                             chapterId={chapterId}
