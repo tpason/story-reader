@@ -11,11 +11,10 @@ const ThreeXianxiaWorldBackground = dynamic(
   { ssr: false }
 );
 
-// Reader pages run ThreeReaderAtmosphere — no need for the full world background
 const READER_PATH_RE = /^\/stories\/[^/]+\/chapters\/\d+/;
 
 export function XianxiaWorldBackgroundClient() {
-  const webglEnabled = useDecorativeWebglEnabled();
+  const webglLayerVisible = useDecorativeWebglEnabled({ tier: "global" });
   const timeOfDay = useXianxiaTimeOfDay();
   const pathname = usePathname();
 
@@ -23,9 +22,10 @@ export function XianxiaWorldBackgroundClient() {
     return null;
   }
 
-  if (!webglEnabled) {
-    return <XianxiaCssBackdrop timeOfDay={timeOfDay} />;
-  }
-
-  return <ThreeXianxiaWorldBackground timeOfDay={timeOfDay} />;
+  return (
+    <>
+      <XianxiaCssBackdrop timeOfDay={timeOfDay} underWebgl={webglLayerVisible} />
+      {webglLayerVisible ? <ThreeXianxiaWorldBackground timeOfDay={timeOfDay} /> : null}
+    </>
+  );
 }

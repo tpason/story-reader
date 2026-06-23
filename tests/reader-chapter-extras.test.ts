@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildSearchHighlightSegments,
-  findChapterSearchMatches
+  findChapterSearchMatches,
+  findChapterSearchMatchesAcrossBlocks
 } from "../lib/reader-in-chapter-search.ts";
 import { truncateQuoteForCard } from "../lib/reader-quote-image.ts";
 
@@ -12,6 +13,20 @@ describe("reader in-chapter search", () => {
     assert.equal(matches.length, 2);
     assert.equal(matches[0]?.paragraphIndex, 0);
     assert.equal(matches[1]?.paragraphIndex, 1);
+    assert.equal(matches[0]?.chapterNumber, 0);
+  });
+
+  it("finds matches across inline chapter blocks", () => {
+    const matches = findChapterSearchMatchesAcrossBlocks(
+      [
+        { chapterNumber: 5, paragraphs: ["Enkrid mở đầu"] },
+        { chapterNumber: 6, paragraphs: ["Shinar gặp Enkrid"] }
+      ],
+      "enkrid"
+    );
+    assert.equal(matches.length, 2);
+    assert.equal(matches[0]?.chapterNumber, 5);
+    assert.equal(matches[1]?.chapterNumber, 6);
   });
 
   it("highlights active match segments", () => {

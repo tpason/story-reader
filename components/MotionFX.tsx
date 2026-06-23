@@ -17,7 +17,7 @@ type MotionFXProps = {
 export function MotionFX({ variant }: MotionFXProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const reduceMotion = prefersReducedMotion();
-  const decorativeWebglEnabled = useDecorativeWebglEnabled();
+  const decorativeWebglEnabled = useDecorativeWebglEnabled({ tier: "global" });
 
   useEffect(() => {
     if (reduceMotion) return;
@@ -107,9 +107,9 @@ export function MotionFX({ variant }: MotionFXProps) {
   }, [decorativeWebglEnabled, reduceMotion, variant]);
 
   return (
-    <div className={`motion-fx motion-fx-${variant}`} ref={rootRef} aria-hidden="true">
+    <div className={`motion-fx motion-fx-${variant}${decorativeWebglEnabled ? "" : " motion-fx-css"}`} ref={rootRef} aria-hidden="true">
       {decorativeWebglEnabled ? <ThreePageMotion variant={variant} /> : null}
-      {decorativeWebglEnabled ? (
+      {!reduceMotion ? (
         <>
           <span className="motion-line motion-line-1" />
           <span className="motion-line motion-line-2" />

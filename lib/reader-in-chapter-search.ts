@@ -1,27 +1,40 @@
 export type ChapterSearchMatch = {
+  chapterNumber: number;
   paragraphIndex: number;
   start: number;
   end: number;
 };
 
-export function findChapterSearchMatches(paragraphs: string[], query: string): ChapterSearchMatch[] {
+export type ChapterSearchBlock = {
+  chapterNumber: number;
+  paragraphs: string[];
+};
+
+export function findChapterSearchMatches(paragraphs: string[], query: string, chapterNumber = 0): ChapterSearchMatch[] {
+  return findChapterSearchMatchesAcrossBlocks([{ chapterNumber, paragraphs }], query);
+}
+
+export function findChapterSearchMatchesAcrossBlocks(blocks: ChapterSearchBlock[], query: string): ChapterSearchMatch[] {
   const needle = query.trim().toLowerCase();
   if (needle.length < 2) return [];
 
   const matches: ChapterSearchMatch[] = [];
-  for (let paragraphIndex = 0; paragraphIndex < paragraphs.length; paragraphIndex += 1) {
-    const text = paragraphs[paragraphIndex] ?? "";
-    const lower = text.toLowerCase();
-    let start = 0;
-    while (start < lower.length) {
-      const found = lower.indexOf(needle, start);
-      if (found < 0) break;
-      matches.push({
-        paragraphIndex,
-        start: found,
-        end: found + needle.length
-      });
-      start = found + needle.length;
+  for (const block of blocks) {
+    for (let paragraphIndex = 0; paragraphIndex < block.paragraphs.length; paragraphIndex += 1) {
+      const text = block.paragraphs[paragraphIndex] ?? "";
+      const lower = text.toLowerCase();
+      let start = 0;
+      while (start < lower.length) {
+        const found = lower.indexOf(needle, start);
+        if (found < 0) break;
+        matches.push({
+          chapterNumber: block.chapterNumber,
+          paragraphIndex,
+          start: found,
+          end: found + needle.length
+        });
+        start = found + needle.length;
+      }
     }
   }
   return matches;
@@ -64,4 +77,16 @@ export function buildSearchHighlightSegments(
   }
 
   return segments.length > 0 ? segments : [{ text, highlight: false, active: false }];
+}
+
+export function isActiveChapterSearchMatch(
+  match: ChapterSearchMatch | null,
+  chapterNumber: number,
+  paragraphIndex: number
+) {
+  return Boolean(
+    match &&
+      match.chapterNumber === chapterNumber &&
+      match.paragraphIndex === paragraphIndex
+  );
 }

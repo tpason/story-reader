@@ -3846,8 +3846,10 @@ html[data-sidebar-resizing="true"] * {
   z-index: 0;
   pointer-events: none;
   background:
+    radial-gradient(ellipse 70% 42% at 50% 0%, rgba(200, 150, 46, 0.09), transparent 62%),
     radial-gradient(ellipse 82% 48% at 50% -4%, rgba(200, 150, 46, 0.07), transparent 68%),
-    radial-gradient(ellipse 54% 38% at 14% 100%, rgba(26, 107, 90, 0.06), transparent 62%);
+    radial-gradient(ellipse 54% 38% at 14% 100%, rgba(26, 107, 90, 0.08), transparent 62%),
+    radial-gradient(ellipse 48% 36% at 88% 92%, rgba(38, 168, 130, 0.05), transparent 58%);
   opacity: 0.95;
 }
 
@@ -5188,5 +5190,48 @@ html[data-sidebar-resizing="true"] * {
   .reader-topbar-modern .reader-story-title {
     font-size: 13px;
   }
+}
+
+/* READER v21 — offline presets + cache badge */
+.reader-offline-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.reader-offline-preset-chip {
+  flex: 1 1 auto;
+  min-width: 5.5rem;
+  padding: 8px 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--canvas) 92%, rgba(38, 168, 130, 0.08) 8%);
+  color: var(--charcoal);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.reader-offline-preset-chip:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.reader-offline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, rgba(38, 168, 130, 0.14) 70%, var(--canvas) 30%);
+  color: var(--xi-jade, #1a6b5a);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.reader-title-stack .reader-offline-badge {
+  width: fit-content;
 }
 

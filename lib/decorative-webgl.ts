@@ -1,8 +1,9 @@
 "use client";
 
+import { useWebGLPerformanceTier } from "@/hooks/useWebGLPerformanceTier";
 import { readReaderPerformanceMode } from "@/lib/reader-performance-mode";
 import { prefersReducedMotion } from "@/lib/browser";
-import { canUseWebGL } from "@/lib/webgl-capability";
+import { canUseWebGL, isWeakWebGLRenderer } from "@/lib/webgl-capability";
 import { useEffect, useState } from "react";
 
 type BatteryManager = EventTarget & {
@@ -19,26 +20,38 @@ type NavigatorWithExtras = Navigator & {
   };
 };
 
+export type DecorativeWebglTier = "global" | "reader";
+
 type DecorativeWebglOptions = {
   allowCompact?: boolean;
   /** Disable WebGL at or below this viewport width (default 839). */
   compactMaxWidth?: number;
+  /**
+   * global: world background + page motion.
+   * reader: in-chapter/story accents.
+   */
+  tier?: DecorativeWebglTier;
 };
 
-// Returns true when the device is clearly low-end: <2 GB RAM, data-saver on,
-// or on a 2G/slow-2G connection. Checked once on mount; doesn't need to be
-// reactive because these characteristics don't change mid-session.
 function isLowEndDevice(): boolean {
   const nav = navigator as NavigatorWithExtras;
-  if (typeof nav.deviceMemory === "number" && nav.deviceMemory < 2) return true;
+  if (typeof nav.deviceMemory === "number" && nav.deviceMemory < 4) return true;
   const conn = nav.connection;
   if (conn?.saveData === true) return true;
   if (conn?.effectiveType === "2g" || conn?.effectiveType === "slow-2g") return true;
   return false;
 }
 
+function perfAllowsWebGL(performanceMode: ReturnType<typeof readReaderPerformanceMode>, perfTier: ReturnType<typeof useWebGLPerformanceTier>) {
+  if (performanceMode === "full_effects") return true;
+  if (perfTier === "weak") return false;
+  if (perfTier === "pending") return false;
+  return true;
+}
+
 export function useDecorativeWebglEnabled(options: DecorativeWebglOptions = {}) {
   const { allowCompact = false, compactMaxWidth = 839 } = options;
+  const perfTier = useWebGLPerformanceTier();
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
@@ -46,6 +59,7 @@ export function useDecorativeWebglEnabled(options: DecorativeWebglOptions = {}) 
     const compactQuery = window.matchMedia(`(max-width: ${compactMaxWidth}px)`);
     let battery: BatteryManager | null = null;
     const lowEnd = isLowEndDevice();
+    const weakGpu = isWeakWebGLRenderer();
 
     function update() {
       const performanceMode = readReaderPerformanceMode();
@@ -54,14 +68,18 @@ export function useDecorativeWebglEnabled(options: DecorativeWebglOptions = {}) 
         return;
       }
 
-      // Battery threshold at 25% (was 20%) — conservative for mobile devices
+      if (!perfAllowsWebGL(performanceMode, perfTier)) {
+        setEnabled(false);
+        return;
+      }
+
       const isLowBattery = battery !== null && !battery.charging && battery.level < 0.25;
-      const ignoreLowEnd = performanceMode === "full_effects";
+      const ignoreConstraints = performanceMode === "full_effects";
       setEnabled(
         !motionQuery.matches &&
         (allowCompact || !compactQuery.matches) &&
         !isLowBattery &&
-        (ignoreLowEnd || !lowEnd)
+        (ignoreConstraints || (!lowEnd && !weakGpu))
       );
     }
 
@@ -90,7 +108,7 @@ export function useDecorativeWebglEnabled(options: DecorativeWebglOptions = {}) 
         battery.removeEventListener("chargingchange", update);
       }
     };
-  }, [allowCompact, compactMaxWidth]);
+  }, [allowCompact, compactMaxWidth, perfTier]);
 
   return enabled && !prefersReducedMotion() && canUseWebGL();
 }

@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { CultivationPanel } from "@/components/CultivationPanel";
 import { UserIdentity } from "@/components/UserIdentity";
 import { ProfileShelf } from "@/components/ProfileShelf";
+import { PerformanceModePreference } from "@/components/PerformanceModePreference";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { RealtimeFxPreference } from "@/components/RealtimeFxPreference";
 import { ReadingStatsPanel } from "@/components/ReadingStatsPanel";
@@ -30,6 +31,9 @@ export default function AccountPage() {
           </div>
           <PushNotificationToggle />
           <RealtimeFxPreference />
+        </section>
+        <section className="account-performance-block" aria-label="Hiệu năng">
+          <PerformanceModePreference />
         </section>
         <ProfileShelf />
         <ReadingStatsPanel />

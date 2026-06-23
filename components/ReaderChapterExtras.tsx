@@ -10,6 +10,7 @@ import type { GlossaryCharacter } from "@/lib/reader-glossary";
 import {
   buildSearchHighlightSegments,
   findChapterSearchMatches,
+  isActiveChapterSearchMatch,
   type ChapterSearchMatch
 } from "@/lib/reader-in-chapter-search";
 import { streakBonusXp } from "@/lib/reading-streak";
@@ -208,23 +209,24 @@ export function renderParagraphSearchText(
   text: string,
   query: string,
   activeMatch: ChapterSearchMatch | null,
+  chapterNumber: number,
   paragraphIndex: number
 ) {
   if (!query.trim()) return text;
 
   const activeRange =
-    activeMatch && activeMatch.paragraphIndex === paragraphIndex
-      ? { start: activeMatch.start, end: activeMatch.end }
+    isActiveChapterSearchMatch(activeMatch, chapterNumber, paragraphIndex)
+      ? { start: activeMatch!.start, end: activeMatch!.end }
       : null;
 
   const segments = buildSearchHighlightSegments(text, query, activeRange);
   return segments.map((segment, index) =>
     segment.highlight ? (
-      <mark key={`${paragraphIndex}-${index}`} className={segment.active ? "reader-search-mark reader-search-mark-active" : "reader-search-mark"}>
+      <mark key={`${chapterNumber}-${paragraphIndex}-${index}`} className={segment.active ? "reader-search-mark reader-search-mark-active" : "reader-search-mark"}>
         {segment.text}
       </mark>
     ) : (
-      <span key={`${paragraphIndex}-${index}`}>{segment.text}</span>
+      <span key={`${chapterNumber}-${paragraphIndex}-${index}`}>{segment.text}</span>
     )
   );
 }

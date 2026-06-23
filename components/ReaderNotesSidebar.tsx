@@ -8,7 +8,7 @@ type ReaderNotesSidebarProps = {
   bookmarks: ParagraphBookmark[];
   onClose: () => void;
   onJump: (bookmark: ParagraphBookmark) => void;
-  onEditNote: (paragraphIndex: number) => void;
+  onEditNote: (bookmark: ParagraphBookmark) => void;
 };
 
 export function ReaderNotesSidebar({ open, bookmarks, onClose, onJump, onEditNote }: ReaderNotesSidebarProps) {
@@ -27,19 +27,21 @@ export function ReaderNotesSidebar({ open, bookmarks, onClose, onJump, onEditNot
       </div>
       <div className="reader-notes-sidebar-body">
         {bookmarks.length === 0 ? (
-          <p className="reader-notes-sidebar-empty">Chưa có dấu đoạn trong chương này. Bôi đen hoặc dùng nút đánh dấu bên đoạn.</p>
+          <p className="reader-notes-sidebar-empty">Chưa có dấu đoạn trong phiên đọc này. Bôi đen hoặc dùng nút đánh dấu bên đoạn.</p>
         ) : (
           bookmarks.map((bookmark) => (
             <div className="reader-notes-sidebar-item" key={bookmark.id}>
               <button type="button" className="reader-notes-sidebar-jump" onClick={() => onJump(bookmark)}>
                 <BookMarked size={14} />
                 <span>
-                  <strong>Đoạn {bookmark.paragraphIndex + 1}</strong>
+                  <strong>
+                    Chương {bookmark.chapterNumber} · Đoạn {bookmark.paragraphIndex + 1}
+                  </strong>
                   <small>{bookmark.excerpt}</small>
                   {bookmark.note ? <em>{bookmark.note}</em> : null}
                 </span>
               </button>
-              <button type="button" className="reader-notes-sidebar-note" aria-label="Sửa ghi chú" onClick={() => onEditNote(bookmark.paragraphIndex)}>
+              <button type="button" className="reader-notes-sidebar-note" aria-label="Sửa ghi chú" onClick={() => onEditNote(bookmark)}>
                 <StickyNote size={14} />
               </button>
             </div>

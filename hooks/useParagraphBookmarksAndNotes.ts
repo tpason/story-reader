@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import {
   deleteParagraphBookmarkOnServer,
   fetchParagraphBookmarks,
@@ -12,13 +12,22 @@ import {
   type ParagraphBookmark,
 } from "@/lib/paragraph-bookmarks";
 
-export type ParagraphNoteEditorState = { paragraphIndex: number; note: string } | null;
+export type ParagraphNoteEditorState = {
+  chapterNumber: number;
+  paragraphIndex: number;
+  note: string;
+} | null;
 
-export type UseParagraphBookmarksAndNotesOptions = {
-  storyId: string;
+export type ParagraphBookmarkTarget = {
   chapterId: string;
   chapterNumber: number;
   chapterTitle: string;
+  paragraphIndex: number;
+  paragraph: string;
+};
+
+export type UseParagraphBookmarksAndNotesOptions = {
+  storyId: string;
   /** Truthy when a reader is signed in; gates the server merge fetch. */
   currentUser: unknown;
   /** Current reading progress (0..1), read when creating a new bookmark. */
@@ -28,25 +37,21 @@ export type UseParagraphBookmarksAndNotesOptions = {
 };
 
 export type UseParagraphBookmarksAndNotesResult = {
-  currentChapterParagraphBookmarks: ParagraphBookmark[];
-  bookmarkedParagraphIndexes: Set<number>;
+  storyParagraphBookmarks: ParagraphBookmark[];
+  paragraphBookmarksForChapter: (chapterNumber: number) => ParagraphBookmark[];
+  bookmarkedIndexesForChapter: (chapterNumber: number) => Set<number>;
   noteEditor: ParagraphNoteEditorState;
   setNoteEditor: Dispatch<SetStateAction<ParagraphNoteEditorState>>;
-  openNoteEditor: (paragraphIndex: number) => void;
+  openNoteEditor: (chapterNumber: number, paragraphIndex: number) => void;
   saveNote: () => void;
-  toggleBookmark: (paragraphIndex: number, paragraph: string) => void;
+  toggleBookmark: (target: ParagraphBookmarkTarget) => void;
 };
 
 /**
- * Paragraph bookmarks + notes for the reader: local-first state hydrated from
- * localStorage, merged with the server copy for signed-in readers, with
- * optimistic local writes that reconcile with server responses.
+ * Story-scoped paragraph bookmarks + notes. Chapter number disambiguates inline append blocks.
  */
 export function useParagraphBookmarksAndNotes({
   storyId,
-  chapterId,
-  chapterNumber,
-  chapterTitle,
   currentUser,
   progressRef,
   onNotice,
@@ -54,16 +59,27 @@ export function useParagraphBookmarksAndNotes({
   const [paragraphBookmarks, setParagraphBookmarks] = useState<ParagraphBookmark[]>([]);
   const [noteEditor, setNoteEditor] = useState<ParagraphNoteEditorState>(null);
 
-  const currentChapterParagraphBookmarks = useMemo(
+  const storyParagraphBookmarks = useMemo(
     () =>
       paragraphBookmarks
-        .filter((bookmark) => bookmark.storyId === storyId && bookmark.chapterNumber === chapterNumber)
-        .sort((left, right) => left.paragraphIndex - right.paragraphIndex),
-    [chapterNumber, storyId, paragraphBookmarks],
+        .filter((bookmark) => bookmark.storyId === storyId)
+        .sort((left, right) => {
+          if (left.chapterNumber !== right.chapterNumber) return left.chapterNumber - right.chapterNumber;
+          return left.paragraphIndex - right.paragraphIndex;
+        }),
+    [paragraphBookmarks, storyId]
   );
-  const bookmarkedParagraphIndexes = useMemo(
-    () => new Set(currentChapterParagraphBookmarks.map((bookmark) => bookmark.paragraphIndex)),
-    [currentChapterParagraphBookmarks],
+
+  const paragraphBookmarksForChapter = useCallback(
+    (chapterNumber: number) =>
+      storyParagraphBookmarks.filter((bookmark) => bookmark.chapterNumber === chapterNumber),
+    [storyParagraphBookmarks]
+  );
+
+  const bookmarkedIndexesForChapter = useCallback(
+    (chapterNumber: number) =>
+      new Set(paragraphBookmarksForChapter(chapterNumber).map((bookmark) => bookmark.paragraphIndex)),
+    [paragraphBookmarksForChapter]
   );
 
   useEffect(() => {
@@ -109,15 +125,17 @@ export function useParagraphBookmarksAndNotes({
       .catch(() => undefined);
   }
 
-  function openNoteEditor(paragraphIndex: number) {
-    const bookmark = currentChapterParagraphBookmarks.find((item) => item.paragraphIndex === paragraphIndex);
+  function openNoteEditor(chapterNumber: number, paragraphIndex: number) {
+    const bookmark = paragraphBookmarksForChapter(chapterNumber).find((item) => item.paragraphIndex === paragraphIndex);
     if (!bookmark) return;
-    setNoteEditor({ paragraphIndex, note: bookmark.note ?? "" });
+    setNoteEditor({ chapterNumber, paragraphIndex, note: bookmark.note ?? "" });
   }
 
   function saveNote() {
     if (!noteEditor) return;
-    const bookmark = currentChapterParagraphBookmarks.find((item) => item.paragraphIndex === noteEditor.paragraphIndex);
+    const bookmark = paragraphBookmarksForChapter(noteEditor.chapterNumber).find(
+      (item) => item.paragraphIndex === noteEditor.paragraphIndex
+    );
     if (!bookmark) return;
     persistParagraphBookmark({
       ...bookmark,
@@ -127,8 +145,9 @@ export function useParagraphBookmarksAndNotes({
     onNotice("Đã lưu ghi chú đoạn");
   }
 
-  function toggleBookmark(paragraphIndex: number, paragraph: string) {
-    const exists = bookmarkedParagraphIndexes.has(paragraphIndex);
+  function toggleBookmark(target: ParagraphBookmarkTarget) {
+    const { chapterId, chapterNumber, chapterTitle, paragraphIndex, paragraph } = target;
+    const exists = bookmarkedIndexesForChapter(chapterNumber).has(paragraphIndex);
     const next = exists
       ? removeParagraphBookmark(paragraphBookmarks, {
           storyId,
@@ -154,7 +173,7 @@ export function useParagraphBookmarksAndNotes({
       deleteParagraphBookmarkOnServer(storyId, chapterNumber, paragraphIndex);
     } else {
       const bookmark = next.find(
-        (item) => item.storyId === storyId && item.chapterNumber === chapterNumber && item.paragraphIndex === paragraphIndex,
+        (item) => item.storyId === storyId && item.chapterNumber === chapterNumber && item.paragraphIndex === paragraphIndex
       );
       if (bookmark) {
         saveParagraphBookmarkOnServer(bookmark)
@@ -172,8 +191,9 @@ export function useParagraphBookmarksAndNotes({
   }
 
   return {
-    currentChapterParagraphBookmarks,
-    bookmarkedParagraphIndexes,
+    storyParagraphBookmarks,
+    paragraphBookmarksForChapter,
+    bookmarkedIndexesForChapter,
     noteEditor,
     setNoteEditor,
     openNoteEditor,

@@ -44,7 +44,7 @@ import { isMobile, prefersReducedMotion, shouldReduceReaderBackgroundWork } from
 import { countReadableWords, estimateReadingMinutes } from "@/lib/reading-estimate";
 import { isTodayLocal } from "@/lib/date";
 import { useLiveQuery } from "dexie-react-hooks";
-import { getCachedChapter, clearStoryOfflineCache, offlineDb, preloadNextChapters, type OfflineChapterRecord } from "@/lib/offline-chapters";
+import { getCachedChapter, clearStoryOfflineCache, offlineDb, preloadNextChapters, downloadChaptersFrom, estimateOfflineCacheBytes, formatOfflineCacheSize, OFFLINE_DOWNLOAD_PRESETS, type OfflineChapterRecord } from "@/lib/offline-chapters";
 import { fetchReaderChapter, readerQueryKeys } from "@/lib/reader-query";
 import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
 import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
@@ -147,7 +147,7 @@ import {
   ReaderSelectionToolbar
 } from "@/components/ReaderEnhancements";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
-import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
+import { getPageScrollMetrics, scrollPageTo } from "@/lib/reader-scroll";
 import { buildParagraphProgressWeights, paragraphIndexForAudioProgress } from "@/lib/reader-audio-sync";
 import { clampDimLevel, useReaderDim } from "@/hooks/useReaderDim";
 import { useWakeLock } from "@/hooks/useWakeLock";
@@ -157,7 +157,8 @@ import { useInChapterSearch } from "@/hooks/useInChapterSearch";
 import { useParagraphBookmarksAndNotes } from "@/hooks/useParagraphBookmarksAndNotes";
 import { useReaderChapterList } from "@/hooks/useReaderChapterList";
 import { useReadingSessionMinutes } from "@/hooks/useReadingSessionMinutes";
-import { getPageScrollMetrics, scrollPageTo } from "@/lib/reader-scroll";
+import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
+import { useWebGLRuntimeWatchdog } from "@/hooks/useWebGLRuntimeWatchdog";
 
 const ThreeReaderProgress = dynamic(() => import("@/components/ThreeReaderProgress").then((mod) => mod.ThreeReaderProgress), {
   ssr: false
@@ -274,9 +275,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [desktopSidebarWidth, setDesktopSidebarWidth] = useState(292);
   const [offlineLoading, setOfflineLoading] = useState(false);
   const [offlineError, setOfflineError] = useState<string | null>(null);
+  const [offlineDownloadProgress, setOfflineDownloadProgress] = useState<{ done: number; total: number } | null>(null);
   const [sheetProgress, setSheetProgress] = useState(0);
   const [mobileProgress, setMobileProgress] = useState(0);
   const [focusModeEnabled, setFocusModeEnabled] = useState(false);
+  useWebGLRuntimeWatchdog({ enabled: decorativeWebglEnabled && !focusModeEnabled });
   const readerOverflowRef = useRef<HTMLDivElement>(null);
   const [floatingActionsMounted, setFloatingActionsMounted] = useState(false);
   const [showContinuePrompt, setShowContinuePrompt] = useState(false);
@@ -510,8 +513,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, [activePayload.chapter.content, activePayload.chapter.isContentPreformatted, activePayload.chapter.title]);
   const storyBookmarks = useAppSelector(useMemo(() => selectStoryBookmarks(activePayload.story.id), [activePayload.story.id]));
   const {
-    currentChapterParagraphBookmarks,
-    bookmarkedParagraphIndexes,
+    storyParagraphBookmarks,
+    paragraphBookmarksForChapter,
+    bookmarkedIndexesForChapter,
     noteEditor: paragraphNoteEditor,
     setNoteEditor: setParagraphNoteEditor,
     openNoteEditor: openParagraphNoteEditor,
@@ -519,13 +523,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     toggleBookmark: toggleParagraphBookmark,
   } = useParagraphBookmarksAndNotes({
     storyId: activePayload.story.id,
-    chapterId: activePayload.chapter.id,
-    chapterNumber: activePayload.chapter.chapterNumber,
-    chapterTitle: activePayload.chapter.title,
     currentUser,
     progressRef,
     onNotice: setSwipeNotice,
   });
+  const primaryChapterNumber = activePayload.chapter.chapterNumber;
+  const currentChapterParagraphBookmarks = paragraphBookmarksForChapter(primaryChapterNumber);
+  const bookmarkedParagraphIndexes = bookmarkedIndexesForChapter(primaryChapterNumber);
   const formattedPreviewParagraphs = useMemo(
     () => qualityPanelOpen ? formatNovelContent(activePayload.chapter.content, undefined, activePayload.chapter.title) : null,
     [qualityPanelOpen, activePayload.chapter.content, activePayload.chapter.title]
@@ -603,6 +607,20 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
     return items.sort((left, right) => left.name.localeCompare(right.name, "vi"));
   }, [glossaryIndex]);
+  const chapterSearchBlocks = useMemo(
+    () => [
+      { chapterNumber: activePayload.chapter.chapterNumber, paragraphs },
+      ...inlineChapters.map((block) => ({ chapterNumber: block.chapterNumber, paragraphs: block.paragraphs }))
+    ],
+    [activePayload.chapter.chapterNumber, paragraphs, inlineChapters]
+  );
+  const sessionParagraphBookmarks = useMemo(() => {
+    const chapterNumbers = new Set([
+      activePayload.chapter.chapterNumber,
+      ...inlineChapters.map((block) => block.chapterNumber)
+    ]);
+    return storyParagraphBookmarks.filter((bookmark) => chapterNumbers.has(bookmark.chapterNumber));
+  }, [activePayload.chapter.chapterNumber, inlineChapters, storyParagraphBookmarks]);
   const {
     open: chapterSearchOpen,
     setOpen: setChapterSearchOpen,
@@ -613,9 +631,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     activeMatch: activeChapterSearchMatch,
     jump: jumpChapterSearchMatch,
   } = useInChapterSearch({
-    paragraphs,
+    blocks: chapterSearchBlocks,
     paragraphContainerRef,
-    chapterId: activePayload.chapter.id,
+    resetKey: `${activePayload.chapter.id}:${inlineChapters.map((block) => block.chapterId).join(",")}`,
   });
   const {
     hits: storySearchHits,
@@ -678,6 +696,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     () => [...cachedChapters].sort((left, right) => left.chapterNumber - right.chapterNumber),
     [cachedChapters]
   );
+  const offlineCacheBytes = useMemo(() => estimateOfflineCacheBytes(sortedCachedChapters), [sortedCachedChapters]);
+  const readingFromOfflineCache = Boolean(cachedPayload) || (offlineReady && typeof navigator !== "undefined" && !navigator.onLine);
   const canVirtualizeChapterList = filteredChapters.length > 80 && (Boolean(chapterSearchText) || (!previousChapterCursor && !chapterCursor));
   const chapterVirtualizer = useVirtualizer({
     count: filteredChapters.length,
@@ -1160,12 +1180,30 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     if (!surfaceErrors && shouldReduceReaderBackgroundWork()) return;
     setOfflineError(null);
     setOfflineLoading(true);
-    // useLiveQuery handles the reactive read — only trigger the preload here
+    setOfflineDownloadProgress(null);
     preloadNextChapters(activePayload, 3)
       .catch(() => {
         if (surfaceErrors) setOfflineError("Chưa cache được chương. Kiểm tra mạng rồi thử lại.");
       })
       .finally(() => setOfflineLoading(false));
+  }, [activePayload]);
+
+  const downloadOfflinePreset = useCallback(async (count: number) => {
+    setOfflineError(null);
+    setOfflineLoading(true);
+    setOfflineDownloadProgress({ done: 0, total: count });
+    try {
+      await downloadChaptersFrom(activePayload, activePayload.chapter.chapterNumber, count, {
+        includeCurrent: true,
+        onProgress: (done, total) => setOfflineDownloadProgress({ done, total })
+      });
+      showSwipeNotice(`Đã tải ${count} chương offline`);
+    } catch {
+      setOfflineError("Không tải được offline. Kiểm tra mạng rồi thử lại.");
+    } finally {
+      setOfflineLoading(false);
+      setOfflineDownloadProgress(null);
+    }
   }, [activePayload]);
 
   useEffect(() => {
@@ -1367,9 +1405,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     showSwipeNotice(removed > 0 ? `Đã xóa ${removed} chương offline` : "Không có cache offline để xóa");
   }
 
-  function renderParagraphText(paragraphIndex: number, paragraph: string) {
+  function renderParagraphText(paragraphIndex: number, paragraph: string, chapterNumber = primaryChapterNumber) {
     if (chapterSearchQuery.trim()) {
-      return renderParagraphSearchText(paragraph, chapterSearchQuery, activeChapterSearchMatch, paragraphIndex);
+      return renderParagraphSearchText(paragraph, chapterSearchQuery, activeChapterSearchMatch, chapterNumber, paragraphIndex);
     }
     return (
       <ReaderGlossaryInlineText
@@ -1834,15 +1872,17 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     });
   }
 
-  function scrollToParagraph(paragraphIndex: number, behavior: ScrollBehavior = "smooth") {
-    if (shouldVirtualizeParagraphs) {
+  function scrollToParagraph(paragraphIndex: number, behavior: ScrollBehavior = "smooth", chapterNumber = primaryChapterNumber) {
+    if (shouldVirtualizeParagraphs && chapterNumber === primaryChapterNumber) {
       paragraphVirtualizer.scrollToIndex(paragraphIndex, {
         align: "center",
         behavior: prefersReducedMotion() ? "auto" : behavior
       });
       return;
     }
-    const paragraph = paragraphContainerRef.current?.querySelector<HTMLElement>(`[data-paragraph-index="${paragraphIndex}"]`);
+    const paragraph = paragraphContainerRef.current?.querySelector<HTMLElement>(
+      `[data-chapter-number="${chapterNumber}"][data-paragraph-index="${paragraphIndex}"]`
+    );
     if (!paragraph) return;
     paragraph.scrollIntoView({
       block: "center",
@@ -1986,7 +2026,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setChapterSearchOpen(false);
     setChapterSearchQuery("");
     if (hit.chapterNumber === activePayload.chapter.chapterNumber) {
-      window.requestAnimationFrame(() => scrollToParagraph(hit.paragraphIndex));
+      window.requestAnimationFrame(() => scrollToParagraph(hit.paragraphIndex, "smooth", hit.chapterNumber));
+      return;
+    }
+    if (inlineChapters.some((block) => block.chapterNumber === hit.chapterNumber)) {
+      window.requestAnimationFrame(() => scrollToParagraph(hit.paragraphIndex, "smooth", hit.chapterNumber));
       return;
     }
     await openCachedChapter(hit.chapterNumber);
@@ -2202,8 +2246,18 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     dismissResumeBanner();
   }
 
-  function renderParagraphTools(index: number, paragraph: string, bookmarked: boolean) {
-    const hasNote = Boolean(currentChapterParagraphBookmarks.find((item) => item.paragraphIndex === index)?.note);
+  function renderParagraphTools(
+    index: number,
+    paragraph: string,
+    bookmarked: boolean,
+    chapter = {
+      id: activePayload.chapter.id,
+      number: primaryChapterNumber,
+      title: activePayload.chapter.title
+    }
+  ) {
+    const chapterBookmarks = paragraphBookmarksForChapter(chapter.number);
+    const hasNote = Boolean(chapterBookmarks.find((item) => item.paragraphIndex === index)?.note);
     return (
       <>
         <button
@@ -2211,7 +2265,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           type="button"
           aria-label={bookmarked ? "Bỏ dấu đoạn" : "Đánh dấu đoạn"}
           title={bookmarked ? "Bỏ dấu đoạn" : "Đánh dấu đoạn"}
-          onClick={() => toggleParagraphBookmark(index, paragraph)}
+          onClick={() =>
+            toggleParagraphBookmark({
+              chapterId: chapter.id,
+              chapterNumber: chapter.number,
+              chapterTitle: chapter.title,
+              paragraphIndex: index,
+              paragraph
+            })
+          }
         >
           {bookmarked ? <BookMarked size={13} /> : <Highlighter size={13} />}
         </button>
@@ -2221,7 +2283,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             type="button"
             aria-label="Ghi chú đoạn"
             title={hasNote ? "Sửa ghi chú đoạn" : "Thêm ghi chú đoạn"}
-            onClick={() => openParagraphNoteEditor(index)}
+            onClick={() => openParagraphNoteEditor(chapter.number, index)}
           >
             <StickyNote size={13} />
           </button>
@@ -2824,15 +2886,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
       <ReaderNotesSidebar
         open={notesSidebarOpen && !compactReader}
-        bookmarks={currentChapterParagraphBookmarks}
+        bookmarks={sessionParagraphBookmarks}
         onClose={() => setNotesSidebarOpen(false)}
         onJump={(bookmark) => {
           setNotesSidebarOpen(false);
-          window.requestAnimationFrame(() => scrollToParagraph(bookmark.paragraphIndex));
+          window.requestAnimationFrame(() => scrollToParagraph(bookmark.paragraphIndex, "smooth", bookmark.chapterNumber));
         }}
-        onEditNote={(paragraphIndex) => {
+        onEditNote={(bookmark) => {
           setNotesSidebarOpen(false);
-          openParagraphNoteEditor(paragraphIndex);
+          openParagraphNoteEditor(bookmark.chapterNumber, bookmark.paragraphIndex);
         }}
       />
 
@@ -2933,6 +2995,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               startAdminEdit("storyTitle", activePayload.story.title);
             }}>{activePayload.story.title}</span>
             <span className="reader-chapter-kicker">{pageTitle}</span>
+            {readingFromOfflineCache ? (
+              <span className="reader-offline-badge" title="Đang đọc bản đã tải offline">
+                <WifiOff size={11} aria-hidden="true" />
+                Offline
+              </span>
+            ) : null}
           </span>
         </Link>
 
@@ -3464,22 +3532,25 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               </div>
             ) : null}
 
-            {currentChapterParagraphBookmarks.length > 0 ? (
+            {sessionParagraphBookmarks.length > 0 ? (
               <div className="reader-sheet-section reader-sheet-bookmarks">
-                <span>Dấu đoạn chương này</span>
+                <span>Dấu đoạn phiên đọc</span>
                 <div className="reader-sheet-paragraph-bookmarks">
-                  {currentChapterParagraphBookmarks.slice(0, 8).map((bookmark) => (
+                  {sessionParagraphBookmarks.slice(0, 8).map((bookmark) => (
                     <div className="reader-sheet-paragraph-bookmark-row" key={bookmark.id}>
                       <button
                         className="reader-sheet-paragraph-bookmark"
                         type="button"
                         onClick={() => {
                           setMobileSheetOpen(false);
-                          window.requestAnimationFrame(() => scrollToParagraph(bookmark.paragraphIndex));
+                          window.requestAnimationFrame(() =>
+                            scrollToParagraph(bookmark.paragraphIndex, "smooth", bookmark.chapterNumber)
+                          );
                         }}
                       >
                         <BookMarked size={14} />
                         <span>
+                          <small>Ch.{bookmark.chapterNumber}</small>
                           {bookmark.excerpt}
                           {bookmark.note ? <small>{bookmark.note}</small> : null}
                         </span>
@@ -3490,7 +3561,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                         aria-label="Ghi chú đoạn"
                         onClick={() => {
                           setMobileSheetOpen(false);
-                          openParagraphNoteEditor(bookmark.paragraphIndex);
+                          openParagraphNoteEditor(bookmark.chapterNumber, bookmark.paragraphIndex);
                         }}
                       >
                         <StickyNote size={14} />
@@ -3811,10 +3882,30 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   onClick={() => refreshOfflineCache(true)}
                 >
                   {offlineLoading ? <LoaderCircle size={16} className="spin" /> : <WifiOff size={16} />}
-                  {offlineReady ? `Đã tải ${cachedChapters.length} chương` : offlineLoading ? "Đang tải…" : "Tải chương gần đây"}
+                  {offlineLoading && offlineDownloadProgress
+                    ? `Đang tải ${offlineDownloadProgress.done}/${offlineDownloadProgress.total}…`
+                    : offlineReady
+                      ? `Đã tải ${cachedChapters.length} chương`
+                      : offlineLoading
+                        ? "Đang tải…"
+                        : "Tải 3 chương kế"}
                 </button>
+                <div className="reader-offline-preset-row" role="group" aria-label="Tải theo số chương">
+                  {OFFLINE_DOWNLOAD_PRESETS.map((count) => (
+                    <button
+                      key={count}
+                      type="button"
+                      className="reader-offline-preset-chip"
+                      disabled={offlineLoading}
+                      onClick={() => void downloadOfflinePreset(count)}
+                    >
+                      {count} chương
+                    </button>
+                  ))}
+                </div>
                 <p>
-                  Các chương đã tải mở được khi mất mạng. Chương hiện tại được đánh dấu nổi bật.
+                  Các chương đã tải mở được khi mất mạng.
+                  {sortedCachedChapters.length > 0 ? ` Dung lượng ~${formatOfflineCacheSize(offlineCacheBytes)}.` : ""}
                 </p>
                 {sortedCachedChapters.length > 0 ? (
                   <div className="offline-chapter-grid">
@@ -4044,8 +4135,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               ? createPortal(
                   <ReaderParagraphNoteEditor
                     excerpt={
-                      currentChapterParagraphBookmarks.find((item) => item.paragraphIndex === paragraphNoteEditor.paragraphIndex)?.excerpt ??
-                      paragraphs[paragraphNoteEditor.paragraphIndex]?.slice(0, 120) ??
+                      paragraphBookmarksForChapter(paragraphNoteEditor.chapterNumber).find(
+                        (item) => item.paragraphIndex === paragraphNoteEditor.paragraphIndex
+                      )?.excerpt ??
+                      (paragraphNoteEditor.chapterNumber === primaryChapterNumber
+                        ? paragraphs[paragraphNoteEditor.paragraphIndex]?.slice(0, 120)
+                        : inlineChapters.find((block) => block.chapterNumber === paragraphNoteEditor.chapterNumber)?.paragraphs[
+                            paragraphNoteEditor.paragraphIndex
+                          ]?.slice(0, 120)) ??
                       ""
                     }
                     note={paragraphNoteEditor.note}
@@ -4221,6 +4318,20 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                     paragraphs={block.paragraphs}
                     glossaryIndex={glossaryIndex}
                     onTermClick={(character) => setGlossaryTapCharacter(character)}
+                    bookmarkedParagraphIndexes={bookmarkedIndexesForChapter(block.chapterNumber)}
+                    chapterBookmarks={paragraphBookmarksForChapter(block.chapterNumber)}
+                    chapterSearchQuery={chapterSearchQuery}
+                    activeChapterSearchMatch={activeChapterSearchMatch}
+                    onToggleBookmark={(paragraphIndex, paragraph) =>
+                      toggleParagraphBookmark({
+                        chapterId: block.chapterId,
+                        chapterNumber: block.chapterNumber,
+                        chapterTitle: block.title,
+                        paragraphIndex,
+                        paragraph
+                      })
+                    }
+                    onOpenNote={(paragraphIndex) => openParagraphNoteEditor(block.chapterNumber, paragraphIndex)}
                   />
                 ))
               : null}

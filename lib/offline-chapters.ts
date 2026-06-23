@@ -2,7 +2,15 @@
 
 import Dexie, { type Table } from "dexie";
 import { fetchReaderChapter } from "@/lib/reader-query";
+import {
+  estimateOfflineCacheBytes,
+  formatOfflineCacheSize,
+  OFFLINE_DOWNLOAD_MAX,
+  OFFLINE_DOWNLOAD_PRESETS
+} from "@/lib/offline-chapters-utils";
 import type { ReaderPayload } from "@/lib/types";
+
+export { estimateOfflineCacheBytes, formatOfflineCacheSize, OFFLINE_DOWNLOAD_MAX, OFFLINE_DOWNLOAD_PRESETS };
 
 export type OfflineChapterRecord = {
   key: string;
@@ -76,20 +84,51 @@ export async function deleteOfflineChapter(storyId: string, chapterNumber: numbe
 }
 
 export async function preloadNextChapters(payload: ReaderPayload, count = 3) {
-  await cacheReaderPayload(payload);
+  return downloadChaptersFrom(payload, payload.chapter.chapterNumber, count + 1, { includeCurrent: true });
+}
 
-  const tasks = Array.from({ length: count }, (_, index) => payload.chapter.chapterNumber + index + 1)
-    .filter((chapterNumber) => chapterNumber <= payload.story.totalChapters)
-    .map(async (chapterNumber) => {
-      const existing = await getCachedChapter(payload.story.id, chapterNumber);
-      if (existing) return existing;
+export async function downloadChaptersFrom(
+  payload: ReaderPayload,
+  fromChapterNumber: number,
+  count: number,
+  options: { includeCurrent?: boolean; onProgress?: (done: number, total: number) => void } = {}
+) {
+  const capped = Math.min(Math.max(1, count), OFFLINE_DOWNLOAD_MAX);
+  const includeCurrent = options.includeCurrent ?? false;
+  const chapterNumbers = Array.from({ length: capped }, (_, index) => fromChapterNumber + (includeCurrent ? index : index + 1))
+    .filter((chapterNumber) => chapterNumber >= 1 && chapterNumber <= payload.story.totalChapters);
 
-      const nextPayload = await fetchReaderChapter(payload.story.id, chapterNumber).catch(() => null);
-      if (!nextPayload) return null;
-      await cacheReaderPayload(nextPayload);
-      return getCachedChapter(payload.story.id, chapterNumber);
-    });
+  if (!canUseIndexedDb()) return [];
 
-  const records = await Promise.all(tasks);
-  return records.filter((record): record is OfflineChapterRecord => Boolean(record));
+  const records: OfflineChapterRecord[] = [];
+  let done = 0;
+  const total = chapterNumbers.length;
+
+  for (const chapterNumber of chapterNumbers) {
+    const existing = await getCachedChapter(payload.story.id, chapterNumber);
+    if (existing) {
+      records.push(existing);
+      done += 1;
+      options.onProgress?.(done, total);
+      continue;
+    }
+
+    const nextPayload =
+      chapterNumber === payload.chapter.chapterNumber
+        ? payload
+        : await fetchReaderChapter(payload.story.id, chapterNumber).catch(() => null);
+    if (!nextPayload) {
+      done += 1;
+      options.onProgress?.(done, total);
+      continue;
+    }
+
+    await cacheReaderPayload(nextPayload);
+    const cached = await getCachedChapter(payload.story.id, chapterNumber);
+    if (cached) records.push(cached);
+    done += 1;
+    options.onProgress?.(done, total);
+  }
+
+  return records;
 }

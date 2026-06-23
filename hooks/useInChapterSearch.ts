@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useMemo, useState, type Dispatch, type RefObject, type SetStateAction } from "react";
-import { findChapterSearchMatches, type ChapterSearchMatch } from "@/lib/reader-in-chapter-search";
+import {
+  findChapterSearchMatchesAcrossBlocks,
+  type ChapterSearchBlock,
+  type ChapterSearchMatch
+} from "@/lib/reader-in-chapter-search";
 import { prefersReducedMotion } from "@/lib/browser";
 
+export type { ChapterSearchBlock };
+
 export type UseInChapterSearchOptions = {
-  paragraphs: string[];
+  blocks: ChapterSearchBlock[];
   paragraphContainerRef: RefObject<HTMLElement | null>;
-  /** Resets the active match when the chapter changes. */
-  chapterId: string;
+  /** Changes when primary or inline chapters change — resets match index. */
+  resetKey: string;
 };
 
 export type UseInChapterSearchResult = {
@@ -20,32 +26,34 @@ export type UseInChapterSearchResult = {
   jump: (direction: "previous" | "next") => void;
 };
 
+function paragraphSelector(match: ChapterSearchMatch) {
+  return `[data-chapter-number="${match.chapterNumber}"][data-paragraph-index="${match.paragraphIndex}"]`;
+}
+
 /**
- * In-chapter text search ("tìm trong chương"): finds query matches across the
- * chapter paragraphs, tracks the active match, scrolls it into view while the
- * search bar is open, and resets when the query or chapter changes.
+ * In-chapter text search across primary + inline chapter blocks.
  */
 export function useInChapterSearch({
-  paragraphs,
+  blocks,
   paragraphContainerRef,
-  chapterId,
+  resetKey,
 }: UseInChapterSearchOptions): UseInChapterSearchResult {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [matchIndex, setMatchIndex] = useState(0);
 
-  const matches = useMemo(() => findChapterSearchMatches(paragraphs, query), [paragraphs, query]);
+  const matches = useMemo(() => findChapterSearchMatchesAcrossBlocks(blocks, query), [blocks, query]);
   const activeMatch = matches[matchIndex] ?? null;
 
   useEffect(() => {
     setMatchIndex(0);
-  }, [query, chapterId]);
+  }, [query, resetKey]);
 
   useEffect(() => {
     if (!open || matches.length === 0) return;
     const match = matches[matchIndex];
     if (!match) return;
-    const node = paragraphContainerRef.current?.querySelector(`[data-paragraph-index="${match.paragraphIndex}"]`);
+    const node = paragraphContainerRef.current?.querySelector(paragraphSelector(match));
     node?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "center" });
     // paragraphContainerRef is a stable ref; intentionally omitted from deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
