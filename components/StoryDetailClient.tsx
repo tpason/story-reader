@@ -5,6 +5,7 @@ import type { Route } from "next";
 import { CharMapBlock } from "@/components/CharMapBlock";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MotionFX } from "@/components/MotionFX";
@@ -19,6 +20,7 @@ import { storyHref } from "@/lib/urls";
 import { useAppSelector } from "@/lib/store-hooks";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import { ChapterList } from "@/components/reader/ChapterList";
+import { ChapterSidebarHeatmap } from "@/components/ChapterSidebarHeatmap";
 import { StoryDetailPushHint } from "@/components/StoryDetailPushHint";
 import { StoryRatingWidget } from "@/components/StoryRatingWidget";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
@@ -40,6 +42,7 @@ type StoryDetailClientProps = {
 };
 
 export function StoryDetailClient({ story, chapters, totalChapters, recommendations = [], recommendationsSlot, sameAuthorSlot }: StoryDetailClientProps) {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const decorativeWebglEnabled = useDecorativeWebglEnabled({ compactMaxWidth: 1099 });
   const currentUser = useAppSelector((state) => state.identity.user);
@@ -252,11 +255,18 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
             <StoryDetailPushHint storyId={currentStory.id} boosted={Boolean(freshChapterNumber)} />
             {maxReadChapter > 0 && totalChapters > 0 ? (() => {
               const progressPct = Math.min(100, Math.max(0, Math.round((maxReadChapter / totalChapters) * 100)));
+              const activeChapter = history?.chapterNumber ?? continueChapter ?? 0;
               return (
                 <div className="story-detail-hero-progress" aria-label="Tiến độ đọc">
-                  <div className="story-detail-hero-progress-bar">
-                    <div className="story-detail-hero-progress-fill" style={{ width: `${progressPct}%` }} />
-                  </div>
+                  <ChapterSidebarHeatmap
+                    totalChapters={totalChapters}
+                    maxReadChapter={maxReadChapter}
+                    activeChapterNumber={activeChapter}
+                    onJump={(chapterNumber) => {
+                      writeResumeNavigationTarget(currentStory.id, chapterNumber, {});
+                      router.push(storyHref(currentStory, chapterNumber));
+                    }}
+                  />
                   <span className="story-detail-hero-progress-label">
                     <BookOpenCheck size={13} />
                     {Math.min(maxReadChapter, totalChapters)}/{totalChapters} chương ({progressPct}%)

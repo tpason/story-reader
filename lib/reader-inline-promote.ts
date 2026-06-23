@@ -9,11 +9,19 @@ export function shouldAutoPromotePrimaryChapter(options: {
   inlineChapters: ReaderInlineChapterBlock[];
   primarySectionBottomPx: number;
   viewportHeight: number;
+  promoteInFlight?: boolean;
 }): boolean {
-  const { continuousEnabled, primaryChapterNumber, visibleChapterNumber, inlineChapters, primarySectionBottomPx, viewportHeight } =
-    options;
+  const {
+    continuousEnabled,
+    primaryChapterNumber,
+    visibleChapterNumber,
+    inlineChapters,
+    primarySectionBottomPx,
+    viewportHeight,
+    promoteInFlight = false
+  } = options;
 
-  if (!continuousEnabled || inlineChapters.length === 0) return false;
+  if (promoteInFlight || !continuousEnabled || inlineChapters.length === 0) return false;
   if (visibleChapterNumber <= primaryChapterNumber) return false;
 
   const firstInline = inlineChapters[0];

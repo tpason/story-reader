@@ -48,6 +48,19 @@ describe("reader inline promote", () => {
     assert.equal(should, false);
   });
 
+  it("does not promote while promote is in flight", () => {
+    const should = shouldAutoPromotePrimaryChapter({
+      continuousEnabled: true,
+      primaryChapterNumber: 5,
+      visibleChapterNumber: 6,
+      inlineChapters: INLINE,
+      primarySectionBottomPx: 40,
+      viewportHeight: 800,
+      promoteInFlight: true
+    });
+    assert.equal(should, false);
+  });
+
   it("drops head inline block after promotion", () => {
     assert.equal(inlineBlocksAfterHeadPromotion(INLINE).length, 1);
     assert.equal(inlineBlocksAfterHeadPromotion(INLINE)[0]?.chapterNumber, 7);

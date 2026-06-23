@@ -10308,6 +10308,16 @@ button:focus-visible .bookmark-jade-icon {
   font-variant-numeric: tabular-nums;
 }
 
+.story-detail-hero-progress .chapter-sidebar-heatmap-grid {
+  max-width: 360px;
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.story-detail-hero-progress .chapter-sidebar-heatmap-cell-read {
+  background: linear-gradient(145deg, rgba(200, 150, 46, 0.75), rgba(240, 208, 106, 0.55));
+}
+
 /* ── Mobile performance: disable paint-heavy animations (battery / heat) ─────
    The audio panel has three continuously-running animations that are expensive
    on mobile GPUs: a conic-gradient ring (readerContinueRing), a large

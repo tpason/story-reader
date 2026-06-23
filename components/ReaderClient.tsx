@@ -1640,11 +1640,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           tailNextChapter
         ) {
           continuousChapterTriggeredRef.current = true;
-          if (canAppendInlineChapter(inlineChaptersRef.current.length)) {
-            appendInlineNextChapterRef.current();
-          } else {
-            openNextChapterFastRef.current();
-          }
+          appendInlineNextChapterRef.current();
         }
 
         // Story completion overlay — only on last chapter of a completed story
@@ -1882,7 +1878,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             visibleChapterNumber: next.chapterNumber,
             inlineChapters: inlineChaptersRef.current,
             primarySectionBottomPx: paragraphContainerRef.current?.getBoundingClientRect().bottom ?? 0,
-            viewportHeight: window.innerHeight
+            viewportHeight: window.innerHeight,
+            promoteInFlight: promoteInlineInFlightRef.current
           })
         ) {
           void promoteHeadInlineRef.current();
@@ -2468,6 +2465,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         window.scrollBy({ top: -primaryHeight, behavior: "auto" });
       }
 
+      continuousChapterTriggeredRef.current = false;
       showSwipeNotice(`Chương ${head.chapterNumber}`, 900);
       return true;
     } finally {
