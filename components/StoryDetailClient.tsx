@@ -9,6 +9,7 @@ import React, { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MotionFX } from "@/components/MotionFX";
 import { SiteHeader } from "@/components/SiteHeader";
+import { StoryDetailBreadcrumb } from "@/components/StoryDetailBreadcrumb";
 import { StoryCover } from "@/components/StoryCover";
 import { UserIdentity } from "@/components/UserIdentity";
 import { FollowButton } from "@/components/FollowButton";
@@ -128,6 +129,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
       ) : null}
 
       <div className="page-wrap">
+        <StoryDetailBreadcrumb storyTitle={currentStory.title} />
         {freshChapterNumber ? (
           <div className="story-detail-fresh-banner" role="status" aria-live="polite">
             <Sparkles size={15} aria-hidden="true" />

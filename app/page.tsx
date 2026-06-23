@@ -1,4 +1,4 @@
-import { CheckCircle2, Flame, Headphones, Layers3, Search, Sparkles, X } from "lucide-react";
+import { CheckCircle2, Flame, Headphones, Layers3, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { getCachedCategories, getCachedPolishedStories, getCachedUpdatedStories, listStoriesCursor } from "@/lib/stories";
@@ -12,7 +12,6 @@ import { DiscoveryRailSkeleton } from "@/components/DiscoveryRailSkeleton";
 import { FollowedStoriesPanel } from "@/components/FollowedStoriesPanel";
 import { HomeRecommendationsPanel } from "@/components/HomeRecommendationsPanel";
 import { XianxiaPoetryColumn } from "@/components/XianxiaPoetryColumn";
-import { SearchSuggest } from "@/components/SearchSuggest";
 
 export const revalidate = 60;
 
@@ -136,14 +135,8 @@ export default async function Home({ searchParams }: HomeProps) {
           )}
 
           <form className="filters library-search">
-            <Suspense fallback={<input className="search-input" name="q" defaultValue={queryText} placeholder="Tìm truyện hoặc tác giả..." aria-label="Tìm kiếm trong Thiên Thư" />}>
-              <SearchSuggest defaultValue={queryText} category={params.category} />
-            </Suspense>
+            <input type="hidden" name="q" defaultValue={queryText ?? ""} key={queryText ?? ""} />
             <input type="hidden" name="category" value={params.category ?? ""} />
-            <button className="chip" type="submit">
-              <Search size={15} />
-              Tìm
-            </button>
             <Link className={`chip ${params.hot === "true" ? "chip-active" : ""}`} href={`/?${buildQuery({ q: params.q, category: params.category, hot: params.hot === "true" ? undefined : "true", completed: params.completed, minChapters: params.minChapters, maxChapters: params.maxChapters, hasPolished: params.hasPolished, hasAudio: params.hasAudio, sort: params.sort })}`}>
               <Flame size={15} />
               Hot

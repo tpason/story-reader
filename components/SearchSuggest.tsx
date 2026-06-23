@@ -2,7 +2,7 @@
 
 import { Search, X } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { StoryCover } from "@/components/StoryCover";
@@ -12,6 +12,7 @@ import { storyHref } from "@/lib/urls";
 type SearchSuggestProps = {
   defaultValue?: string;
   category?: string;
+  variant?: "inline" | "header";
 };
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -23,8 +24,9 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
-export function SearchSuggest({ defaultValue, category }: SearchSuggestProps) {
+export function SearchSuggest({ defaultValue, category, variant = "inline" }: SearchSuggestProps) {
   const router = useRouter();
+  const pathname = usePathname() ?? "/";
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(defaultValue ?? "");
   const [open, setOpen] = useState(false);
@@ -39,8 +41,10 @@ export function SearchSuggest({ defaultValue, category }: SearchSuggestProps) {
     setOpen(false);
   }, [defaultValue]);
 
-  // Keep URL in sync so homepage shows search results (not discovery rails).
+  // Keep URL in sync on homepage only (header search on other pages navigates to /).
   useEffect(() => {
+    if (variant === "header" && pathname !== "/") return;
+
     const nextQ = debouncedUrlQuery;
     const currentQ = (searchParams.get("q") ?? "").trim();
     if (nextQ === currentQ) return;
@@ -50,7 +54,17 @@ export function SearchSuggest({ defaultValue, category }: SearchSuggestProps) {
     else params.delete("q");
     params.delete("page");
     router.replace(params.size ? `/?${params.toString()}` : "/", { scroll: false });
-  }, [debouncedUrlQuery, router, searchParams]);
+  }, [debouncedUrlQuery, pathname, router, searchParams, variant]);
+
+  function submitHeaderSearch() {
+    const nextQ = query.trim();
+    if (variant !== "header" || pathname === "/") {
+      setOpen(false);
+      return;
+    }
+    router.push(nextQ ? `/?q=${encodeURIComponent(nextQ)}` : "/");
+    setOpen(false);
+  }
 
   const { data } = useQuery<CursorPage<StorySummary>>({
     queryKey: ["search-suggest", debouncedQuery, category],
@@ -78,10 +92,11 @@ export function SearchSuggest({ defaultValue, category }: SearchSuggestProps) {
   }, []);
 
   return (
-    <div className="search-suggest-wrap" ref={wrapRef}>
+    <div className={variant === "header" ? "search-suggest-wrap header-search-wrap" : "search-suggest-wrap"} ref={wrapRef}>
+      {variant === "header" ? <Search size={16} className="header-search-icon" aria-hidden="true" /> : null}
       <input
         ref={inputRef}
-        className="search-input"
+        className={variant === "header" ? "search-input header-search-input" : "search-input"}
         name="q"
         value={query}
         autoComplete="off"
@@ -89,12 +104,17 @@ export function SearchSuggest({ defaultValue, category }: SearchSuggestProps) {
           setQuery(e.target.value);
           setOpen(true);
         }}
-        onFocus={() => { if (query.trim().length > 1) setOpen(true); }}
+        onFocus={() => {
+          if (query.trim().length > 1) setOpen(true);
+        }}
         onKeyDown={(e) => {
           if (e.key === "Escape") setOpen(false);
-          if (e.key === "Enter") setOpen(false);
+          if (e.key === "Enter") {
+            if (variant === "header") submitHeaderSearch();
+            else setOpen(false);
+          }
         }}
-        placeholder="Tìm truyện hoặc tác giả..."
+        placeholder={variant === "header" ? "Tìm trong Thiên Thư..." : "Tìm truyện hoặc tác giả..."}
         aria-label="Tìm kiếm trong Thiên Thư"
         role="combobox"
         aria-expanded={open && suggestions.length > 0}
@@ -126,7 +146,12 @@ export function SearchSuggest({ defaultValue, category }: SearchSuggestProps) {
               className="search-suggest-item"
               href={storyHref(story)}
               role="option"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false);
+                if (variant === "header" && pathname !== "/") {
+                  router.push(storyHref(story));
+                }
+              }}
             >
               <div className="search-suggest-cover">
                 <StoryCover src={story.coverImageUrl} title={story.title} />
