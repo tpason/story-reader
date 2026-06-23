@@ -91,9 +91,11 @@ async function measureWebGLFrames(): Promise<number[]> {
     ?? canvas.getContext("experimental-webgl")) as WebGLRenderingContext | null;
   if (!gl) return [];
 
-  const mini = createMiniProgram(gl);
+  const ctx = gl;
+  const mini = createMiniProgram(ctx);
   if (!mini) return [];
 
+  const miniProgram = mini;
   const frameMs: number[] = [];
   const start = performance.now();
   let last = start;
@@ -106,12 +108,12 @@ async function measureWebGLFrames(): Promise<number[]> {
       last = now;
       tick += 1;
 
-      gl.useProgram(mini.program);
-      gl.enableVertexAttribArray(mini.posLoc);
-      gl.vertexAttribPointer(mini.posLoc, 2, gl.FLOAT, false, 0, 0);
-      gl.uniform1f(mini.timeLoc, tick * 0.04);
+      ctx.useProgram(miniProgram.program);
+      ctx.enableVertexAttribArray(miniProgram.posLoc);
+      ctx.vertexAttribPointer(miniProgram.posLoc, 2, ctx.FLOAT, false, 0, 0);
+      ctx.uniform1f(miniProgram.timeLoc, tick * 0.04);
       for (let i = 0; i < 6; i += 1) {
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, 4);
       }
 
       if (now - start < PROBE_DURATION_MS) {

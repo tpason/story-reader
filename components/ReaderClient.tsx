@@ -47,6 +47,8 @@ import { isTodayLocal } from "@/lib/date";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getCachedChapter, clearStoryOfflineCache, offlineDb, preloadNextChapters, downloadChaptersFrom, estimateOfflineCacheBytes, formatOfflineCacheSize, OFFLINE_DOWNLOAD_PRESETS, type OfflineChapterRecord } from "@/lib/offline-chapters";
 import { ReaderBilingualSettings } from "@/components/ReaderBilingualSettings";
+import { ReaderChapterFreshHint, type ReaderChapterFreshHintState } from "@/components/ReaderChapterFreshHint";
+import { ReaderLogo } from "@/components/ReaderLogo";
 import { fetchReaderChapter, readerQueryKeys } from "@/lib/reader-query";
 import {
   bilingualFetchOptions,
@@ -109,7 +111,7 @@ import {
 import {
   canAppendInlineChapter,
   resolveTailNextChapter,
-  type ReaderInlineChapterBlock
+  type ReaderInlineChapterBlock as InlineChapterBlock
 } from "@/lib/reader-inline-chapters";
 import {
   inlineBlocksAfterHeadPromotion,
@@ -140,6 +142,7 @@ import type { StoryContentSearchHit } from "@/lib/reader-story-search";
 import {
   dismissResumeHint,
   shouldOfferResumeHint,
+  writeResumeNavigationTarget,
   type ReaderResumeHint
 } from "@/lib/reader-resume";
 import { shareSelectedQuote } from "@/lib/reader-share";
@@ -344,7 +347,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const openNextChapterFastRef = useRef<() => void>(() => undefined);
   const appendInlineNextChapterRef = useRef<() => void>(() => undefined);
   const promoteHeadInlineRef = useRef<() => Promise<boolean>>(async () => false);
-  const inlineChaptersRef = useRef<ReaderInlineChapterBlock[]>([]);
+  const inlineChaptersRef = useRef<InlineChapterBlock[]>([]);
   const inlineAppendInFlightRef = useRef(false);
   const promoteInlineInFlightRef = useRef(false);
   const skipInlineClearRef = useRef(false);
@@ -352,7 +355,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [storySearchHitIndex, setStorySearchHitIndex] = useState(0);
   const [notesSidebarOpen, setNotesSidebarOpen] = useState(false);
   const [commentsSplitOpen, setCommentsSplitOpen] = useState(false);
-  const [inlineChapters, setInlineChapters] = useState<ReaderInlineChapterBlock[]>([]);
+  const [inlineChapters, setInlineChapters] = useState<InlineChapterBlock[]>([]);
   const [commentsChapterId, setCommentsChapterId] = useState(payload.chapter.id);
   const visibleChapterRef = useRef<ReaderVisibleChapter>({
     chapterId: payload.chapter.id,
@@ -2685,7 +2688,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         return;
       }
 
-      const block: ReaderInlineChapterBlock = {
+      const block: InlineChapterBlock = {
         chapterId: nextPayload.chapter.id,
         chapterNumber: nextPayload.chapter.chapterNumber,
         title: nextPayload.chapter.title,

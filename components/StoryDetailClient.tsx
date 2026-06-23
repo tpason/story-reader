@@ -27,6 +27,7 @@ import { StoryRatingWidget } from "@/components/StoryRatingWidget";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import { useStoryChapterPagination } from "@/hooks/useStoryChapterPagination";
+import { useStoryDetailAdminEdit } from "@/hooks/useStoryDetailAdminEdit";
 import { writeResumeNavigationTarget } from "@/lib/reader-resume";
 
 const ThreeStoryStage = dynamic(() => import("@/components/ThreeStoryStage").then((mod) => mod.ThreeStoryStage), {

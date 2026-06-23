@@ -1,6 +1,7 @@
 "use client";
 
 import { Menu, X } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -11,7 +12,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { UserIdentity } from "@/components/UserIdentity";
 
 type NavItem = {
-  href: string;
+  href: Route;
   label: string;
   match: (pathname: string) => boolean;
 };

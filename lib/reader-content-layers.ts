@@ -1,6 +1,8 @@
-import { formatNovelContent, READER_CONTENT_FORMAT_VERSION } from "@/lib/formatNovelContent";
-import type { ChapterRow } from "@/lib/stories/_internal";
-import { readerFormattedContent } from "@/lib/stories/_internal";
+type LayerTextFields = {
+  raw_text_content?: string | null;
+  translated_text_content?: string | null;
+  polished_text_content?: string | null;
+};
 
 export type ContentLayer = "raw" | "translated" | "polished";
 
@@ -28,13 +30,13 @@ export function layerLabel(layer: ContentLayer, lang: LayerLanguage) {
   return "Bản gốc";
 }
 
-export function readLayerText(row: Pick<ChapterRow, "raw_text_content" | "translated_text_content" | "polished_text_content">, layer: ContentLayer) {
+export function readLayerText(row: LayerTextFields, layer: ContentLayer) {
   if (layer === "raw") return row.raw_text_content?.trim() || null;
   if (layer === "translated") return row.translated_text_content?.trim() || null;
   return row.polished_text_content?.trim() || null;
 }
 
-export function listAvailableLayers(row: Pick<ChapterRow, "raw_text_content" | "translated_text_content" | "polished_text_content">) {
+export function listAvailableLayers(row: LayerTextFields) {
   return CONTENT_LAYER_ORDER.filter((layer) => Boolean(readLayerText(row, layer)));
 }
 
@@ -47,26 +49,4 @@ export function resolvePrimaryLayer(
   if (available.includes("translated")) return "translated";
   if (available.includes("raw")) return "raw";
   return "polished";
-}
-
-export function layerToParagraphs(options: {
-  row: ChapterRow;
-  layer: ContentLayer;
-  chapterTitle: string;
-}) {
-  const { row, layer, chapterTitle } = options;
-  const text = readLayerText(row, layer);
-  if (!text) return [];
-
-  if (layer === "polished" && row.reader_formatted_content_version === READER_CONTENT_FORMAT_VERSION) {
-    const formatted = readerFormattedContent(row);
-    if (formatted) {
-      return formatted
-        .split(/\n{2,}/)
-        .map((paragraph) => paragraph.trim())
-        .filter(Boolean);
-    }
-  }
-
-  return formatNovelContent(text, undefined, chapterTitle);
 }

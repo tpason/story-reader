@@ -19,6 +19,7 @@ import {
 } from "@/lib/reader-audio-auto-next";
 import {
   readReaderAudioPlaybackRate,
+  READER_AUDIO_PLAYBACK_RATES,
   writeReaderAudioPlaybackRate,
   type ReaderAudioPlaybackRate
 } from "@/lib/reader-audio-playback-rate";
@@ -707,7 +708,8 @@ export function ChapterAudioPlayer({
           <select
             value={playbackRate}
             onChange={(event) => {
-              const next = Number(event.target.value);
+              const next = Number(event.target.value) as ReaderAudioPlaybackRate;
+              if (!READER_AUDIO_PLAYBACK_RATES.includes(next)) return;
               setPlaybackRate(next);
               writeReaderAudioPlaybackRate(next);
             }}

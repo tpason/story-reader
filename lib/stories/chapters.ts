@@ -4,12 +4,8 @@ import { query } from "@/lib/db";
 import { READER_CONTENT_FORMAT_VERSION } from "@/lib/formatNovelContent";
 import { buildPreviousChapterRecap } from "@/lib/reader-chapter-recap";
 import { buildBilingualParagraphPairs } from "@/lib/reader-bilingual-pairs";
-import {
-  layerLanguage,
-  layerToParagraphs,
-  listAvailableLayers,
-  resolvePrimaryLayer
-} from "@/lib/reader-content-layers";
+import { layerLanguage, listAvailableLayers, resolvePrimaryLayer } from "@/lib/reader-content-layers";
+import { layerToParagraphs } from "@/lib/reader-content-layers-server";
 import { supportsBilingualReader } from "@/lib/reader-source-language";
 import type { BilingualParagraphPair } from "@/lib/reader-bilingual-pairs";
 import type { ChapterDetail, ChapterSummary, CursorPage, Paginated, ReaderFetchOptions, ReaderPayload } from "@/lib/types";
