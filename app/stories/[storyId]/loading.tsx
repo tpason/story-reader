@@ -1,7 +1,7 @@
 export default function StoryDetailLoading() {
   return (
     <main className="app-shell story-detail-shell">
-      <header className="topbar topbar-skel" aria-hidden="true">
+      <header className="topbar topbar-skel topbar-modern" aria-hidden="true">
         <div className="brand">
           <div className="xi-skel" style={{ width: 28, height: 28, borderRadius: "50%" }} />
           <div className="xi-skel" style={{ width: 110, height: 16 }} />

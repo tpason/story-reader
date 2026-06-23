@@ -2923,8 +2923,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         )}
       </nav>
 
-      <header className="reader-topbar">
-        <Link href="/" className="brand" aria-label={`Về thư viện — ${activePayload.story.title}: ${pageTitle}`}>
+      <header className="reader-topbar reader-topbar-modern">
+        <Link href={storyHref(activePayload.story)} className="brand reader-topbar-brand" aria-label={`Về trang truyện — ${activePayload.story.title}: ${pageTitle}`}>
           <ReaderLogo />
           <span className="reader-title-stack" aria-hidden="true">
             <span className="reader-story-title" onDoubleClick={(event) => {

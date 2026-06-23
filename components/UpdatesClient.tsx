@@ -4,11 +4,8 @@ import { Bell, BookOpenCheck, Check, Feather, ScrollText, Sparkles } from "lucid
 import Link from "next/link";
 import { useEffect, useMemo, type MouseEvent, type ReactNode } from "react";
 import { MotionFX } from "@/components/MotionFX";
-import { ReaderLogo } from "@/components/ReaderLogo";
+import { SiteHeader } from "@/components/SiteHeader";
 import { StoryCover } from "@/components/StoryCover";
-import { UserIdentity } from "@/components/UserIdentity";
-import { NotificationBell } from "@/components/NotificationBell";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
@@ -154,19 +151,7 @@ export function UpdatesClient() {
   return (
     <main className="app-shell">
       <MotionFX variant="library" />
-      <header className="topbar">
-        <Link href="/" className="brand">
-          <ReaderLogo />
-          <span>Linh Quyển Các</span>
-        </Link>
-        <nav className="topbar-nav" aria-label="Updates navigation">
-          <Link href="/">Thư viện</Link>
-          <Link href="/reading-history">Tàng thư</Link>
-        </nav>
-        <ThemeToggle />
-        <NotificationBell />
-        <UserIdentity compact className="topbar-identity" />
-      </header>
+      <SiteHeader />
 
       <div className="page-wrap">
         <XiPageHeroStrip className="updates-header" eyebrow={<><Sparkles size={13} aria-hidden="true" />{NOTIFY_COPY.eyebrow}</>} title={NOTIFY_COPY.pageTitle} subtitle={NOTIFY_COPY.pageSubtitle}>

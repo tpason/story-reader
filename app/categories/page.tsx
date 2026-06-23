@@ -2,10 +2,7 @@ import { Layers3 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MotionFX } from "@/components/MotionFX";
-import { ReaderLogo } from "@/components/ReaderLogo";
-import { UserIdentity } from "@/components/UserIdentity";
-import { NotificationBell } from "@/components/NotificationBell";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { SiteHeader } from "@/components/SiteHeader";
 import { getCachedCategories } from "@/lib/stories";
 
 export const revalidate = 600;
@@ -21,20 +18,7 @@ export default async function CategoriesIndexPage() {
   return (
     <main className="app-shell">
       <MotionFX variant="library" />
-      <header className="topbar">
-        <Link href="/" className="brand">
-          <ReaderLogo />
-          <span>Linh Quyển Các</span>
-        </Link>
-        <nav className="topbar-nav" aria-label="Categories navigation">
-          <Link href="/">Thư viện</Link>
-          <Link href="/discover">Khám phá</Link>
-          <Link href="/reading-history">Tàng thư</Link>
-        </nav>
-        <ThemeToggle />
-        <NotificationBell />
-        <UserIdentity compact className="topbar-identity" />
-      </header>
+      <SiteHeader />
 
       <div className="page-wrap">
         <section className="library-header categories-index-header">

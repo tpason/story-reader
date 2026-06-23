@@ -3,10 +3,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { MotionFX } from "@/components/MotionFX";
 import { DiscoverListClient } from "@/components/DiscoverListClient";
-import { NotificationBell } from "@/components/NotificationBell";
-import { ReaderLogo } from "@/components/ReaderLogo";
-import { UserIdentity } from "@/components/UserIdentity";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { SiteHeader } from "@/components/SiteHeader";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { listRecentlyPolishedStoriesPage, listRecentlyUpdatedStoriesPage } from "@/lib/stories";
@@ -54,20 +51,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
   return (
     <main className="app-shell">
       <MotionFX variant="library" />
-      <header className="topbar">
-        <Link href="/" className="brand">
-          <ReaderLogo />
-          <span>Linh Quyển Các</span>
-        </Link>
-        <nav className="topbar-nav" aria-label="Reader navigation">
-          <Link href="/">Thư viện</Link>
-          <Link href="/reading-history">Tàng thư</Link>
-          <Link href="/account">Động phủ</Link>
-        </nav>
-        <ThemeToggle />
-        <NotificationBell />
-        <UserIdentity compact className="topbar-identity" />
-      </header>
+      <SiteHeader />
 
       <div className="page-wrap">
         <XiPageHeroStrip

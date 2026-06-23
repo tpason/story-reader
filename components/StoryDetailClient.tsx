@@ -8,12 +8,10 @@ import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MotionFX } from "@/components/MotionFX";
-import { ReaderLogo } from "@/components/ReaderLogo";
+import { SiteHeader } from "@/components/SiteHeader";
 import { StoryCover } from "@/components/StoryCover";
 import { UserIdentity } from "@/components/UserIdentity";
 import { FollowButton } from "@/components/FollowButton";
-import { NotificationBell } from "@/components/NotificationBell";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { storyDisplayDescription } from "@/lib/story-description";
 import type { ChapterSummary, StorySummary } from "@/lib/types";
 import { storyHref } from "@/lib/urls";
@@ -114,21 +112,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
   return (
     <main className="app-shell story-detail-shell">
       <MotionFX variant="library" />
-      <header className="topbar">
-        <Link href="/" className="brand">
-          <ReaderLogo />
-          <span>Linh Quyển Các</span>
-        </Link>
-        <nav className="topbar-nav" aria-label="Story navigation">
-          <Link href="/">Thư viện</Link>
-          <Link href="/discover?kind=updated">Cập nhật</Link>
-          <Link href="/updates">Chương mới</Link>
-          <Link href="/reading-history">Tàng thư</Link>
-        </nav>
-        <ThemeToggle />
-        <NotificationBell />
-        <UserIdentity compact className="topbar-identity" />
-      </header>
+      <SiteHeader />
 
       {adminEdit ? (
         <div className="admin-edit-floating" role="status">
@@ -155,7 +139,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
             </Link>
           </div>
         ) : null}
-        <section className={`story-detail-hero ${isFresh(currentStory.id) ? "story-detail-hero-fresh" : ""}`.trim()}>
+        <section className={`story-detail-hero story-detail-hero-modern ${isFresh(currentStory.id) ? "story-detail-hero-fresh" : ""}`.trim()}>
           {decorativeWebglEnabled ? (
             <ThreeStoryStage
               coverImageUrl={currentStory.coverImageUrl}

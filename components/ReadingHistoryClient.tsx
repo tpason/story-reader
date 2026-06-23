@@ -3,15 +3,12 @@
 import { BookMarked, BookOpen, ChevronRight, Clock, Flame, LoaderCircle, ScrollText, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ReaderLogo } from "@/components/ReaderLogo";
+import { SiteHeader } from "@/components/SiteHeader";
 import { StoryCover } from "@/components/StoryCover";
 import { fetchBookmarks, fetchReadingProgress } from "@/lib/api-client";
 import { storyHref } from "@/lib/urls";
 import { CultivationPanel } from "@/components/CultivationPanel";
 import { MotionFX } from "@/components/MotionFX";
-import { UserIdentity } from "@/components/UserIdentity";
-import { NotificationBell } from "@/components/NotificationBell";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
@@ -97,19 +94,7 @@ export function ReadingHistoryClient() {
   return (
     <main className="app-shell">
       <MotionFX variant="library" />
-      <header className="topbar">
-        <Link href="/" className="brand">
-          <ReaderLogo />
-          <span>Hành trình tu luyện</span>
-        </Link>
-        <nav className="topbar-nav" aria-label="History navigation">
-          <Link href="/">Thư viện</Link>
-          <Link href="/updates">Chương mới</Link>
-        </nav>
-        <ThemeToggle />
-        <NotificationBell />
-        <UserIdentity compact className="topbar-identity" />
-      </header>
+      <SiteHeader />
 
       <div className="page-wrap history-wrap">
         <XiPageHeroStrip

@@ -5,15 +5,12 @@ import { getCachedCategories, getCachedPolishedStories, getCachedUpdatedStories,
 import { buildHomeFilterLabels, isHomeSearchActive } from "@/lib/home-search";
 import { StoryLibrary } from "@/components/StoryLibrary";
 import { ReadingResumeBar } from "@/components/ReadingResumeBar";
+import { SiteHeader } from "@/components/SiteHeader";
 import { MotionFX } from "@/components/MotionFX";
-import { ReaderLogo } from "@/components/ReaderLogo";
-import { UserIdentity } from "@/components/UserIdentity";
 import { StoryDiscoveryRail } from "@/components/StoryDiscoveryRail";
 import { DiscoveryRailSkeleton } from "@/components/DiscoveryRailSkeleton";
 import { FollowedStoriesPanel } from "@/components/FollowedStoriesPanel";
 import { HomeRecommendationsPanel } from "@/components/HomeRecommendationsPanel";
-import { NotificationBell } from "@/components/NotificationBell";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { XianxiaPoetryColumn } from "@/components/XianxiaPoetryColumn";
 import { SearchSuggest } from "@/components/SearchSuggest";
 
@@ -93,20 +90,7 @@ export default async function Home({ searchParams }: HomeProps) {
   return (
     <main className="app-shell">
       <MotionFX variant="library" />
-      <header className="topbar">
-        <Link href="/" className="brand">
-          <ReaderLogo />
-          <span>Linh Quyển Các</span>
-        </Link>
-        <nav className="topbar-nav" aria-label="Reader navigation">
-          <Link href="/updates">Chương mới</Link>
-          <Link href="/reading-history">Tàng thư</Link>
-          <Link href="/account">Động phủ</Link>
-        </nav>
-        <ThemeToggle />
-        <NotificationBell />
-        <UserIdentity compact className="topbar-identity" />
-      </header>
+      <SiteHeader />
 
       <div className="page-wrap" data-search-active={isSearchActive ? "true" : undefined}>
         {!isSearchActive ? <ReadingResumeBar /> : null}
@@ -126,12 +110,12 @@ export default async function Home({ searchParams }: HomeProps) {
           {!isSearchActive ? (
             <>
               <XianxiaPoetryColumn />
-              <div className="library-hero-shell">
-                <div className="xi-hero-cloud">
+              <div className="library-hero-shell library-hero-shell-modern">
+                <div className="xi-hero-cloud library-hero-cloud-modern">
                   <div className="xi-hero-cloud-bg xi-cloud-aura xi-cloud-aura--primary" role="presentation" />
-                  <div className="library-hero-content">
-                    <p className="eyebrow library-hero-eyebrow">Linh quyển các</p>
-                    <h1 className="library-title library-title-centered">Tu tiên từng chương. Vươn tới đỉnh trời.</h1>
+                  <div className="library-hero-content library-hero-content-modern">
+                    <p className="eyebrow library-hero-eyebrow">Linh quyển các · Thiên Thư</p>
+                    <h1 className="library-title library-title-centered library-title-modern">Tu tiên từng chương.<span>Vươn tới đỉnh trời.</span></h1>
                     <p className="library-subtitle">
                       Tán tu du đạo — đọc ngay, không cần nhập môn. Kết bái đạo hữu để định danh linh hồn và lưu hành trình tu luyện vào Thiên Thư.
                     </p>
