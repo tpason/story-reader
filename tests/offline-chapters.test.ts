@@ -3,7 +3,8 @@ import { describe, it } from "node:test";
 import {
   estimateOfflineCacheBytes,
   formatOfflineCacheSize,
-  OFFLINE_DOWNLOAD_MAX
+  OFFLINE_DOWNLOAD_MAX,
+  summarizeOfflineCacheByStory
 } from "../lib/offline-chapters-utils.ts";
 
 describe("offline chapters helpers", () => {
@@ -24,5 +25,19 @@ describe("offline chapters helpers", () => {
 
   it("caps download max constant", () => {
     assert.equal(OFFLINE_DOWNLOAD_MAX, 20);
+  });
+
+  it("summarizes offline cache records by story", () => {
+    const payload = { story: { id: "s1", title: "A" }, chapter: { chapterNumber: 1 } };
+    const summaries = summarizeOfflineCacheByStory([
+      { storyId: "s1", storyTitle: "Alpha", chapterNumber: 2, payload },
+      { storyId: "s2", storyTitle: "Beta", chapterNumber: 1, payload },
+      { storyId: "s1", storyTitle: "Alpha", chapterNumber: 5, payload }
+    ]);
+    assert.equal(summaries.length, 2);
+    assert.equal(summaries[0]?.storyId, "s1");
+    assert.equal(summaries[0]?.chapterCount, 2);
+    assert.equal(summaries[0]?.minChapter, 2);
+    assert.equal(summaries[0]?.maxChapter, 5);
   });
 });

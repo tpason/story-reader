@@ -19,7 +19,8 @@ import {
 } from "@/lib/reader-audio-auto-next";
 import {
   readReaderAudioPlaybackRate,
-  writeReaderAudioPlaybackRate
+  writeReaderAudioPlaybackRate,
+  type ReaderAudioPlaybackRate
 } from "@/lib/reader-audio-playback-rate";
 import {
   clearReaderAudioSleepTimer,
@@ -140,7 +141,7 @@ export function ChapterAudioPlayer({
   const [segmentStatus, setSegmentStatus] = useState<SegmentStatusResponse | null>(null);
   const [segmentNotice, setSegmentNotice] = useState<string | null>(null);
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState<number | null>(null);
-  const [playbackRate, setPlaybackRate] = useState(() => readReaderAudioPlaybackRate());
+  const [playbackRate, setPlaybackRate] = useState<ReaderAudioPlaybackRate>(1);
   const [autoNextEnabled, setAutoNextEnabled] = useState(false);
   const [sleepTimerPreset, setSleepTimerPreset] = useState<ReaderAudioSleepTimerPreset | 0>(0);
   const [sleepTimerEndsAt, setSleepTimerEndsAt] = useState<number | null>(null);
@@ -183,6 +184,7 @@ export function ChapterAudioPlayer({
   }, [clearManagedTimeouts]);
 
   useEffect(() => {
+    setPlaybackRate(readReaderAudioPlaybackRate());
     setAutoNextEnabled(readReaderAudioAutoNext());
   }, []);
 

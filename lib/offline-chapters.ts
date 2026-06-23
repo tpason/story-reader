@@ -6,7 +6,8 @@ import {
   estimateOfflineCacheBytes,
   formatOfflineCacheSize,
   OFFLINE_DOWNLOAD_MAX,
-  OFFLINE_DOWNLOAD_PRESETS
+  OFFLINE_DOWNLOAD_PRESETS,
+  summarizeOfflineCacheByStory
 } from "@/lib/offline-chapters-utils";
 import type { ReaderPayload } from "@/lib/types";
 
@@ -89,29 +90,8 @@ export async function clearStoryOfflineCache(storyId: string) {
 
 export async function listOfflineCacheByStory(): Promise<OfflineCacheStorySummary[]> {
   if (!canUseIndexedDb()) return [];
-
   const records = await offlineDb.chapters.toArray().catch(() => []);
-  const grouped = new Map<string, OfflineChapterRecord[]>();
-
-  for (const record of records) {
-    const current = grouped.get(record.storyId) ?? [];
-    current.push(record);
-    grouped.set(record.storyId, current);
-  }
-
-  return Array.from(grouped.entries())
-    .map(([storyId, storyRecords]) => {
-      const sorted = [...storyRecords].sort((left, right) => left.chapterNumber - right.chapterNumber);
-      return {
-        storyId,
-        storyTitle: sorted[0]?.storyTitle ?? storyId,
-        chapterCount: sorted.length,
-        estimatedBytes: estimateOfflineCacheBytes(sorted),
-        minChapter: sorted[0]?.chapterNumber ?? 0,
-        maxChapter: sorted[sorted.length - 1]?.chapterNumber ?? 0
-      };
-    })
-    .sort((left, right) => right.chapterCount - left.chapterCount);
+  return summarizeOfflineCacheByStory(records);
 }
 
 export async function clearAllOfflineCache() {
