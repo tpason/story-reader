@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { StoryCover } from "@/components/StoryCover";
 import { StoryRatingWidget } from "@/components/StoryRatingWidget";
 import type { GlossaryCharacter } from "@/lib/reader-glossary";
+import { filterGlossaryCharacters, groupGlossaryCharacters } from "@/lib/reader-glossary-groups";
 import {
   buildSearchHighlightSegments,
   findChapterSearchMatches,
@@ -249,17 +250,8 @@ export function ReaderGlossaryDrawer({ open, characters, onClose, onSelectCharac
     if (!open) setFilter("");
   }, [open]);
 
-  const filtered = useMemo(() => {
-    const needle = filter.trim().toLowerCase();
-    if (!needle) return characters;
-    return characters.filter((character) => {
-      const haystack = [character.name, character.role, character.pronouns3rd, character.personality]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(needle);
-    });
-  }, [characters, filter]);
+  const filtered = useMemo(() => filterGlossaryCharacters(characters, filter), [characters, filter]);
+  const grouped = useMemo(() => groupGlossaryCharacters(filtered), [filtered]);
 
   if (!open) return null;
 
@@ -282,21 +274,26 @@ export function ReaderGlossaryDrawer({ open, characters, onClose, onSelectCharac
         onChange={(event) => setFilter(event.target.value)}
       />
       <div className="reader-glossary-drawer-list">
-        {filtered.length === 0 ? (
+        {grouped.length === 0 ? (
           <p className="reader-glossary-drawer-empty">Chưa có char map cho truyện này.</p>
         ) : (
-          filtered.map((character) => (
-            <button
-              key={character.name}
-              type="button"
-              className="reader-glossary-drawer-item"
-              onClick={() => onSelectCharacter?.(character)}
-            >
-              <strong>{character.name}</strong>
-              {character.role ? <span>{character.role}</span> : null}
-              {character.pronouns3rd ? <small>{character.pronouns3rd}</small> : null}
-              {character.personality ? <p>{character.personality}</p> : null}
-            </button>
+          grouped.map((group) => (
+            <section className="reader-glossary-letter-group" key={group.letter}>
+              <h3 className="reader-glossary-letter">{group.letter}</h3>
+              {group.characters.map((character) => (
+                <button
+                  key={character.name}
+                  type="button"
+                  className="reader-glossary-drawer-item"
+                  onClick={() => onSelectCharacter?.(character)}
+                >
+                  <strong>{character.name}</strong>
+                  {character.role ? <span>{character.role}</span> : null}
+                  {character.pronouns3rd ? <small>{character.pronouns3rd}</small> : null}
+                  {character.personality ? <p>{character.personality}</p> : null}
+                </button>
+              ))}
+            </section>
           ))
         )}
       </div>

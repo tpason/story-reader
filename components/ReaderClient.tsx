@@ -19,7 +19,7 @@ import type { ReaderBookmarkItem } from "@/lib/bookmarks";
 import { storyHref } from "@/lib/urls";
 import { selectCurrentBookmark, selectMaxReadChapter, selectStoryBookmarks } from "@/lib/selectors";
 import { MotionFX } from "@/components/MotionFX";
-import { ReaderLogo } from "@/components/ReaderLogo";
+import { ReaderKeyboardHelp } from "@/components/ReaderKeyboardHelp";
 import { CultivationPanel } from "@/components/CultivationPanel";
 import { UserIdentity } from "@/components/UserIdentity";
 import { ChapterComments } from "@/components/ChapterComments";
@@ -298,6 +298,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     toggle: toggleWakeLock,
   } = useWakeLock();
   const [swipeNotice, setSwipeNotice] = useState<string | null>(null);
+  const [keyboardHelpOpen, setKeyboardHelpOpen] = useState(false);
   const [freshChapterHint, setFreshChapterHint] = useState<ReaderChapterFreshHintState | null>(null);
   const [shellFreshPulse, setShellFreshPulse] = useState(false);
   const freshHintTimerRef = useRef<number | null>(null);
@@ -1301,6 +1302,54 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
       if (event.metaKey || event.ctrlKey || event.altKey) return;
 
+      if (event.key === "?" || (event.key === "/" && event.shiftKey)) {
+        event.preventDefault();
+        setKeyboardHelpOpen((prev) => !prev);
+        return;
+      }
+
+      if (event.key === "/") {
+        event.preventDefault();
+        setChapterSearchOpen(true);
+        setChapterSearchMode("chapter");
+        return;
+      }
+
+      if (event.key === "j" || event.key === "J") {
+        if (isPageLayout && pageIndex < paragraphPages.length - (spreadPageMode ? (visiblePageIndexes.length > 1 ? 2 : 1) : 1)) {
+          event.preventDefault();
+          goToPage(pageIndex + (spreadPageMode ? 2 : 1));
+          return;
+        }
+        const next = tailNextChapter ?? activePayload.nextChapter;
+        if (next) {
+          event.preventDefault();
+          router.push(storyHref(activePayload.story, next.chapterNumber));
+        }
+        return;
+      }
+
+      if (event.key === "k" || event.key === "K") {
+        if (isPageLayout && pageIndex > 0) {
+          event.preventDefault();
+          goToPage(pageIndex - (spreadPageMode ? 2 : 1));
+          return;
+        }
+        if (activePayload.previousChapter) {
+          event.preventDefault();
+          router.push(storyHref(activePayload.story, activePayload.previousChapter.chapterNumber));
+        }
+        return;
+      }
+
+      if (event.key === "n" || event.key === "N") {
+        if (!compactViewportRef.current) {
+          event.preventDefault();
+          setNotesSidebarOpen((prev) => !prev);
+        }
+        return;
+      }
+
       if (event.key === "ArrowRight") {
         if (isPageLayout && pageIndex < paragraphPages.length - (spreadPageMode ? (visiblePageIndexes.length > 1 ? 2 : 1) : 1)) {
           event.preventDefault();
@@ -1348,12 +1397,17 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     paragraphPages.length,
     router,
     spreadPageMode,
+    tailNextChapter,
     visiblePageIndexes.length,
+    setChapterSearchMode,
     setChapterSearchOpen,
+    setChapterSearchQuery,
     setDesktopSidebarOpen,
     setFocusModeEnabled,
     setGlossaryDrawerOpen,
+    setKeyboardHelpOpen,
     setMobileMenuOpen,
+    setNotesSidebarOpen,
     toggleBookmark
   ]);
 
@@ -2902,7 +2956,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         open={glossaryDrawerOpen}
         characters={glossaryCharacters}
         onClose={() => setGlossaryDrawerOpen(false)}
+        onSelectCharacter={(character) => {
+          setGlossaryDrawerOpen(false);
+          setChapterSearchMode("story");
+          setChapterSearchQuery(character.name);
+          setChapterSearchOpen(true);
+        }}
       />
+
+      <ReaderKeyboardHelp open={keyboardHelpOpen} onClose={() => setKeyboardHelpOpen(false)} />
 
       <nav className="reader-mobile-dock" aria-label="Mobile reader quick actions">
         {autoScrollEnabled ? (
@@ -3954,6 +4016,20 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           ref={chapterSidebarRef}
         >
           <p className="chapter-sidebar-title">Mục lục</p>
+          {activePayload.story.totalChapters > 0 && maxReadChapter > 0 ? (
+            <div
+              className="chapter-sidebar-heatmap"
+              role="img"
+              aria-label={`Đã đọc tới chương ${maxReadChapter} / ${activePayload.story.totalChapters}`}
+            >
+              <div
+                className="chapter-sidebar-heatmap-fill"
+                style={{
+                  width: `${Math.min(100, Math.round((maxReadChapter / activePayload.story.totalChapters) * 100))}%`
+                }}
+              />
+            </div>
+          ) : null}
           <label className="chapter-sidebar-search">
             <Search size={14} />
             <input

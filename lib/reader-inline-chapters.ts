@@ -1,6 +1,6 @@
 import type { ChapterSummary } from "@/lib/types";
 
-export const MAX_READER_INLINE_APPEND = 2;
+export const MAX_READER_INLINE_APPEND = 3;
 
 export type ReaderInlineChapterBlock = {
   chapterId: string;
