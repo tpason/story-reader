@@ -14520,6 +14520,96 @@ html[data-xi-time="dusk"] .library-header > .library-hero-shell .library-hero-co
   margin: 0 0 18px;
 }
 
+.account-offline-cache-block {
+  margin: 0 0 18px;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 22%, var(--hairline) 78%);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--canvas) 94%, rgba(200, 150, 46, 0.05) 6%);
+}
+
+.account-offline-cache-heading h2 {
+  margin: 4px 0 6px;
+  font-size: 1.15rem;
+  color: var(--charcoal);
+}
+
+.account-offline-cache-heading p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--steel);
+}
+
+.account-offline-cache-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--steel);
+}
+
+.account-offline-cache-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.account-offline-cache-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--canvas) 88%, rgba(255, 255, 255, 0.4) 12%);
+  border: 1px solid color-mix(in srgb, var(--hairline) 80%, transparent 20%);
+}
+
+.account-offline-cache-item-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.account-offline-cache-item-copy strong {
+  font-size: 0.92rem;
+  color: var(--charcoal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-offline-cache-item-copy small {
+  font-size: 0.78rem;
+  color: var(--steel);
+}
+
+.account-offline-cache-item-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.account-offline-cache-clear-all {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  color: var(--steel);
+  font-size: 0.82rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.account-offline-cache-clear-all:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .performance-mode-settings {
   display: grid;
   gap: 12px;

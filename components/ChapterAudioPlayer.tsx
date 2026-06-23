@@ -13,6 +13,10 @@ import {
 } from "media-chrome/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { computeFileModeProgress, computeSegmentModeProgress } from "@/lib/reader-audio-sync";
+import {
+  readReaderAudioPlaybackRate,
+  writeReaderAudioPlaybackRate
+} from "@/lib/reader-audio-playback-rate";
 
 type ChapterAudioPlayerProps = {
   chapterId: string;
@@ -124,7 +128,7 @@ export function ChapterAudioPlayer({
   const [segmentStatus, setSegmentStatus] = useState<SegmentStatusResponse | null>(null);
   const [segmentNotice, setSegmentNotice] = useState<string | null>(null);
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState<number | null>(null);
-  const [playbackRate, setPlaybackRate] = useState(1);
+  const [playbackRate, setPlaybackRate] = useState(() => readReaderAudioPlaybackRate());
   const [autoNextEnabled, setAutoNextEnabled] = useState(false);
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | null>(null);
   const sleepTimerRef = useRef<number | null>(null);
@@ -664,7 +668,14 @@ export function ChapterAudioPlayer({
         </button>
         <label>
           <span>Tốc độ</span>
-          <select value={playbackRate} onChange={(event) => setPlaybackRate(Number(event.target.value))}>
+          <select
+            value={playbackRate}
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              setPlaybackRate(next);
+              writeReaderAudioPlaybackRate(next);
+            }}
+          >
             <option value="0.85">0.85x</option>
             <option value="1">1x</option>
             <option value="1.15">1.15x</option>

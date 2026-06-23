@@ -4,6 +4,7 @@ import { CultivationPanel } from "@/components/CultivationPanel";
 import { UserIdentity } from "@/components/UserIdentity";
 import { ProfileShelf } from "@/components/ProfileShelf";
 import { PerformanceModePreference } from "@/components/PerformanceModePreference";
+import { AccountOfflineCachePanel } from "@/components/AccountOfflineCachePanel";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { RealtimeFxPreference } from "@/components/RealtimeFxPreference";
 import { ReadingStatsPanel } from "@/components/ReadingStatsPanel";
@@ -35,6 +36,7 @@ export default function AccountPage() {
         <section className="account-performance-block" aria-label="Hiệu năng">
           <PerformanceModePreference />
         </section>
+        <AccountOfflineCachePanel />
         <ProfileShelf />
         <ReadingStatsPanel />
         <CultivationPanel />

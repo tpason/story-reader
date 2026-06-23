@@ -21,6 +21,7 @@ import { useAppSelector } from "@/lib/store-hooks";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import { ChapterList } from "@/components/reader/ChapterList";
 import { ChapterSidebarHeatmap } from "@/components/ChapterSidebarHeatmap";
+import { ReadingResumeBar } from "@/components/ReadingResumeBar";
 import { StoryDetailPushHint } from "@/components/StoryDetailPushHint";
 import { StoryRatingWidget } from "@/components/StoryRatingWidget";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
@@ -133,6 +134,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
 
       <div className="page-wrap">
         <StoryDetailBreadcrumb storyTitle={currentStory.title} />
+        <ReadingResumeBar storyId={currentStory.id} />
         {freshChapterNumber ? (
           <div className="story-detail-fresh-banner" role="status" aria-live="polite">
             <Sparkles size={15} aria-hidden="true" />

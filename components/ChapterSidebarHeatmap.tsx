@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  formatHeatmapCellLabel,
+  heatmapCellChapterRange,
+  resolveHeatmapCellCount
+} from "@/lib/reader-heatmap-cells";
+
 type ChapterSidebarHeatmapProps = {
   totalChapters: number;
   maxReadChapter: number;
@@ -7,18 +13,14 @@ type ChapterSidebarHeatmapProps = {
   onJump?: (chapterNumber: number) => void;
 };
 
-const MAX_HEATMAP_CELLS = 96;
-
 export function ChapterSidebarHeatmap({
   totalChapters,
   maxReadChapter,
   activeChapterNumber,
   onJump
 }: ChapterSidebarHeatmapProps) {
-  if (totalChapters <= 0) return null;
-
-  const cellCount = Math.min(totalChapters, MAX_HEATMAP_CELLS);
-  const chaptersPerCell = totalChapters / cellCount;
+  const cellCount = resolveHeatmapCellCount(totalChapters);
+  if (cellCount <= 0) return null;
 
   return (
     <div
@@ -27,9 +29,10 @@ export function ChapterSidebarHeatmap({
       aria-label={`Tiến độ đọc: chương ${Math.max(0, maxReadChapter)} / ${totalChapters}`}
     >
       {Array.from({ length: cellCount }, (_, index) => {
-        const chapterNumber = Math.min(totalChapters, Math.max(1, Math.floor(index * chaptersPerCell) + 1));
-        const isRead = maxReadChapter > 0 && chapterNumber <= maxReadChapter;
-        const isActive = chapterNumber === activeChapterNumber;
+        const { start, end, jumpChapter } = heatmapCellChapterRange(totalChapters, index);
+        const isRead = maxReadChapter > 0 && start <= maxReadChapter;
+        const isActive = activeChapterNumber >= start && activeChapterNumber <= end;
+        const label = formatHeatmapCellLabel(start, end);
         const className = [
           "chapter-sidebar-heatmap-cell",
           isRead ? "chapter-sidebar-heatmap-cell-read" : "",
@@ -41,17 +44,17 @@ export function ChapterSidebarHeatmap({
         if (onJump) {
           return (
             <button
-              key={`${index}-${chapterNumber}`}
+              key={`${index}-${start}-${end}`}
               type="button"
               className={className}
-              title={`Chương ${chapterNumber}`}
-              aria-label={`Chương ${chapterNumber}`}
-              onClick={() => onJump(chapterNumber)}
+              title={label}
+              aria-label={label}
+              onClick={() => onJump(jumpChapter)}
             />
           );
         }
 
-        return <span key={`${index}-${chapterNumber}`} className={className} title={`Chương ${chapterNumber}`} />;
+        return <span key={`${index}-${start}-${end}`} className={className} title={label} aria-label={label} />;
       })}
     </div>
   );

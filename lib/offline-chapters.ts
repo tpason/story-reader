@@ -22,6 +22,15 @@ export type OfflineChapterRecord = {
   payload: ReaderPayload;
 };
 
+export type OfflineCacheStorySummary = {
+  storyId: string;
+  storyTitle: string;
+  chapterCount: number;
+  estimatedBytes: number;
+  minChapter: number;
+  maxChapter: number;
+};
+
 class ReaderOfflineDb extends Dexie {
   chapters!: Table<OfflineChapterRecord, string>;
 
@@ -76,6 +85,38 @@ export async function listCachedStoryChapters(storyId: string) {
 export async function clearStoryOfflineCache(storyId: string) {
   if (!canUseIndexedDb()) return 0;
   return offlineDb.chapters.where("storyId").equals(storyId).delete().catch(() => 0);
+}
+
+export async function listOfflineCacheByStory(): Promise<OfflineCacheStorySummary[]> {
+  if (!canUseIndexedDb()) return [];
+
+  const records = await offlineDb.chapters.toArray().catch(() => []);
+  const grouped = new Map<string, OfflineChapterRecord[]>();
+
+  for (const record of records) {
+    const current = grouped.get(record.storyId) ?? [];
+    current.push(record);
+    grouped.set(record.storyId, current);
+  }
+
+  return Array.from(grouped.entries())
+    .map(([storyId, storyRecords]) => {
+      const sorted = [...storyRecords].sort((left, right) => left.chapterNumber - right.chapterNumber);
+      return {
+        storyId,
+        storyTitle: sorted[0]?.storyTitle ?? storyId,
+        chapterCount: sorted.length,
+        estimatedBytes: estimateOfflineCacheBytes(sorted),
+        minChapter: sorted[0]?.chapterNumber ?? 0,
+        maxChapter: sorted[sorted.length - 1]?.chapterNumber ?? 0
+      };
+    })
+    .sort((left, right) => right.chapterCount - left.chapterCount);
+}
+
+export async function clearAllOfflineCache() {
+  if (!canUseIndexedDb()) return 0;
+  return offlineDb.chapters.clear().catch(() => 0);
 }
 
 export async function deleteOfflineChapter(storyId: string, chapterNumber: number) {
