@@ -52,9 +52,34 @@ test.describe("reader UX findings", () => {
 
     try {
       await openInChapterSearch(page);
+      const storyTab = page.getByRole("tab", { name: "Truyện" });
+      if ((await storyTab.count()) === 0) {
+        findings.push({ id: "story-search-tab", severity: "warn", note: "Story-wide search tab missing" });
+      }
       await page.getByRole("button", { name: "Đóng tìm kiếm" }).click();
     } catch (error) {
       findings.push({ id: "in-chapter-search", severity: "warn", note: String(error) });
+    }
+
+    const notesButton = page.getByRole("button", { name: "Ghi chú đoạn" });
+    if ((await notesButton.count()) === 0) {
+      findings.push({ id: "notes-sidebar", severity: "warn", note: "Notes sidebar button missing on desktop" });
+    }
+
+    const commentsSplitButton = page.getByRole("button", { name: "Luận đạo cạnh nội dung" });
+    if ((await commentsSplitButton.count()) === 0) {
+      findings.push({ id: "comments-split", severity: "warn", note: "Comments split toggle missing on desktop" });
+    }
+
+    try {
+      await page.getByRole("button", { title: "Phím tắt và tùy chọn" }).click();
+      const continuousItem = page.getByRole("button", { name: /Cuộn liên tục nối chương|Tắt cuộn liên tục/ });
+      if ((await continuousItem.count()) === 0) {
+        findings.push({ id: "continuous-chapter", severity: "warn", note: "Continuous chapter toggle missing in overflow" });
+      }
+      await page.keyboard.press("Escape");
+    } catch (error) {
+      findings.push({ id: "overflow-continuous", severity: "warn", note: String(error) });
     }
 
     try {

@@ -32,6 +32,8 @@ import { ChapterTransition } from "@/components/ChapterTransition";
 import { ReaderGlossaryInlineText } from "@/components/ReaderGlossaryInlineText";
 import { ReaderGlossaryTapPopover } from "@/components/ReaderGlossaryTapPopover";
 import { ReaderNotesSidebar } from "@/components/ReaderNotesSidebar";
+import { ReaderCommentsSidebar } from "@/components/ReaderCommentsSidebar";
+import { ReaderInlineChapterBlock } from "@/components/ReaderInlineChapterBlock";
 import { ReaderOnboardingCoach } from "@/components/ReaderOnboardingCoach";
 import { ReaderEngagementPrompt } from "@/components/ReaderEngagementPrompt";
 import { RealtimeFxPreference } from "@/components/RealtimeFxPreference";
@@ -95,6 +97,13 @@ import {
   readReaderContinuousChapter,
   writeReaderContinuousChapter
 } from "@/lib/reader-continuous-chapter";
+import {
+  canAppendInlineChapter,
+  resolveTailNextChapter,
+  type ReaderInlineChapterBlock
+} from "@/lib/reader-inline-chapters";
+import { chapterContentToParagraphs } from "@/lib/reader-chapter-paragraphs";
+import { readReaderCommentsSplit, writeReaderCommentsSplit } from "@/lib/reader-comments-split";
 import { buildParagraphPages, buildParagraphPagesFromHeights, pageIndexForParagraph } from "@/lib/reader-pagination";
 import {
   estimateParagraphHeight,
@@ -305,9 +314,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const continuousChapterTriggeredRef = useRef(false);
   const continuousChapterEnabledRef = useRef(continuousChapterEnabled);
   const openNextChapterFastRef = useRef<() => void>(() => undefined);
+  const appendInlineNextChapterRef = useRef<() => void>(() => undefined);
+  const inlineChaptersRef = useRef<ReaderInlineChapterBlock[]>([]);
+  const inlineAppendInFlightRef = useRef(false);
   const [chapterSearchMode, setChapterSearchMode] = useState<"chapter" | "story">("chapter");
   const [storySearchHitIndex, setStorySearchHitIndex] = useState(0);
   const [notesSidebarOpen, setNotesSidebarOpen] = useState(false);
+  const [commentsSplitOpen, setCommentsSplitOpen] = useState(false);
+  const [inlineChapters, setInlineChapters] = useState<ReaderInlineChapterBlock[]>([]);
   const [pageColumns, setPageColumns] = useState<ReaderPageColumns>(() => readReaderPageColumns());
   const panelScrollAnchorRef = useRef<{ scrollY: number; paragraphIndex: number } | null>(null);
   const [jumpBackTarget, setJumpBackTarget] = useState<{ scrollY: number; paragraphIndex: number } | null>(null);
@@ -594,6 +608,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     error: storySearchError
   } = useStoryContentSearch(activePayload.story.id, chapterSearchQuery, chapterSearchOpen && chapterSearchMode === "story");
   const spreadPageMode = isPageLayout && pageColumns === 2 && !compactReader;
+  const tailNextChapter = useMemo(
+    () => resolveTailNextChapter(inlineChapters, activePayload.nextChapter),
+    [inlineChapters, activePayload.nextChapter]
+  );
   const visiblePageIndexes = useMemo(() => {
     if (!spreadPageMode) return [pageIndex];
     const next = pageIndex + 1;
@@ -889,6 +907,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     completionShownRef.current = false;
     continuousChapterTriggeredRef.current = false;
     setJumpBackTarget(null);
+    setInlineChapters([]);
   }, [
     payload.chapters,
     payload.previousChapterCursor,
@@ -903,6 +922,20 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setReaderOverflowOpen,
     stopAutoScroll
   ]);
+
+  useEffect(() => {
+    inlineChaptersRef.current = inlineChapters;
+  }, [inlineChapters]);
+
+  useEffect(() => {
+    if (!commentsSplitOpen || compactReader) return;
+    setNotesSidebarOpen(false);
+  }, [commentsSplitOpen, compactReader]);
+
+  useEffect(() => {
+    const saved = readReaderCommentsSplit();
+    if (saved) setCommentsSplitOpen(true);
+  }, []);
 
   useEffect(() => {
     fetch(`/api/stories/${activePayload.story.id}/char-map`)
@@ -1351,7 +1384,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         );
         const nearPageEnd = scrollable - scrollTop <= window.innerHeight * 2.5;
         const shouldShowScrollTop = scrollTop > Math.min(720, window.innerHeight * 0.8);
-        const shouldShowContinue = Boolean(activePayload.nextChapter) && (current >= 92 || contentProgress >= 92 || nearPageEnd);
+        const tailNextChapter = resolveTailNextChapter(inlineChaptersRef.current, activePayload.nextChapter);
+        const shouldShowContinue = Boolean(tailNextChapter) && (current >= 92 || contentProgress >= 92 || nearPageEnd);
         const shouldHighlightContinue = shouldShowContinue;
         const now = Date.now();
         const isCompactViewport = compactViewportRef.current;
@@ -1445,10 +1479,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           shouldShowContinue &&
           scrollingDown &&
           !continuousChapterTriggeredRef.current &&
-          activePayload.nextChapter
+          tailNextChapter
         ) {
           continuousChapterTriggeredRef.current = true;
-          openNextChapterFastRef.current();
+          if (canAppendInlineChapter(inlineChaptersRef.current.length)) {
+            appendInlineNextChapterRef.current();
+          } else {
+            openNextChapterFastRef.current();
+          }
         }
 
         // Story completion overlay — only on last chapter of a completed story
@@ -1837,7 +1875,18 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setContinuousChapterEnabled(next);
     writeReaderContinuousChapter(next);
     continuousChapterTriggeredRef.current = false;
-    showSwipeNotice(next ? "Cuộn liên tục: tự sang chương sau" : "Đã tắt cuộn liên tục");
+    if (!next) setInlineChapters([]);
+    showSwipeNotice(next ? "Cuộn liên tục: nối chương trong trang" : "Đã tắt cuộn liên tục");
+  }
+
+  function toggleCommentsSplit() {
+    setCommentsSplitOpen((current) => {
+      const next = !current;
+      writeReaderCommentsSplit(next);
+      if (next) setNotesSidebarOpen(false);
+      showSwipeNotice(next ? "Luận đạo cạnh nội dung" : "Luận đạo dưới chương");
+      return next;
+    });
   }
 
   function togglePageColumns() {
@@ -2143,9 +2192,17 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
   }, [isPageLayout, pageColumns]);
 
+  useEffect(() => {
+    if (!isPageLayout || !commentsSplitOpen) return;
+    setCommentsSplitOpen(false);
+    writeReaderCommentsSplit(false);
+  }, [isPageLayout, commentsSplitOpen]);
+
   async function openNextChapterFast() {
-    const nextChapter = activePayload.nextChapter;
+    const tailNextChapter = resolveTailNextChapter(inlineChaptersRef.current, activePayload.nextChapter);
+    const nextChapter = tailNextChapter;
     if (!nextChapter) return;
+    setInlineChapters([]);
     setChapterTransitionDirection("next");
     setChapterTransitionTrigger((t) => t + 1);
     markChapterListNavigation(nextChapter.chapterNumber);
@@ -2168,12 +2225,67 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     void openNextChapterFast();
   };
 
+  async function appendInlineNextChapter() {
+    if (inlineAppendInFlightRef.current) return;
+    if (!canAppendInlineChapter(inlineChaptersRef.current.length)) {
+      openNextChapterFastRef.current();
+      return;
+    }
+
+    const nextSummary = resolveTailNextChapter(inlineChaptersRef.current, activePayload.nextChapter);
+    if (!nextSummary) {
+      continuousChapterTriggeredRef.current = false;
+      return;
+    }
+
+    inlineAppendInFlightRef.current = true;
+    try {
+      const queryPayload = queryClient.getQueryData<ReaderPayload>(
+        readerQueryKeys.chapter(activePayload.story.id, nextSummary.chapterNumber)
+      );
+      const cached = queryPayload ? null : await getCachedChapter(activePayload.story.id, nextSummary.chapterNumber);
+      let nextPayload = queryPayload ?? cached?.payload ?? null;
+      if (!nextPayload) {
+        nextPayload = await queryClient.fetchQuery({
+          queryKey: readerQueryKeys.chapter(activePayload.story.id, nextSummary.chapterNumber),
+          queryFn: () => fetchReaderChapter(activePayload.story.id, nextSummary.chapterNumber),
+          staleTime: 1000 * 60 * 8
+        });
+      }
+
+      const block: ReaderInlineChapterBlock = {
+        chapterId: nextPayload.chapter.id,
+        chapterNumber: nextPayload.chapter.chapterNumber,
+        title: nextPayload.chapter.title,
+        paragraphs: chapterContentToParagraphs(nextPayload.chapter),
+        nextChapter: nextPayload.nextChapter
+      };
+
+      queryClient.setQueryData(
+        readerQueryKeys.chapter(nextPayload.story.id, nextPayload.chapter.chapterNumber),
+        nextPayload
+      );
+      setInlineChapters((current) => [...current, block]);
+      continuousChapterTriggeredRef.current = false;
+      showSwipeNotice(`Chương ${block.chapterNumber}`, 900);
+    } catch {
+      continuousChapterTriggeredRef.current = false;
+      openNextChapterFastRef.current();
+    } finally {
+      inlineAppendInFlightRef.current = false;
+    }
+  }
+  appendInlineNextChapterRef.current = () => {
+    void appendInlineNextChapter();
+  };
+
   async function openCachedChapter(chapterNumber: number) {
     const queryPayload = queryClient.getQueryData<ReaderPayload>(readerQueryKeys.chapter(activePayload.story.id, chapterNumber));
     const cached = queryPayload ? null : await getCachedChapter(activePayload.story.id, chapterNumber);
     const nextPayload = queryPayload ?? cached?.payload;
     if (!nextPayload) return;
     setCachedPayload(nextPayload);
+    setInlineChapters([]);
     setMobileSheetOpen(false);
     setMobileMenuOpen(false);
     queryClient.setQueryData(readerQueryKeys.chapter(nextPayload.story.id, nextPayload.chapter.chapterNumber), nextPayload);
@@ -2495,7 +2607,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             <ArrowUp size={18} />
           </button>
 
-          {activePayload.nextChapter ? (
+          {tailNextChapter ? (
             <button
               ref={continueButtonRef}
               className={`reader-continue-fab reader-continue-fab-active ${showContinuePrompt ? "reader-continue-fab-visible" : ""} ${highlightContinuePrompt ? "reader-continue-fab-near-end" : ""}`}
@@ -2517,7 +2629,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   return (
     <main
       ref={readerShellRef}
-      className={`reader-shell ${focusModeEnabled ? "reader-shell-focus-mode" : ""} ${isPageLayout ? "reader-shell-layout-page" : ""} ${spreadPageMode ? "reader-shell-layout-page-spread" : ""} ${notesSidebarOpen && !compactReader ? "reader-shell-notes-open" : ""} ${shellFreshPulse ? "reader-shell-fresh-pulse" : ""}`}
+      className={`reader-shell ${focusModeEnabled ? "reader-shell-focus-mode" : ""} ${isPageLayout ? "reader-shell-layout-page" : ""} ${spreadPageMode ? "reader-shell-layout-page-spread" : ""} ${notesSidebarOpen && !compactReader ? "reader-shell-notes-open" : ""} ${commentsSplitOpen && !compactReader ? "reader-shell-comments-split" : ""} ${shellFreshPulse ? "reader-shell-fresh-pulse" : ""}`}
       data-theme={theme}
       data-font={fontFamily}
       style={readerShellStyle}
@@ -2758,6 +2870,19 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           <div className="reader-control-group reader-action-group" ref={readerOverflowRef}>
             <FollowButton story={activePayload.story} compact />
             {!compactReader ? (
+              <FloatingTooltip label="Luận đạo cạnh nội dung">
+                <button
+                  className={`icon-button ${commentsSplitOpen ? "icon-button-active" : ""}`}
+                  type="button"
+                  title="Luận đạo cạnh nội dung"
+                  aria-pressed={commentsSplitOpen}
+                  onClick={toggleCommentsSplit}
+                >
+                  <MessageCircle size={16} />
+                </button>
+              </FloatingTooltip>
+            ) : null}
+            {!compactReader ? (
               <FloatingTooltip label="Ghi chú đoạn">
                 <button
                   className={`icon-button ${notesSidebarOpen ? "icon-button-active" : ""}`}
@@ -2873,7 +2998,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   onClick={() => { toggleContinuousChapter(); setReaderOverflowOpen(false); }}
                 >
                   <ChevronRight size={15} />
-                  {continuousChapterEnabled ? "Tắt cuộn liên tục" : "Cuộn liên tục qua chương"}
+                  {continuousChapterEnabled ? "Tắt cuộn liên tục" : "Cuộn liên tục nối chương"}
+                </button>
+                <button
+                  className={`reader-overflow-item ${commentsSplitOpen ? "reader-overflow-item-active" : ""}`}
+                  type="button"
+                  onClick={() => { toggleCommentsSplit(); setReaderOverflowOpen(false); }}
+                >
+                  <MessageCircle size={15} />
+                  {commentsSplitOpen ? "Luận đạo dưới chương" : "Luận đạo cạnh nội dung"}
                 </button>
                 <button
                   className={`reader-overflow-item ${isPageLayout ? "reader-overflow-item-active" : ""}`}
@@ -3503,7 +3636,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   onClick={toggleContinuousChapter}
                 >
                   <ChevronRight size={16} />
-                  {continuousChapterEnabled ? "Đang cuộn liên tục" : "Cuộn liên tục"}
+                  {continuousChapterEnabled ? "Đang cuộn liên tục" : "Cuộn liên tục nối chương"}
                 </button>
                 <button
                   className={`reader-sheet-action ${isPageLayout ? "reader-sheet-action-active" : ""}`}
@@ -3757,6 +3890,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               theme={theme}
             />
           ) : null}
+          <div className={`reader-main-columns ${commentsSplitOpen && !compactReader ? "reader-main-columns-split" : ""}`}>
           <div className="reader-article">
             {tapEdgeEnabled && !focusModeEnabled && !adminEdit ? (
               <>
@@ -3999,7 +4133,20 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               )}
             </section>
 
-            <ChapterComments chapterId={activePayload.chapter.id} />
+            {continuousChapterEnabled && !isPageLayout
+              ? inlineChapters.map((block) => (
+                  <ReaderInlineChapterBlock
+                    key={block.chapterId}
+                    chapterNumber={block.chapterNumber}
+                    title={block.title}
+                    paragraphs={block.paragraphs}
+                    glossaryIndex={glossaryIndex}
+                    onTermClick={(character) => setGlossaryTapCharacter(character)}
+                  />
+                ))
+              : null}
+
+            {!commentsSplitOpen || compactReader ? <ChapterComments chapterId={activePayload.chapter.id} /> : null}
 
             <ReaderChapterFooter storyId={activePayload.story.id} excludeStoryId={activePayload.story.id} />
 
@@ -4016,17 +4163,26 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               <Link
                 ref={navCardNextRef}
                 className="nav-card"
-                aria-disabled={!activePayload.nextChapter}
-                href={activePayload.nextChapter ? storyHref(activePayload.story, activePayload.nextChapter.chapterNumber) : "#"}
-                onClick={(event) => maybeOpenCachedChapter(event, activePayload.nextChapter?.chapterNumber)}
+                aria-disabled={!tailNextChapter}
+                href={tailNextChapter ? storyHref(activePayload.story, tailNextChapter.chapterNumber) : "#"}
+                onClick={(event) => maybeOpenCachedChapter(event, tailNextChapter?.chapterNumber)}
               >
                 <span>
-                  <small>{activePayload.nextChapter ? "Đọc tiếp" : "Sau"}</small>
-                  {activePayload.nextChapter ? activePayload.nextChapter.title : "Không có chương sau"}
+                  <small>{tailNextChapter ? "Đọc tiếp" : "Sau"}</small>
+                  {tailNextChapter ? tailNextChapter.title : "Không có chương sau"}
                 </span>
                 <ChevronRight size={18} />
               </Link>
             </nav>
+          </div>
+          <ReaderCommentsSidebar
+            open={commentsSplitOpen && !compactReader}
+            chapterId={activePayload.chapter.id}
+            onClose={() => {
+              setCommentsSplitOpen(false);
+              writeReaderCommentsSplit(false);
+            }}
+          />
           </div>
         </article>
       </div>

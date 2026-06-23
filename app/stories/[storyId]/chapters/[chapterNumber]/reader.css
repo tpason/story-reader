@@ -5013,6 +5013,94 @@ html[data-sidebar-resizing="true"] * {
   }
 }
 
+.reader-main-columns-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: clamp(16px, 2vw, 28px);
+  align-items: start;
+}
+
+.reader-comments-sidebar {
+  position: sticky;
+  top: calc(env(safe-area-inset-top) + 58px);
+  max-height: calc(100dvh - 88px - env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--hairline));
+  background: color-mix(in srgb, var(--panel) 95%, #000 5%);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.reader-comments-sidebar-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.reader-comments-sidebar-header h2 {
+  margin: 4px 0 0;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reader-comments-sidebar-close {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.reader-comments-sidebar-body {
+  overflow: auto;
+  padding: 8px 10px 14px;
+  max-height: calc(100dvh - 160px - env(safe-area-inset-bottom));
+}
+
+.reader-comments-sidebar-body .comment-section {
+  margin-top: 0;
+}
+
+.reader-inline-chapter {
+  margin-top: clamp(28px, 4vw, 48px);
+}
+
+.reader-inline-chapter-divider {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 20px;
+  padding: 16px 0 12px;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 24%, var(--hairline));
+  border-bottom: 1px solid var(--hairline);
+  text-align: center;
+}
+
+.reader-inline-chapter-divider span {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.reader-inline-chapter-divider strong {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.reader-inline-paragraph {
+  scroll-margin-top: 88px;
+}
+
 @media (max-width: 1099px) {
   .reader-shell-layout-page-spread .reader-page-spread-grid {
     grid-template-columns: 1fr;

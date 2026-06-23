@@ -12,6 +12,13 @@ import {
   markReaderOnboardingComplete,
   shouldShowReaderOnboarding
 } from "../lib/reader-onboarding.ts";
+import {
+  canAppendInlineChapter,
+  MAX_READER_INLINE_APPEND,
+  resolveTailNextChapter,
+  type ReaderInlineChapterBlock
+} from "../lib/reader-inline-chapters.ts";
+import { readReaderCommentsSplit, writeReaderCommentsSplit } from "../lib/reader-comments-split.ts";
 
 function installMockWindow() {
   const local = new Map<string, string>();
@@ -93,5 +100,40 @@ describe("reader UX preference storage", () => {
     assert.equal(shouldShowReaderOnboarding(), true);
     markReaderOnboardingComplete();
     assert.equal(shouldShowReaderOnboarding(), false);
+  });
+});
+
+describe("reader inline chapters", () => {
+  it("resolves tail next chapter from appended blocks", () => {
+    const inline: ReaderInlineChapterBlock[] = [
+      {
+        chapterId: "c2",
+        chapterNumber: 2,
+        title: "Chương 2",
+        paragraphs: ["a"],
+        nextChapter: { id: "c3", chapterNumber: 3, title: "Chương 3" }
+      }
+    ];
+    assert.equal(resolveTailNextChapter(inline, { id: "c2", chapterNumber: 2, title: "Chương 2" })?.chapterNumber, 3);
+    assert.equal(resolveTailNextChapter([], { id: "c2", chapterNumber: 2, title: "Chương 2" })?.chapterNumber, 2);
+  });
+
+  it("caps inline append count", () => {
+    assert.equal(canAppendInlineChapter(0), true);
+    assert.equal(canAppendInlineChapter(MAX_READER_INLINE_APPEND - 1), true);
+    assert.equal(canAppendInlineChapter(MAX_READER_INLINE_APPEND), false);
+  });
+});
+
+describe("reader comments split preference", () => {
+  afterEach(() => {
+    delete (globalThis as { window?: Window & typeof globalThis }).window;
+  });
+
+  it("persists comments split preference", () => {
+    installMockWindow();
+    assert.equal(readReaderCommentsSplit(), false);
+    writeReaderCommentsSplit(true);
+    assert.equal(readReaderCommentsSplit(), true);
   });
 });
