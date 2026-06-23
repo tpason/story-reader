@@ -14,9 +14,21 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { computeFileModeProgress, computeSegmentModeProgress } from "@/lib/reader-audio-sync";
 import {
+  readReaderAudioAutoNext,
+  writeReaderAudioAutoNext
+} from "@/lib/reader-audio-auto-next";
+import {
   readReaderAudioPlaybackRate,
   writeReaderAudioPlaybackRate
 } from "@/lib/reader-audio-playback-rate";
+import {
+  clearReaderAudioSleepTimer,
+  isReaderAudioSleepTimerPreset,
+  readReaderAudioSleepTimerEndsAt,
+  readReaderAudioSleepTimerPreset,
+  scheduleReaderAudioSleepTimer,
+  type ReaderAudioSleepTimerPreset
+} from "@/lib/reader-audio-sleep-timer";
 
 type ChapterAudioPlayerProps = {
   chapterId: string;
@@ -130,8 +142,8 @@ export function ChapterAudioPlayer({
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState<number | null>(null);
   const [playbackRate, setPlaybackRate] = useState(() => readReaderAudioPlaybackRate());
   const [autoNextEnabled, setAutoNextEnabled] = useState(false);
-  const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | null>(null);
-  const sleepTimerRef = useRef<number | null>(null);
+  const [sleepTimerPreset, setSleepTimerPreset] = useState<ReaderAudioSleepTimerPreset | 0>(0);
+  const [sleepTimerEndsAt, setSleepTimerEndsAt] = useState<number | null>(null);
   const [readAlongEnabledInternal, setReadAlongEnabledInternal] = useState(true);
   const lastProgressEmitRef = useRef(-1);
   const readAlongEnabled = readAlongEnabledProp ?? readAlongEnabledInternal;
@@ -171,20 +183,42 @@ export function ChapterAudioPlayer({
   }, [clearManagedTimeouts]);
 
   useEffect(() => {
-    if (sleepTimerRef.current) window.clearTimeout(sleepTimerRef.current);
-    if (!sleepTimerMinutes) return undefined;
-    sleepTimerRef.current = window.setTimeout(() => {
-      sleepTimerRef.current = null;
-      audioRef.current?.pause();
-      setSleepTimerMinutes(null);
-      onSleepTimerEnd?.();
-    }, sleepTimerMinutes * 60_000);
-    return () => {
-      if (sleepTimerRef.current) window.clearTimeout(sleepTimerRef.current);
-    };
-  }, [sleepTimerMinutes, onSleepTimerEnd]);
+    setAutoNextEnabled(readReaderAudioAutoNext());
+  }, []);
 
-  // MediaSession metadata (track title for lock-screen / OS media overlay).
+  useEffect(() => {
+    const endsAt = readReaderAudioSleepTimerEndsAt();
+    if (endsAt) {
+      setSleepTimerEndsAt(endsAt);
+      setSleepTimerPreset(readReaderAudioSleepTimerPreset());
+      return;
+    }
+    setSleepTimerPreset(readReaderAudioSleepTimerPreset());
+  }, []);
+
+  useEffect(() => {
+    if (!sleepTimerEndsAt) return undefined;
+    const remaining = sleepTimerEndsAt - Date.now();
+    if (remaining <= 0) {
+      setSleepTimerEndsAt(null);
+      setSleepTimerPreset(0);
+      clearReaderAudioSleepTimer();
+      audioRef.current?.pause();
+      onSleepTimerEnd?.();
+      return undefined;
+    }
+
+    const id = window.setTimeout(() => {
+      setSleepTimerEndsAt(null);
+      setSleepTimerPreset(0);
+      clearReaderAudioSleepTimer();
+      audioRef.current?.pause();
+      onSleepTimerEnd?.();
+    }, remaining);
+
+    return () => window.clearTimeout(id);
+  }, [sleepTimerEndsAt, onSleepTimerEnd]);
+
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;
     navigator.mediaSession.metadata = new MediaMetadata({ title, album: "BetterBox Audio" });
@@ -685,10 +719,17 @@ export function ChapterAudioPlayer({
         <label>
           <span>Hẹn giờ</span>
           <select
-            value={sleepTimerMinutes ?? 0}
+            value={sleepTimerPreset}
             onChange={(event) => {
               const next = Number(event.target.value);
-              setSleepTimerMinutes(next > 0 ? next : null);
+              if (!isReaderAudioSleepTimerPreset(next)) {
+                setSleepTimerPreset(0);
+                setSleepTimerEndsAt(null);
+                clearReaderAudioSleepTimer();
+                return;
+              }
+              setSleepTimerPreset(next);
+              setSleepTimerEndsAt(scheduleReaderAudioSleepTimer(next));
             }}
           >
             <option value="0">Tắt</option>
@@ -703,7 +744,11 @@ export function ChapterAudioPlayer({
             <input
               type="checkbox"
               checked={autoNextEnabled}
-              onChange={(event) => setAutoNextEnabled(event.target.checked)}
+              onChange={(event) => {
+                const enabled = event.target.checked;
+                setAutoNextEnabled(enabled);
+                writeReaderAudioAutoNext(enabled);
+              }}
             />
             <span>Chương sau</span>
           </label>
