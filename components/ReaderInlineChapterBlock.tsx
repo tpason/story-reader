@@ -5,6 +5,7 @@ import type { GlossaryCharacter } from "@/lib/reader-glossary";
 import type { GlossaryIndex } from "@/lib/reader-glossary";
 
 type ReaderInlineChapterBlockProps = {
+  chapterId: string;
   chapterNumber: number;
   title: string;
   paragraphs: string[];
@@ -13,6 +14,7 @@ type ReaderInlineChapterBlockProps = {
 };
 
 export function ReaderInlineChapterBlock({
+  chapterId,
   chapterNumber,
   title,
   paragraphs,
@@ -28,7 +30,14 @@ export function ReaderInlineChapterBlock({
         <strong>{title}</strong>
       </div>
       {paragraphs.map((paragraph, index) => (
-        <p className="reader-paragraph reader-inline-paragraph" data-paragraph-index={index} data-chapter-number={chapterNumber} key={`${chapterNumber}-${index}-${paragraph.slice(0, 12)}`}>
+        <p
+          className="reader-paragraph reader-inline-paragraph"
+          data-paragraph-index={index}
+          data-chapter-number={chapterNumber}
+          data-chapter-id={chapterId}
+          data-chapter-title={title}
+          key={`${chapterNumber}-${index}-${paragraph.slice(0, 12)}`}
+        >
           <span className="reader-paragraph-text">
             {glossaryIndex.size > 0 ? (
               <ReaderGlossaryInlineText text={paragraph} glossaryIndex={glossaryIndex} searchActive={false} onTermClick={onTermClick} />

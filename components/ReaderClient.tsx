@@ -104,6 +104,13 @@ import {
 } from "@/lib/reader-inline-chapters";
 import { chapterContentToParagraphs } from "@/lib/reader-chapter-paragraphs";
 import { readReaderCommentsSplit, writeReaderCommentsSplit } from "@/lib/reader-comments-split";
+import {
+  pickBestVisibleParagraphEntry,
+  readVisibleChapterFromParagraph,
+  readerParagraphPositionKey,
+  readerScrollPositionKey,
+  type ReaderVisibleChapter
+} from "@/lib/reader-visible-chapter";
 import { buildParagraphPages, buildParagraphPagesFromHeights, pageIndexForParagraph } from "@/lib/reader-pagination";
 import {
   estimateParagraphHeight,
@@ -322,6 +329,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [notesSidebarOpen, setNotesSidebarOpen] = useState(false);
   const [commentsSplitOpen, setCommentsSplitOpen] = useState(false);
   const [inlineChapters, setInlineChapters] = useState<ReaderInlineChapterBlock[]>([]);
+  const [commentsChapterId, setCommentsChapterId] = useState(payload.chapter.id);
+  const visibleChapterRef = useRef<ReaderVisibleChapter>({
+    chapterId: payload.chapter.id,
+    chapterNumber: payload.chapter.chapterNumber,
+    chapterTitle: payload.chapter.title,
+    paragraphIndex: 0
+  });
+  const syncedReaderUrlChapterRef = useRef(payload.chapter.chapterNumber);
   const [pageColumns, setPageColumns] = useState<ReaderPageColumns>(() => readReaderPageColumns());
   const panelScrollAnchorRef = useRef<{ scrollY: number; paragraphIndex: number } | null>(null);
   const [jumpBackTarget, setJumpBackTarget] = useState<{ scrollY: number; paragraphIndex: number } | null>(null);
@@ -611,6 +626,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const tailNextChapter = useMemo(
     () => resolveTailNextChapter(inlineChapters, activePayload.nextChapter),
     [inlineChapters, activePayload.nextChapter]
+  );
+  const primaryChapterParagraphAttrs = useMemo(
+    () => ({
+      "data-chapter-number": activePayload.chapter.chapterNumber,
+      "data-chapter-id": activePayload.chapter.id,
+      "data-chapter-title": activePayload.chapter.title
+    }),
+    [activePayload.chapter.chapterNumber, activePayload.chapter.id, activePayload.chapter.title]
   );
   const visiblePageIndexes = useMemo(() => {
     if (!spreadPageMode) return [pageIndex];
@@ -908,6 +931,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     continuousChapterTriggeredRef.current = false;
     setJumpBackTarget(null);
     setInlineChapters([]);
+    visibleChapterRef.current = {
+      chapterId: activePayload.chapter.id,
+      chapterNumber: activePayload.chapter.chapterNumber,
+      chapterTitle: activePayload.chapter.title,
+      paragraphIndex: 0
+    };
+    syncedReaderUrlChapterRef.current = activePayload.chapter.chapterNumber;
+    setCommentsChapterId(activePayload.chapter.id);
   }, [
     payload.chapters,
     payload.previousChapterCursor,
@@ -926,6 +957,19 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   useEffect(() => {
     inlineChaptersRef.current = inlineChapters;
   }, [inlineChapters]);
+
+  useEffect(() => {
+    setInlineChapters([]);
+    continuousChapterTriggeredRef.current = false;
+    visibleChapterRef.current = {
+      chapterId: activePayload.chapter.id,
+      chapterNumber: activePayload.chapter.chapterNumber,
+      chapterTitle: activePayload.chapter.title,
+      paragraphIndex: 0
+    };
+    syncedReaderUrlChapterRef.current = activePayload.chapter.chapterNumber;
+    setCommentsChapterId(activePayload.chapter.id);
+  }, [activePayload.chapter.id, activePayload.chapter.chapterNumber, activePayload.chapter.title]);
 
   useEffect(() => {
     if (!commentsSplitOpen || compactReader) return;
@@ -1339,24 +1383,25 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   useEffect(() => {
     function persistProgress(scrollY: number, currentProgress: number, syncRemote: boolean) {
+      const visible = visibleChapterRef.current;
       const item = {
         storyId: activePayload.story.id,
         storyTitle: activePayload.story.title,
         coverImageUrl: activePayload.story.coverImageUrl,
-        chapterId: activePayload.chapter.id,
-        chapterNumber: activePayload.chapter.chapterNumber,
-        chapterTitle: activePayload.chapter.title,
+        chapterId: visible.chapterId,
+        chapterNumber: visible.chapterNumber,
+        chapterTitle: visible.chapterTitle,
         scrollPosition: Math.round(scrollY),
-        paragraphIndex: activeParagraphIndexRef.current,
+        paragraphIndex: visible.paragraphIndex,
         progressPercent: Math.round(currentProgress * 100) / 100,
-        maxReadChapterNumber: activePayload.chapter.chapterNumber,
+        maxReadChapterNumber: Math.max(activePayload.chapter.chapterNumber, visible.chapterNumber),
         totalChapters: activePayload.story.totalChapters,
         lastReadAt: new Date().toISOString()
       };
 
       dispatch(upsertHistoryItem(item));
       dispatch(recordDailyRead(new Date().toISOString().slice(0, 10))); // "YYYY-MM-DD"
-      window.localStorage.setItem(storageKey, String(Math.round(scrollY)));
+      window.localStorage.setItem(readerScrollPositionKey(activePayload.story.id, visible.chapterNumber), String(Math.round(scrollY)));
 
       if (syncRemote) {
         fetch("/api/reading-progress", {
@@ -1555,7 +1600,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           const remotePersistInterval = isCompactViewport ? MOBILE_REMOTE_PROGRESS_PERSIST_MS : DESKTOP_REMOTE_PROGRESS_PERSIST_MS;
           const shouldSyncRemote = now - lastRemotePersistRef.current > remotePersistInterval;
           persistProgress(scrollTop, current, shouldSyncRemote);
-          window.localStorage.setItem(paragraphPositionKey, String(activeParagraphIndexRef.current));
+          const visible = visibleChapterRef.current;
+          window.localStorage.setItem(
+            readerParagraphPositionKey(activePayload.story.id, visible.chapterNumber),
+            String(visible.paragraphIndex)
+          );
           lastLocalPersistRef.current = now;
           if (shouldSyncRemote) lastRemotePersistRef.current = now;
         }
@@ -1681,28 +1730,55 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     };
   }, [mobileFormatOpen]);
 
-  // Track active paragraph via IntersectionObserver — replaces per-frame getBoundingClientRect loop.
-  // Observes a thin band at ~34% from viewport top; updates activeParagraphIndexRef passively.
+  // Track active paragraph + visible chapter (primary or inline-appended).
   useEffect(() => {
-    const container = paragraphContainerRef.current;
-    if (!container || !paragraphs.length) return;
+    const article = document.querySelector(".reader-article");
+    if (!article) return;
+
+    const fallback: ReaderVisibleChapter = {
+      chapterId: activePayload.chapter.id,
+      chapterNumber: activePayload.chapter.chapterNumber,
+      chapterTitle: activePayload.chapter.title,
+      paragraphIndex: 0
+    };
 
     const observer = new IntersectionObserver(
       (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const index = Number((entry.target as HTMLElement).dataset.paragraphIndex);
-            if (Number.isInteger(index)) activeParagraphIndexRef.current = index;
+        const best = pickBestVisibleParagraphEntry(entries);
+        if (!best) return;
+
+        const next = readVisibleChapterFromParagraph(best.target as HTMLElement, fallback);
+        if (!next) return;
+
+        visibleChapterRef.current = next;
+        activeParagraphIndexRef.current = next.paragraphIndex;
+
+        if (next.chapterNumber !== syncedReaderUrlChapterRef.current) {
+          syncedReaderUrlChapterRef.current = next.chapterNumber;
+          const href = storyHref(activePayload.story, next.chapterNumber);
+          if (window.location.pathname !== new URL(href, window.location.origin).pathname) {
+            window.history.replaceState(null, "", href);
           }
+          setCommentsChapterId(next.chapterId);
         }
       },
-      { rootMargin: "-33% 0px -63% 0px", threshold: 0 }
+      { rootMargin: "-33% 0px -63% 0px", threshold: [0, 0.2, 0.45, 0.7, 1] }
     );
 
-    container.querySelectorAll<HTMLElement>("[data-paragraph-index]").forEach((node) => observer.observe(node));
+    article.querySelectorAll<HTMLElement>("[data-paragraph-index][data-chapter-number]").forEach((node) => observer.observe(node));
 
     return () => observer.disconnect();
-  }, [paragraphs, shouldVirtualizeParagraphs, paragraphVirtualizer.range?.startIndex, paragraphVirtualizer.range?.endIndex]);
+  }, [
+    activePayload.chapter.chapterNumber,
+    activePayload.chapter.id,
+    activePayload.chapter.title,
+    activePayload.story,
+    inlineChapters,
+    paragraphs,
+    shouldVirtualizeParagraphs,
+    paragraphVirtualizer.range?.startIndex,
+    paragraphVirtualizer.range?.endIndex
+  ]);
 
   function scrollToTop() {
     const reduceMotion = prefersReducedMotion();
@@ -4083,6 +4159,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                           <p
                             className={paragraphClassName(index, bookmarked, hasNote)}
                             data-paragraph-index={index}
+                            {...primaryChapterParagraphAttrs}
                             onDoubleClick={(event) => {
                               const target = event.target instanceof Element ? event.target : null;
                               if (target?.closest("button")) return;
@@ -4107,6 +4184,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                     <p
                       className={paragraphClassName(index, bookmarked, hasNote)}
                       data-paragraph-index={index}
+                      {...primaryChapterParagraphAttrs}
                       key={`${index}-${paragraph.slice(0, 12)}`}
                       onDoubleClick={(event) => {
                         const target = event.target instanceof Element ? event.target : null;
@@ -4137,6 +4215,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               ? inlineChapters.map((block) => (
                   <ReaderInlineChapterBlock
                     key={block.chapterId}
+                    chapterId={block.chapterId}
                     chapterNumber={block.chapterNumber}
                     title={block.title}
                     paragraphs={block.paragraphs}
@@ -4177,7 +4256,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           </div>
           <ReaderCommentsSidebar
             open={commentsSplitOpen && !compactReader}
-            chapterId={activePayload.chapter.id}
+            chapterId={commentsChapterId}
             onClose={() => {
               setCommentsSplitOpen(false);
               writeReaderCommentsSplit(false);

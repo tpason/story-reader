@@ -18,6 +18,12 @@ import {
   resolveTailNextChapter,
   type ReaderInlineChapterBlock
 } from "../lib/reader-inline-chapters.ts";
+import {
+  pickBestVisibleParagraphEntry,
+  readVisibleChapterFromParagraph,
+  readerParagraphPositionKey,
+  type ReaderVisibleChapter
+} from "../lib/reader-visible-chapter.ts";
 import { readReaderCommentsSplit, writeReaderCommentsSplit } from "../lib/reader-comments-split.ts";
 
 function installMockWindow() {
@@ -135,5 +141,43 @@ describe("reader comments split preference", () => {
     assert.equal(readReaderCommentsSplit(), false);
     writeReaderCommentsSplit(true);
     assert.equal(readReaderCommentsSplit(), true);
+  });
+});
+
+describe("reader visible chapter", () => {
+  it("reads chapter metadata from paragraph datasets", () => {
+    const node = {
+      dataset: {
+        paragraphIndex: "4",
+        chapterNumber: "12",
+        chapterId: "chapter-12",
+        chapterTitle: "Chương mười hai"
+      }
+    } as HTMLElement;
+
+    const visible = readVisibleChapterFromParagraph(node, {
+      chapterId: "fallback",
+      chapterNumber: 1,
+      chapterTitle: "Fallback",
+      paragraphIndex: 0
+    });
+
+    assert.deepEqual(visible, {
+      chapterId: "chapter-12",
+      chapterNumber: 12,
+      chapterTitle: "Chương mười hai",
+      paragraphIndex: 4
+    });
+    assert.equal(readerParagraphPositionKey("story-1", 12), "reader:paragraph-position:story-1:12");
+  });
+
+  it("picks the paragraph with the strongest intersection ratio", () => {
+    const entries = [
+      { isIntersecting: true, intersectionRatio: 0.2, target: {} },
+      { isIntersecting: true, intersectionRatio: 0.8, target: {} }
+    ] as IntersectionObserverEntry[];
+
+    assert.equal(pickBestVisibleParagraphEntry(entries)?.intersectionRatio, 0.8);
+    assert.equal(pickBestVisibleParagraphEntry([]), null);
   });
 });

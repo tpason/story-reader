@@ -30,7 +30,7 @@ export function storyReaderPath(story: { id: string; title: string }, chapterNum
   return `/stories/${slugify(story.title)}-${story.id}/chapters/${chapterNumber}`;
 }
 
-async function pickReadableStory(page: Page, chapterNumber = 1) {
+export async function pickReadableStory(page: Page, chapterNumber = 1) {
   if (FIXED_READER_PATH) {
     const storyId = FIXED_READER_PATH.match(/[0-9a-f-]{36}/i)?.[0];
     if (storyId) {
@@ -73,6 +73,37 @@ export async function primeReaderTestStorage(page: Page) {
     window.localStorage.setItem("reader:performance-mode", "battery_saver");
     window.localStorage.setItem("reader:skill-effects-enabled", "0");
   });
+}
+
+export async function seedReadingHistory(
+  page: Page,
+  item: {
+    storyId: string;
+    storyTitle: string;
+    chapterNumber: number;
+    chapterTitle?: string;
+    paragraphIndex?: number;
+  }
+) {
+  const historyItem = {
+    storyId: item.storyId,
+    storyTitle: item.storyTitle,
+    coverImageUrl: null,
+    chapterId: null,
+    chapterNumber: item.chapterNumber,
+    chapterTitle: item.chapterTitle ?? `Chương ${item.chapterNumber}`,
+    scrollPosition: 640,
+    paragraphIndex: item.paragraphIndex ?? 3,
+    progressPercent: 42,
+    maxReadChapterNumber: item.chapterNumber,
+    totalChapters: Math.max(item.chapterNumber + 2, 10),
+    lastReadAt: new Date().toISOString()
+  };
+
+  await page.addInitScript((entry) => {
+    window.localStorage.setItem("reader:history", JSON.stringify([entry]));
+    window.localStorage.setItem(`reader:story:${entry.storyId}`, JSON.stringify(entry));
+  }, historyItem);
 }
 
 export async function loadReaderFixture(page: Page, chapterNumber = 1): Promise<StoryFixture> {
