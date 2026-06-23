@@ -14714,3 +14714,13 @@ html[data-reader-realtime-fx="off"] .notification-bell-live .notification-dot {
     transform: none !important;
   }
 }
+
+/* ── Homepage resume bar placement ── */
+.page-wrap > .resume-mini-bar {
+  margin: 0 0 14px;
+}
+
+.story-detail-shell .page-wrap > .resume-mini-bar {
+  margin-top: 4px;
+}
+

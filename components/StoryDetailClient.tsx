@@ -25,7 +25,7 @@ import { StoryRatingWidget } from "@/components/StoryRatingWidget";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import { useStoryChapterPagination } from "@/hooks/useStoryChapterPagination";
-import { useStoryDetailAdminEdit } from "@/hooks/useStoryDetailAdminEdit";
+import { writeResumeNavigationTarget } from "@/lib/reader-resume";
 
 const ThreeStoryStage = dynamic(() => import("@/components/ThreeStoryStage").then((mod) => mod.ThreeStoryStage), {
   ssr: false
@@ -234,7 +234,17 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
             )}
             <div className="story-detail-actions">
               {continueChapter ? (
-                <Link className="auth-submit" href={storyHref(currentStory, continueChapter)}>
+                <Link
+                  className="auth-submit"
+                  href={storyHref(currentStory, continueChapter)}
+                  onClick={() => {
+                    if (!history) return;
+                    writeResumeNavigationTarget(history.storyId, history.chapterNumber, {
+                      scrollPosition: history.scrollPosition,
+                      paragraphIndex: history.paragraphIndex ?? null
+                    });
+                  }}
+                >
                   <BookOpenCheck size={16} />
                   {history ? `Đọc tiếp chương ${history.chapterNumber}` : "Đọc từ đầu"}
                 </Link>

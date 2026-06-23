@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, BookMarked, BookOpen, ChevronLeft, ChevronRight, ClipboardCheck, Eye, EyeOff, Headphones, Highlighter, LoaderCircle, Menu, MessageCircle, Minus, Moon, MoreHorizontal, Pause, Play, Plus, RotateCcw, Search, Settings2, StickyNote, Sun, Type, WifiOff, X } from "lucide-react";
+import { ArrowUp, BookMarked, BookOpen, ChevronLeft, ChevronRight, ClipboardCheck, Eye, EyeOff, Headphones, Highlighter, HelpCircle, LoaderCircle, Menu, MessageCircle, Minus, Moon, Pause, Play, Plus, RotateCcw, Search, Settings2, StickyNote, Sun, Type, WifiOff, X } from "lucide-react";
 import type { animate as AnimateType } from "animejs";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -29,7 +29,10 @@ import { FollowButton } from "@/components/FollowButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import { BackgroundAudioPlayer } from "@/components/BackgroundAudioPlayer";
 import { ChapterTransition } from "@/components/ChapterTransition";
-import { ReaderChapterFreshHint, type ReaderChapterFreshHintState } from "@/components/ReaderChapterFreshHint";
+import { ReaderGlossaryInlineText } from "@/components/ReaderGlossaryInlineText";
+import { ReaderGlossaryTapPopover } from "@/components/ReaderGlossaryTapPopover";
+import { ReaderNotesSidebar } from "@/components/ReaderNotesSidebar";
+import { ReaderOnboardingCoach } from "@/components/ReaderOnboardingCoach";
 import { ReaderEngagementPrompt } from "@/components/ReaderEngagementPrompt";
 import { RealtimeFxPreference } from "@/components/RealtimeFxPreference";
 import { AmbientSoundPlayer } from "@/components/AmbientSoundPlayer";
@@ -88,13 +91,19 @@ import {
   writeReaderFocusModeDefault,
   writeReaderDesktopSidebarOpen
 } from "@/lib/reader-onboarding";
-import { buildParagraphProgressWeights, paragraphIndexForAudioProgress } from "@/lib/reader-audio-sync";
+import {
+  readReaderContinuousChapter,
+  writeReaderContinuousChapter
+} from "@/lib/reader-continuous-chapter";
 import { buildParagraphPages, buildParagraphPagesFromHeights, pageIndexForParagraph } from "@/lib/reader-pagination";
 import {
   estimateParagraphHeight,
   PARAGRAPH_VIRTUALIZE_THRESHOLD
 } from "@/lib/reader-navigation";
 import { buildGlossaryIndex, lookupGlossarySelection, type GlossaryCharacter, type GlossaryIndex } from "@/lib/reader-glossary";
+import { useStoryContentSearch } from "@/hooks/useStoryContentSearch";
+import { readReaderPageColumns, writeReaderPageColumns, type ReaderPageColumns } from "@/lib/reader-page-columns";
+import type { StoryContentSearchHit } from "@/lib/reader-story-search";
 import {
   dismissResumeHint,
   shouldOfferResumeHint,
@@ -123,7 +132,8 @@ import {
 } from "@/components/ReaderEnhancements";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
-import { useReaderDim } from "@/hooks/useReaderDim";
+import { buildParagraphProgressWeights, paragraphIndexForAudioProgress } from "@/lib/reader-audio-sync";
+import { clampDimLevel, useReaderDim } from "@/hooks/useReaderDim";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { useReaderPanels } from "@/hooks/useReaderPanels";
@@ -165,6 +175,10 @@ const READER_COMFORT_PRESETS = {
     label: "Đêm",
     config: { theme: "dark", fontSize: 20, fontFamily: "noto-serif", lineHeight: 1.88, paragraphSpacing: 1.22, contentWidth: 740 }
   },
+  ban_dem: {
+    label: "Ban đêm",
+    config: { theme: "oled", fontSize: 19, fontFamily: "noto-serif", lineHeight: 1.9, paragraphSpacing: 1.2, contentWidth: 720 }
+  },
   mobile: {
     label: "Mobile nhẹ",
     config: { theme: "sepia", fontSize: 18, fontFamily: "sans", lineHeight: 1.78, paragraphSpacing: 1.08, contentWidth: 680 }
@@ -178,6 +192,7 @@ const READER_COMFORT_PRESETS = {
 const PRESET_ICON_COMPONENT = {
   focus: Eye,
   night: Moon,
+  ban_dem: Moon,
   mobile: BookOpen,
   wide: Type
 } as const;
@@ -285,6 +300,17 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [focusModeDefault, setFocusModeDefault] = useState(() => readReaderFocusModeDefault());
   const [audioHighlightIndex, setAudioHighlightIndex] = useState<number | null>(null);
   const [readAlongEnabled, setReadAlongEnabled] = useState(true);
+  const [glossaryTapCharacter, setGlossaryTapCharacter] = useState<GlossaryCharacter | null>(null);
+  const [continuousChapterEnabled, setContinuousChapterEnabled] = useState(() => readReaderContinuousChapter());
+  const continuousChapterTriggeredRef = useRef(false);
+  const continuousChapterEnabledRef = useRef(continuousChapterEnabled);
+  const openNextChapterFastRef = useRef<() => void>(() => undefined);
+  const [chapterSearchMode, setChapterSearchMode] = useState<"chapter" | "story">("chapter");
+  const [storySearchHitIndex, setStorySearchHitIndex] = useState(0);
+  const [notesSidebarOpen, setNotesSidebarOpen] = useState(false);
+  const [pageColumns, setPageColumns] = useState<ReaderPageColumns>(() => readReaderPageColumns());
+  const panelScrollAnchorRef = useRef<{ scrollY: number; paragraphIndex: number } | null>(null);
+  const [jumpBackTarget, setJumpBackTarget] = useState<{ scrollY: number; paragraphIndex: number } | null>(null);
   const focusDefaultBootstrappedRef = useRef(false);
   const lastAudioScrollIndexRef = useRef<number | null>(null);
   const liveCachedChapters = useLiveQuery(
@@ -389,7 +415,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     "--reader-line-height": lineHeight,
     "--reader-paragraph-spacing": `${paragraphSpacing}em`,
     "--reader-content-width": `${contentWidth}px`,
-    "--reader-dim-opacity": readerDimEnabled ? readerDimLevel : 0
+    "--reader-dim-opacity": readerDimEnabled ? readerDimLevel : 0,
+    "--reader-dock-progress": `${mobileProgress}`
   } as CSSProperties;
 
   const buildCurrentBookmark = useCallback((): ReaderBookmarkItem => {
@@ -561,6 +588,17 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     paragraphContainerRef,
     chapterId: activePayload.chapter.id,
   });
+  const {
+    hits: storySearchHits,
+    loading: storySearchLoading,
+    error: storySearchError
+  } = useStoryContentSearch(activePayload.story.id, chapterSearchQuery, chapterSearchOpen && chapterSearchMode === "story");
+  const spreadPageMode = isPageLayout && pageColumns === 2 && !compactReader;
+  const visiblePageIndexes = useMemo(() => {
+    if (!spreadPageMode) return [pageIndex];
+    const next = pageIndex + 1;
+    return next < paragraphPages.length ? [pageIndex, next] : [pageIndex];
+  }, [pageIndex, paragraphPages.length, spreadPageMode]);
   const paragraphAudioWeights = useMemo(() => buildParagraphProgressWeights(paragraphs), [paragraphs]);
 
   useLayoutEffect(() => {
@@ -849,6 +887,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setResumeHint(null);
     setParagraphNoteEditor(null);
     completionShownRef.current = false;
+    continuousChapterTriggeredRef.current = false;
+    setJumpBackTarget(null);
   }, [
     payload.chapters,
     payload.previousChapterCursor,
@@ -1147,9 +1187,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
 
       if (event.key === "ArrowRight") {
-        if (isPageLayout && pageIndex < paragraphPages.length - 1) {
+        if (isPageLayout && pageIndex < paragraphPages.length - (spreadPageMode ? (visiblePageIndexes.length > 1 ? 2 : 1) : 1)) {
           event.preventDefault();
-          goToPage(pageIndex + 1);
+          goToPage(pageIndex + (spreadPageMode ? 2 : 1));
           return;
         }
         if (activePayload.nextChapter) {
@@ -1159,7 +1199,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       } else if (event.key === "ArrowLeft") {
         if (isPageLayout && pageIndex > 0) {
           event.preventDefault();
-          goToPage(pageIndex - 1);
+          goToPage(pageIndex - (spreadPageMode ? 2 : 1));
           return;
         }
         if (activePayload.previousChapter) {
@@ -1192,6 +1232,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     pageIndex,
     paragraphPages.length,
     router,
+    spreadPageMode,
+    visiblePageIndexes.length,
     setChapterSearchOpen,
     setDesktopSidebarOpen,
     setFocusModeEnabled,
@@ -1223,11 +1265,16 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       setAudioHighlightIndex(nextIndex);
       if (lastAudioScrollIndexRef.current === nextIndex) return;
       lastAudioScrollIndexRef.current = nextIndex;
-      if (!audioPanelOpen || isPageLayout) return;
+      if (!audioPanelOpen) return;
+      if (isPageLayout) {
+        const nextPage = pageIndexForParagraph(paragraphPages, nextIndex);
+        if (nextPage !== pageIndex) goToPage(nextPage);
+        return;
+      }
       const node = paragraphContainerRef.current?.querySelector(`[data-paragraph-index="${nextIndex}"]`);
       node?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "center" });
     },
-    [audioPanelOpen, isPageLayout, paragraphAudioWeights, readAlongEnabled]
+    [audioPanelOpen, goToPage, isPageLayout, pageIndex, paragraphAudioWeights, paragraphPages, readAlongEnabled]
   );
 
   function paragraphClassName(index: number, bookmarked: boolean, hasNote: boolean) {
@@ -1244,8 +1291,17 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }
 
   function renderParagraphText(paragraphIndex: number, paragraph: string) {
-    if (!chapterSearchQuery.trim()) return paragraph;
-    return renderParagraphSearchText(paragraph, chapterSearchQuery, activeChapterSearchMatch, paragraphIndex);
+    if (chapterSearchQuery.trim()) {
+      return renderParagraphSearchText(paragraph, chapterSearchQuery, activeChapterSearchMatch, paragraphIndex);
+    }
+    return (
+      <ReaderGlossaryInlineText
+        text={paragraph}
+        glossaryIndex={glossaryIndex}
+        searchActive={false}
+        onTermClick={(character) => setGlossaryTapCharacter(character)}
+      />
+    );
   }
 
   useEffect(() => {
@@ -1381,6 +1437,18 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           if (navCard) {
             navCard.classList.toggle("nav-card-next-active", shouldHighlightContinue);
           }
+        }
+
+        if (
+          continuousChapterEnabledRef.current &&
+          !isPageLayout &&
+          shouldShowContinue &&
+          scrollingDown &&
+          !continuousChapterTriggeredRef.current &&
+          activePayload.nextChapter
+        ) {
+          continuousChapterTriggeredRef.current = true;
+          openNextChapterFastRef.current();
         }
 
         // Story completion overlay — only on last chapter of a completed story
@@ -1751,12 +1819,65 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         })
       )
     );
-    if (presetKey === "focus") setFocusModeEnabled(true);
+    if (presetKey === "focus" || presetKey === "ban_dem") setFocusModeEnabled(true);
+    if (presetKey === "ban_dem") {
+      setReaderDimEnabled(true);
+      setReaderDimLevel(clampDimLevel(0.28));
+      if (wakeLockActive) void toggleWakeLock();
+    }
     if (presetKey === "mobile") {
       setReaderDimEnabled(false);
       setFocusModeEnabled(false);
     }
     setMobileSheetOpen(false);
+  }
+
+  function toggleContinuousChapter() {
+    const next = !continuousChapterEnabled;
+    setContinuousChapterEnabled(next);
+    writeReaderContinuousChapter(next);
+    continuousChapterTriggeredRef.current = false;
+    showSwipeNotice(next ? "Cuộn liên tục: tự sang chương sau" : "Đã tắt cuộn liên tục");
+  }
+
+  function togglePageColumns() {
+    if (!isPageLayout || compactReader) return;
+    const next: ReaderPageColumns = pageColumns === 2 ? 1 : 2;
+    setPageColumns(next);
+    writeReaderPageColumns(next);
+    showSwipeNotice(next === 2 ? "Hai cột trang" : "Một cột trang");
+  }
+
+  function jumpStorySearchHit(direction: "previous" | "next") {
+    if (storySearchHits.length === 0) return;
+    setStorySearchHitIndex((current) => {
+      if (direction === "next") return (current + 1) % storySearchHits.length;
+      return (current - 1 + storySearchHits.length) % storySearchHits.length;
+    });
+  }
+
+  async function navigateToStorySearchHit(hit: StoryContentSearchHit) {
+    writeResumeNavigationTarget(activePayload.story.id, hit.chapterNumber, { paragraphIndex: hit.paragraphIndex });
+    setChapterSearchOpen(false);
+    setChapterSearchQuery("");
+    if (hit.chapterNumber === activePayload.chapter.chapterNumber) {
+      window.requestAnimationFrame(() => scrollToParagraph(hit.paragraphIndex));
+      return;
+    }
+    await openCachedChapter(hit.chapterNumber);
+    window.localStorage.setItem(`${READER_PARAGRAPH_POSITION_PREFIX}:${activePayload.story.id}:${hit.chapterNumber}`, String(hit.paragraphIndex));
+  }
+
+  function jumpBackToReadingPosition() {
+    if (!jumpBackTarget) return;
+    if (isPageLayout) {
+      goToPage(pageIndexForParagraph(paragraphPages, jumpBackTarget.paragraphIndex));
+    } else if (jumpBackTarget.paragraphIndex > 0) {
+      scrollToParagraph(jumpBackTarget.paragraphIndex, prefersReducedMotion() ? "auto" : "smooth");
+    } else {
+      window.scrollTo({ top: jumpBackTarget.scrollY, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+    }
+    setJumpBackTarget(null);
   }
 
   function startAdminEdit(field: AdminEditField, value: string | null | undefined, options: { selectionStart?: number; selectionEnd?: number } = {}) {
@@ -1984,6 +2105,44 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     );
   }
 
+  useEffect(() => {
+    continuousChapterEnabledRef.current = continuousChapterEnabled;
+  }, [continuousChapterEnabled]);
+
+  useEffect(() => {
+    setStorySearchHitIndex(0);
+  }, [chapterSearchQuery, chapterSearchMode, activePayload.chapter.id]);
+
+  useEffect(() => {
+    const panelOpen = mobileMenuOpen || desktopSidebarOpen;
+    if (panelOpen) {
+      if (!panelScrollAnchorRef.current) {
+        panelScrollAnchorRef.current = {
+          scrollY: window.scrollY,
+          paragraphIndex: activeParagraphIndexRef.current
+        };
+      }
+      return;
+    }
+
+    const anchor = panelScrollAnchorRef.current;
+    panelScrollAnchorRef.current = null;
+    if (!anchor) return;
+
+    const scrollDelta = Math.abs(window.scrollY - anchor.scrollY);
+    const paragraphMoved = activeParagraphIndexRef.current !== anchor.paragraphIndex;
+    if (scrollDelta > 420 || paragraphMoved) {
+      setJumpBackTarget(anchor);
+    }
+  }, [desktopSidebarOpen, mobileMenuOpen]);
+
+  useEffect(() => {
+    if (!isPageLayout && pageColumns === 2) {
+      setPageColumns(1);
+      writeReaderPageColumns(1);
+    }
+  }, [isPageLayout, pageColumns]);
+
   async function openNextChapterFast() {
     const nextChapter = activePayload.nextChapter;
     if (!nextChapter) return;
@@ -2005,6 +2164,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
     router.push(storyHref(activePayload.story, nextChapter.chapterNumber));
   }
+  openNextChapterFastRef.current = () => {
+    void openNextChapterFast();
+  };
 
   async function openCachedChapter(chapterNumber: number) {
     const queryPayload = queryClient.getQueryData<ReaderPayload>(readerQueryKeys.chapter(activePayload.story.id, chapterNumber));
@@ -2049,15 +2211,16 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   function handleTapEdgeNav(direction: "previous" | "next") {
     if (isPageLayout) {
+      const step = spreadPageMode ? 2 : 1;
       if (direction === "next") {
-        if (pageIndex < paragraphPages.length - 1) {
-          const next = pageIndex + 1;
+        if (pageIndex < paragraphPages.length - (spreadPageMode && visiblePageIndexes.length > 1 ? 2 : 1)) {
+          const next = pageIndex + step;
           goToPage(next);
           showSwipeNotice(`Trang ${next + 1}/${paragraphPages.length}`);
           return;
         }
       } else if (pageIndex > 0) {
-        const prev = pageIndex - 1;
+        const prev = Math.max(0, pageIndex - step);
         goToPage(prev);
         showSwipeNotice(`Trang ${prev + 1}/${paragraphPages.length}`);
         return;
@@ -2285,6 +2448,32 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   useReaderRealtimeListener(handleReaderRealtime);
 
+  function renderPageParagraphBlock(pageParagraphIndexes: number[]) {
+    return pageParagraphIndexes.map((index) => {
+      const paragraph = paragraphs[index] ?? "";
+      const bookmarked = bookmarkedParagraphIndexes.has(index);
+      const hasNote = currentChapterParagraphBookmarks.some((item) => item.paragraphIndex === index && item.note);
+      return (
+        <p
+          className={paragraphClassName(index, bookmarked, hasNote)}
+          data-paragraph-index={index}
+          key={`${index}-${paragraph.slice(0, 12)}`}
+          onDoubleClick={(event) => {
+            const target = event.target instanceof Element ? event.target : null;
+            if (target?.closest("button")) return;
+            event.preventDefault();
+            suppressSelectionActionUntilRef.current = Date.now() + 450;
+            window.getSelection()?.removeAllRanges();
+            startContentAdminEdit({ paragraphIndex: index, caretOffset: contentCaretOffsetFromPoint(event, index) });
+          }}
+        >
+          {renderParagraphTools(index, paragraph, bookmarked)}
+          <span className="reader-paragraph-text">{renderParagraphText(index, paragraph)}</span>
+        </p>
+      );
+    });
+  }
+
   const floatingReaderActions = floatingActionsMounted
     ? createPortal(
         <div
@@ -2328,7 +2517,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   return (
     <main
       ref={readerShellRef}
-      className={`reader-shell ${focusModeEnabled ? "reader-shell-focus-mode" : ""} ${isPageLayout ? "reader-shell-layout-page" : ""} ${shellFreshPulse ? "reader-shell-fresh-pulse" : ""}`}
+      className={`reader-shell ${focusModeEnabled ? "reader-shell-focus-mode" : ""} ${isPageLayout ? "reader-shell-layout-page" : ""} ${spreadPageMode ? "reader-shell-layout-page-spread" : ""} ${notesSidebarOpen && !compactReader ? "reader-shell-notes-open" : ""} ${shellFreshPulse ? "reader-shell-fresh-pulse" : ""}`}
       data-theme={theme}
       data-font={fontFamily}
       style={readerShellStyle}
@@ -2362,6 +2551,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         chapterNumber={activePayload.chapter.chapterNumber}
         suppressed={Boolean(freshChapterHint)}
       />
+
+      <ReaderOnboardingCoach compact={compactReader} />
+      <ReaderGlossaryTapPopover character={glossaryTapCharacter} onClose={() => setGlossaryTapCharacter(null)} />
 
       <ChapterTransition trigger={chapterTransitionTrigger} direction={chapterTransitionDirection} />
 
@@ -2413,18 +2605,47 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
       {floatingReaderActions}
 
+      {jumpBackTarget ? (
+        <button type="button" className="reader-jump-back-fab" onClick={jumpBackToReadingPosition}>
+          <BookOpen size={16} />
+          Nhảy lại chỗ đọc
+        </button>
+      ) : null}
+
       <ReaderInChapterSearchPanel
         open={chapterSearchOpen}
         query={chapterSearchQuery}
         matchIndex={chapterSearchMatchIndex}
         matchCount={chapterSearchMatches.length}
+        mode={chapterSearchMode}
+        storyHits={storySearchHits}
+        storyHitIndex={storySearchHitIndex}
+        storyLoading={storySearchLoading}
+        storyError={storySearchError}
         onQueryChange={setChapterSearchQuery}
+        onModeChange={setChapterSearchMode}
         onClose={() => {
           setChapterSearchOpen(false);
           setChapterSearchQuery("");
+          setChapterSearchMode("chapter");
         }}
-        onPrevious={() => jumpChapterSearchMatch("previous")}
-        onNext={() => jumpChapterSearchMatch("next")}
+        onPrevious={() => (chapterSearchMode === "story" ? jumpStorySearchHit("previous") : jumpChapterSearchMatch("previous"))}
+        onNext={() => (chapterSearchMode === "story" ? jumpStorySearchHit("next") : jumpChapterSearchMatch("next"))}
+        onStoryHitSelect={(hit) => void navigateToStorySearchHit(hit)}
+      />
+
+      <ReaderNotesSidebar
+        open={notesSidebarOpen && !compactReader}
+        bookmarks={currentChapterParagraphBookmarks}
+        onClose={() => setNotesSidebarOpen(false)}
+        onJump={(bookmark) => {
+          setNotesSidebarOpen(false);
+          window.requestAnimationFrame(() => scrollToParagraph(bookmark.paragraphIndex));
+        }}
+        onEditNote={(paragraphIndex) => {
+          setNotesSidebarOpen(false);
+          openParagraphNoteEditor(paragraphIndex);
+        }}
       />
 
       <ReaderGlossaryDrawer
@@ -2483,7 +2704,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               <ChevronLeft size={18} />
             </Link>
             <button
-              className="reader-mobile-dock-primary"
+              className="reader-mobile-dock-primary reader-mobile-dock-primary-progress"
               type="button"
               aria-label="Mở công cụ đọc"
               onClick={() => setMobileSheetOpen(true)}
@@ -2532,10 +2753,23 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             <UserIdentity compact className="reader-identity" />
             <NotificationBell className="reader-notification" />
             <CultivationPanel compact className="reader-cultivation" />
-            <ReaderStatsPill sessionMinutes={sessionMinutes} />
+            <ReaderStatsPill sessionMinutes={sessionMinutes} chapterProgress={mobileProgress} chapterMinutesLeft={minutesLeft} />
           </div>
           <div className="reader-control-group reader-action-group" ref={readerOverflowRef}>
             <FollowButton story={activePayload.story} compact />
+            {!compactReader ? (
+              <FloatingTooltip label="Ghi chú đoạn">
+                <button
+                  className={`icon-button ${notesSidebarOpen ? "icon-button-active" : ""}`}
+                  type="button"
+                  title="Ghi chú đoạn"
+                  aria-pressed={notesSidebarOpen}
+                  onClick={() => setNotesSidebarOpen((value) => !value)}
+                >
+                  <StickyNote size={16} />
+                </button>
+              </FloatingTooltip>
+            ) : null}
             {!compactReader ? (
               <FloatingTooltip label="Tìm trong chương">
                 <button
@@ -2550,16 +2784,16 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               </FloatingTooltip>
             ) : null}
             {!compactReader ? (
-              <FloatingTooltip label="Thêm tùy chọn">
+              <FloatingTooltip label="Phím tắt và tùy chọn">
                 <button
                   className={`icon-button ${readerOverflowOpen || currentBookmark || focusModeEnabled || audioPanelOpen || offlineReady ? "icon-button-active" : ""}`}
                   type="button"
-                  title="Thêm tùy chọn"
+                  title="Phím tắt và tùy chọn"
                   aria-expanded={readerOverflowOpen}
                   aria-controls="reader-overflow-panel"
                   onClick={() => setReaderOverflowOpen((v) => !v)}
                 >
-                  <MoreHorizontal size={17} />
+                  <HelpCircle size={16} />
                 </button>
               </FloatingTooltip>
             ) : null}
@@ -2634,6 +2868,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   {tapEdgeEnabled ? "Tắt chạm cạnh" : "Bật chạm cạnh đổi chương"}
                 </button>
                 <button
+                  className={`reader-overflow-item ${continuousChapterEnabled ? "reader-overflow-item-active" : ""}`}
+                  type="button"
+                  onClick={() => { toggleContinuousChapter(); setReaderOverflowOpen(false); }}
+                >
+                  <ChevronRight size={15} />
+                  {continuousChapterEnabled ? "Tắt cuộn liên tục" : "Cuộn liên tục qua chương"}
+                </button>
+                <button
                   className={`reader-overflow-item ${isPageLayout ? "reader-overflow-item-active" : ""}`}
                   type="button"
                   onClick={() => { toggleLayoutMode(); setReaderOverflowOpen(false); }}
@@ -2641,6 +2883,16 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   <BookOpen size={15} />
                   {isPageLayout ? "Chế độ cuộn" : "Chế độ trang"}
                 </button>
+                {isPageLayout && !compactReader ? (
+                  <button
+                    className={`reader-overflow-item ${pageColumns === 2 ? "reader-overflow-item-active" : ""}`}
+                    type="button"
+                    onClick={() => { togglePageColumns(); setReaderOverflowOpen(false); }}
+                  >
+                    <BookOpen size={15} />
+                    {pageColumns === 2 ? "Một cột trang" : "Hai cột trang"}
+                  </button>
+                ) : null}
                 {!isPageLayout ? (
                   <button
                     className={`reader-overflow-item ${autoScrollEnabled ? "reader-overflow-item-active" : ""}`}
@@ -2903,7 +3155,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               <div className="reader-sheet-section reader-sheet-account-row reader-sheet-account-row-secondary">
                 <CultivationPanel compact className="reader-cultivation-mobile" />
                 <FollowButton story={activePayload.story} compact />
-                <ReaderStatsPill sessionMinutes={sessionMinutes} />
+                <ReaderStatsPill sessionMinutes={sessionMinutes} chapterProgress={mobileProgress} chapterMinutesLeft={minutesLeft} />
               </div>
               </>
             ) : null}
@@ -3243,6 +3495,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 >
                   <ChevronLeft size={16} />
                   {tapEdgeEnabled ? "Tắt chạm cạnh" : "Chạm cạnh đổi chương"}
+                </button>
+                <button
+                  className={`reader-sheet-action ${continuousChapterEnabled ? "reader-sheet-action-active" : ""}`}
+                  type="button"
+                  aria-pressed={continuousChapterEnabled}
+                  onClick={toggleContinuousChapter}
+                >
+                  <ChevronRight size={16} />
+                  {continuousChapterEnabled ? "Đang cuộn liên tục" : "Cuộn liên tục"}
                 </button>
                 <button
                   className={`reader-sheet-action ${isPageLayout ? "reader-sheet-action-active" : ""}`}
@@ -3629,43 +3890,33 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 <textarea ref={adminContentEditorRef} className="admin-content-editor" value={adminEdit.value} autoFocus onChange={(event) => setAdminEdit((current) => current?.field === "content" ? { ...current, value: event.target.value } : current)} />
               ) : paragraphs.length > 0 ? (
                 isPageLayout ? (
-                  <div className="reader-page-shell" style={{ minHeight: pageViewportHeight }}>
+                  <div className={`reader-page-shell${spreadPageMode ? " reader-page-shell-spread" : ""}`} style={{ minHeight: pageViewportHeight }}>
                     <div className="reader-page-indicator" aria-live="polite">
-                      Trang {pageIndex + 1} / {paragraphPages.length}
+                      {spreadPageMode && visiblePageIndexes.length > 1
+                        ? `Trang ${pageIndex + 1}–${visiblePageIndexes[visiblePageIndexes.length - 1]! + 1} / ${paragraphPages.length}`
+                        : `Trang ${pageIndex + 1} / ${paragraphPages.length}`}
                     </div>
-                    {currentPageParagraphIndexes.map((index) => {
-                      const paragraph = paragraphs[index] ?? "";
-                      const bookmarked = bookmarkedParagraphIndexes.has(index);
-                      const hasNote = currentChapterParagraphBookmarks.some((item) => item.paragraphIndex === index && item.note);
-                      return (
-                        <p
-                          className={paragraphClassName(index, bookmarked, hasNote)}
-                          data-paragraph-index={index}
-                          key={`${index}-${paragraph.slice(0, 12)}`}
-                          onDoubleClick={(event) => {
-                            const target = event.target instanceof Element ? event.target : null;
-                            if (target?.closest("button")) return;
-                            event.preventDefault();
-                            suppressSelectionActionUntilRef.current = Date.now() + 450;
-                            window.getSelection()?.removeAllRanges();
-                            startContentAdminEdit({ paragraphIndex: index, caretOffset: contentCaretOffsetFromPoint(event, index) });
-                          }}
-                        >
-                          {renderParagraphTools(index, paragraph, bookmarked)}
-                          <span className="reader-paragraph-text">{renderParagraphText(index, paragraph)}</span>
-                        </p>
-                      );
-                    })}
+                    {spreadPageMode ? (
+                      <div className="reader-page-spread-grid">
+                        {visiblePageIndexes.map((spreadPageIndex) => (
+                          <div className="reader-page-spread-column" key={`page-${spreadPageIndex}`}>
+                            {renderPageParagraphBlock(paragraphPages[spreadPageIndex] ?? [])}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      renderPageParagraphBlock(currentPageParagraphIndexes)
+                    )}
                     <div className="reader-page-nav" aria-label="Điều hướng trang">
-                      <button className="reader-page-nav-button" type="button" disabled={pageIndex <= 0} onClick={() => goToPage(pageIndex - 1)}>
+                      <button className="reader-page-nav-button" type="button" disabled={pageIndex <= 0} onClick={() => goToPage(pageIndex - (spreadPageMode ? 2 : 1))}>
                         <ChevronLeft size={16} />
                         Trang trước
                       </button>
                       <button
                         className="reader-page-nav-button"
                         type="button"
-                        disabled={pageIndex >= paragraphPages.length - 1}
-                        onClick={() => goToPage(pageIndex + 1)}
+                        disabled={pageIndex >= paragraphPages.length - (spreadPageMode && visiblePageIndexes.length > 1 ? 2 : 1)}
+                        onClick={() => goToPage(pageIndex + (spreadPageMode ? 2 : 1))}
                       >
                         Trang sau
                         <ChevronRight size={16} />

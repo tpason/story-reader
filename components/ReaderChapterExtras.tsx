@@ -25,11 +25,19 @@ type RecommendationItem = {
   primaryCategoryName: string | null;
 };
 
-export function ReaderStatsPill({ sessionMinutes }: { sessionMinutes: number }) {
+export function ReaderStatsPill({
+  sessionMinutes,
+  chapterProgress = 0,
+  chapterMinutesLeft = 0
+}: {
+  sessionMinutes: number;
+  chapterProgress?: number;
+  chapterMinutesLeft?: number;
+}) {
   const streak = useAppSelector((state) => state.readingStreak);
   const bonusXp = streakBonusXp(streak.currentStreak);
 
-  if (sessionMinutes <= 0 && streak.currentStreak <= 0) {
+  if (sessionMinutes <= 0 && streak.currentStreak <= 0 && chapterProgress <= 0) {
     return (
       <div className="reader-stats-pill reader-stats-pill-idle" aria-label="Thống kê phiên đọc">
         <span>
@@ -42,6 +50,13 @@ export function ReaderStatsPill({ sessionMinutes }: { sessionMinutes: number }) 
 
   return (
     <div className="reader-stats-pill" aria-label="Thống kê phiên đọc">
+      {chapterProgress > 0 ? (
+        <span>
+          <BookOpen size={13} aria-hidden="true" />
+          {chapterProgress}%
+          {chapterMinutesLeft > 0 ? ` · ~${chapterMinutesLeft}p` : ""}
+        </span>
+      ) : null}
       {sessionMinutes > 0 ? (
         <span>
           <BookOpen size={13} aria-hidden="true" />
@@ -59,15 +74,26 @@ export function ReaderStatsPill({ sessionMinutes }: { sessionMinutes: number }) 
   );
 }
 
+import type { StoryContentSearchHit } from "@/lib/reader-story-search";
+
+type ReaderSearchMode = "chapter" | "story";
+
 type ReaderInChapterSearchProps = {
   open: boolean;
   query: string;
   matchIndex: number;
   matchCount: number;
+  mode?: ReaderSearchMode;
+  storyHits?: StoryContentSearchHit[];
+  storyHitIndex?: number;
+  storyLoading?: boolean;
+  storyError?: string | null;
   onQueryChange: (value: string) => void;
+  onModeChange?: (mode: ReaderSearchMode) => void;
   onClose: () => void;
   onPrevious: () => void;
   onNext: () => void;
+  onStoryHitSelect?: (hit: StoryContentSearchHit) => void;
 };
 
 export function ReaderInChapterSearchPanel({
@@ -75,45 +101,105 @@ export function ReaderInChapterSearchPanel({
   query,
   matchIndex,
   matchCount,
+  mode = "chapter",
+  storyHits = [],
+  storyHitIndex = 0,
+  storyLoading = false,
+  storyError = null,
   onQueryChange,
+  onModeChange,
   onClose,
   onPrevious,
-  onNext
+  onNext,
+  onStoryHitSelect
 }: ReaderInChapterSearchProps) {
   if (!open) return null;
 
+  const storyMode = mode === "story";
+  const activeStoryHit = storyHits[storyHitIndex] ?? null;
+
   return (
-    <div className="reader-in-chapter-search">
-      <Search size={16} aria-hidden="true" />
-      <input
-        type="search"
-        role="searchbox"
-        value={query}
-        placeholder="Tìm trong chương…"
-        aria-label="Tìm trong chương"
-        autoFocus
-        onChange={(event) => onQueryChange(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            if (event.shiftKey) onPrevious();
-            else onNext();
-          }
-          if (event.key === "Escape") onClose();
-        }}
-      />
-      <span className="reader-in-chapter-search-count" aria-live="polite">
-        {matchCount > 0 ? `${matchIndex + 1}/${matchCount}` : query.trim().length >= 2 ? "0" : "—"}
-      </span>
-      <button type="button" className="reader-in-chapter-search-nav" aria-label="Kết quả trước" disabled={matchCount === 0} onClick={onPrevious}>
-        <ChevronUp size={16} />
-      </button>
-      <button type="button" className="reader-in-chapter-search-nav" aria-label="Kết quả sau" disabled={matchCount === 0} onClick={onNext}>
-        <ChevronDown size={16} />
-      </button>
-      <button type="button" className="reader-in-chapter-search-close" aria-label="Đóng tìm kiếm" onClick={onClose}>
-        <X size={16} />
-      </button>
+    <div className="reader-in-chapter-search-shell">
+      <div className="reader-in-chapter-search">
+        <Search size={16} aria-hidden="true" />
+        <input
+          type="search"
+          role="searchbox"
+          value={query}
+          placeholder={storyMode ? "Tìm trong truyện…" : "Tìm trong chương…"}
+          aria-label={storyMode ? "Tìm trong truyện" : "Tìm trong chương"}
+          autoFocus
+          onChange={(event) => onQueryChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              if (storyMode && activeStoryHit) {
+                onStoryHitSelect?.(activeStoryHit);
+                return;
+              }
+              if (event.shiftKey) onPrevious();
+              else onNext();
+            }
+            if (event.key === "Escape") onClose();
+          }}
+        />
+        {onModeChange ? (
+          <div className="reader-search-mode" role="tablist" aria-label="Phạm vi tìm kiếm">
+            <button type="button" role="tab" aria-selected={!storyMode} className={!storyMode ? "reader-search-mode-active" : ""} onClick={() => onModeChange("chapter")}>
+              Chương
+            </button>
+            <button type="button" role="tab" aria-selected={storyMode} className={storyMode ? "reader-search-mode-active" : ""} onClick={() => onModeChange("story")}>
+              Truyện
+            </button>
+          </div>
+        ) : null}
+        <span className="reader-in-chapter-search-count" aria-live="polite">
+          {storyMode
+            ? storyLoading
+              ? "…"
+              : storyHits.length > 0
+                ? `${storyHitIndex + 1}/${storyHits.length}`
+                : query.trim().length >= 2
+                  ? "0"
+                  : "—"
+            : matchCount > 0
+              ? `${matchIndex + 1}/${matchCount}`
+              : query.trim().length >= 2
+                ? "0"
+                : "—"}
+        </span>
+        <button type="button" className="reader-in-chapter-search-nav" aria-label="Kết quả trước" disabled={storyMode ? storyHits.length === 0 : matchCount === 0} onClick={onPrevious}>
+          <ChevronUp size={16} />
+        </button>
+        <button type="button" className="reader-in-chapter-search-nav" aria-label="Kết quả sau" disabled={storyMode ? storyHits.length === 0 : matchCount === 0} onClick={onNext}>
+          <ChevronDown size={16} />
+        </button>
+        <button type="button" className="reader-in-chapter-search-close" aria-label="Đóng tìm kiếm" onClick={onClose}>
+          <X size={16} />
+        </button>
+      </div>
+      {storyMode && query.trim().length >= 2 ? (
+        <div className="reader-story-search-results" role="listbox" aria-label="Kết quả tìm trong truyện">
+          {storyError ? <p className="reader-story-search-empty">{storyError}</p> : null}
+          {!storyError && !storyLoading && storyHits.length === 0 ? (
+            <p className="reader-story-search-empty">Không thấy đoạn phù hợp</p>
+          ) : null}
+          {storyHits.map((hit, index) => (
+            <button
+              key={`${hit.chapterNumber}-${hit.paragraphIndex}-${index}`}
+              type="button"
+              role="option"
+              aria-selected={index === storyHitIndex}
+              className={`reader-story-search-hit${index === storyHitIndex ? " reader-story-search-hit-active" : ""}`}
+              onClick={() => onStoryHitSelect?.(hit)}
+            >
+              <strong>Ch.{hit.chapterNumber}</strong>
+              <span>{hit.chapterTitle}</span>
+              <small>{hit.excerpt}</small>
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

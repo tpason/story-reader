@@ -79,3 +79,33 @@ export function writeReaderFocusModeDefault(enabled: boolean) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(READER_FOCUS_MODE_DEFAULT_KEY, enabled ? "1" : "0");
 }
+
+export const READER_ONBOARDING_KEY = "reader:onboarding-complete";
+
+export const READER_ONBOARDING_STEPS = [
+  {
+    id: "swipe",
+    title: "Vuốt đổi chương",
+    body: "Vuốt trái hoặc phải, hoặc chạm hai cạnh màn hình để sang chương kế / trước."
+  },
+  {
+    id: "chrome",
+    title: "Ẩn giao diện",
+    body: "Chạm vùng giữa nội dung để ẩn thanh công cụ — đọc tập trung hơn."
+  },
+  {
+    id: "sheet",
+    title: "Tùy chỉnh đọc",
+    body: "Nút giữa dock mở công cụ: font, theme, tự cuộn, offline và preset đọc."
+  }
+] as const;
+
+export function shouldShowReaderOnboarding() {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(READER_ONBOARDING_KEY) !== "1";
+}
+
+export function markReaderOnboardingComplete() {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(READER_ONBOARDING_KEY, "1");
+}

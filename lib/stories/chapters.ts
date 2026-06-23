@@ -290,6 +290,72 @@ export async function getChapterAudioPath(chapterId: string): Promise<string | n
   );
   return rows[0]?.audio_path ?? null;
 }
+
+export type StoryContentSearchHit = {
+  chapterId: string;
+  chapterNumber: number;
+  chapterTitle: string;
+  paragraphIndex: number;
+  excerpt: string;
+};
+
+export async function searchStoryChapterContent(
+  storyId: string,
+  search: string,
+  options: { limit?: number } = {}
+): Promise<StoryContentSearchHit[]> {
+  const queryText = search.trim();
+  const maxHits = Math.min(30, Math.max(1, options.limit ?? 20));
+  if (queryText.length < 2) return [];
+
+  const rows = await query<{
+    id: string;
+    chapter_number: number;
+    title: string;
+    content: string | null;
+  }>(
+    `
+      SELECT
+        c.id,
+        c.chapter_number,
+        c.title,
+        COALESCE(c.polished_text_content, c.translated_text_content, c.raw_text_content) AS content
+      FROM chapters c
+      WHERE c.story_id = $1
+        AND COALESCE(c.polished_text_content, c.translated_text_content, c.raw_text_content, '') ILIKE '%' || $2 || '%'
+      ORDER BY c.chapter_number ASC
+      LIMIT 24
+    `,
+    [storyId, queryText]
+  );
+
+  const needle = queryText.toLowerCase();
+  const hits: StoryContentSearchHit[] = [];
+
+  for (const row of rows) {
+    if (!row.content) continue;
+    const paragraphs = row.content.replace(/\r\n/g, "\n").split(/\n{2,}/);
+    for (let paragraphIndex = 0; paragraphIndex < paragraphs.length; paragraphIndex += 1) {
+      const paragraph = paragraphs[paragraphIndex]?.trim() ?? "";
+      if (!paragraph || !paragraph.toLowerCase().includes(needle)) continue;
+      const matchIndex = paragraph.toLowerCase().indexOf(needle);
+      const start = Math.max(0, matchIndex - 48);
+      const end = Math.min(paragraph.length, matchIndex + queryText.length + 48);
+      const excerpt = `${start > 0 ? "…" : ""}${paragraph.slice(start, end).trim()}${end < paragraph.length ? "…" : ""}`;
+      hits.push({
+        chapterId: row.id,
+        chapterNumber: row.chapter_number,
+        chapterTitle: row.title,
+        paragraphIndex,
+        excerpt
+      });
+      if (hits.length >= maxHits) return hits;
+    }
+  }
+
+  return hits;
+}
+
 export const getCachedChapterHead = unstable_cache(
   async (storyId: string, chapterNumber: number) => {
     const rows = await query<{ chapter_number: number; title: string }>(

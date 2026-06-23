@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { getCachedCategories, getCachedPolishedStories, getCachedUpdatedStories, listStoriesCursor } from "@/lib/stories";
 import { buildHomeFilterLabels, isHomeSearchActive } from "@/lib/home-search";
 import { StoryLibrary } from "@/components/StoryLibrary";
+import { ReadingResumeBar } from "@/components/ReadingResumeBar";
 import { MotionFX } from "@/components/MotionFX";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { UserIdentity } from "@/components/UserIdentity";
@@ -108,6 +109,7 @@ export default async function Home({ searchParams }: HomeProps) {
       </header>
 
       <div className="page-wrap" data-search-active={isSearchActive ? "true" : undefined}>
+        {!isSearchActive ? <ReadingResumeBar /> : null}
         <section className="library-header">
           <svg aria-hidden="true" className="xi-cloud-filters" style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }}>
             <defs>
