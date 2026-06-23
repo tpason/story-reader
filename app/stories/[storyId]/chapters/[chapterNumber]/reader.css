@@ -5322,3 +5322,39 @@ html[data-sidebar-resizing="true"] * {
   background: linear-gradient(90deg, rgba(38, 168, 130, 0.75), rgba(200, 150, 46, 0.85));
 }
 
+.chapter-sidebar-heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 3px;
+  margin: 0 0 12px;
+}
+
+.chapter-sidebar-heatmap-cell {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--hairline) 72%, transparent 28%);
+  cursor: default;
+}
+
+button.chapter-sidebar-heatmap-cell {
+  cursor: pointer;
+}
+
+button.chapter-sidebar-heatmap-cell:hover,
+button.chapter-sidebar-heatmap-cell:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--xi-jade, #1a6b5a) 55%, transparent 45%);
+  outline-offset: 1px;
+}
+
+.chapter-sidebar-heatmap-cell-read {
+  background: linear-gradient(145deg, rgba(38, 168, 130, 0.72), rgba(200, 150, 46, 0.55));
+}
+
+.chapter-sidebar-heatmap-cell-active {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--xi-jade, #1a6b5a) 80%, #fff 20%);
+}
+

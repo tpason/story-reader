@@ -20,6 +20,7 @@ import { storyHref } from "@/lib/urls";
 import { selectCurrentBookmark, selectMaxReadChapter, selectStoryBookmarks } from "@/lib/selectors";
 import { MotionFX } from "@/components/MotionFX";
 import { ReaderKeyboardHelp } from "@/components/ReaderKeyboardHelp";
+import { ChapterSidebarHeatmap } from "@/components/ChapterSidebarHeatmap";
 import { CultivationPanel } from "@/components/CultivationPanel";
 import { UserIdentity } from "@/components/UserIdentity";
 import { ChapterComments } from "@/components/ChapterComments";
@@ -102,6 +103,10 @@ import {
   resolveTailNextChapter,
   type ReaderInlineChapterBlock
 } from "@/lib/reader-inline-chapters";
+import {
+  inlineBlocksAfterHeadPromotion,
+  shouldAutoPromotePrimaryChapter
+} from "@/lib/reader-inline-promote";
 import { chapterContentToParagraphs } from "@/lib/reader-chapter-paragraphs";
 import { readReaderCommentsSplit, writeReaderCommentsSplit } from "@/lib/reader-comments-split";
 import {
@@ -326,8 +331,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const continuousChapterEnabledRef = useRef(continuousChapterEnabled);
   const openNextChapterFastRef = useRef<() => void>(() => undefined);
   const appendInlineNextChapterRef = useRef<() => void>(() => undefined);
+  const promoteHeadInlineRef = useRef<() => Promise<boolean>>(async () => false);
   const inlineChaptersRef = useRef<ReaderInlineChapterBlock[]>([]);
   const inlineAppendInFlightRef = useRef(false);
+  const promoteInlineInFlightRef = useRef(false);
+  const skipInlineClearRef = useRef(false);
   const [chapterSearchMode, setChapterSearchMode] = useState<"chapter" | "story">("chapter");
   const [storySearchHitIndex, setStorySearchHitIndex] = useState(0);
   const [notesSidebarOpen, setNotesSidebarOpen] = useState(false);
@@ -980,6 +988,19 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, [inlineChapters]);
 
   useEffect(() => {
+    if (skipInlineClearRef.current) {
+      skipInlineClearRef.current = false;
+      visibleChapterRef.current = {
+        chapterId: activePayload.chapter.id,
+        chapterNumber: activePayload.chapter.chapterNumber,
+        chapterTitle: activePayload.chapter.title,
+        paragraphIndex: visibleChapterRef.current.paragraphIndex
+      };
+      syncedReaderUrlChapterRef.current = activePayload.chapter.chapterNumber;
+      setCommentsChapterId(activePayload.chapter.id);
+      return;
+    }
+
     setInlineChapters([]);
     continuousChapterTriggeredRef.current = false;
     visibleChapterRef.current = {
@@ -1853,6 +1874,19 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           }
           setCommentsChapterId(next.chapterId);
         }
+
+        if (
+          shouldAutoPromotePrimaryChapter({
+            continuousEnabled: continuousChapterEnabledRef.current,
+            primaryChapterNumber: activePayload.chapter.chapterNumber,
+            visibleChapterNumber: next.chapterNumber,
+            inlineChapters: inlineChaptersRef.current,
+            primarySectionBottomPx: paragraphContainerRef.current?.getBoundingClientRect().bottom ?? 0,
+            viewportHeight: window.innerHeight
+          })
+        ) {
+          void promoteHeadInlineRef.current();
+        }
       },
       { rootMargin: "-33% 0px -63% 0px", threshold: [0, 0.2, 0.45, 0.7, 1] }
     );
@@ -2390,6 +2424,58 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     writeReaderCommentsSplit(false);
   }, [isPageLayout, commentsSplitOpen]);
 
+  async function resolveChapterPayload(chapterNumber: number) {
+    const queryPayload = queryClient.getQueryData<ReaderPayload>(
+      readerQueryKeys.chapter(activePayload.story.id, chapterNumber)
+    );
+    if (queryPayload) return queryPayload;
+
+    const cached = await getCachedChapter(activePayload.story.id, chapterNumber);
+    if (cached?.payload) return cached.payload;
+
+    return queryClient
+      .fetchQuery({
+        queryKey: readerQueryKeys.chapter(activePayload.story.id, chapterNumber),
+        queryFn: () => fetchReaderChapter(activePayload.story.id, chapterNumber),
+        staleTime: 1000 * 60 * 8
+      })
+      .catch(() => null);
+  }
+
+  async function promoteHeadInlineToPrimary() {
+    if (promoteInlineInFlightRef.current) return false;
+    const inline = inlineChaptersRef.current;
+    const head = inline[0];
+    if (!head) return false;
+
+    promoteInlineInFlightRef.current = true;
+    try {
+      const primaryHeight = paragraphContainerRef.current?.offsetHeight ?? 0;
+      const headPayload = await resolveChapterPayload(head.chapterNumber);
+      if (!headPayload) return false;
+
+      skipInlineClearRef.current = true;
+      setCachedPayload(headPayload);
+      setInlineChapters(inlineBlocksAfterHeadPromotion(inline));
+      queryClient.setQueryData(
+        readerQueryKeys.chapter(headPayload.story.id, headPayload.chapter.chapterNumber),
+        headPayload
+      );
+      syncedReaderUrlChapterRef.current = head.chapterNumber;
+      window.history.replaceState(null, "", storyHref(headPayload.story, head.chapterNumber));
+
+      if (primaryHeight > 0) {
+        window.scrollBy({ top: -primaryHeight, behavior: "auto" });
+      }
+
+      showSwipeNotice(`Chương ${head.chapterNumber}`, 900);
+      return true;
+    } finally {
+      promoteInlineInFlightRef.current = false;
+    }
+  }
+  promoteHeadInlineRef.current = () => promoteHeadInlineToPrimary();
+
   async function openNextChapterFast() {
     const tailNextChapter = resolveTailNextChapter(inlineChaptersRef.current, activePayload.nextChapter);
     const nextChapter = tailNextChapter;
@@ -2420,8 +2506,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   async function appendInlineNextChapter() {
     if (inlineAppendInFlightRef.current) return;
     if (!canAppendInlineChapter(inlineChaptersRef.current.length)) {
-      openNextChapterFastRef.current();
-      return;
+      const promoted = await promoteHeadInlineToPrimary();
+      if (!promoted) {
+        openNextChapterFastRef.current();
+        return;
+      }
     }
 
     const nextSummary = resolveTailNextChapter(inlineChaptersRef.current, activePayload.nextChapter);
@@ -2438,11 +2527,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       const cached = queryPayload ? null : await getCachedChapter(activePayload.story.id, nextSummary.chapterNumber);
       let nextPayload = queryPayload ?? cached?.payload ?? null;
       if (!nextPayload) {
-        nextPayload = await queryClient.fetchQuery({
-          queryKey: readerQueryKeys.chapter(activePayload.story.id, nextSummary.chapterNumber),
-          queryFn: () => fetchReaderChapter(activePayload.story.id, nextSummary.chapterNumber),
-          staleTime: 1000 * 60 * 8
-        });
+        nextPayload = await resolveChapterPayload(nextSummary.chapterNumber);
+      }
+      if (!nextPayload) {
+        continuousChapterTriggeredRef.current = false;
+        openNextChapterFastRef.current();
+        return;
       }
 
       const block: ReaderInlineChapterBlock = {
@@ -4016,20 +4106,22 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           ref={chapterSidebarRef}
         >
           <p className="chapter-sidebar-title">Mục lục</p>
-          {activePayload.story.totalChapters > 0 && maxReadChapter > 0 ? (
-            <div
-              className="chapter-sidebar-heatmap"
-              role="img"
-              aria-label={`Đã đọc tới chương ${maxReadChapter} / ${activePayload.story.totalChapters}`}
-            >
-              <div
-                className="chapter-sidebar-heatmap-fill"
-                style={{
-                  width: `${Math.min(100, Math.round((maxReadChapter / activePayload.story.totalChapters) * 100))}%`
-                }}
-              />
-            </div>
-          ) : null}
+          <ChapterSidebarHeatmap
+            totalChapters={activePayload.story.totalChapters}
+            maxReadChapter={maxReadChapter}
+            activeChapterNumber={activePayload.chapter.chapterNumber}
+            onJump={(chapterNumber) => {
+              const chapter = chapters.find((item) => item.chapterNumber === chapterNumber);
+              if (!chapter) return;
+              markChapterListNavigation(chapterNumber);
+              setMobileMenuOpen(false);
+              if (!navigator.onLine && cachedChapterNumbers.has(chapterNumber)) {
+                void openCachedChapter(chapterNumber);
+                return;
+              }
+              router.push(storyHref(activePayload.story, chapterNumber));
+            }}
+          />
           <label className="chapter-sidebar-search">
             <Search size={14} />
             <input
