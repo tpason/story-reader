@@ -95,6 +95,7 @@ Live state is exposed on `.notification-bell[data-notification-live="true"]` and
 - In-chapter search (`Ctrl+F`)
 - Focus mode
 - Comments accordion
+- **`e2e/reader-polish.spec.ts`** — story detail resume bar + heatmap, account offline cache panel, keyboard help (`?`), sidebar heatmap
 - Mobile dock + settings sheet tabs
 - Horizontal overflow
 - Paginated reading mode

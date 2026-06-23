@@ -30,6 +30,10 @@ export function storyReaderPath(story: { id: string; title: string }, chapterNum
   return `/stories/${slugify(story.title)}-${story.id}/chapters/${chapterNumber}`;
 }
 
+export function storyDetailPath(story: { id: string; title: string }) {
+  return `/stories/${slugify(story.title)}-${story.id}`;
+}
+
 export async function pickReadableStory(page: Page, chapterNumber = 1) {
   if (FIXED_READER_PATH) {
     const storyId = FIXED_READER_PATH.match(/[0-9a-f-]{36}/i)?.[0];
@@ -83,6 +87,7 @@ export async function seedReadingHistory(
     chapterNumber: number;
     chapterTitle?: string;
     paragraphIndex?: number;
+    maxReadChapterNumber?: number;
   }
 ) {
   const historyItem = {
@@ -95,7 +100,7 @@ export async function seedReadingHistory(
     scrollPosition: 640,
     paragraphIndex: item.paragraphIndex ?? 3,
     progressPercent: 42,
-    maxReadChapterNumber: item.chapterNumber,
+    maxReadChapterNumber: item.maxReadChapterNumber ?? item.chapterNumber,
     totalChapters: Math.max(item.chapterNumber + 2, 10),
     lastReadAt: new Date().toISOString()
   };

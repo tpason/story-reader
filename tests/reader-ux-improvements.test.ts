@@ -4,6 +4,10 @@ import { buildGlossaryTextSpans } from "../lib/reader-glossary-inline.ts";
 import { buildStorySearchExcerpt } from "../lib/reader-story-search.ts";
 import type { GlossaryIndex } from "../lib/reader-glossary.ts";
 import {
+  readReaderAudioReadAlong,
+  writeReaderAudioReadAlong
+} from "../lib/reader-audio-read-along.ts";
+import {
   readReaderContinuousChapter,
   writeReaderContinuousChapter
 } from "../lib/reader-continuous-chapter.ts";
@@ -99,6 +103,34 @@ describe("reader UX preference storage", () => {
     const { session } = installMockWindow();
     writeResumeNavigationTarget("story-2", 3, { scrollPosition: 640 });
     assert.equal(session.get("reader:bookmark-scroll:story-2:3"), "640");
+  });
+
+  it("persists read-along preference", () => {
+    const storage = new Map<string, string>();
+    const originalWindow = globalThis.window;
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        localStorage: {
+          getItem: (key: string) => storage.get(key) ?? null,
+          setItem: (key: string, value: string) => {
+            storage.set(key, value);
+          }
+        }
+      }
+    });
+
+    try {
+      writeReaderAudioReadAlong(false);
+      assert.equal(readReaderAudioReadAlong(), false);
+      writeReaderAudioReadAlong(true);
+      assert.equal(readReaderAudioReadAlong(), true);
+    } finally {
+      Object.defineProperty(globalThis, "window", {
+        configurable: true,
+        value: originalWindow
+      });
+    }
   });
 
   it("shows onboarding until marked complete", () => {

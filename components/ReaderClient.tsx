@@ -108,6 +108,10 @@ import {
   shouldAutoPromotePrimaryChapter
 } from "@/lib/reader-inline-promote";
 import { chapterContentToParagraphs } from "@/lib/reader-chapter-paragraphs";
+import {
+  readReaderAudioReadAlong,
+  writeReaderAudioReadAlong
+} from "@/lib/reader-audio-read-along";
 import { readReaderCommentsSplit, writeReaderCommentsSplit } from "@/lib/reader-comments-split";
 import {
   pickBestVisibleParagraphEntry,
@@ -1040,7 +1044,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     if (focusDefaultBootstrappedRef.current) return;
     focusDefaultBootstrappedRef.current = true;
     if (readReaderFocusModeDefault()) setFocusModeEnabled(true);
+    setReadAlongEnabled(readReaderAudioReadAlong());
   }, []);
+
+  function setReadAlongPreference(enabled: boolean) {
+    setReadAlongEnabled(enabled);
+    writeReaderAudioReadAlong(enabled);
+  }
 
   useEffect(() => {
     const saved = readReaderDesktopSidebarOpen();
@@ -4336,7 +4346,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   onAutoNextChapter={() => void openNextChapterFast()}
                   onSleepTimerEnd={() => showSwipeNotice("Hẹn giờ nghe đã dừng audio")}
                   readAlongEnabled={readAlongEnabled}
-                  onReadAlongEnabledChange={setReadAlongEnabled}
+                  onReadAlongEnabledChange={setReadAlongPreference}
                   onPlaybackProgress={handleAudioPlaybackProgress}
                 />
               </section>
