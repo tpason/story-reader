@@ -39,12 +39,24 @@ export type ChapterSummary = {
   updatedAt: string | null;
 };
 
+import type { BilingualParagraphPair } from "@/lib/reader-bilingual-pairs";
+
 export type ChapterDetail = ChapterSummary & {
   content: string | null;
   isContentPreformatted: boolean;
   textPath: string | null;
   audioUrl: string | null;
   audioHlsUrl: string | null;
+  contentLayer?: "raw" | "translated" | "polished";
+  availableContentLayers?: Array<"raw" | "translated" | "polished">;
+  bilingualPairs?: BilingualParagraphPair[];
+  bilingualEnabled?: boolean;
+};
+
+export type ReaderFetchOptions = {
+  primaryLayer?: "raw" | "translated" | "polished";
+  secondaryLayer?: "raw" | "translated" | "polished" | null;
+  displayMode?: "single" | "interleaved" | "secondary_hidden";
 };
 
 export type ReaderPayload = {

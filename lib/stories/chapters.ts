@@ -3,7 +3,16 @@ import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
 import { READER_CONTENT_FORMAT_VERSION } from "@/lib/formatNovelContent";
 import { buildPreviousChapterRecap } from "@/lib/reader-chapter-recap";
-import type { ChapterDetail, ChapterSummary, CursorPage, Paginated, ReaderPayload } from "@/lib/types";
+import { buildBilingualParagraphPairs } from "@/lib/reader-bilingual-pairs";
+import {
+  layerLanguage,
+  layerToParagraphs,
+  listAvailableLayers,
+  resolvePrimaryLayer
+} from "@/lib/reader-content-layers";
+import { supportsBilingualReader } from "@/lib/reader-source-language";
+import type { BilingualParagraphPair } from "@/lib/reader-bilingual-pairs";
+import type { ChapterDetail, ChapterSummary, CursorPage, Paginated, ReaderFetchOptions, ReaderPayload } from "@/lib/types";
 import {
   READER_CHAPTER_PAGE_SIZE,
   chapterPageCursor,
@@ -164,7 +173,11 @@ export async function searchChapters(storyId: string, search: string, options: {
   };
 }
 
-export async function getReaderPayload(storyId: string, chapterNumber: number): Promise<ReaderPayload> {
+export async function getReaderPayload(
+  storyId: string,
+  chapterNumber: number,
+  options: ReaderFetchOptions = {}
+): Promise<ReaderPayload> {
   const story = await getStory(storyId);
   const currentRows = await query<ChapterRow>(
     `
@@ -241,16 +254,53 @@ export async function getReaderPayload(storyId: string, chapterNumber: number): 
     chapterNumber,
     limit: READER_CHAPTER_PAGE_SIZE
   });
-  const contentPath = textPath(currentRows[0]);
-  const formattedContent = readerFormattedContent(currentRows[0]);
-  const content = formattedContent ?? textContent(currentRows[0]) ?? (await readProjectTextFile(contentPath));
+  const row = currentRows[0];
+  const availableLayers = listAvailableLayers(row);
+  const bilingualAllowed = supportsBilingualReader(story.sourceCode);
+  const primaryLayer = resolvePrimaryLayer(availableLayers, options.primaryLayer);
+  const secondaryLayer =
+    bilingualAllowed &&
+    options.secondaryLayer &&
+    options.secondaryLayer !== primaryLayer &&
+    availableLayers.includes(options.secondaryLayer)
+      ? options.secondaryLayer
+      : null;
+  const displayMode = options.displayMode ?? "single";
+  const bilingualActive = Boolean(secondaryLayer && displayMode !== "single");
+
+  const primaryParagraphs = layerToParagraphs({ row, layer: primaryLayer, chapterTitle: current.title });
+  const formattedContent = primaryLayer === "polished" ? readerFormattedContent(row) : null;
+  const contentPath = textPath(row);
+  const content =
+    formattedContent ??
+    (primaryParagraphs.length > 0 ? primaryParagraphs.join("\n\n") : null) ??
+    textContent(row) ??
+    (await readProjectTextFile(contentPath));
+
+  let bilingualPairs: BilingualParagraphPair[] | undefined;
+  if (bilingualActive && secondaryLayer) {
+    const secondaryParagraphs = layerToParagraphs({ row, layer: secondaryLayer, chapterTitle: current.title });
+    bilingualPairs = buildBilingualParagraphPairs({
+      primaryParagraphs,
+      secondaryParagraphs,
+      primaryLayer,
+      secondaryLayer,
+      primaryLang: layerLanguage(primaryLayer, story.sourceCode),
+      secondaryLang: layerLanguage(secondaryLayer, story.sourceCode)
+    });
+  }
+
   const chapter: ChapterDetail = {
     ...current,
     content,
     isContentPreformatted: Boolean(formattedContent),
     textPath: contentPath,
     audioUrl: current.hasAudio ? `/api/chapters/${current.id}/audio` : null,
-    audioHlsUrl: current.hasAudio ? `/api/chapters/${current.id}/audio/hls/master.m3u8` : null
+    audioHlsUrl: current.hasAudio ? `/api/chapters/${current.id}/audio/hls/master.m3u8` : null,
+    contentLayer: primaryLayer,
+    availableContentLayers: availableLayers,
+    bilingualPairs,
+    bilingualEnabled: bilingualActive
   };
 
   let previousChapterRecap: string | null = null;

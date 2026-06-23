@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, BookMarked, BookOpen, ChevronLeft, ChevronRight, ClipboardCheck, Eye, EyeOff, Headphones, Highlighter, HelpCircle, LoaderCircle, Menu, MessageCircle, Minus, Moon, Pause, Play, Plus, RotateCcw, Search, Settings2, StickyNote, Sun, Type, WifiOff, X } from "lucide-react";
+import { ArrowUp, BookMarked, BookOpen, ChevronLeft, ChevronRight, ClipboardCheck, Eye, EyeOff, Headphones, Highlighter, HelpCircle, Languages, LoaderCircle, Menu, MessageCircle, Minus, Moon, Pause, Play, Plus, RotateCcw, Search, Settings2, StickyNote, Sun, Type, WifiOff, X } from "lucide-react";
 import type { animate as AnimateType } from "animejs";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -46,7 +46,15 @@ import { countReadableWords, estimateReadingMinutes } from "@/lib/reading-estima
 import { isTodayLocal } from "@/lib/date";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getCachedChapter, clearStoryOfflineCache, offlineDb, preloadNextChapters, downloadChaptersFrom, estimateOfflineCacheBytes, formatOfflineCacheSize, OFFLINE_DOWNLOAD_PRESETS, type OfflineChapterRecord } from "@/lib/offline-chapters";
+import { ReaderBilingualSettings } from "@/components/ReaderBilingualSettings";
 import { fetchReaderChapter, readerQueryKeys } from "@/lib/reader-query";
+import {
+  bilingualFetchOptions,
+  readReaderBilingualPrefs,
+  writeReaderBilingualPrefs,
+  type ReaderBilingualPrefs
+} from "@/lib/reader-bilingual-prefs";
+import { supportsBilingualReader } from "@/lib/reader-source-language";
 import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
 import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
 import { isRealtimeShimmerEnabled } from "@/lib/reader-realtime-fx";
@@ -380,6 +388,23 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const formatDismiss = useDismiss(formatFloatingContext);
   const { getFloatingProps: getFormatFloatingProps, getReferenceProps: getFormatReferenceProps } = useInteractions([formatDismiss]);
   const activePayload = cachedPayload ?? payload;
+  const [bilingualPrefs, setBilingualPrefs] = useState<ReaderBilingualPrefs>(() => readReaderBilingualPrefs());
+  const supportsBilingual = useMemo(() => supportsBilingualReader(activePayload.story.sourceCode), [activePayload.story.sourceCode]);
+  const bilingualQueryOptions = useMemo(
+    () => (supportsBilingual ? bilingualFetchOptions(bilingualPrefs) : undefined),
+    [supportsBilingual, bilingualPrefs]
+  );
+  const bilingualActive = Boolean(
+    supportsBilingual &&
+      bilingualPrefs.enabled &&
+      activePayload.chapter.bilingualEnabled &&
+      (activePayload.chapter.bilingualPairs?.length ?? 0) > 0
+  );
+  const bilingualPairs = bilingualActive ? activePayload.chapter.bilingualPairs ?? [] : [];
+  const bilingualSecondaryVisible = bilingualActive && bilingualPrefs.secondaryVisible;
+  const bilingualScrollHighlight = bilingualActive && bilingualPrefs.scrollHighlight && !prefersReducedMotion();
+  const [scrollFocusParagraphIndex, setScrollFocusParagraphIndex] = useState<number | null>(null);
+  const bilingualScrollHighlightRef = useRef(bilingualScrollHighlight);
   const sessionMinutes = useReadingSessionMinutes(activePayload.chapter.id);
   const chapterSidebarRef = useRef<HTMLElement | null>(null);
   const desktopSidebarButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -514,6 +539,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setFloatingActionsMounted(true);
   }, []);
   const paragraphs = useMemo(() => {
+    if (bilingualActive && bilingualPairs.length > 0) {
+      return bilingualPairs.map((pair) => pair.primary.text);
+    }
     if (!activePayload.chapter.content) return [];
     if (activePayload.chapter.isContentPreformatted) {
       return activePayload.chapter.content
@@ -523,7 +551,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
 
     return formatNovelContent(activePayload.chapter.content, undefined, activePayload.chapter.title);
-  }, [activePayload.chapter.content, activePayload.chapter.isContentPreformatted, activePayload.chapter.title]);
+  }, [
+    activePayload.chapter.content,
+    activePayload.chapter.isContentPreformatted,
+    activePayload.chapter.title,
+    bilingualActive,
+    bilingualPairs
+  ]);
   const storyBookmarks = useAppSelector(useMemo(() => selectStoryBookmarks(activePayload.story.id), [activePayload.story.id]));
   const {
     storyParagraphBookmarks,
@@ -1407,6 +1441,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         setFocusModeEnabled((prev) => !prev);
       } else if (event.key === "g" || event.key === "G") {
         if (glossaryCharacters.length > 0) setGlossaryDrawerOpen((prev) => !prev);
+      } else if (event.key === "h" || event.key === "H") {
+        if (bilingualActive) {
+          event.preventDefault();
+          const next = { ...bilingualPrefs, secondaryVisible: !bilingualPrefs.secondaryVisible };
+          setBilingualPrefs(next);
+          writeReaderBilingualPrefs(next);
+        }
       } else if (event.key === "t" || event.key === "T") {
         if (compactViewportRef.current) {
           setMobileMenuOpen((prev) => !prev);
@@ -1421,6 +1462,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     activePayload.nextChapter,
     activePayload.previousChapter,
     activePayload.story,
+    bilingualActive,
+    bilingualPrefs,
     goToPage,
     glossaryCharacters.length,
     isPageLayout,
@@ -1479,10 +1522,44 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   function paragraphClassName(index: number, bookmarked: boolean, hasNote: boolean) {
     const classes = ["reader-paragraph"];
+    if (bilingualActive) classes.push("reader-paragraph-bilingual");
     if (bookmarked) classes.push("reader-paragraph-bookmarked");
     if (hasNote) classes.push("reader-paragraph-has-note");
     if (audioHighlightIndex === index) classes.push("reader-paragraph-audio-active");
+    if (bilingualScrollHighlight && scrollFocusParagraphIndex === index) {
+      classes.push("reader-paragraph-bilingual-focus");
+    }
     return classes.join(" ");
+  }
+
+  function renderBilingualSecondary(index: number, options?: { measureHiddenSecondary?: boolean }) {
+    const secondary = bilingualPairs[index]?.secondary;
+    if (!secondary?.text) return null;
+    const visible = options?.measureHiddenSecondary ? false : bilingualSecondaryVisible;
+    return (
+      <span
+        className={`reader-paragraph-bilingual-secondary${visible ? "" : " reader-paragraph-bilingual-secondary-collapsed"}`}
+        lang={secondary.lang}
+        aria-hidden={!visible}
+      >
+        {secondary.text}
+      </span>
+    );
+  }
+
+  function renderParagraphBody(index: number, paragraph: string) {
+    const text = renderParagraphText(index, paragraph);
+    if (!bilingualActive) {
+      return <span className="reader-paragraph-text">{text}</span>;
+    }
+    return (
+      <>
+        <span className="reader-paragraph-text reader-paragraph-bilingual-primary" lang={bilingualPairs[index]?.primary.lang}>
+          {text}
+        </span>
+        {renderBilingualSecondary(index)}
+      </>
+    );
   }
 
   async function clearOfflineCacheForStory() {
@@ -1851,6 +1928,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   // Track active paragraph + visible chapter (primary or inline-appended).
   useEffect(() => {
+    bilingualScrollHighlightRef.current = bilingualScrollHighlight;
+    if (!bilingualScrollHighlight) setScrollFocusParagraphIndex(null);
+  }, [bilingualScrollHighlight]);
+
+  useEffect(() => {
     const article = document.querySelector(".reader-article");
     if (!article) return;
 
@@ -1871,6 +1953,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
         visibleChapterRef.current = next;
         activeParagraphIndexRef.current = next.paragraphIndex;
+
+        if (
+          bilingualScrollHighlightRef.current &&
+          next.chapterNumber === activePayload.chapter.chapterNumber
+        ) {
+          setScrollFocusParagraphIndex((current) =>
+            current === next.paragraphIndex ? current : next.paragraphIndex
+          );
+        }
 
         if (next.chapterNumber !== syncedReaderUrlChapterRef.current) {
           syncedReaderUrlChapterRef.current = next.chapterNumber;
@@ -2264,8 +2355,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         const data = (await response.json().catch(() => null)) as { error?: string } | null;
         throw new Error(data?.error ?? "Không lưu được chỉnh sửa.");
       }
-      const refreshed = await fetchReaderChapter(activePayload.story.id, activePayload.chapter.chapterNumber);
-      queryClient.setQueryData(readerQueryKeys.chapter(activePayload.story.id, activePayload.chapter.chapterNumber), refreshed);
+      const refreshed = await fetchReaderChapter(
+        activePayload.story.id,
+        activePayload.chapter.chapterNumber,
+        bilingualQueryOptions
+      );
+      queryClient.setQueryData(
+        readerQueryKeys.chapter(activePayload.story.id, activePayload.chapter.chapterNumber, bilingualQueryOptions),
+        refreshed
+      );
       setCachedPayload(refreshed);
       adminRestoreScrollTopRef.current = adminEdit.restoreScrollTop ?? adminRestoreScrollTopRef.current;
       setAdminEdit(null);
@@ -2433,7 +2531,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   async function resolveChapterPayload(chapterNumber: number) {
     const queryPayload = queryClient.getQueryData<ReaderPayload>(
-      readerQueryKeys.chapter(activePayload.story.id, chapterNumber)
+      readerQueryKeys.chapter(activePayload.story.id, chapterNumber, bilingualQueryOptions)
     );
     if (queryPayload) return queryPayload;
 
@@ -2442,12 +2540,56 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
     return queryClient
       .fetchQuery({
-        queryKey: readerQueryKeys.chapter(activePayload.story.id, chapterNumber),
-        queryFn: () => fetchReaderChapter(activePayload.story.id, chapterNumber),
+        queryKey: readerQueryKeys.chapter(activePayload.story.id, chapterNumber, bilingualQueryOptions),
+        queryFn: () => fetchReaderChapter(activePayload.story.id, chapterNumber, bilingualQueryOptions),
         staleTime: 1000 * 60 * 8
       })
       .catch(() => null);
   }
+
+  const reloadChapterWithBilingual = useCallback(
+    async (prefs: ReaderBilingualPrefs, chapterNumber = payload.chapter.chapterNumber) => {
+      if (!supportsBilingualReader(payload.story.sourceCode)) {
+        setCachedPayload(null);
+        return;
+      }
+      const options = bilingualFetchOptions(prefs);
+      if (!options) {
+        setCachedPayload(null);
+        return;
+      }
+      try {
+        const refreshed = await fetchReaderChapter(payload.story.id, chapterNumber, options);
+        queryClient.setQueryData(readerQueryKeys.chapter(payload.story.id, chapterNumber, options), refreshed);
+        setCachedPayload(refreshed);
+      } catch {
+        setSwipeNotice("Không tải được chương song ngữ");
+      }
+    },
+    [payload.chapter.chapterNumber, payload.story.id, payload.story.sourceCode, queryClient]
+  );
+
+  const handleBilingualPrefsChange = useCallback((next: ReaderBilingualPrefs) => {
+    setBilingualPrefs(next);
+    writeReaderBilingualPrefs(next);
+  }, []);
+
+  useEffect(() => {
+    if (!supportsBilingualReader(payload.story.sourceCode) || !bilingualPrefs.enabled) {
+      if (!bilingualPrefs.enabled) setCachedPayload(null);
+      return;
+    }
+    void reloadChapterWithBilingual(bilingualPrefs, payload.chapter.chapterNumber);
+  }, [
+    payload.chapter.chapterNumber,
+    payload.story.id,
+    payload.story.sourceCode,
+    bilingualPrefs.enabled,
+    bilingualPrefs.primaryLayer,
+    bilingualPrefs.secondaryLayer,
+    bilingualPrefs.displayMode,
+    reloadChapterWithBilingual
+  ]);
 
   async function promoteHeadInlineToPrimary() {
     if (promoteInlineInFlightRef.current) return false;
@@ -2870,7 +3012,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           }}
         >
           {renderParagraphTools(index, paragraph, bookmarked)}
-          <span className="reader-paragraph-text">{renderParagraphText(index, paragraph)}</span>
+          {renderParagraphBody(index, paragraph)}
         </p>
       );
     });
@@ -3260,6 +3402,20 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   >
                     <BookOpen size={15} />
                     Nhân vật & thuật ngữ
+                  </button>
+                ) : null}
+                {supportsBilingual ? (
+                  <button
+                    className={`reader-overflow-item ${bilingualPrefs.enabled ? "reader-overflow-item-active" : ""}`}
+                    type="button"
+                    onClick={() => {
+                      setMobileSheetTab("settings");
+                      setMobileSheetOpen(true);
+                      setReaderOverflowOpen(false);
+                    }}
+                  >
+                    <Languages size={15} />
+                    {bilingualPrefs.enabled ? "Song ngữ (bật)" : "Song ngữ Anh – Việt"}
                   </button>
                 ) : null}
                 <div className="reader-overflow-sep" />
@@ -3753,6 +3909,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
             {mobileSheetTab === "settings" ? (
               <>
+            {supportsBilingual ? (
+              <div className="reader-sheet-section">
+                <ReaderBilingualSettings
+                  story={activePayload.story}
+                  availableLayers={activePayload.chapter.availableContentLayers ?? ["polished", "raw"]}
+                  onChange={handleBilingualPrefsChange}
+                />
+              </div>
+            ) : null}
             <div className="reader-sheet-section">
               <span>Cài đọc</span>
               <div className="reader-sheet-section-body">
@@ -4353,7 +4518,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             ) : null}
 
             <section
-              className={`reader-content ${isPageLayout ? "reader-content-paginated" : ""} ${currentUser?.isAdmin ? "admin-editable-content-hidden" : ""}`}
+              className={`reader-content ${isPageLayout ? "reader-content-paginated" : ""} ${bilingualActive ? "reader-content-bilingual" : ""} ${currentUser?.isAdmin ? "admin-editable-content-hidden" : ""}`}
               aria-label="Chapter content"
               ref={paragraphContainerRef}
               onMouseUp={() => window.setTimeout(() => maybeShowContentSelectionActions(), 0)}
@@ -4362,9 +4527,22 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               {isPageLayout && paragraphs.length > 0 && adminEdit?.field !== "content" ? (
                 <div ref={pageMeasureContainerRef} className="reader-page-measure-layer" aria-hidden="true">
                   {paragraphs.map((paragraph, index) => (
-                    <p className="reader-paragraph" data-measure-index={index} key={`measure-${index}`}>
+                    <p
+                      className={`reader-paragraph${bilingualActive ? " reader-paragraph-bilingual" : ""}`}
+                      data-measure-index={index}
+                      key={`measure-${index}`}
+                    >
                       <span className="reader-page-measure-gutter" />
-                      <span className="reader-paragraph-text">{renderParagraphText(index, paragraph)}</span>
+                      {bilingualActive ? (
+                        <>
+                          <span className="reader-paragraph-text reader-paragraph-bilingual-primary">
+                            {renderParagraphText(index, paragraph)}
+                          </span>
+                          {bilingualSecondaryVisible ? renderBilingualSecondary(index) : null}
+                        </>
+                      ) : (
+                        <span className="reader-paragraph-text">{renderParagraphText(index, paragraph)}</span>
+                      )}
                     </p>
                   ))}
                 </div>
@@ -4443,7 +4621,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                             }}
                           >
                             {renderParagraphTools(index, paragraph, bookmarked)}
-                            <span className="reader-paragraph-text">{renderParagraphText(index, paragraph)}</span>
+                            {renderParagraphBody(index, paragraph)}
                           </p>
                         </div>
                       );
@@ -4469,7 +4647,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                       }}
                     >
                       {renderParagraphTools(index, paragraph, bookmarked)}
-                      <span className="reader-paragraph-text">{renderParagraphText(index, paragraph)}</span>
+                      {renderParagraphBody(index, paragraph)}
                     </p>
                   );
                 })
