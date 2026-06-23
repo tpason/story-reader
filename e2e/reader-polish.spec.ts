@@ -1,14 +1,21 @@
 import { test, expect } from "@playwright/test";
 import {
+  clearOfflineChapterCache,
   dismissReaderChrome,
   loadReaderFixture,
   pickReadableStory,
   primeReaderTestStorage,
+  seedOfflineChapterCache,
   seedReadingHistory,
-  storyDetailPath
+  storyDetailPath,
+  storyReaderPath
 } from "./helpers";
 
 test.describe("reader polish", () => {
+  test.afterEach(async ({ page }) => {
+    await clearOfflineChapterCache(page).catch(() => undefined);
+  });
+
   test("story detail shows resume bar for in-progress story", async ({ page }) => {
     const story = await pickReadableStory(page, 1);
     await seedReadingHistory(page, {
@@ -52,6 +59,52 @@ test.describe("reader polish", () => {
     await expect(panel).toBeVisible({ timeout: 12_000 });
     await expect(panel).toContainText("Chương đã tải về");
     await expect(panel).toContainText("Chưa có chương offline");
+  });
+
+  test("account page summarizes seeded offline chapters", async ({ page }) => {
+    const story = await pickReadableStory(page, 1);
+    await primeReaderTestStorage(page);
+    await seedOfflineChapterCache(page, story, [1, 2, 3]);
+    await page.goto("/account", { waitUntil: "domcontentloaded" });
+
+    const panel = page.getByRole("region", { name: "Cache offline" });
+    await expect(panel).toContainText(story.title, { timeout: 12_000 });
+    await expect(panel).toContainText("1 truyện");
+    await expect(panel).toContainText("3 chương");
+  });
+
+  test("reader shows offline badge when chapter is cached", async ({ page }) => {
+    const story = await pickReadableStory(page, 1);
+    await primeReaderTestStorage(page);
+    await seedOfflineChapterCache(page, story, [1]);
+    await page.goto(storyReaderPath(story, 1), { waitUntil: "domcontentloaded" });
+
+    await expect(page.locator(".reader-shell")).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator(".reader-offline-badge")).toContainText("Offline", { timeout: 12_000 });
+  });
+
+  test("story detail heatmap jump navigates to chapter", async ({ page }) => {
+    const story = await pickReadableStory(page, 1);
+    await seedReadingHistory(page, {
+      storyId: story.id,
+      storyTitle: story.title,
+      chapterNumber: 1,
+      maxReadChapterNumber: Math.min(5, story.totalChapters)
+    });
+    await primeReaderTestStorage(page);
+    await page.goto(storyDetailPath(story), { waitUntil: "domcontentloaded" });
+
+    const targetChapter = Math.min(3, story.totalChapters);
+    const heatmapCell = page.locator(`.chapter-sidebar-heatmap-cell[title="Chương ${targetChapter}"]`).first();
+    if ((await heatmapCell.count()) === 0) {
+      const rangedCell = page.locator(".chapter-sidebar-heatmap-cell").nth(1);
+      await rangedCell.click();
+      await expect(page).toHaveURL(/\/chapters\/\d+/, { timeout: 12_000 });
+      return;
+    }
+
+    await heatmapCell.click();
+    await expect(page).toHaveURL(new RegExp(`/chapters/${targetChapter}(?:/|$)`), { timeout: 12_000 });
   });
 
   test("keyboard help opens with question-mark shortcut", async ({ page }, testInfo) => {

@@ -252,3 +252,93 @@ export async function expectNotificationLive(page: Page, live = true) {
   await expect(page.locator(".notification-live")).toContainText(live ? "Live" : "Polling");
   if (live) await expect(page.locator(".notification-live-on")).toBeVisible();
 }
+
+const OFFLINE_DB_NAME = "linh-quyen-offline";
+const OFFLINE_DB_VERSION = 1;
+
+export async function clearOfflineChapterCache(page: Page) {
+  await page.evaluate(
+    async ({ dbName }) => {
+      await new Promise<void>((resolve, reject) => {
+        const request = indexedDB.deleteDatabase(dbName);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error ?? new Error("Failed to delete offline DB"));
+        request.onblocked = () => reject(new Error("Offline DB delete blocked"));
+      });
+    },
+    { dbName: OFFLINE_DB_NAME }
+  );
+}
+
+export async function seedOfflineChapterCache(
+  page: Page,
+  story: { id: string; title: string; totalChapters?: number },
+  chapterNumbers: number[]
+) {
+  await page.evaluate(
+    async ({ dbName, dbVersion, storyId, storyTitle, totalChapters, chapterNumbers: numbers }) => {
+      const openDb = () =>
+        new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open(dbName, dbVersion);
+          request.onupgradeneeded = () => {
+            const db = request.result;
+            if (db.objectStoreNames.contains("chapters")) return;
+            const store = db.createObjectStore("chapters", { keyPath: "key" });
+            store.createIndex("storyId", "storyId", { unique: false });
+            store.createIndex("chapterNumber", "chapterNumber", { unique: false });
+            store.createIndex("cachedAt", "cachedAt", { unique: false });
+          };
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error ?? new Error("Failed to open offline DB"));
+        });
+
+      const db = await openDb();
+      const tx = db.transaction("chapters", "readwrite");
+      const store = tx.objectStore("chapters");
+      const cachedAt = new Date().toISOString();
+      const total = totalChapters ?? Math.max(...numbers, 1);
+
+      for (const chapterNumber of numbers) {
+        store.put({
+          key: `${storyId}:${chapterNumber}`,
+          storyId,
+          storyTitle,
+          chapterNumber,
+          chapterTitle: `Chương ${chapterNumber}`,
+          cachedAt,
+          payload: {
+            story: { id: storyId, title: storyTitle, totalChapters: total },
+            chapter: {
+              id: `offline-${storyId}-${chapterNumber}`,
+              chapterNumber,
+              title: `Chương ${chapterNumber}`,
+              content: "Offline chapter body for automated tests.\n\nSecond paragraph."
+            },
+            nextChapter:
+              chapterNumber < total
+                ? { id: `offline-${storyId}-${chapterNumber + 1}`, chapterNumber: chapterNumber + 1, title: `Chương ${chapterNumber + 1}` }
+                : null,
+            previousChapter:
+              chapterNumber > 1
+                ? { id: `offline-${storyId}-${chapterNumber - 1}`, chapterNumber: chapterNumber - 1, title: `Chương ${chapterNumber - 1}` }
+                : null
+          }
+        });
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error ?? new Error("Offline cache write failed"));
+      });
+      db.close();
+    },
+    {
+      dbName: OFFLINE_DB_NAME,
+      dbVersion: OFFLINE_DB_VERSION,
+      storyId: story.id,
+      storyTitle: story.title,
+      totalChapters: story.totalChapters,
+      chapterNumbers
+    }
+  );
+}

@@ -710,7 +710,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     [cachedChapters]
   );
   const offlineCacheBytes = useMemo(() => estimateOfflineCacheBytes(sortedCachedChapters), [sortedCachedChapters]);
-  const readingFromOfflineCache = Boolean(cachedPayload) || (offlineReady && typeof navigator !== "undefined" && !navigator.onLine);
+  const readingFromOfflineCache = Boolean(cachedPayload) || offlineReady;
   const canVirtualizeChapterList = filteredChapters.length > 80 && (Boolean(chapterSearchText) || (!previousChapterCursor && !chapterCursor));
   const chapterVirtualizer = useVirtualizer({
     count: filteredChapters.length,

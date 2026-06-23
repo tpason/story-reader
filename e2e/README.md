@@ -29,6 +29,9 @@ npm run test:e2e
 # Desktop only
 npm run test:e2e -- --project=desktop
 
+# Reader polish specs only (resume bar, heatmap, offline cache, keyboard help)
+npm run test:e2e:polish
+
 # Realtime / WebSocket specs only (requires dev:ws — see below)
 npm run test:e2e:realtime
 
