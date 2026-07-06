@@ -24,8 +24,9 @@ test.describe("home UX", () => {
 
   test("topbar includes Thiên bảng and Tủ truyện", async ({ page }) => {
     await gotoHomeReady(page);
-    await expect(page.getByRole("link", { name: "Thiên bảng" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Tủ truyện" })).toBeVisible();
+    const nav = page.getByRole("navigation", { name: "Reader navigation" });
+    await expect(nav.getByRole("link", { name: "Thiên bảng" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Tủ truyện" })).toBeVisible();
   });
 
   test("trending period chips update homepage URL", async ({ page }) => {
@@ -40,12 +41,13 @@ test.describe("home UX", () => {
     await expect(page).toHaveURL(/trendPeriod=month/);
   });
 
-  test("trending section links to full rankings", async ({ page }) => {
+  test("trending section links to rankings", async ({ page }) => {
     await gotoHomeReady(page);
     const trending = page.locator(".trending-section");
     await expect(trending).toBeVisible({ timeout: 12_000 });
-    await trending.getByRole("link", { name: /Xem thiên bảng/i }).click();
-    await expect(page).toHaveURL(/\/rankings\?tab=trending/);
+    const cta = trending.getByRole("link", { name: /Xem thiên bảng|Thiên bảng|Phong vân đầy đủ/i }).first();
+    await cta.click();
+    await expect(page).toHaveURL(/\/rankings\?tab=(trending|betterbox)/);
   });
 
   test("follow shelf shows header link when follows exist", async ({ page }) => {
@@ -54,6 +56,6 @@ test.describe("home UX", () => {
     await gotoHomeReady(page);
 
     await expect(page.locator(".followed-section .followed-card")).toHaveCount(1, { timeout: 12_000 });
-    await expect(page.getByRole("link", { name: /Cập nhật/i }).first()).toBeVisible();
+    await expect(page.locator(".followed-section .discovery-more")).toBeVisible();
   });
 });

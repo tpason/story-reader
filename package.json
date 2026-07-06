@@ -22,8 +22,10 @@
     "test:e2e:desktop": "playwright test --project=desktop",
     "test:e2e:mobile": "playwright test --project=mobile",
     "test:e2e:polish": "playwright test e2e/reader-polish.spec.ts --project=desktop",
-    "test:e2e:discovery": "playwright test e2e/home-ux.spec.ts e2e/rankings-ux.spec.ts e2e/following-ux.spec.ts --project=desktop",
-    "test:e2e:rankings": "playwright test e2e/rankings-ux.spec.ts e2e/following-ux.spec.ts --project=desktop",
+    "test:e2e:discovery": "PLAYWRIGHT_DESKTOP_ONLY=1 playwright test e2e/home-ux.spec.ts e2e/rankings-ux.spec.ts e2e/following-ux.spec.ts --project=desktop",
+    "test:e2e:rankings": "PLAYWRIGHT_DESKTOP_ONLY=1 playwright test e2e/rankings-ux.spec.ts e2e/following-ux.spec.ts --project=desktop",
+    "test:e2e:ux-audit": "PLAYWRIGHT_DESKTOP_ONLY=1 playwright test e2e/app-features-ux.spec.ts e2e/identity-modal.spec.ts e2e/home-ux.spec.ts e2e/rankings-ux.spec.ts e2e/following-ux.spec.ts --project=desktop",
+    "test:e2e:safe": "PLAYWRIGHT_DESKTOP_ONLY=1 playwright test e2e/app-features-ux.spec.ts e2e/identity-modal.spec.ts e2e/home-ux.spec.ts --project=desktop",
     "analyze": "ANALYZE=true npm run build"
   },
   "dependencies": {

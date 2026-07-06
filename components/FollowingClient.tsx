@@ -4,26 +4,48 @@ import type { Route } from "next";
 import Link from "next/link";
 import { BellRing, BookOpen, Sparkles, Trophy } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useMemo, useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { StoryCover } from "@/components/StoryCover";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
+import { formatRelativeActivity } from "@/lib/content-timestamps";
 import { storyHref } from "@/lib/urls";
 import { useAppSelector } from "@/lib/store-hooks";
 
 const MotionFX = dynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX), { ssr: false });
 
+type ShelfTab = "reading" | "following" | "completed";
+
+const SHELF_TABS: { id: ShelfTab; label: string }[] = [
+  { id: "reading", label: "Đang đọc" },
+  { id: "following", label: "Theo dõi" },
+  { id: "completed", label: "Hoàn thành" }
+];
+
 export function FollowingClient() {
   const follows = useAppSelector((state) => state.follows.items);
   const history = useAppSelector((state) => state.history.items);
   const { isFresh } = useFreshStoryRealtime();
+  const [tab, setTab] = useState<ShelfTab>("reading");
 
-  const historyByStory = new Map(history.map((item) => [item.storyId, item]));
+  const historyByStory = useMemo(() => new Map(history.map((item) => [item.storyId, item])), [history]);
   const totalUnread = follows.reduce((total, item) => {
     const read = historyByStory.get(item.storyId)?.maxReadChapterNumber ?? 0;
     return total + Math.max(0, item.totalChapters - read);
   }, 0);
+
+  const visibleFollows = useMemo(() => {
+    return follows.filter((item) => {
+      const progress = historyByStory.get(item.storyId);
+      const maxRead = progress?.maxReadChapterNumber ?? 0;
+      const completed = item.totalChapters > 0 && maxRead >= item.totalChapters;
+      if (tab === "completed") return completed;
+      if (tab === "reading") return Boolean(progress) && !completed;
+      return true;
+    });
+  }, [follows, historyByStory, tab]);
 
   return (
     <main className="app-shell">
@@ -51,6 +73,23 @@ export function FollowingClient() {
           ) : null}
         </XiPageHeroStrip>
 
+        {follows.length > 0 ? (
+          <div className="filters following-shelf-tabs" role="tablist" aria-label="Kệ truyện">
+            {SHELF_TABS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                role="tab"
+                className={`chip ${tab === option.id ? "chip-active" : ""}`}
+                aria-selected={tab === option.id}
+                onClick={() => setTab(option.id)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         {follows.length === 0 ? (
           <XianxiaEmptyState
             title="Chưa có linh quyển trong tủ."
@@ -67,12 +106,19 @@ export function FollowingClient() {
               </Link>
             </div>
           </XianxiaEmptyState>
+        ) : visibleFollows.length === 0 ? (
+          <XianxiaEmptyState
+            title="Kệ này chưa có linh quyển."
+            hint="Thử chuyển sang tab khác hoặc theo dõi thêm truyện từ thư viện."
+            className="following-empty"
+          />
         ) : (
           <div className="following-grid">
-            {follows.map((item) => {
+            {visibleFollows.map((item) => {
               const progress = historyByStory.get(item.storyId);
               const unread = Math.max(0, item.totalChapters - (progress?.maxReadChapterNumber ?? 0));
               const targetChapter = progress?.chapterNumber ?? undefined;
+              const activityLabel = formatRelativeActivity(item.updatedAt);
 
               return (
                 <Link
@@ -95,6 +141,7 @@ export function FollowingClient() {
                       {progress
                         ? `Đọc tiếp chương ${progress.chapterNumber} · ${item.totalChapters} chương`
                         : `${item.totalChapters} chương · chưa bắt đầu`}
+                      {activityLabel ? ` · ${activityLabel}` : ""}
                     </p>
                   </div>
                 </Link>

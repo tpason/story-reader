@@ -15,6 +15,7 @@ import { StoryCover } from "@/components/StoryCover";
 import { UserIdentity } from "@/components/UserIdentity";
 import { FollowButton } from "@/components/FollowButton";
 import { storyDisplayDescription } from "@/lib/story-description";
+import { formatStoryUpdatedLabel } from "@/lib/content-timestamps";
 import type { ChapterSummary, StorySummary } from "@/lib/types";
 import { storyHref } from "@/lib/urls";
 import { useAppSelector } from "@/lib/store-hooks";
@@ -28,8 +29,10 @@ import { StoryRankMeta } from "@/components/StoryRankMeta";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import { useStoryChapterPagination } from "@/hooks/useStoryChapterPagination";
+import { StoryDetailOfflineDownload } from "@/components/StoryDetailOfflineDownload";
 import { useStoryDetailAdminEdit } from "@/hooks/useStoryDetailAdminEdit";
 import { writeResumeNavigationTarget } from "@/lib/reader-resume";
+import { estimateReadingMinutes, formatReadingDuration } from "@/lib/reading-estimate";
 
 const ThreeStoryStage = dynamic(() => import("@/components/ThreeStoryStage").then((mod) => mod.ThreeStoryStage), {
   ssr: false
@@ -90,6 +93,14 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
   const history = useAppSelector((state) => state.history.items.find((item) => item.storyId === currentStory.id));
   const firstChapter = chapterPage[0] ?? null;
   const continueChapter = history?.chapterNumber ?? firstChapter?.chapterNumber ?? null;
+  const heroCtaChapter = continueChapter ?? 1;
+  const heroCtaLabel = history
+    ? `Tiếp tục chương ${history.chapterNumber}`
+    : firstChapter
+      ? `Bắt đầu chương ${firstChapter.chapterNumber}`
+      : "Đọc từ đầu";
+  const estimatedStoryMinutes =
+    totalChapters > 0 ? estimateReadingMinutes(totalChapters * 1000) : 0;
   const maxReadChapter = history?.maxReadChapterNumber ?? 0;
   const [freshChapterNumber, setFreshChapterNumber] = useState<number | null>(null);
   const { isFresh } = useFreshStoryRealtime({
@@ -101,7 +112,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
       window.setTimeout(() => setFreshChapterNumber((current) => (current === event.chapterNumber ? null : current)), 9000);
     }
   });
-  const updatedLabel = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(currentStory.updatedAt));
+  const updatedLabel = formatStoryUpdatedLabel(currentStory.updatedAt);
   useReadingProgressSync();
 
   useEffect(() => {
@@ -197,7 +208,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
               )}
               <span className="story-meta-icon-badge">
                 <Clock3 size={12} aria-hidden="true" />
-                Cập nhật {updatedLabel}
+                {updatedLabel ?? "Cập nhật gần đây"}
               </span>
               <StoryRankMeta story={currentStory} />
             </div>
@@ -221,22 +232,20 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
               </div>
             )}
             <div className="story-detail-actions">
-              {continueChapter ? (
-                <Link
-                  className="auth-submit"
-                  href={storyHref(currentStory, continueChapter)}
-                  onClick={() => {
-                    if (!history) return;
-                    writeResumeNavigationTarget(history.storyId, history.chapterNumber, {
-                      scrollPosition: history.scrollPosition,
-                      paragraphIndex: history.paragraphIndex ?? null
-                    });
-                  }}
-                >
-                  <BookOpenCheck size={16} />
-                  {history ? `Đọc tiếp chương ${history.chapterNumber}` : "Đọc từ đầu"}
-                </Link>
-              ) : null}
+              <Link
+                className="auth-submit story-detail-primary-cta"
+                href={storyHref(currentStory, heroCtaChapter)}
+                onClick={() => {
+                  if (!history) return;
+                  writeResumeNavigationTarget(history.storyId, history.chapterNumber, {
+                    scrollPosition: history.scrollPosition,
+                    paragraphIndex: history.paragraphIndex ?? null
+                  });
+                }}
+              >
+                <BookOpenCheck size={16} />
+                {heroCtaLabel}
+              </Link>
               <FollowButton story={currentStory} />
               <button
                 type="button"
@@ -252,6 +261,11 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
               </Link>
             </div>
             <StoryDetailPushHint storyId={currentStory.id} boosted={Boolean(freshChapterNumber)} />
+            {estimatedStoryMinutes > 0 ? (
+              <p className="story-detail-read-estimate">
+                Ước tính ~{formatReadingDuration(estimatedStoryMinutes)} đọc hết
+              </p>
+            ) : null}
             {maxReadChapter > 0 && totalChapters > 0 ? (() => {
               const progressPct = Math.min(100, Math.max(0, Math.round((maxReadChapter / totalChapters) * 100)));
               const activeChapter = history?.chapterNumber ?? continueChapter ?? 0;
@@ -316,6 +330,8 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
 
         {sameAuthorSlot}
 
+        <StoryDetailOfflineDownload story={currentStory} startChapter={heroCtaChapter} />
+
         <section className="library-list-section" id="story-chapters">
           <div className="section-heading-row story-list-heading">
             <div>
@@ -355,11 +371,11 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
           />
         </section>
       </div>
-      {continueChapter ? (
+      {heroCtaChapter ? (
         <nav className="story-mobile-cta" aria-label="Story quick actions">
-          <Link className="story-mobile-cta-primary" href={storyHref(currentStory, continueChapter)}>
+          <Link className="story-mobile-cta-primary" href={storyHref(currentStory, heroCtaChapter)}>
             <BookOpenCheck size={16} />
-            {history ? "Đọc tiếp" : "Đọc từ đầu"}
+            {heroCtaLabel}
           </Link>
           <a className="story-mobile-cta-secondary" href="#story-chapters">
             Mục lục

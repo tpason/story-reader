@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import nextDynamic from "next/dynamic";
 import { getCachedCategories, getCachedPolishedStories, getCachedTrendingStories, getCachedUpdatedStories, listStoriesCursor } from "@/lib/stories";
 import { buildHomeFilterLabels, isHomeSearchActive } from "@/lib/home-search";
+import { LibrarySortChips } from "@/components/LibrarySortChips";
 import { StoryLibrary } from "@/components/StoryLibrary";
 import { ReadingResumeBar } from "@/components/ReadingResumeBar";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -279,6 +280,23 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
         ) : (
           <>
+            <LibrarySortChips
+              currentSort={params.sort}
+              hrefForSort={(sort) =>
+                buildQuery({
+                  q: params.q,
+                  hot: params.hot,
+                  completed: params.completed,
+                  category: params.category,
+                  minChapters: params.minChapters,
+                  maxChapters: params.maxChapters,
+                  hasPolished: params.hasPolished,
+                  hasAudio: params.hasAudio,
+                  sort,
+                  trendPeriod: params.trendPeriod
+                })
+              }
+            />
             <FollowedStoriesPanel />
             <Suspense fallback={<DiscoveryRailSkeleton />} key={`trending-${trendPeriod}`}>
               <TrendingSection period={trendPeriod} linkParams={trendLinkParams} />

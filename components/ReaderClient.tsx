@@ -37,6 +37,7 @@ import { useReaderOfflineCache } from "@/components/reader/ReaderOfflineCachePro
 import { ReaderChapterFreshHint, type ReaderChapterFreshHintState } from "@/components/ReaderChapterFreshHint";
 import { ReaderAmbienceLayer } from "@/components/ReaderAmbienceLayer";
 import { ReaderLogo } from "@/components/ReaderLogo";
+import { ReaderQuickSettings } from "@/components/ReaderQuickSettings";
 import { fetchReaderChapter, readerQueryKeys } from "@/lib/reader-query";
 import {
   bilingualFetchOptions,
@@ -105,6 +106,8 @@ import {
   inlineBlocksAfterHeadPromotion,
   shouldAutoPromotePrimaryChapter
 } from "@/lib/reader-inline-promote";
+import { ChapterTimestamp } from "@/components/ChapterTimestamp";
+import { formatChapterTimestamp } from "@/lib/content-timestamps";
 import { chapterContentToParagraphs } from "@/lib/reader-chapter-paragraphs";
 import {
   readReaderAudioReadAlong,
@@ -480,6 +483,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const readerChromeHiddenRef = useRef(false);
   const readerShellRef = useRef<HTMLElement | null>(null);
   const swipeStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
+  const zenTapRef = useRef<{ t: number; x: number; y: number } | null>(null);
   const swipeNoticeTimerRef = useRef<number | null>(null);
   const restoredScrollKeyRef = useRef<string | null>(null);
   const suppressSelectionActionUntilRef = useRef(0);
@@ -1451,6 +1455,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       } else if (event.key === "b" || event.key === "B") {
         toggleBookmark();
       } else if (event.key === "f" || event.key === "F") {
+        setFocusModeEnabled((prev) => !prev);
+      } else if (event.key === "z" || event.key === "Z") {
         setFocusModeEnabled((prev) => !prev);
       } else if (event.key === "g" || event.key === "G") {
         if (glossaryCharacters.length > 0) setGlossaryDrawerOpen((prev) => !prev);
@@ -2836,6 +2842,22 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     navigateBySwipe(deltaX > 0 ? "previous" : "next");
   }
 
+  function handleZenDoubleTap(event: ReactMouseEvent<HTMLElement>) {
+    const target = event.target as HTMLElement;
+    if (target.closest("a, button, input, textarea, select, [contenteditable='true'], .reader-selection-toolbar")) return;
+
+    const now = Date.now();
+    const prev = zenTapRef.current;
+    const dx = prev ? Math.abs(event.clientX - prev.x) : 999;
+    const dy = prev ? Math.abs(event.clientY - prev.y) : 999;
+    if (prev && now - prev.t < 420 && dx < 32 && dy < 32) {
+      setFocusModeEnabled((value) => !value);
+      zenTapRef.current = null;
+      return;
+    }
+    zenTapRef.current = { t: now, x: event.clientX, y: event.clientY };
+  }
+
   function openMobileChapterList() {
     setMobileSheetOpen(false);
     window.requestAnimationFrame(() => {
@@ -2882,6 +2904,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         }}
       >
         <span className="sidebar-link-title">
+          {isRead ? <span className="sidebar-read-dot" aria-hidden title="Đã đọc" /> : null}
           {chapter.chapterNumber}. {chapter.title}
         </span>
         <span className="chapter-status-row">
@@ -2891,6 +2914,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           {chapter.textSource === "polished" ? <span className="chapter-status chapter-status-polished">Polish</span> : null}
           {chapter.hasAudio ? <span className="chapter-status chapter-status-audio">Audio</span> : null}
           {cachedChapterNumbers.has(chapter.chapterNumber) ? <span className="chapter-status chapter-status-offline">Đã tải</span> : null}
+          <ChapterTimestamp chapter={chapter} />
         </span>
       </Link>
     );
@@ -3330,6 +3354,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           </div>
           <div className="reader-control-group reader-action-group" ref={readerOverflowRef}>
             <FollowButton story={activePayload.story} compact />
+            {!compactReader ? (
+              <ReaderQuickSettings />
+            ) : null}
             {!compactReader ? (
               <FloatingTooltip label="Tuỳ chọn đọc">
                 <button
@@ -4207,6 +4234,21 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             <div className="reader-sheet-section">
               <span>Tải chương offline</span>
               <div className="reader-sheet-section-body reader-offline-cache-panel">
+                {offlineLoading && offlineDownloadProgress ? (
+                  <div
+                    className="reader-offline-queue-progress"
+                    role="progressbar"
+                    aria-valuenow={offlineDownloadProgress.done}
+                    aria-valuemin={0}
+                    aria-valuemax={offlineDownloadProgress.total}
+                  >
+                    <span
+                      style={{
+                        width: `${Math.round((offlineDownloadProgress.done / Math.max(1, offlineDownloadProgress.total)) * 100)}%`
+                      }}
+                    />
+                  </div>
+                ) : null}
                 <button
                   className={`reader-sheet-action reader-sheet-status ${offlineReady ? "reader-sheet-status-ready" : ""}`}
                   type="button"
@@ -4391,6 +4433,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
         <article
           className="reader-main"
+          onClick={handleZenDoubleTap}
           onPointerDown={handleReaderPointerDown}
           onPointerCancel={() => {
             swipeStartRef.current = null;
@@ -4452,6 +4495,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 {activePayload.story.totalChapters || chapters.length} chương
                 {currentUser?.isAdmin && activePayload.chapter.textSource ? ` · ${activePayload.chapter.textSource}` : ""}
                 {totalReadingMinutes > 0 ? ` · ~${totalReadingMinutes} phút đọc` : ""}
+                {formatChapterTimestamp(activePayload.chapter) ? ` · ${formatChapterTimestamp(activePayload.chapter)}` : ""}
                 {totalReadingMinutes > 0 ? (
                   <span className="reader-heading-eta" ref={headingEtaLabelRef} hidden />
                 ) : null}

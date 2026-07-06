@@ -38,6 +38,12 @@ npm run test:e2e:desktop
 # Discovery / rankings / following (lighter than full reader suite)
 npm run test:e2e:discovery
 
+# Full feature UX audit — all routes + identity modal stacking (desktop, low GPU)
+npm run test:e2e:ux-audit
+
+# Minimal safe subset — routes + identity modal + home (fastest smoke)
+npm run test:e2e:safe
+
 # Rankings + following only
 npm run test:e2e:rankings
 
@@ -56,6 +62,7 @@ npx playwright show-report e2e-report
 | Variable | Default | Notes |
 |---|---|---|
 | `PLAYWRIGHT_BASE_URL` | `http://127.0.0.1:3003` | Target server |
+| `PLAYWRIGHT_DESKTOP_ONLY` | off | Set `1` (default in `test:e2e:safe`) to skip mobile project |
 | `PLAYWRIGHT_START_SERVER` | off | Set `1` to run `PORT=3003 npm run dev` before tests |
 | `PLAYWRIGHT_READER_PATH` | fixed slug path | Override reader fixture URL |
 | `PLAYWRIGHT_READER_REALTIME_TOKEN` | — | Match server `READER_REALTIME_TOKEN` for broadcast auth tests |
@@ -64,6 +71,7 @@ npx playwright show-report e2e-report
 
 | File | Covers |
 |---|---|
+| `app-features-ux.spec.ts` | **All main routes** smoke + horizontal overflow + identity/login stacking + account anchors |
 | `home-ux.spec.ts` | Resume bar, topbar nav (Thiên bảng, Tủ truyện), trending period chips, follow shelf |
 | `rankings-ux.spec.ts` | `/rankings` tabs, period chips, empty/fallback, story links, mobile overflow |
 | `following-ux.spec.ts` | `/following` empty + seeded shelf, homepage follow CTAs |
@@ -78,17 +86,36 @@ npx playwright show-report e2e-report
 - **Thiên bảng** may show 200+ stories after `refresh_story_analytics.py`; **Phong vân** may be empty until reading sessions exist (≥5s/chapter). Tests accept list, empty state, or Thiên bảng fallback.
 - Follow shelf tests seed `localStorage` key `reader:follows` (same as guest follow persistence).
 
+## Reader E2E prerequisites
+
+Reader specs (`reader-smoke`, `reader-polish`, `identity-modal` on reader) need:
+
+1. Applied DB migrations (`python story_db/apply_migrations.py`)
+2. At least one chapter with `reader_formatted_text_content` or polished text > 200 chars
+3. `GET /api/stories/{id}/chapters/1` returns 200 with `chapter.content`
+
+If chapter API returns 500 (e.g. missing column), reader tests **skip** automatically via `isReaderChapterApiReady()`.
+
 ## Realtime tests (`e2e/realtime.spec.ts`)
 
 Most specs **skip** unless `/api/health` reports `"websocket": true`.
 
 ### Crash safety (important)
 
-`dev:ws` + Playwright **full** realtime suite can spike RAM/CPU (reader page ~3000 modules, exit 139 segfault reported). Prefer:
+`dev:ws` + Playwright **full** suite can spike RAM/CPU/GPU (reader page ~3000 modules, exit 139 segfault reported). Mitigations:
 
-1. **Daily dev:** `bash docker/scripts/dev-story-reader.sh` — hot reload, no Docker rebuild
-2. **Light verify:** `npm run test:e2e:realtime:api` — health + broadcast API only (no homepage UI)
-3. **Full UI tests:** run only when needed, server already warm, do not run `next build` in parallel
+1. **Prefer `npm run test:e2e:safe`** or **`test:e2e:ux-audit`** — desktop-only, battery-saver storage seeded, Chromium `--disable-gpu`
+2. **Daily dev:** `bash docker/scripts/dev-story-reader.sh` — hot reload on `:3003`
+3. **Do not** run `next build` or full `test:e2e` (desktop+mobile) while Ollama/Docker spikes GPU
+4. **Light verify:** `npm run test:e2e:realtime:api` — health + broadcast API only
+
+`playwright.config.ts`: `workers: 1`, `fullyParallel: false`, low-resource Chromium args. Tests seed `reader:performance-mode=battery_saver` and skip boot splash.
+
+Check host before heavy runs:
+
+```bash
+free -h && nvidia-smi  # GPU >90% used → pause Ollama or close Docker Desktop first
+```
 
 `next.config.ts` sets `experimental.cpus: 1` and `images.unoptimized` in dev to reduce load.
 

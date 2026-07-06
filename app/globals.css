@@ -17631,3 +17631,244 @@ html[data-reader-realtime-fx="off"] .notification-bell-live .notification-dot {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   Phase 4 — overlay stacking (identity/auth above aura + chrome)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.auth-shell {
+  position: relative;
+  z-index: 10;
+  isolation: isolate;
+}
+
+.auth-panel {
+  z-index: 2;
+}
+
+.identity-modal {
+  z-index: 9300;
+}
+
+.notification-panel-portal {
+  z-index: 9280;
+}
+
+.site-header-drawer-backdrop {
+  z-index: 9270;
+}
+
+.site-header-drawer {
+  z-index: 9280;
+}
+
+.identity-modal-backdrop {
+  background: rgba(10, 21, 48, 0.52);
+}
+
+.identity-modal-panel {
+  background:
+    radial-gradient(circle at 92% 8%, rgba(245, 215, 94, 0.14), transparent 34%),
+    var(--canvas);
+  box-shadow:
+    0 28px 80px rgba(10, 21, 48, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* Content timestamps */
+.chapter-timestamp,
+.story-meta-time {
+  color: var(--steel, #6b6560);
+  font-size: 0.74rem;
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+.story-chapter-card .chapter-status-row {
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+
+.story-chapter-card .chapter-timestamp {
+  flex: 1 1 100%;
+  margin-top: 2px;
+}
+
+.sidebar-link .chapter-timestamp {
+  flex: 1 1 100%;
+  margin-top: 3px;
+  font-size: 0.7rem;
+}
+
+@media (min-width: 720px) {
+  .story-chapter-card .chapter-timestamp {
+    flex: 0 1 auto;
+    margin-top: 0;
+    margin-left: auto;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   UX Phases 1–6 — continue, shelves, offline, rankings legend
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 621px) {
+  .resume-mini-bar {
+    display: grid;
+    top: 72px;
+    border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 28%, var(--hairline) 72%);
+    background:
+      linear-gradient(135deg, rgba(200, 150, 46, 0.1), rgba(26, 107, 90, 0.08)),
+      color-mix(in srgb, var(--canvas) 94%, transparent);
+  }
+}
+
+.story-progress-mini-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.story-progress-pct {
+  color: var(--xi-gold, #c8962e);
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.story-progress-mini-spacer {
+  display: block;
+  min-height: 5px;
+}
+
+.story-detail-primary-cta {
+  min-width: min(100%, 280px);
+}
+
+.story-detail-read-estimate {
+  margin: 8px 0 0;
+  color: var(--steel);
+  font-size: 0.86rem;
+}
+
+.story-chapter-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.library-sort-chips {
+  margin: 0 0 14px;
+}
+
+.following-shelf-tabs {
+  margin: 0 0 18px;
+}
+
+.story-offline-download {
+  margin: 18px 0 24px;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in srgb, var(--xi-jade, #1a6b5a) 22%, var(--hairline) 78%);
+  border-radius: 16px;
+  background:
+    linear-gradient(145deg, rgba(26, 107, 90, 0.06), rgba(200, 150, 46, 0.05)),
+    color-mix(in srgb, var(--canvas) 96%, transparent);
+}
+
+.story-offline-download-head {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  margin-bottom: 10px;
+}
+
+.story-offline-download-head p {
+  margin: 4px 0 0;
+  color: var(--steel);
+  font-size: 0.86rem;
+}
+
+.story-offline-download-status {
+  margin: 0 0 10px;
+  font-size: 0.84rem;
+}
+
+.story-offline-download-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.story-offline-download-progress {
+  position: relative;
+  overflow: hidden;
+  height: 8px;
+  margin: 0 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--hairline) 80%, transparent);
+}
+
+.story-offline-download-progress-bar {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--xi-jade, #1a6b5a), var(--xi-gold, #c8962e));
+  transition: width 0.2s ease;
+}
+
+.story-offline-download-progress span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.story-offline-download-error {
+  margin: 8px 0 0;
+  color: #b42318;
+  font-size: 0.84rem;
+}
+
+.rankings-legend {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 20%, var(--hairline) 80%);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--canvas) 94%, rgba(200, 150, 46, 0.06));
+}
+
+.rankings-legend strong {
+  color: var(--charcoal);
+  font-size: 0.88rem;
+}
+
+.rankings-legend span {
+  color: var(--steel);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.story-chapter-card:focus-visible,
+.followed-card:focus-visible,
+.resume-mini-bar:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--xi-gold, #c8962e) 70%, white);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resume-mini-bar,
+  .story-card,
+  .followed-card,
+  .rankings-item {
+    transition: none !important;
+  }
+}
+

@@ -11,6 +11,7 @@ import { StoryRankMeta } from "@/components/StoryRankMeta";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { storyHref } from "@/lib/urls";
 import { storyDisplayDescription, storyCategoryLabel } from "@/lib/story-description";
+import { formatRelativeActivity, formatStoryUpdatedLabel } from "@/lib/content-timestamps";
 import { useAppSelector } from "@/lib/store-hooks";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
 import { useStoryLibraryAdminEdit, type AdminStoryListEditField, type AdminStoryListEditState } from "@/hooks/useStoryLibraryAdminEdit";
@@ -93,6 +94,7 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
   const progressPercent = storyHistory && story.totalChapters > 0
     ? Math.min(100, Math.round((storyHistory.maxReadChapterNumber / story.totalChapters) * 100))
     : 0;
+  const updatedLabel = formatRelativeActivity(story.updatedAt) ?? formatStoryUpdatedLabel(story.updatedAt);
 
   return (
     <Link
@@ -169,6 +171,7 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
             </span>
           )}
           <span>{story.totalChapters} chương</span>
+          {updatedLabel ? <span className="story-meta-time">{updatedLabel}</span> : null}
           {storyHistory ? <span>Tu luyện tiếp {storyHistory.chapterNumber}</span> : null}
           {story.isCompleted ? <span>Hoàn thành</span> : null}
           <StoryRankMeta story={story} compact />
@@ -202,9 +205,16 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
           </p>
         )}
         <div className="story-card-footer">
-          <div className="story-progress-mini" aria-label={`Tiến độ ${progressPercent}%`}>
-            <span style={{ width: `${progressPercent}%` }} />
-          </div>
+          {storyHistory ? (
+            <div className="story-progress-mini-wrap">
+              <div className="story-progress-mini" aria-label={`Tiến độ ${progressPercent}%`}>
+                <span style={{ width: `${progressPercent}%` }} />
+              </div>
+              <span className="story-progress-pct">{progressPercent}%</span>
+            </div>
+          ) : (
+            <span className="story-progress-mini-spacer" aria-hidden />
+          )}
           <span className="story-card-cta">
             {storyHistory ? "Đọc tiếp" : "Chi tiết"}
             <ChevronRight size={14} />

@@ -1,13 +1,16 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Clock3, Loader2, Search, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2, Search, X } from "lucide-react";
 import Link from "next/link";
-import { memo, type FormEvent } from "react";
+import { memo, useMemo, useState, type FormEvent } from "react";
+import { ChapterTimestamp } from "@/components/ChapterTimestamp";
 import { isTodayLocal } from "@/lib/date";
 import type { ChapterSummary, StorySummary } from "@/lib/types";
 import { storyHref } from "@/lib/urls";
 
 export const CHAPTER_PAGE_SIZE = 80;
+
+export type ChapterListFilter = "all" | "unread" | "audio";
 
 type ChapterCardProps = {
   chapter: ChapterSummary;
@@ -51,6 +54,7 @@ const ChapterCard = memo(function ChapterCard({
           <span className="chapter-status chapter-status-polished">Polish</span>
         ) : null}
         {chapter.hasAudio ? <span className="chapter-status chapter-status-audio">Audio</span> : null}
+        <ChapterTimestamp chapter={chapter} />
       </span>
     </Link>
   );
@@ -116,6 +120,17 @@ export const ChapterList = memo(function ChapterList({
   onLoadPage,
   freshChapterNumber = null,
 }: ChapterListProps) {
+  const [chapterFilter, setChapterFilter] = useState<ChapterListFilter>("all");
+  const visibleChapters = useMemo(() => {
+    if (chapterFilter === "unread") {
+      return chapters.filter((chapter) => chapter.chapterNumber > maxReadChapter);
+    }
+    if (chapterFilter === "audio") {
+      return chapters.filter((chapter) => chapter.hasAudio);
+    }
+    return chapters;
+  }, [chapterFilter, chapters, maxReadChapter]);
+
   if (totalChapters === 0) {
     return (
       <div className="empty-state">
@@ -164,6 +179,26 @@ export const ChapterList = memo(function ChapterList({
           Tìm
         </button>
       </form>
+
+      <div className="story-chapter-filters" role="group" aria-label="Lọc chương">
+        {(
+          [
+            { id: "all", label: "Tất cả" },
+            { id: "unread", label: "Chưa đọc" },
+            { id: "audio", label: "Có audio" }
+          ] as const
+        ).map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            className={`chip ${chapterFilter === option.id ? "chip-active" : ""}`}
+            aria-pressed={chapterFilter === option.id}
+            onClick={() => setChapterFilter(option.id)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
 
       <div className="story-chapter-toolbar" aria-label="Chapter pagination">
         <div className="story-chapter-page-label">
@@ -218,9 +253,9 @@ export const ChapterList = memo(function ChapterList({
             <ChapterCardSkeleton key={i} />
           ))}
         </div>
-      ) : chapters.length > 0 ? (
+      ) : visibleChapters.length > 0 ? (
         <div className="story-chapter-list">
-          {chapters.map((chapter) => (
+          {visibleChapters.map((chapter) => (
             <ChapterCard
               key={chapter.id}
               chapter={chapter}
@@ -233,7 +268,13 @@ export const ChapterList = memo(function ChapterList({
         </div>
       ) : (
         <div className="empty-state">
-          <p>{isSearching ? "Không tìm thấy chương phù hợp." : "Không có chương trong trang này."}</p>
+          <p>
+            {chapterFilter !== "all"
+              ? "Không có chương phù hợp bộ lọc."
+              : isSearching
+                ? "Không tìm thấy chương phù hợp."
+                : "Không có chương trong trang này."}
+          </p>
         </div>
       )}
 

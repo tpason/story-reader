@@ -7,9 +7,7 @@ export type StoryFixture = {
   readerPath: string;
 };
 
-const FIXED_READER_PATH =
-  process.env.PLAYWRIGHT_READER_PATH ??
-  "/stories/chuyen-phu-tro-lai-cua-bang-phai-hoa-son-f488df21-0928-45e7-ac5e-9b08274a1a38/chapters/1";
+const FIXED_READER_PATH = process.env.PLAYWRIGHT_READER_PATH;
 
 function slugify(value: string) {
   const withoutMarks = value
@@ -40,12 +38,13 @@ export async function pickReadableStory(page: Page, chapterNumber = 1) {
     if (storyId) {
       const response = await page.request.get(`/api/stories/${storyId}/chapters/${chapterNumber}`);
       if (response.ok()) {
-        const payload = (await response.json()) as { story?: { id: string; title: string; totalChapters?: number } };
-        if (payload.story) {
+        const chapterPayload = (await response.json()) as { chapter?: { content?: string }; story?: { id: string; title: string; totalChapters?: number } };
+        const content = chapterPayload.chapter?.content ?? "";
+        if (content.trim().length > 200 && chapterPayload.story) {
           return {
-            id: payload.story.id,
-            title: payload.story.title,
-            totalChapters: payload.story.totalChapters ?? chapterNumber
+            id: chapterPayload.story.id,
+            title: chapterPayload.story.title,
+            totalChapters: chapterPayload.story.totalChapters ?? chapterNumber
           };
         }
       }
@@ -72,17 +71,63 @@ export async function pickReadableStory(page: Page, chapterNumber = 1) {
   return fallback!;
 }
 
+/** True when chapter API returns readable text — required for reader E2E. */
+export async function isReaderChapterApiReady(page: Page) {
+  const response = await page.request.get("/api/stories?minChapters=1&limit=30");
+  if (!response.ok()) return false;
+
+  const payload = (await response.json()) as {
+    items?: Array<{ id: string; totalChapters: number }>;
+  };
+
+  for (const story of payload.items ?? []) {
+    if (story.totalChapters < 1) continue;
+    const chapterResponse = await page.request.get(`/api/stories/${story.id}/chapters/1`);
+    if (!chapterResponse.ok()) continue;
+    const chapterPayload = (await chapterResponse.json()) as { chapter?: { content?: string } };
+    if ((chapterPayload.chapter?.content ?? "").trim().length > 200) return true;
+  }
+
+  return false;
+}
+
 export async function primeReaderTestStorage(page: Page) {
   await page.addInitScript(() => {
     window.localStorage.setItem("reader:performance-mode", "battery_saver");
     window.localStorage.setItem("reader:skill-effects-enabled", "0");
     window.localStorage.setItem("reader:mobile-skill-poll", "off");
+    try {
+      window.sessionStorage.setItem("lq-boot-splash-seen", "1");
+    } catch {
+      /* ignore */
+    }
   });
 }
 
 /** Same perf gates as reader tests — use on non-reader app pages. */
 export async function primeAppTestStorage(page: Page) {
   await primeReaderTestStorage(page);
+}
+
+export async function openIdentityModalFromTopbar(page: Page) {
+  const trigger = page.locator(".topbar .identity-chip-button").first();
+  await expect(trigger).toBeVisible({ timeout: 12_000 });
+  await trigger.click();
+  const panel = page.locator(".identity-modal-panel");
+  await expect(panel).toBeVisible({ timeout: 8_000 });
+  return panel;
+}
+
+/** Hit-test: element at panel center should belong to the modal panel (not aura/topbar). */
+export async function expectModalPanelOnTop(page: Page, panelSelector = ".identity-modal-panel") {
+  const onTop = await page.locator(panelSelector).evaluate((panel) => {
+    const rect = panel.getBoundingClientRect();
+    const cx = Math.min(Math.max(rect.left + rect.width / 2, 8), window.innerWidth - 8);
+    const cy = Math.min(Math.max(rect.top + Math.min(rect.height * 0.35, 120), 8), window.innerHeight - 8);
+    const hit = document.elementFromPoint(cx, cy);
+    return Boolean(hit && (panel === hit || panel.contains(hit)));
+  });
+  expect(onTop).toBeTruthy();
 }
 
 export async function seedFollows(
@@ -157,6 +202,12 @@ export async function seedReadingHistory(
 
 export async function loadReaderFixture(page: Page, chapterNumber = 1): Promise<StoryFixture> {
   await primeReaderTestStorage(page);
+
+  const apiReady = await isReaderChapterApiReady(page);
+  expect(
+    apiReady,
+    "Reader E2E needs migrated DB with readable chapter content (apply story_db migrations)"
+  ).toBeTruthy();
 
   const story = await pickReadableStory(page, chapterNumber);
   const readerPath = FIXED_READER_PATH ?? storyReaderPath(story, chapterNumber);

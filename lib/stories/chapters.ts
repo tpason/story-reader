@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
+import { CHAPTER_DISPLAY_AT_SQL } from "@/lib/content-timestamps";
 import { READER_CONTENT_FORMAT_VERSION } from "@/lib/formatNovelContent";
 import { buildPreviousChapterRecap } from "@/lib/reader-chapter-recap";
 import { buildBilingualParagraphPairs } from "@/lib/reader-bilingual-pairs";
@@ -37,7 +38,7 @@ export async function listChapters(storyId: string, options: { page?: number; pa
           c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
           c.raw_text_content, c.translated_text_content, c.polished_text_content,
           (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
-          COALESCE(c.polished_at, c.downloaded_at, c.updated_at, c.created_at) AS chapter_updated_at
+          ${CHAPTER_DISPLAY_AT_SQL}
         FROM chapters c
         WHERE c.story_id = $1
         ORDER BY c.chapter_number ASC
@@ -75,7 +76,7 @@ export async function listChaptersCursor(
           c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
           c.raw_text_content, c.translated_text_content, c.polished_text_content,
           (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
-          COALESCE(c.polished_at, c.downloaded_at, c.updated_at, c.created_at) AS chapter_updated_at
+          ${CHAPTER_DISPLAY_AT_SQL}
         FROM chapters c
         WHERE c.story_id = $1
           AND c.chapter_number < $2
@@ -103,7 +104,7 @@ export async function listChaptersCursor(
         c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
         c.raw_text_content, c.translated_text_content, c.polished_text_content,
         (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
-        COALESCE(c.polished_at, c.downloaded_at, c.updated_at, c.created_at) AS chapter_updated_at
+        ${CHAPTER_DISPLAY_AT_SQL}
       FROM chapters c
       WHERE c.story_id = $1
         AND c.chapter_number > $2
@@ -152,7 +153,7 @@ export async function searchChapters(storyId: string, search: string, options: {
         c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
         c.raw_text_content, c.translated_text_content, c.polished_text_content,
         (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
-        COALESCE(c.polished_at, c.downloaded_at, c.updated_at, c.created_at) AS chapter_updated_at
+        ${CHAPTER_DISPLAY_AT_SQL}
       FROM chapters c
       WHERE c.story_id = $1
         AND (${conditions.join(" OR ")})
@@ -192,7 +193,7 @@ export async function getReaderPayload(
         END AS reader_formatted_text_content,
         c.reader_formatted_content_version,
         (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
-        COALESCE(c.polished_at, c.downloaded_at, c.updated_at, c.created_at) AS chapter_updated_at
+        ${CHAPTER_DISPLAY_AT_SQL}
       FROM chapters c
       WHERE c.story_id = $1
         AND c.chapter_number = $2
@@ -223,7 +224,7 @@ export async function getReaderPayload(
         END AS reader_formatted_text_content,
         c.reader_formatted_content_version,
         (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
-        COALESCE(c.polished_at, c.downloaded_at, c.updated_at, c.created_at) AS chapter_updated_at
+        ${CHAPTER_DISPLAY_AT_SQL}
       FROM chapters c
       WHERE c.story_id = $1 AND c.chapter_number < $2
       ORDER BY c.chapter_number DESC
@@ -238,7 +239,7 @@ export async function getReaderPayload(
         c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
         c.raw_text_content, c.translated_text_content, c.polished_text_content,
         (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
-        COALESCE(c.polished_at, c.downloaded_at, c.updated_at, c.created_at) AS chapter_updated_at
+        ${CHAPTER_DISPLAY_AT_SQL}
       FROM chapters c
       WHERE c.story_id = $1 AND c.chapter_number > $2
       ORDER BY c.chapter_number ASC

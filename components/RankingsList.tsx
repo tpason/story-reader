@@ -36,6 +36,21 @@ type RankingsListProps = {
   emptyTitle?: string;
 };
 
+const BOARD_LEGEND: Record<NonNullable<RankingsListProps["variant"]>, { title: string; hint: string }> = {
+  trending: {
+    title: "Phong vân",
+    hint: "Xếp theo số đạo hữu/tán tu tu đọc và phiên đọc trong kỳ."
+  },
+  betterbox: {
+    title: "Thiên bảng",
+    hint: "Khí vận tích lũy từ đánh giá, tiến độ đọc và chất lượng bản đọc BetterBox."
+  },
+  source: {
+    title: "Cổ nguyên",
+    hint: "Thứ hạng ghi từ nguồn crawl — tham chiếu, không trộn với Phong vân."
+  }
+};
+
 const BOARD_CAPTION: Record<NonNullable<RankingsListProps["variant"]>, string> = {
   trending: "Phong vân bảng · linh khí tụ hội",
   betterbox: "Thiên bảng · khí vận tích lũy",
@@ -200,6 +215,10 @@ export function RankingsList({ items, variant = "trending", period = "week", emp
 
   return (
     <div className="rankings-board">
+      <div className="rankings-legend" role="note">
+        <strong>{BOARD_LEGEND[variant].title}</strong>
+        <span>{BOARD_LEGEND[variant].hint}</span>
+      </div>
       <div className="rankings-board-caption" aria-hidden>
         <ScrollText size={14} />
         <span>{BOARD_CAPTION[variant]}</span>
