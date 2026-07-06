@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import Link from "next/link";
 import { Eye, ScrollText, Sparkles, Users } from "lucide-react";
 import type { StoryTrendingItem, TrendingPeriod } from "@/lib/types";
@@ -168,7 +169,16 @@ export function RankingsList({ items, variant = "trending", period = "week", emp
       <XianxiaEmptyState
         title={emptyTitle ?? "Thiên hạ yên tĩnh. Chưa có linh quyển lên bảng."}
         hint="Hãy là đạo hữu đầu tiên tu đọc, hoặc chờ Thiên Thư ghi nhận thêm phiên đọc."
-      />
+      >
+        <div className="xianxia-empty-actions">
+          <Link className="chip" href="/">
+            Khám phá thư viện
+          </Link>
+          <Link className="chip chip-inverted" href={"/discover?kind=polished" as Route}>
+            Truyện vừa polish
+          </Link>
+        </div>
+      </XianxiaEmptyState>
     );
   }
 

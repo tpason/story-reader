@@ -17251,3 +17251,71 @@ html[data-reader-realtime-fx="off"] .notification-bell-live .notification-dot {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   Phase 2 — empty-state CTAs, compact nav, rankings dark pills
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.xianxia-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.xianxia-empty-actions .chip {
+  min-height: 36px;
+}
+
+@media (min-width: 901px) and (max-width: 1279px) {
+  .topbar-modern-inner {
+    padding-left: 12px;
+    padding-right: 12px;
+    gap: 8px 10px;
+  }
+
+  .topbar-modern-link {
+    padding: 0 8px 2px;
+    font-size: 11.5px;
+    min-height: 32px;
+  }
+
+  .topbar-modern-wordmark {
+    font-size: 0.92rem;
+    max-width: 9.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .topbar-modern-search .search-input-wrap {
+    max-width: 100%;
+  }
+}
+
+[data-xi-theme="dark"] .rankings-qi-pill {
+  background: rgba(26, 107, 90, 0.14);
+  border-color: rgba(38, 168, 130, 0.22);
+  color: #c8e8dc;
+}
+
+[data-xi-theme="dark"] .rankings-qi-pill-guest {
+  background: rgba(200, 150, 46, 0.12);
+  border-color: rgba(232, 192, 90, 0.22);
+  color: #f0d878;
+}
+
+[data-xi-theme="dark"] .rankings-qi-pill-muted {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #b0a89c;
+}
+
+[data-xi-theme="dark"] .reader-leaderboard-stats .rankings-qi-pill {
+  background: rgba(26, 107, 90, 0.16);
+}
+
+.categories-index-header + .category-index-grid {
+  margin-top: 4px;
+}
+

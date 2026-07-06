@@ -1,5 +1,7 @@
 "use client";
 
+import type { Route } from "next";
+import Link from "next/link";
 import { BookOpen, Clock3, Crown, ScrollText, Sparkles } from "lucide-react";
 import { CultivationAvatar } from "@/components/CultivationAvatar";
 import { RankCalligraphySeal } from "@/components/RankCalligraphySeal";
@@ -135,7 +137,22 @@ export function ReaderLeaderboard({ items, scope, period = "week" }: ReaderLeade
             : "Chưa có tán tu đủ linh khí để lên bảng."
         }
         hint="Tu đọc từ 5 giây trở lên sẽ được Thiên Thư ghi nhận phiên đọc."
-      />
+      >
+        <div className="xianxia-empty-actions">
+          <Link className="chip" href="/">
+            Mở linh quyển
+          </Link>
+          {scope === "members" ? (
+            <Link className="chip chip-inverted" href={"/account" as Route}>
+              Vào động phủ
+            </Link>
+          ) : (
+            <Link className="chip chip-inverted" href={"/rankings?tab=readers&scope=members" as Route}>
+              Xem đạo hữu bảng
+            </Link>
+          )}
+        </div>
+      </XianxiaEmptyState>
     );
   }
 

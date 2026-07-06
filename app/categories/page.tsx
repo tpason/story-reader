@@ -3,6 +3,7 @@ import Link from "next/link";
 import nextDynamic from "next/dynamic";
 import { Layers3 } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
+import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { getCachedCategories } from "@/lib/stories";
 
 const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX));
@@ -23,18 +24,17 @@ export default async function CategoriesIndexPage() {
       <SiteHeader />
 
       <div className="page-wrap">
-        <section className="library-header categories-index-header">
-          <div>
-            <p className="eyebrow">
-              <Layers3 size={13} style={{ display: "inline", verticalAlign: "middle" }} aria-hidden="true" />
-              {" "}Bản đồ thể loại
-            </p>
-            <h1 className="library-title">Chọn môn phái truyện</h1>
-            <p className="library-subtitle">
-              {categories.length} thể loại đang có linh quyển trong Thiên Thư.
-            </p>
-          </div>
-        </section>
+        <XiPageHeroStrip
+          className="categories-index-header"
+          eyebrow={
+            <>
+              <Layers3 size={13} aria-hidden="true" />
+              Bản đồ thể loại
+            </>
+          }
+          title="Chọn môn phái truyện"
+          subtitle={`${categories.length} thể loại đang có linh quyển trong Thiên Thư.`}
+        />
 
         <nav className="category-index-grid" aria-label="Danh sách thể loại">
           {categories.map((category) => (

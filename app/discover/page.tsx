@@ -99,8 +99,12 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
         <section className="library-list-section" aria-label={kind === "polished" ? "Vừa polish" : "Vừa cập nhật"}>
           <div className="section-heading-row story-list-heading">
             <div>
-              <p className="eyebrow">{today ? "Trong hôm nay" : "Mới nhất"}{completed === true ? " · Hoàn thành" : completed === false ? " · Đang viết" : " · Tất cả"}</p>
-              <h2>{kind === "polished" ? "Bản đọc vừa polish" : "Chương vừa cập nhật"}</h2>
+              <h2>
+                {kind === "polished" ? "Bản đọc vừa polish" : "Chương vừa cập nhật"}
+                {" · "}
+                {today ? "hôm nay" : "mới nhất"}
+                {completed === true ? " · hoàn thành" : completed === false ? " · đang viết" : ""}
+              </h2>
             </div>
             <span className="discovery-badge">
               <Icon size={15} />
@@ -114,7 +118,16 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
             <XianxiaEmptyState
               title="Thiên hạ yên tĩnh. Chưa có linh quyển phù hợp bộ lọc."
               hint="Thử bỏ lọc Hôm nay hoặc đổi tab Vừa polish / Vừa cập nhật."
-            />
+            >
+              <div className="xianxia-empty-actions">
+                <Link className="chip" href="/">
+                  Về thư viện
+                </Link>
+                <Link className="chip chip-inverted" href="/rankings?tab=trending">
+                  Xem phong vân bảng
+                </Link>
+              </div>
+            </XianxiaEmptyState>
           )}
 
           <nav className="pagination discover-pagination" aria-label="Discovery pagination">
