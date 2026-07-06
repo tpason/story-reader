@@ -403,7 +403,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       activePayload.chapter.bilingualEnabled &&
       (activePayload.chapter.bilingualPairs?.length ?? 0) > 0
   );
-  const bilingualPairs = bilingualActive ? activePayload.chapter.bilingualPairs ?? [] : [];
+  const bilingualPairs = useMemo(
+    () => (bilingualActive ? activePayload.chapter.bilingualPairs ?? [] : []),
+    [bilingualActive, activePayload.chapter.bilingualPairs],
+  );
   const bilingualSecondaryVisible = bilingualActive && bilingualPrefs.secondaryVisible;
   const bilingualScrollHighlight = bilingualActive && bilingualPrefs.scrollHighlight && !prefersReducedMotion();
   const [scrollFocusParagraphIndex, setScrollFocusParagraphIndex] = useState<number | null>(null);
@@ -1011,6 +1014,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     syncedReaderUrlChapterRef.current = activePayload.chapter.chapterNumber;
     setCommentsChapterId(activePayload.chapter.id);
   }, [
+    activePayload.chapter.chapterNumber,
+    activePayload.chapter.id,
+    activePayload.chapter.title,
     payload.chapters,
     payload.previousChapterCursor,
     payload.chapterCursor,
@@ -2592,11 +2598,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     payload.chapter.chapterNumber,
     payload.story.id,
     payload.story.sourceCode,
-    bilingualPrefs.enabled,
-    bilingualPrefs.primaryLayer,
-    bilingualPrefs.secondaryLayer,
-    bilingualPrefs.displayMode,
-    reloadChapterWithBilingual
+    bilingualPrefs,
+    reloadChapterWithBilingual,
   ]);
 
   async function promoteHeadInlineToPrimary() {

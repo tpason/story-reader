@@ -3,7 +3,18 @@ import { getSiteUrl } from "@/lib/metadata";
 import { listCategories, listStoriesCursor } from "@/lib/stories";
 import { storyHref } from "@/lib/urls";
 
-const STATIC_PATHS = ["/", "/discover", "/updates", "/reading-history", "/categories", "/login", "/signup"];
+const STATIC_PATHS = [
+  "/",
+  "/discover",
+  "/rankings",
+  "/following",
+  "/updates",
+  "/reading-history",
+  "/categories",
+  "/account",
+  "/login",
+  "/signup",
+];
 
 // DB is not available during `docker build`; generate sitemap at request time instead.
 export const dynamic = "force-dynamic";
@@ -15,8 +26,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries: MetadataRoute.Sitemap = STATIC_PATHS.map((path) => ({
     url: `${base}${path}`,
     lastModified: now,
-    changeFrequency: path === "/" ? "hourly" : "daily",
-    priority: path === "/" ? 1 : 0.6,
+    changeFrequency: path === "/" || path === "/rankings" ? "hourly" : "daily",
+    priority: path === "/" ? 1 : path === "/rankings" || path === "/discover" ? 0.85 : 0.6,
   }));
 
   const [categories, storiesPage] = await Promise.all([
