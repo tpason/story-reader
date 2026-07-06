@@ -21,9 +21,9 @@ export function ReaderAmbienceScene({ qualityTier }: ReaderAmbienceSceneProps) {
 
   return (
     <>
-      <SpiritParticles count={isFull ? 120 : 72} />
-      <FallingPetals count={isFull ? 52 : 30} />
-      {(isMid || isFull) && <WindCurrentLines />}
+      <SpiritParticles count={isFull ? 88 : isMid ? 52 : 40} />
+      <FallingPetals count={isFull ? 44 : 26} />
+      {isFull && <WindCurrentLines />}
       <MovingLayer
         src={sharedLayers.clouds.fogWisp}
         position={[0.5, 0.45, -2.4]}

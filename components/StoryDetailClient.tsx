@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, BookOpenCheck, Check, Clock3, Flame, Share2, Sparkles, User } from "lucide-react";
+import { BookOpen, BookOpenCheck, Check, Clock3, Share2, Sparkles, User } from "lucide-react";
 import type { Route } from "next";
 import { CharMapBlock } from "@/components/CharMapBlock";
 import dynamic from "next/dynamic";
@@ -24,6 +24,7 @@ import { ChapterSidebarHeatmap } from "@/components/ChapterSidebarHeatmap";
 import { ReadingResumeBar } from "@/components/ReadingResumeBar";
 import { StoryDetailPushHint } from "@/components/StoryDetailPushHint";
 import { StoryRatingWidget } from "@/components/StoryRatingWidget";
+import { StoryRankMeta } from "@/components/StoryRankMeta";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import { useStoryChapterPagination } from "@/hooks/useStoryChapterPagination";
@@ -198,12 +199,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
                 <Clock3 size={12} aria-hidden="true" />
                 Cập nhật {updatedLabel}
               </span>
-              {currentStory.rankPosition ? (
-                <span className="story-meta-icon-badge story-meta-rank">
-                  <Flame size={12} aria-hidden="true" />
-                  #{currentStory.rankPosition}
-                </span>
-              ) : null}
+              <StoryRankMeta story={currentStory} />
             </div>
             {adminEdit?.field === "description" ? (
               <textarea className="admin-content-editor admin-description-editor" value={adminEdit.value} autoFocus onChange={(event) => setAdminEdit({ field: "description", value: event.target.value })} />

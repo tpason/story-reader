@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, DynamicDrawUsage, Points, ShaderMaterial } from "three";
 
-const COUNT = 220;
+const DEFAULT_COUNT = 120;
 
 // Per-particle pulsing size — each hạt linh khí breathes independently
 const VS = `
@@ -60,20 +60,21 @@ function pickColor(i: number): [number, number, number] {
   return COLORS[3];
 }
 
-export function SpiritParticles({ count = COUNT }: { count?: number }) {
+export function SpiritParticles({ count = DEFAULT_COUNT }: { count?: number }) {
   const pointsRef = useRef<Points>(null);
+  const safeCount = Math.max(8, Math.min(count, DEFAULT_COUNT));
 
   const { geo, mat, positions, velocities, baseSizes, phases, sizeAttr, discTex } = useMemo(() => {
     const discTex = makeDiscTex(128);
 
-    const positions  = new Float32Array(COUNT * 3);
-    const colors     = new Float32Array(COUNT * 3);
-    const sizes      = new Float32Array(COUNT);
-    const baseSizes  = new Float32Array(COUNT);
-    const phases     = new Float32Array(COUNT);
-    const velocities = new Float32Array(COUNT * 2);
+    const positions  = new Float32Array(safeCount * 3);
+    const colors     = new Float32Array(safeCount * 3);
+    const sizes      = new Float32Array(safeCount);
+    const baseSizes  = new Float32Array(safeCount);
+    const phases     = new Float32Array(safeCount);
+    const velocities = new Float32Array(safeCount * 2);
 
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < safeCount; i++) {
       const i3 = i * 3;
       positions[i3]     = (Math.random() - 0.5) * 14;
       positions[i3 + 1] = (Math.random() - 0.5) * 10;
@@ -107,7 +108,7 @@ export function SpiritParticles({ count = COUNT }: { count?: number }) {
     });
 
     return { geo, mat, positions, velocities, baseSizes, phases, sizeAttr, discTex };
-  }, [count]);
+  }, [safeCount]);
 
   useEffect(() => () => {
     geo.dispose();
@@ -120,7 +121,7 @@ export function SpiritParticles({ count = COUNT }: { count?: number }) {
     const posAttr = pointsRef.current?.geometry.attributes.position as BufferAttribute | undefined;
     if (!posAttr) return;
 
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < safeCount; i++) {
       const i3 = i * 3;
       positions[i3]     += velocities[i * 2]     * delta;
       positions[i3 + 1] += velocities[i * 2 + 1] * delta;

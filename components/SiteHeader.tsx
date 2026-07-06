@@ -30,7 +30,7 @@ const NAV_ITEMS: NavItem[] = [
     match: (pathname) => pathname.startsWith("/discover")
   },
   {
-    href: "/rankings",
+    href: "/rankings?tab=betterbox",
     label: "Thiên bảng",
     match: (pathname) => pathname.startsWith("/rankings")
   },

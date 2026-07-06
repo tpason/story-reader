@@ -21,7 +21,27 @@ const PERIOD_LABEL: Record<TrendingPeriod, string> = {
 const RANK_TIER = ["gold", "silver", "bronze"] as const;
 
 export function TrendingStoriesPanel({ items, period = "week" }: TrendingStoriesPanelProps) {
-  if (!items.length) return null;
+  if (!items.length) {
+    return (
+      <section className="trending-section trending-section-empty" aria-label="Truyện thịnh hành">
+        <div className="section-heading-row">
+          <div>
+            <h2>Phong vân {PERIOD_LABEL[period]} · chưa có linh quyển lên bảng</h2>
+            <p className="trending-empty-copy">Tu đọc vài chương hoặc xem thiên bảng tích lũy để khám phá top truyện.</p>
+          </div>
+        </div>
+        <div className="xianxia-empty-actions">
+          <Link className="chip chip-inverted" href={"/rankings?tab=betterbox" as Route}>
+            <Trophy size={14} aria-hidden />
+            Thiên bảng
+          </Link>
+          <Link className="chip" href={"/rankings?tab=trending&period=" + period as Route}>
+            Phong vân đầy đủ
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="trending-section" aria-label="Truyện thịnh hành">

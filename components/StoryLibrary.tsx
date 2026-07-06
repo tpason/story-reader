@@ -7,6 +7,7 @@ import { memo, useMemo, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { CursorPage, StorySummary } from "@/lib/types";
 import { StoryCover } from "@/components/StoryCover";
+import { StoryRankMeta } from "@/components/StoryRankMeta";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { storyHref } from "@/lib/urls";
 import { storyDisplayDescription, storyCategoryLabel } from "@/lib/story-description";
@@ -170,7 +171,7 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
           <span>{story.totalChapters} chương</span>
           {storyHistory ? <span>Tu luyện tiếp {storyHistory.chapterNumber}</span> : null}
           {story.isCompleted ? <span>Hoàn thành</span> : null}
-          {story.rankPosition ? <span>#{story.rankPosition}</span> : null}
+          <StoryRankMeta story={story} compact />
         </div>
         {adminEditForCard?.field === "description" ? (
           <textarea

@@ -15,6 +15,7 @@ import {
   listSourceRankedStories,
   type SourceRankBoard
 } from "@/lib/stories";
+import { formatRankBoardLabel } from "@/lib/source-labels";
 import type { ReaderLeaderboardScope, TrendingPeriod } from "@/lib/types";
 
 const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX));
@@ -65,13 +66,13 @@ const PERIOD_LABELS: Record<TrendingPeriod, string> = {
 export default async function RankingsPage({ searchParams }: RankingsProps) {
   const params = await searchParams;
   const tab =
-    params.tab === "betterbox"
-      ? "betterbox"
+    params.tab === "trending"
+      ? "trending"
       : params.tab === "source"
         ? "source"
         : params.tab === "readers"
           ? "readers"
-          : "trending";
+          : "betterbox";
   const period = parsePeriod(params.period);
   const readerScope = parseReaderScope(params.scope);
   const sourceCode = params.source?.trim() || "";
@@ -190,7 +191,7 @@ export default async function RankingsPage({ searchParams }: RankingsProps) {
                 className={`chip ${activeBoard && activeBoard.sourceCode === board.sourceCode && activeBoard.rankName === board.rankName ? "chip-active" : ""}`}
                 href={rankingsHref("source", { source: board.sourceCode, board: board.rankName })}
               >
-                {board.sourceCode} · {board.rankName} ({board.storyCount})
+                {formatRankBoardLabel(board.sourceCode, board.rankName, board.storyCount)}
               </Link>
             ))}
           </div>
@@ -215,7 +216,7 @@ export default async function RankingsPage({ searchParams }: RankingsProps) {
           {tab === "trending" ? (
             <RankingsList items={trending} variant="trending" period={period} />
           ) : tab === "betterbox" ? (
-            <RankingsList items={betterbox} variant="betterbox" emptyTitle="Chưa có xếp hạng BetterBox. Chạy refresh_story_analytics sau khi có độc giả đọc." />
+            <RankingsList items={betterbox} variant="betterbox" emptyTitle="Thiên bảng chưa có linh quyển. Tu đọc vài chương để Thiên Thư ghi nhận khí vận độc giả." />
           ) : tab === "readers" ? (
             <ReaderLeaderboard items={topReaders} scope={readerScope} period={period} />
           ) : (

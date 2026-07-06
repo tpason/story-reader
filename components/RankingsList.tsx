@@ -8,6 +8,7 @@ import { StoryCover } from "@/components/StoryCover";
 import { RankCalligraphySeal } from "@/components/RankCalligraphySeal";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { storyHref } from "@/lib/urls";
+import { formatSourceLabel } from "@/lib/source-labels";
 
 const PERIOD_LABELS: Record<TrendingPeriod, string> = {
   day: "Nhật bang",
@@ -33,6 +34,18 @@ type RankingsListProps = {
   variant?: "trending" | "betterbox" | "source";
   period?: TrendingPeriod;
   emptyTitle?: string;
+};
+
+const BOARD_CAPTION: Record<NonNullable<RankingsListProps["variant"]>, string> = {
+  trending: "Phong vân bảng · linh khí tụ hội",
+  betterbox: "Thiên bảng · khí vận tích lũy",
+  source: "Cổ nguyên bảng · ấn ký nguồn crawl",
+};
+
+const PODIUM_ARIA: Record<NonNullable<RankingsListProps["variant"]>, string> = {
+  trending: "Tam hạng phong vân",
+  betterbox: "Tam hạng thiên bảng",
+  source: "Tam hạng cổ nguyên",
 };
 
 function rankForStory(story: StoryTrendingItem, variant: RankingsListProps["variant"]) {
@@ -91,7 +104,7 @@ function StatsRow({
   return (
     <div className="rankings-stats">
       {story.rankName ? <span className="rankings-qi-pill">{story.rankName}</span> : null}
-      <span className="rankings-qi-pill rankings-qi-pill-muted">Nguồn {story.sourceCode}</span>
+      <span className="rankings-qi-pill rankings-qi-pill-muted">Nguồn {formatSourceLabel(story.sourceCode)}</span>
       {story.readerRank ? (
         <span className="rankings-qi-pill">
           <Sparkles size={12} aria-hidden />
@@ -147,7 +160,7 @@ function RankingsPodium({
   if (!first) return null;
 
   return (
-    <div className="rankings-podium" aria-label="Tam hạng phong vân">
+    <div className="rankings-podium" aria-label={PODIUM_ARIA[variant]}>
       {second ? (
         <PodiumCard story={second} rank={rankForStory(second, variant)} variant={variant} period={period} />
       ) : (
@@ -189,7 +202,7 @@ export function RankingsList({ items, variant = "trending", period = "week", emp
     <div className="rankings-board">
       <div className="rankings-board-caption" aria-hidden>
         <ScrollText size={14} />
-        <span>Phong vân bảng · linh khí tụ hội</span>
+        <span>{BOARD_CAPTION[variant]}</span>
       </div>
 
       {podiumItems.length >= 2 ? (

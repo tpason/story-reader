@@ -5998,3 +5998,15 @@ button.chapter-sidebar-heatmap-cell:focus-visible {
     display: none !important;
   }
 }
+
+/* ── Reader ambience: WebGL path replaces CSS stack (no double GPU) ─────── */
+.reader-ambience-layer--webgl .reader-ambience-css {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-ambience-layer .reader-ambience-css *,
+  .reader-ambience-layer .reader-ambience-webgl canvas {
+    animation: none !important;
+  }
+}

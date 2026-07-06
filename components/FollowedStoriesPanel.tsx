@@ -1,6 +1,7 @@
 "use client";
 
-import { BellRing, Sparkles } from "lucide-react";
+import type { Route } from "next";
+import { BellRing, Sparkles, Trophy } from "lucide-react";
 import Link from "next/link";
 import { StoryCover } from "@/components/StoryCover";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
@@ -12,9 +13,33 @@ export function FollowedStoriesPanel() {
   const history = useAppSelector((state) => state.history.items);
   const { isFresh } = useFreshStoryRealtime();
 
-  if (follows.length === 0) return null;
-
   const historyByStory = new Map(history.map((item) => [item.storyId, item]));
+
+  if (follows.length === 0) {
+    return (
+      <section className="followed-section followed-section-empty" aria-label="Truyện đang theo dõi">
+        <div className="section-heading-row story-list-heading">
+          <div>
+            <h2>Tủ truyện của đạo hữu</h2>
+            <p className="followed-empty-copy">Theo dõi linh quyển yêu thích để đọc tiếp nhanh và nhận chương mới.</p>
+          </div>
+        </div>
+        <div className="xianxia-empty-actions followed-empty-actions">
+          <Link className="chip chip-inverted" href={"/rankings?tab=betterbox" as Route}>
+            <Trophy size={14} aria-hidden />
+            Xem top thiên bảng
+          </Link>
+          <Link className="chip" href={"/rankings?tab=trending" as Route}>
+            Phong vân tuần
+          </Link>
+          <Link className="chip" href="/discover">
+            Khám phá truyện
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
   const visibleItems = follows.slice(0, 8);
   const totalUnread = follows.reduce((total, item) => {
     const read = historyByStory.get(item.storyId)?.maxReadChapterNumber ?? 0;
@@ -25,7 +50,6 @@ export function FollowedStoriesPanel() {
     <section className="followed-section" aria-label="Truyện đang theo dõi">
       <div className="section-heading-row story-list-heading">
         <div>
-          <p className="eyebrow">Đang theo dõi</p>
           <h2>Tủ truyện của đạo hữu</h2>
         </div>
         <Link className="discovery-more" href="/updates">
