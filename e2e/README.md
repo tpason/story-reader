@@ -1,11 +1,11 @@
 # Story Reader E2E (Playwright)
 
-Automated UX checks for the chapter reader. Reuses an already-running Next.js server (does **not** start `next dev`).
+Automated UX checks for the chapter reader and discovery/rankings surfaces. Reuses an already-running Next.js server by default (does **not** start `next dev` unless opted in).
 
 ## Prerequisites
 
 1. Story reader dev server with **latest code** (not stale Docker image on :3000)
-2. At least one story with chapter 1 readable in DB
+2. PostgreSQL with at least one polished/readable story (chapter 1 content > 200 chars)
 
 ```bash
 # Dev server (default port 3003 if :3000 is taken by Docker)
@@ -17,6 +17,12 @@ PLAYWRIGHT_BASE_URL=http://127.0.0.1:3003 npm run test:e2e
 
 Default `playwright.config.ts` base URL is `http://127.0.0.1:3003`.
 
+Optional auto-start (local only — can spike RAM):
+
+```bash
+PLAYWRIGHT_START_SERVER=1 npm run test:e2e:discovery
+```
+
 ## Commands
 
 ```bash
@@ -27,12 +33,18 @@ npx playwright install chromium
 npm run test:e2e
 
 # Desktop only
-npm run test:e2e -- --project=desktop
+npm run test:e2e:desktop
 
-# Reader polish specs only (resume bar, heatmap, offline cache, keyboard help)
+# Discovery / rankings / following (lighter than full reader suite)
+npm run test:e2e:discovery
+
+# Rankings + following only
+npm run test:e2e:rankings
+
+# Reader polish specs (resume bar, heatmap, offline cache, keyboard help, account nav)
 npm run test:e2e:polish
 
-# Realtime / WebSocket specs only (requires dev:ws — see below)
+# Realtime / WebSocket specs (requires dev:ws — see below)
 npm run test:e2e:realtime
 
 # Open last HTML report
@@ -44,8 +56,27 @@ npx playwright show-report e2e-report
 | Variable | Default | Notes |
 |---|---|---|
 | `PLAYWRIGHT_BASE_URL` | `http://127.0.0.1:3003` | Target server |
+| `PLAYWRIGHT_START_SERVER` | off | Set `1` to run `PORT=3003 npm run dev` before tests |
 | `PLAYWRIGHT_READER_PATH` | fixed slug path | Override reader fixture URL |
 | `PLAYWRIGHT_READER_REALTIME_TOKEN` | — | Match server `READER_REALTIME_TOKEN` for broadcast auth tests |
+
+## Spec map
+
+| File | Covers |
+|---|---|
+| `home-ux.spec.ts` | Resume bar, topbar nav (Thiên bảng, Tủ truyện), trending period chips, follow shelf |
+| `rankings-ux.spec.ts` | `/rankings` tabs, period chips, empty/fallback, story links, mobile overflow |
+| `following-ux.spec.ts` | `/following` empty + seeded shelf, homepage follow CTAs |
+| `reader-smoke.spec.ts` | Reader shell, theme, in-chapter search |
+| `reader-polish.spec.ts` | Story detail resume/heatmap, account offline cache, **account section nav**, keyboard help |
+| `reader-ux-audit.spec.ts` | Broader reader UX audit + attachments |
+| `identity-modal.spec.ts` | Guest identity modal desktop/mobile |
+| `realtime.spec.ts` | WebSocket health, broadcast API, notification live |
+
+## Rankings / following notes
+
+- **Thiên bảng** may show 200+ stories after `refresh_story_analytics.py`; **Phong vân** may be empty until reading sessions exist (≥5s/chapter). Tests accept list, empty state, or Thiên bảng fallback.
+- Follow shelf tests seed `localStorage` key `reader:follows` (same as guest follow persistence).
 
 ## Realtime tests (`e2e/realtime.spec.ts`)
 
@@ -73,8 +104,6 @@ Generate a strong token for auth coverage:
 
 ```bash
 bash docker/scripts/generate-reader-realtime-token.sh
-# or:
-bash docker/scripts/print-reader-realtime-env.sh
 export READER_REALTIME_TOKEN=<paste>
 export PLAYWRIGHT_READER_REALTIME_TOKEN=$READER_REALTIME_TOKEN
 PORT=3003 npm run dev:ws   # terminal 1
@@ -98,7 +127,8 @@ Live state is exposed on `.notification-bell[data-notification-live="true"]` and
 - In-chapter search (`Ctrl+F`)
 - Focus mode
 - Comments accordion
-- **`e2e/reader-polish.spec.ts`** — story detail resume bar + heatmap, account offline cache panel, keyboard help (`?`), sidebar heatmap
+- **`e2e/reader-polish.spec.ts`** — story detail resume bar + heatmap, account offline cache + section nav, keyboard help (`?`), sidebar heatmap
+- **Discovery** — homepage trending periods, rankings tabs, following shelf/page
 - Mobile dock + settings sheet tabs
 - Horizontal overflow
 - Paginated reading mode
@@ -107,3 +137,10 @@ Live state is exposed on `.notification-bell[data-notification-live="true"]` and
 - Console error capture (warnings in attachments)
 
 Findings are attached per test as `*-audit*.json` for triage.
+
+## When UI changes
+
+1. Update selectors in the relevant `e2e/*.spec.ts` (prefer roles/labels over brittle CSS).
+2. Extend `e2e/helpers.ts` if a new storage seed or navigation helper is reused.
+3. Run `npm run test:e2e:discovery` after rankings/following/home changes.
+4. Run `npm run test:e2e:polish` after account/reader polish changes.

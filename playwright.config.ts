@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3003";
+const startServer = process.env.PLAYWRIGHT_START_SERVER === "1";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -23,6 +24,14 @@ export default defineConfig({
       args: ["--disable-gpu", "--disable-dev-shm-usage", "--no-sandbox"]
     }
   },
+  webServer: startServer
+    ? {
+        command: "PORT=3003 npm run dev",
+        url: baseURL,
+        reuseExistingServer: true,
+        timeout: 120_000
+      }
+    : undefined,
   projects: [
     {
       name: "desktop",

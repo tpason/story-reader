@@ -61,6 +61,17 @@ test.describe("reader polish", () => {
     await expect(panel).toContainText("Chưa có chương offline");
   });
 
+  test("account section nav jumps to cultivation section", async ({ page }) => {
+    await primeReaderTestStorage(page);
+    await page.goto("/account", { waitUntil: "domcontentloaded" });
+
+    const nav = page.getByRole("navigation", { name: "Mục động phủ" });
+    await expect(nav).toBeVisible({ timeout: 12_000 });
+    await nav.getByRole("link", { name: "Tu vi" }).click();
+    await expect(page).toHaveURL(/#account-cultivation/);
+    await expect(page.locator("#account-cultivation")).toBeVisible();
+  });
+
   test("account page summarizes seeded offline chapters", async ({ page }) => {
     const story = await pickReadableStory(page, 1);
     await primeReaderTestStorage(page);

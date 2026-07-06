@@ -76,7 +76,51 @@ export async function primeReaderTestStorage(page: Page) {
   await page.addInitScript(() => {
     window.localStorage.setItem("reader:performance-mode", "battery_saver");
     window.localStorage.setItem("reader:skill-effects-enabled", "0");
+    window.localStorage.setItem("reader:mobile-skill-poll", "off");
   });
+}
+
+/** Same perf gates as reader tests — use on non-reader app pages. */
+export async function primeAppTestStorage(page: Page) {
+  await primeReaderTestStorage(page);
+}
+
+export async function seedFollows(
+  page: Page,
+  story: { id: string; title: string; totalChapters?: number; coverImageUrl?: string | null }
+) {
+  const item = {
+    storyId: story.id,
+    storyTitle: story.title,
+    coverImageUrl: story.coverImageUrl ?? null,
+    author: null,
+    primaryCategoryName: null,
+    totalChapters: story.totalChapters ?? 10,
+    lastKnownChapterNumber: story.totalChapters ?? 10,
+    updatedAt: new Date().toISOString(),
+    followedAt: new Date().toISOString()
+  };
+
+  await page.addInitScript((entry) => {
+    window.localStorage.setItem("reader:follows", JSON.stringify([entry]));
+  }, item);
+}
+
+export async function gotoHomeReady(page: Page) {
+  await primeAppTestStorage(page);
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".page-wrap")).toBeVisible({ timeout: 15_000 });
+}
+
+export async function gotoRankingsReady(page: Page, query = "tab=betterbox") {
+  await primeAppTestStorage(page);
+  await page.goto(`/rankings?${query}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".rankings-page")).toBeVisible({ timeout: 15_000 });
+}
+
+export async function expectRankingsBoard(page: Page) {
+  const board = page.locator(".rankings-board, .reader-leaderboard-board, .xianxia-empty-state");
+  await expect(board.first()).toBeVisible({ timeout: 15_000 });
 }
 
 export async function seedReadingHistory(
