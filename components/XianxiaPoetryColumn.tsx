@@ -1,5 +1,7 @@
 "use client";
 
+import { XiDisplayFontScope } from "@/components/XiDisplayFontScope";
+
 // 6 cột × 4 chữ — đọc trên→dưới từng cột (thất ngôn tuyệt cú).
 // Mỗi cột là một cụm Hán-Việt trọn; cột 6 gắn motif Thiên Thư / đọc truyện.
 const COLUMNS = [
@@ -13,7 +15,8 @@ const COLUMNS = [
 
 export function XianxiaPoetryColumn() {
   return (
-    <div className="xi-poetry-col" role="presentation" aria-hidden="true">
+    <XiDisplayFontScope>
+      <div className="xi-poetry-col" role="presentation" aria-hidden="true">
       <div className="xi-poetry-cloud-bg xi-cloud-aura xi-cloud-aura--secondary" />
       <div className="xi-poetry-grid">
         {COLUMNS.map((col, ci) => (
@@ -31,6 +34,7 @@ export function XianxiaPoetryColumn() {
         ))}
       </div>
       <span className="xi-poetry-shimmer" aria-hidden="true" />
-    </div>
+      </div>
+    </XiDisplayFontScope>
   );
 }

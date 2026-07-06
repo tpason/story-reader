@@ -9,12 +9,47 @@ export type StorySummary = {
   coverImageUrl: string | null;
   rankName: string | null;
   rankPosition: number | null;
+  readerRank: number | null;
+  readerScore: number | null;
+  readerCountTotal: number;
+  readerCount30d: number;
+  guestCountTotal: number;
+  guestCount30d: number;
   totalChapters: number;
   isCompleted: boolean;
   sourceCode: string;
   primaryCategoryName: string | null;
   primaryCategorySlug: string | null;
   updatedAt: string;
+};
+
+export type TrendingPeriod = "day" | "week" | "month" | "year";
+
+export type StoryTrendingItem = StorySummary & {
+  trendRank: number;
+  uniqueReaders: number;
+  uniqueMembers: number;
+  uniqueGuests: number;
+  sessionCount: number;
+  readSeconds: number;
+};
+
+export type ReaderLeaderboardScope = "members" | "guests";
+
+export type ReaderLeaderboardItem = {
+  rank: number;
+  scope: ReaderLeaderboardScope;
+  userId: string | null;
+  anonymousId: string | null;
+  displayName: string;
+  isAdmin: boolean;
+  sessionCount: number;
+  readSeconds: number;
+  storyCount: number;
+  chaptersReached: number;
+  cultivationLevel: number;
+  cultivationRealm: string;
+  readerScore: number;
 };
 
 export type StoryDiscoveryItem = StorySummary & {

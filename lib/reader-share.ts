@@ -8,7 +8,7 @@ type QuoteShareInput = {
 
 export function buildQuoteShareText({ quote, storyTitle, chapterTitle, chapterNumber, storyPath }: QuoteShareInput) {
   const url = typeof window !== "undefined" ? `${window.location.origin}${storyPath}` : storyPath;
-  return `"${quote.trim()}"\n— ${storyTitle} · Ch.${chapterNumber} ${chapterTitle}\n${url}`;
+  return `"${quote.trim()}"\n- ${storyTitle} · Ch.${chapterNumber} ${chapterTitle}\n${url}`;
 }
 
 export async function shareSelectedQuote(input: QuoteShareInput) {

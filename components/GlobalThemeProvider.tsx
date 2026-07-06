@@ -2,37 +2,34 @@
 
 import { useEffect } from "react";
 import { resolveXianxiaTimeOfDay } from "@/lib/xianxia-time-of-day";
-import { useAppSelector } from "@/lib/store-hooks";
-import type { GlobalTheme } from "@/lib/store";
-
-function resolveTheme(pref: GlobalTheme, osDark: boolean): "dark" | "light" {
-  if (pref === "dark") return "dark";
-  if (pref === "light") return "light";
-  return osDark ? "dark" : "light";
-}
+import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
+import { normalizeGlobalTheme, setGlobalTheme } from "@/lib/store";
 
 const SKY_SYNC_MS = 60_000;
 
 export function GlobalThemeProvider() {
-  const pref = useAppSelector((s) => (s.globalTheme as GlobalTheme | undefined) ?? "auto");
+  const raw = useAppSelector((s) => s.globalTheme);
+  const theme = normalizeGlobalTheme(raw);
+  const dispatch = useAppDispatch();
+
+  // Migrate legacy persisted `auto` (or invalid) → concrete light/dark once.
+  useEffect(() => {
+    if (raw !== theme) {
+      dispatch(setGlobalTheme(theme));
+    }
+  }, [dispatch, raw, theme]);
 
   useEffect(() => {
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-
     function apply() {
-      const resolved = resolveTheme(pref, mq.matches);
-      document.documentElement.setAttribute("data-xi-theme", resolved);
-      document.documentElement.setAttribute("data-xi-time", resolveXianxiaTimeOfDay(pref));
+      document.documentElement.setAttribute("data-xi-theme", theme);
+      document.documentElement.setAttribute("data-xi-time", resolveXianxiaTimeOfDay(theme));
+      document.documentElement.style.colorScheme = theme;
     }
 
     apply();
-    mq.addEventListener("change", apply);
     const skyTimer = window.setInterval(apply, SKY_SYNC_MS);
-    return () => {
-      mq.removeEventListener("change", apply);
-      window.clearInterval(skyTimer);
-    };
-  }, [pref]);
+    return () => window.clearInterval(skyTimer);
+  }, [theme]);
 
   return null;
 }

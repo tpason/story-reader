@@ -1,17 +1,25 @@
 import { CheckCircle2, Flame, Headphones, Layers3, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { getCachedCategories, getCachedPolishedStories, getCachedUpdatedStories, listStoriesCursor } from "@/lib/stories";
+import nextDynamic from "next/dynamic";
+import { getCachedCategories, getCachedPolishedStories, getCachedTrendingStories, getCachedUpdatedStories, listStoriesCursor } from "@/lib/stories";
 import { buildHomeFilterLabels, isHomeSearchActive } from "@/lib/home-search";
 import { StoryLibrary } from "@/components/StoryLibrary";
 import { ReadingResumeBar } from "@/components/ReadingResumeBar";
 import { SiteHeader } from "@/components/SiteHeader";
-import { MotionFX } from "@/components/MotionFX";
 import { StoryDiscoveryRail } from "@/components/StoryDiscoveryRail";
 import { DiscoveryRailSkeleton } from "@/components/DiscoveryRailSkeleton";
-import { FollowedStoriesPanel } from "@/components/FollowedStoriesPanel";
-import { HomeRecommendationsPanel } from "@/components/HomeRecommendationsPanel";
+import { TrendingStoriesPanel } from "@/components/TrendingStoriesPanel";
 import { XianxiaPoetryColumn } from "@/components/XianxiaPoetryColumn";
+
+const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX));
+const FollowedStoriesPanel = nextDynamic(
+  () => import("@/components/FollowedStoriesPanel").then((mod) => mod.FollowedStoriesPanel),
+);
+const HomeRecommendationsPanel = nextDynamic(
+  () => import("@/components/HomeRecommendationsPanel").then((mod) => mod.HomeRecommendationsPanel),
+  { loading: () => <DiscoveryRailSkeleton /> },
+);
 
 export const revalidate = 60;
 
@@ -37,6 +45,11 @@ function buildQuery(params: Record<string, string | undefined>) {
     if (value) query.set(key, value);
   });
   return query.toString();
+}
+
+async function TrendingSection() {
+  const trending = await getCachedTrendingStories("week", 8);
+  return <TrendingStoriesPanel items={trending} period="week" />;
 }
 
 async function DiscoverySection() {
@@ -79,7 +92,7 @@ export default async function Home({ searchParams }: HomeProps) {
       maxChapters: Number(params.maxChapters) > 0 ? Number(params.maxChapters) : undefined,
       hasPolished: params.hasPolished === "true",
       hasAudio: params.hasAudio === "true",
-      sort: params.sort === "chapters" || params.sort === "hot" || params.sort === "title" || params.sort === "updated" ? params.sort : undefined
+      sort: params.sort === "chapters" || params.sort === "hot" || params.sort === "title" || params.sort === "updated" || params.sort === "trending" || params.sort === "reader_rank" ? params.sort : undefined
     }),
     getCachedCategories(12),
   ]);
@@ -116,7 +129,7 @@ export default async function Home({ searchParams }: HomeProps) {
                     <p className="eyebrow library-hero-eyebrow">Linh quyển các · Thiên Thư</p>
                     <h1 className="library-title library-title-centered library-title-modern">Tu tiên từng chương.<span>Vươn tới đỉnh trời.</span></h1>
                     <p className="library-subtitle">
-                      Tán tu du đạo — đọc ngay, không cần nhập môn. Kết bái đạo hữu để định danh linh hồn và lưu hành trình tu luyện vào Thiên Thư.
+                      Tán tu du đạo, đọc ngay không cần nhập môn. Kết bái đạo hữu để khắc hành trình tu luyện vào Thiên Thư.
                     </p>
                   </div>
                 </div>
@@ -168,7 +181,9 @@ export default async function Home({ searchParams }: HomeProps) {
                   <select name="sort" defaultValue={params.sort ?? "updated"}>
                     <option value="updated">Mới cập nhật</option>
                     <option value="chapters">Nhiều chương</option>
-                    <option value="hot">Đang hot</option>
+                    <option value="hot">Đang hot (BetterBox)</option>
+                    <option value="trending">Thịnh hành</option>
+                    <option value="reader_rank">BXH độc giả</option>
                     <option value="title">Tên A-Z</option>
                   </select>
                 </label>
@@ -232,6 +247,9 @@ export default async function Home({ searchParams }: HomeProps) {
         ) : (
           <>
             <FollowedStoriesPanel />
+            <Suspense fallback={<DiscoveryRailSkeleton />}>
+              <TrendingSection />
+            </Suspense>
             <Suspense fallback={<DiscoveryRailSkeleton />}>
               <DiscoverySection />
             </Suspense>

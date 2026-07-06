@@ -68,7 +68,23 @@ export async function fetchReadingProgress(signal?: AbortSignal) {
   return data.items ?? [];
 }
 
-export async function saveReadingSessionOnServer(payload: unknown) {
+export type ReadingSessionPayload = {
+  clientSessionId: string;
+  anonymousId?: string;
+  storyId: string;
+  chapterId: string | null;
+  chapterNumber: number;
+  startedAt: string;
+  endedAt: string;
+  durationSeconds: number;
+  startParagraphIndex: number;
+  endParagraphIndex: number;
+  startProgressPercent: number;
+  endProgressPercent: number;
+  deviceKind: "mobile" | "desktop" | "unknown";
+};
+
+export async function saveReadingSessionOnServer(payload: ReadingSessionPayload) {
   await fetch("/api/reader/sessions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

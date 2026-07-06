@@ -14,40 +14,28 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from "react-dom";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, SyntheticEvent } from "react";
 import { saveReaderPreferencesOnServer, saveReadingSessionOnServer } from "@/lib/api-client";
+import { getAnonymousReaderId } from "@/lib/anonymous-reader-id";
 import type { ChapterSummary, ReaderPayload } from "@/lib/types";
 import type { ReaderBookmarkItem } from "@/lib/bookmarks";
 import { storyHref } from "@/lib/urls";
 import { selectCurrentBookmark, selectMaxReadChapter, selectStoryBookmarks } from "@/lib/selectors";
-import { MotionFX } from "@/components/MotionFX";
-import { ReaderKeyboardHelp } from "@/components/ReaderKeyboardHelp";
-import { ChapterSidebarHeatmap } from "@/components/ChapterSidebarHeatmap";
-import { CultivationPanel } from "@/components/CultivationPanel";
 import { UserIdentity } from "@/components/UserIdentity";
-import { ChapterComments } from "@/components/ChapterComments";
-import { ChapterAudioPlayer } from "@/components/ChapterAudioPlayer";
-import { SkillEffectLayer } from "@/components/SkillEffectLayer";
 import { FollowButton } from "@/components/FollowButton";
 import { NotificationBell } from "@/components/NotificationBell";
-import { BackgroundAudioPlayer } from "@/components/BackgroundAudioPlayer";
-import { ChapterTransition } from "@/components/ChapterTransition";
 import { ReaderGlossaryInlineText } from "@/components/ReaderGlossaryInlineText";
 import { ReaderGlossaryTapPopover } from "@/components/ReaderGlossaryTapPopover";
-import { ReaderNotesSidebar } from "@/components/ReaderNotesSidebar";
-import { ReaderCommentsSidebar } from "@/components/ReaderCommentsSidebar";
 import { ReaderInlineChapterBlock } from "@/components/ReaderInlineChapterBlock";
-import { ReaderOnboardingCoach } from "@/components/ReaderOnboardingCoach";
-import { ReaderEngagementPrompt } from "@/components/ReaderEngagementPrompt";
 import { RealtimeFxPreference } from "@/components/RealtimeFxPreference";
-import { AmbientSoundPlayer } from "@/components/AmbientSoundPlayer";
 import { FloatingTooltip } from "@/components/FloatingTooltip";
 import { formatNovelContent } from "@/lib/formatNovelContent";
 import { isMobile, prefersReducedMotion, shouldReduceReaderBackgroundWork } from "@/lib/browser";
 import { countReadableWords, estimateReadingMinutes } from "@/lib/reading-estimate";
 import { isTodayLocal } from "@/lib/date";
-import { useLiveQuery } from "dexie-react-hooks";
-import { getCachedChapter, clearStoryOfflineCache, offlineDb, preloadNextChapters, downloadChaptersFrom, estimateOfflineCacheBytes, formatOfflineCacheSize, OFFLINE_DOWNLOAD_PRESETS, type OfflineChapterRecord } from "@/lib/offline-chapters";
-import { ReaderBilingualSettings } from "@/components/ReaderBilingualSettings";
+import type { OfflineChapterRecord } from "@/lib/offline-chapters";
+import { estimateOfflineCacheBytes, formatOfflineCacheSize, OFFLINE_DOWNLOAD_PRESETS } from "@/lib/offline-chapters-utils";
+import { useReaderOfflineCache } from "@/components/reader/ReaderOfflineCacheProvider";
 import { ReaderChapterFreshHint, type ReaderChapterFreshHintState } from "@/components/ReaderChapterFreshHint";
+import { ReaderAmbienceLayer } from "@/components/ReaderAmbienceLayer";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { fetchReaderChapter, readerQueryKeys } from "@/lib/reader-query";
 import {
@@ -184,14 +172,25 @@ const ThreeReaderProgress = dynamic(() => import("@/components/ThreeReaderProgre
   ssr: false
 });
 
+const CultivationPanel = dynamic(() => import("@/components/CultivationPanel").then((mod) => mod.CultivationPanel));
+const ChapterComments = dynamic(() => import("@/components/ChapterComments").then((mod) => mod.ChapterComments));
+const ChapterAudioPlayer = dynamic(() => import("@/components/ChapterAudioPlayer").then((mod) => mod.ChapterAudioPlayer));
+const SkillEffectLayer = dynamic(() => import("@/components/SkillEffectLayer").then((mod) => mod.SkillEffectLayer), { ssr: false });
+const BackgroundAudioPlayer = dynamic(() => import("@/components/BackgroundAudioPlayer").then((mod) => mod.BackgroundAudioPlayer), { ssr: false });
+const AmbientSoundPlayer = dynamic(() => import("@/components/AmbientSoundPlayer").then((mod) => mod.AmbientSoundPlayer), { ssr: false });
+const ReaderOnboardingCoach = dynamic(() => import("@/components/ReaderOnboardingCoach").then((mod) => mod.ReaderOnboardingCoach), { ssr: false });
+const ReaderEngagementPrompt = dynamic(() => import("@/components/ReaderEngagementPrompt").then((mod) => mod.ReaderEngagementPrompt), { ssr: false });
+const ReaderNotesSidebar = dynamic(() => import("@/components/ReaderNotesSidebar").then((mod) => mod.ReaderNotesSidebar));
+const ReaderCommentsSidebar = dynamic(() => import("@/components/ReaderCommentsSidebar").then((mod) => mod.ReaderCommentsSidebar));
+const ChapterSidebarHeatmap = dynamic(() => import("@/components/ChapterSidebarHeatmap").then((mod) => mod.ChapterSidebarHeatmap));
+const ReaderKeyboardHelp = dynamic(() => import("@/components/ReaderKeyboardHelp").then((mod) => mod.ReaderKeyboardHelp));
+const ReaderBilingualSettings = dynamic(() => import("@/components/ReaderBilingualSettings").then((mod) => mod.ReaderBilingualSettings));
+const ChapterTransition = dynamic(() => import("@/components/ChapterTransition").then((mod) => mod.ChapterTransition));
+
 const StoryCompletionOverlay = dynamic(
   () => import("@/components/StoryCompletionOverlay").then((mod) => mod.StoryCompletionOverlay),
   { ssr: false }
 );
-
-const ThreeReaderAtmosphere = dynamic(() => import("@/components/ThreeReaderAtmosphere").then((mod) => mod.ThreeReaderAtmosphere), {
-  ssr: false
-});
 
 
 const COMPACT_VIEWPORT_QUERY = "(max-width: 839px)";
@@ -202,6 +201,12 @@ const MOBILE_LOCAL_PROGRESS_PERSIST_MS = 5000;
 const DESKTOP_LOCAL_PROGRESS_PERSIST_MS = 1500;
 const MOBILE_REMOTE_PROGRESS_PERSIST_MS = 20000;
 const DESKTOP_REMOTE_PROGRESS_PERSIST_MS = 5000;
+
+async function readCachedChapterPayload(storyId: string, chapterNumber: number) {
+  const { getCachedChapter } = await import("@/lib/offline-chapters");
+  const cached = await getCachedChapter(storyId, chapterNumber);
+  return cached?.payload ?? null;
+}
 
 const READER_COMFORT_PRESETS = {
   focus: {
@@ -263,7 +268,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
-  const decorativeWebglEnabled = useDecorativeWebglEnabled({ compactMaxWidth: 1099 });
+  const decorativeWebglEnabled = useDecorativeWebglEnabled({ allowCompact: true, compactMaxWidth: 839 });
   const { theme, fontSize, fontFamily, lineHeight, paragraphSpacing, contentWidth, layoutMode, tapEdgeEnabled, skillEffectsEnabled } = useAppSelector((state) => state.readerStyle.config);
   const historyHydrated = useAppSelector((state) => state.history.hydrated);
   const currentBookmark = useAppSelector(useMemo(() => selectCurrentBookmark(payload.story.id, payload.chapter.chapterNumber), [payload.story.id, payload.chapter.chapterNumber]));
@@ -369,12 +374,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [jumpBackTarget, setJumpBackTarget] = useState<{ scrollY: number; paragraphIndex: number } | null>(null);
   const focusDefaultBootstrappedRef = useRef(false);
   const lastAudioScrollIndexRef = useRef<number | null>(null);
-  const liveCachedChapters = useLiveQuery(
-    () => offlineDb.chapters.where("storyId").equals(payload.story.id).sortBy("chapterNumber"),
-    [payload.story.id],
-    [] as OfflineChapterRecord[]
-  );
-  const cachedChapters = useMemo(() => liveCachedChapters ?? [], [liveCachedChapters]);
+  const { cachedChapters, ready: offlineSubsystemReady } = useReaderOfflineCache();
   const [cachedPayload, setCachedPayload] = useState<ReaderPayload | null>(null);
   const {
     context: formatFloatingContext,
@@ -796,6 +796,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
       saveReadingSessionOnServer({
         clientSessionId: session.clientSessionId,
+        anonymousId: currentUser ? undefined : getAnonymousReaderId(),
         storyId: activePayload.story.id,
         chapterId: activePayload.chapter.id,
         chapterNumber: activePayload.chapter.chapterNumber,
@@ -809,7 +810,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         deviceKind: isMobile ? "mobile" : "desktop"
       });
     };
-  }, [activePayload.chapter.chapterNumber, activePayload.chapter.id, activePayload.story.id]);
+  }, [activePayload.chapter.chapterNumber, activePayload.chapter.id, activePayload.story.id, currentUser]);
 
   useEffect(() => {
     const compactQuery = window.matchMedia(COMPACT_VIEWPORT_QUERY);
@@ -1250,7 +1251,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setOfflineError(null);
     setOfflineLoading(true);
     setOfflineDownloadProgress(null);
-    preloadNextChapters(activePayload, 3)
+    void import("@/lib/offline-chapters")
+      .then(({ preloadNextChapters }) => preloadNextChapters(activePayload, 3))
       .catch(() => {
         if (surfaceErrors) setOfflineError("Chưa cache được chương. Kiểm tra mạng rồi thử lại.");
       })
@@ -1262,6 +1264,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setOfflineLoading(true);
     setOfflineDownloadProgress({ done: 0, total: count });
     try {
+      const { downloadChaptersFrom } = await import("@/lib/offline-chapters");
       await downloadChaptersFrom(activePayload, activePayload.chapter.chapterNumber, count, {
         includeCurrent: true,
         onProgress: (done, total) => setOfflineDownloadProgress({ done, total })
@@ -1276,8 +1279,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, [activePayload]);
 
   useEffect(() => {
+    if (!offlineSubsystemReady) return;
     refreshOfflineCache(false);
-  }, [refreshOfflineCache]);
+  }, [offlineSubsystemReady, refreshOfflineCache]);
 
   useEffect(() => {
     if (!mobileSheetOpen) return;
@@ -1566,6 +1570,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }
 
   async function clearOfflineCacheForStory() {
+    const { clearStoryOfflineCache } = await import("@/lib/offline-chapters");
     const removed = await clearStoryOfflineCache(activePayload.story.id);
     showSwipeNotice(removed > 0 ? `Đã xóa ${removed} chương offline` : "Không có cache offline để xóa");
   }
@@ -2538,8 +2543,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     );
     if (queryPayload) return queryPayload;
 
-    const cached = await getCachedChapter(activePayload.story.id, chapterNumber);
-    if (cached?.payload) return cached.payload;
+    const cachedPayloadFromDisk = await readCachedChapterPayload(activePayload.story.id, chapterNumber);
+    if (cachedPayloadFromDisk) return cachedPayloadFromDisk;
 
     return queryClient
       .fetchQuery({
@@ -2639,8 +2644,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     markChapterListNavigation(nextChapter.chapterNumber);
 
     const queryPayload = queryClient.getQueryData<ReaderPayload>(readerQueryKeys.chapter(activePayload.story.id, nextChapter.chapterNumber));
-    const cached = queryPayload ? null : await getCachedChapter(activePayload.story.id, nextChapter.chapterNumber);
-    const nextPayload = queryPayload ?? cached?.payload;
+    const cachedPayloadFromDisk = queryPayload ? null : await readCachedChapterPayload(activePayload.story.id, nextChapter.chapterNumber);
+    const nextPayload = queryPayload ?? cachedPayloadFromDisk;
 
     if (nextPayload) {
       setCachedPayload(nextPayload);
@@ -2677,8 +2682,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       const queryPayload = queryClient.getQueryData<ReaderPayload>(
         readerQueryKeys.chapter(activePayload.story.id, nextSummary.chapterNumber)
       );
-      const cached = queryPayload ? null : await getCachedChapter(activePayload.story.id, nextSummary.chapterNumber);
-      let nextPayload = queryPayload ?? cached?.payload ?? null;
+      const cachedPayloadFromDisk = queryPayload
+        ? null
+        : await readCachedChapterPayload(activePayload.story.id, nextSummary.chapterNumber);
+      let nextPayload = queryPayload ?? cachedPayloadFromDisk ?? null;
       if (!nextPayload) {
         nextPayload = await resolveChapterPayload(nextSummary.chapterNumber);
       }
@@ -2716,8 +2723,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   async function openCachedChapter(chapterNumber: number) {
     const queryPayload = queryClient.getQueryData<ReaderPayload>(readerQueryKeys.chapter(activePayload.story.id, chapterNumber));
-    const cached = queryPayload ? null : await getCachedChapter(activePayload.story.id, chapterNumber);
-    const nextPayload = queryPayload ?? cached?.payload;
+    const cachedPayloadFromDisk = queryPayload ? null : await readCachedChapterPayload(activePayload.story.id, chapterNumber);
+    const nextPayload = queryPayload ?? cachedPayloadFromDisk;
     if (!nextPayload) return;
     setCachedPayload(nextPayload);
     setInlineChapters([]);
@@ -3064,16 +3071,16 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   return (
     <main
       ref={readerShellRef}
-      className={`reader-shell ${focusModeEnabled ? "reader-shell-focus-mode" : ""} ${isPageLayout ? "reader-shell-layout-page" : ""} ${spreadPageMode ? "reader-shell-layout-page-spread" : ""} ${notesSidebarOpen && !compactReader ? "reader-shell-notes-open" : ""} ${commentsSplitOpen && !compactReader ? "reader-shell-comments-split" : ""} ${shellFreshPulse ? "reader-shell-fresh-pulse" : ""}`}
+      className={`reader-shell ${compactReader ? "reader-shell--compact" : "reader-shell--desktop"} ${focusModeEnabled ? "reader-shell-focus-mode" : ""} ${isPageLayout ? "reader-shell-layout-page" : ""} ${spreadPageMode ? "reader-shell-layout-page-spread" : ""} ${notesSidebarOpen && !compactReader ? "reader-shell-notes-open" : ""} ${commentsSplitOpen && !compactReader ? "reader-shell-comments-split" : ""} ${shellFreshPulse ? "reader-shell-fresh-pulse" : ""}`}
       data-theme={theme}
       data-font={fontFamily}
       style={readerShellStyle}
     >
-      {focusModeEnabled ? null : <MotionFX variant="reader" />}
       {focusModeEnabled || !skillEffectsEnabled ? null : (
         <SkillEffectLayer storyId={activePayload.story.id} chapterId={activePayload.chapter.id} />
       )}
       {focusModeEnabled ? null : <BackgroundAudioPlayer />}
+      {focusModeEnabled ? null : <ReaderAmbienceLayer />}
       <div className="reader-progress" aria-hidden="true">
         {decorativeWebglEnabled && !focusModeEnabled ? <ThreeReaderProgress progress={mobileProgress} /> : null}
         <div className="reader-progress-bar" ref={progressBarRef} />
@@ -3291,7 +3298,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       </nav>
 
       <header className="reader-topbar reader-topbar-modern">
-        <Link href={storyHref(activePayload.story)} className="brand reader-topbar-brand" aria-label={`Về trang truyện — ${activePayload.story.title}: ${pageTitle}`}>
+        <Link href={storyHref(activePayload.story)} className="brand reader-topbar-brand" aria-label={`Về trang truyện: ${activePayload.story.title}, ${pageTitle}`}>
           <ReaderLogo />
           <span className="reader-title-stack" aria-hidden="true">
             <span className="reader-story-title" onDoubleClick={(event) => {
@@ -3309,70 +3316,58 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           </span>
         </Link>
 
-        <div className="reader-controls" aria-label="Reader controls">
+        <div className="reader-controls reader-controls-desktop" aria-label="Reader controls">
           <div className="reader-control-group reader-session-group">
-            <UserIdentity compact className="reader-identity" />
             <NotificationBell className="reader-notification" />
-            <CultivationPanel compact className="reader-cultivation" />
-            <ReaderStatsPill sessionMinutes={sessionMinutes} chapterProgress={mobileProgress} chapterMinutesLeft={minutesLeft} />
+            <UserIdentity compact className="reader-identity" />
+            <div className="reader-session-meta">
+              <CultivationPanel compact className="reader-cultivation" />
+              <ReaderStatsPill sessionMinutes={sessionMinutes} chapterProgress={mobileProgress} chapterMinutesLeft={minutesLeft} />
+            </div>
           </div>
           <div className="reader-control-group reader-action-group" ref={readerOverflowRef}>
             <FollowButton story={activePayload.story} compact />
             {!compactReader ? (
-              <FloatingTooltip label="Luận đạo cạnh nội dung">
+              <FloatingTooltip label="Tuỳ chọn đọc">
                 <button
-                  className={`icon-button ${commentsSplitOpen ? "icon-button-active" : ""}`}
+                  className={`icon-button reader-tools-trigger ${readerOverflowOpen || currentBookmark || focusModeEnabled || audioPanelOpen || offlineReady || commentsSplitOpen || notesSidebarOpen || chapterSearchOpen ? "icon-button-active" : ""}`}
                   type="button"
-                  title="Luận đạo cạnh nội dung"
-                  aria-pressed={commentsSplitOpen}
-                  onClick={toggleCommentsSplit}
-                >
-                  <MessageCircle size={16} />
-                </button>
-              </FloatingTooltip>
-            ) : null}
-            {!compactReader ? (
-              <FloatingTooltip label="Ghi chú đoạn">
-                <button
-                  className={`icon-button ${notesSidebarOpen ? "icon-button-active" : ""}`}
-                  type="button"
-                  title="Ghi chú đoạn"
-                  aria-pressed={notesSidebarOpen}
-                  onClick={() => setNotesSidebarOpen((value) => !value)}
-                >
-                  <StickyNote size={16} />
-                </button>
-              </FloatingTooltip>
-            ) : null}
-            {!compactReader ? (
-              <FloatingTooltip label="Tìm trong chương">
-                <button
-                  className={`icon-button ${chapterSearchOpen ? "icon-button-active" : ""}`}
-                  type="button"
-                  title="Tìm trong chương"
-                  aria-pressed={chapterSearchOpen}
-                  onClick={() => setChapterSearchOpen(true)}
-                >
-                  <Search size={16} />
-                </button>
-              </FloatingTooltip>
-            ) : null}
-            {!compactReader ? (
-              <FloatingTooltip label="Phím tắt và tùy chọn">
-                <button
-                  className={`icon-button ${readerOverflowOpen || currentBookmark || focusModeEnabled || audioPanelOpen || offlineReady ? "icon-button-active" : ""}`}
-                  type="button"
-                  title="Phím tắt và tùy chọn"
+                  title="Tuỳ chọn đọc"
                   aria-expanded={readerOverflowOpen}
                   aria-controls="reader-overflow-panel"
                   onClick={() => setReaderOverflowOpen((v) => !v)}
                 >
-                  <HelpCircle size={16} />
+                  <Settings2 size={16} />
                 </button>
               </FloatingTooltip>
             ) : null}
             {!compactReader && readerOverflowOpen ? (
               <div className="reader-overflow-panel" id="reader-overflow-panel">
+                <button
+                  className={`reader-overflow-item ${notesSidebarOpen ? "reader-overflow-item-active" : ""}`}
+                  type="button"
+                  onClick={() => { setNotesSidebarOpen((value) => !value); setReaderOverflowOpen(false); }}
+                >
+                  <StickyNote size={15} />
+                  {notesSidebarOpen ? "Đóng ghi chú đoạn" : "Ghi chú đoạn"}
+                </button>
+                <button
+                  className={`reader-overflow-item ${commentsSplitOpen ? "reader-overflow-item-active" : ""}`}
+                  type="button"
+                  onClick={() => { toggleCommentsSplit(); setReaderOverflowOpen(false); }}
+                >
+                  <MessageCircle size={15} />
+                  {commentsSplitOpen ? "Luận đạo dưới chương" : "Luận đạo cạnh nội dung"}
+                </button>
+                <button
+                  className={`reader-overflow-item ${chapterSearchOpen ? "reader-overflow-item-active" : ""}`}
+                  type="button"
+                  onClick={() => { setChapterSearchOpen(true); setReaderOverflowOpen(false); }}
+                >
+                  <Search size={15} />
+                  Tìm trong chương
+                </button>
+                <div className="reader-overflow-sep" />
                 <button
                   className={`reader-overflow-item ${currentBookmark ? "reader-overflow-item-active" : ""}`}
                   type="button"
@@ -3388,14 +3383,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 >
                   {focusModeEnabled ? <Eye size={15} /> : <EyeOff size={15} />}
                   {focusModeEnabled ? "Tắt focus mode" : "Focus mode"}
-                </button>
-                <button
-                  className={`reader-overflow-item ${chapterSearchOpen ? "reader-overflow-item-active" : ""}`}
-                  type="button"
-                  onClick={() => { setChapterSearchOpen(true); setReaderOverflowOpen(false); }}
-                >
-                  <Search size={15} />
-                  Tìm trong chương
                 </button>
                 {glossaryCharacters.length > 0 ? (
                   <button
@@ -3570,22 +3557,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             ) : null}
           </div>
           {!compactReader ? (
-            <div className="segmented" aria-label="Theme">
-              <button type="button" title="Light" aria-pressed={theme === "light"} onClick={() => dispatch(setReaderTheme("light"))}>
-                <Sun size={15} />
-              </button>
-              <button type="button" title="Sepia" aria-pressed={theme === "sepia"} onClick={() => dispatch(setReaderTheme("sepia"))}>
-                <BookOpen size={15} />
-              </button>
-              <button type="button" title="Dark" aria-pressed={theme === "dark"} onClick={() => dispatch(setReaderTheme("dark"))}>
-                <Moon size={15} />
-              </button>
-              <button type="button" title="OLED" aria-pressed={theme === "oled"} onClick={() => dispatch(setReaderTheme("oled"))}>
-                <Moon size={15} />
-              </button>
-            </div>
-          ) : null}
-          {!compactReader ? (
             <button
               className="icon-button format-trigger"
               type="button"
@@ -3685,10 +3656,40 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 Trang
               </button>
             </div>
+            <div className="segmented reader-theme-mode" aria-label="Giao diện">
+              <button type="button" title="Light" aria-pressed={theme === "light"} onClick={() => dispatch(setReaderTheme("light"))}>
+                <Sun size={14} />
+              </button>
+              <button type="button" title="Sepia" aria-pressed={theme === "sepia"} onClick={() => dispatch(setReaderTheme("sepia"))}>
+                <BookOpen size={14} />
+              </button>
+              <button type="button" title="Dark" aria-pressed={theme === "dark"} onClick={() => dispatch(setReaderTheme("dark"))}>
+                <Moon size={14} />
+              </button>
+              <button type="button" title="OLED" aria-pressed={theme === "oled"} onClick={() => dispatch(setReaderTheme("oled"))}>
+                <Moon size={14} />
+              </button>
+            </div>
               </div>
             </FloatingPortal>
           ) : null}
         </div>
+
+        {compactReader ? (
+          <div className="reader-controls reader-controls-mobile" aria-label="Mobile reader controls">
+            <NotificationBell className="reader-notification" />
+            <button
+              className="icon-button"
+              type="button"
+              title="Công cụ đọc"
+              aria-expanded={mobileSheetOpen}
+              aria-controls="reader-mobile-sheet"
+              onClick={() => setMobileSheetOpen(true)}
+            >
+              <Settings2 size={17} />
+            </button>
+          </div>
+        ) : null}
       </header>
 
       <Drawer.Root open={mobileSheetOpen} onOpenChange={setMobileSheetOpen} shouldScaleBackground={false}>
@@ -4168,23 +4169,23 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   <dl>
                     <div>
                       <dt>Dòng raw</dt>
-                      <dd>{qualityStats?.rawLines ?? "—"}</dd>
+                      <dd>{qualityStats?.rawLines ?? "-"}</dd>
                     </div>
                     <div>
                       <dt>Đoạn đang đọc</dt>
-                      <dd>{qualityStats?.paragraphs ?? "—"}</dd>
+                      <dd>{qualityStats?.paragraphs ?? "-"}</dd>
                     </div>
                     <div>
                       <dt>Preview format</dt>
-                      <dd>{qualityStats?.formattedParagraphs ?? "—"}</dd>
+                      <dd>{qualityStats?.formattedParagraphs ?? "-"}</dd>
                     </div>
                     <div>
                       <dt>Dòng ngắn</dt>
-                      <dd>{qualityStats?.shortLineCount ?? "—"}</dd>
+                      <dd>{qualityStats?.shortLineCount ?? "-"}</dd>
                     </div>
                     <div>
                       <dt>Quote rời</dt>
-                      <dd>{qualityStats?.danglingQuoteCount ?? "—"}</dd>
+                      <dd>{qualityStats?.danglingQuoteCount ?? "-"}</dd>
                     </div>
                   </dl>
                   <div className="reader-quality-preview">
@@ -4393,14 +4394,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           }}
           onPointerUp={handleReaderPointerUp}
         >
-          {decorativeWebglEnabled && !focusModeEnabled ? (
-            <ThreeReaderAtmosphere
-              chapterNumber={activePayload.chapter.chapterNumber}
-              progress={mobileProgress}
-              autoScrollEnabled={autoScrollEnabled}
-              theme={theme}
-            />
-          ) : null}
           <div className={`reader-main-columns ${commentsSplitOpen && !compactReader ? "reader-main-columns-split" : ""}`}>
           <div className="reader-article">
             {tapEdgeEnabled && !focusModeEnabled && !adminEdit ? (

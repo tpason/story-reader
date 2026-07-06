@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Literata, Merriweather, Noto_Serif, Sora } from "next/font/google";
+import { Literata, Sora } from "next/font/google";
 import { Suspense } from "react";
 import { GlobalScrollTop } from "@/components/GlobalScrollTop";
 import { AppBootSplash } from "@/components/AppBootSplash";
@@ -12,6 +12,7 @@ import { RealtimeToastHost } from "@/components/RealtimeToastHost";
 import { QueryProvider } from "@/components/QueryProvider";
 import { StoreProvider } from "@/components/StoreProvider";
 import { XianxiaWorldBackgroundClient } from "@/components/XianxiaWorldBackgroundClient";
+import { AppAuraLayer } from "@/components/AppAuraLayer";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -20,18 +21,6 @@ const literata = Literata({
   axes: ["opsz"],
   subsets: ["latin", "latin-ext", "vietnamese"],
   variable: "--font-literata",
-  display: "swap"
-});
-
-const merriweather = Merriweather({
-  subsets: ["latin", "latin-ext", "vietnamese"],
-  variable: "--font-merriweather",
-  display: "swap"
-});
-
-const notoSerif = Noto_Serif({
-  subsets: ["latin", "latin-ext", "vietnamese"],
-  variable: "--font-noto-serif",
   display: "swap"
 });
 
@@ -51,12 +40,12 @@ export const metadata: Metadata = {
     locale: "vi_VN",
     siteName: "Linh Quyển Các",
     title: "Linh Quyển Các",
-    description: "Tu tiên từng chương — đọc truyện tiên hiệp, theo dõi chương mới và tích lũy tu vi.",
+    description: "Tu tiên từng chương. Đọc truyện tiên hiệp, theo dõi chương mới và tích lũy tu vi.",
   },
   twitter: {
     card: "summary_large_image",
     title: "Linh Quyển Các",
-    description: "Tu tiên từng chương — đọc truyện tiên hiệp, theo dõi chương mới và tích lũy tu vi.",
+    description: "Tu tiên từng chương. Đọc truyện tiên hiệp, theo dõi chương mới và tích lũy tu vi.",
   },
   appleWebApp: {
     capable: true,
@@ -68,7 +57,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
   themeColor: [
     { media: "(prefers-color-scheme: dark)", color: "#0e2419" },
     { media: "(prefers-color-scheme: light)", color: "#1e3e30" }
@@ -77,7 +66,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi" className={`${literata.variable} ${merriweather.variable} ${notoSerif.variable} ${sora.variable}`}>
+    <html lang="vi" className={`${literata.variable} ${sora.variable}`}>
       <body>
         <StoreProvider>
           <GlobalThemeProvider />
@@ -89,6 +78,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <RealtimeShimmerLegend />
               <Suspense fallback={null}>
                 <XianxiaWorldBackgroundClient />
+              </Suspense>
+              <Suspense fallback={null}>
+                <AppAuraLayer />
               </Suspense>
               <PwaRuntime />
               {children}

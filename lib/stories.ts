@@ -7,3 +7,4 @@
 export * from "./stories/catalog";
 export * from "./stories/discovery";
 export * from "./stories/chapters";
+export * from "./stories/analytics";

@@ -1,34 +1,32 @@
 "use client";
 
-import { Moon, Sun, SunMoon } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
-import { setGlobalTheme, type GlobalTheme } from "@/lib/store";
-import { GLOBAL_THEME_LABELS, TIME_OF_DAY_LABELS } from "@/lib/xianxia-time-of-day";
-import { useXianxiaTimeOfDay } from "@/hooks/useXianxiaTimeOfDay";
-
-const CYCLE: GlobalTheme[] = ["auto", "dark", "light"];
+import { normalizeGlobalTheme, setGlobalTheme, type GlobalTheme } from "@/lib/store";
+import { GLOBAL_THEME_LABELS } from "@/lib/xianxia-time-of-day";
 
 export function ThemeToggle() {
-  const pref = useAppSelector((s) => (s.globalTheme as GlobalTheme | undefined) ?? "auto");
+  const raw = useAppSelector((s) => s.globalTheme);
+  const theme = normalizeGlobalTheme(raw);
   const dispatch = useAppDispatch();
-  const timeOfDay = useXianxiaTimeOfDay();
 
-  function cycle() {
-    const next = CYCLE[(CYCLE.indexOf(pref) + 1) % CYCLE.length];
+  function toggle() {
+    const next: GlobalTheme = theme === "dark" ? "light" : "dark";
     dispatch(setGlobalTheme(next));
   }
 
-  const skyLabel = TIME_OF_DAY_LABELS[timeOfDay];
+  const isDark = theme === "dark";
 
   return (
     <button
       type="button"
       className="icon-button theme-toggle-btn"
-      onClick={cycle}
-      aria-label={`Giao diện: ${GLOBAL_THEME_LABELS[pref]} — Trời: ${skyLabel}`}
-      title={`Giao diện: ${GLOBAL_THEME_LABELS[pref]} · Trời: ${skyLabel}`}
+      onClick={toggle}
+      aria-label={`Giao diện: ${GLOBAL_THEME_LABELS[theme]}. Bấm để chuyển sang ${GLOBAL_THEME_LABELS[isDark ? "light" : "dark"]}.`}
+      title={`Giao diện: ${GLOBAL_THEME_LABELS[theme]}`}
+      aria-pressed={isDark}
     >
-      {pref === "dark" ? <Moon size={17} /> : pref === "light" ? <Sun size={17} /> : <SunMoon size={17} />}
+      {isDark ? <Moon size={17} /> : <Sun size={17} />}
     </button>
   );
 }

@@ -42,15 +42,20 @@ function isLowEndDevice(): boolean {
   return false;
 }
 
-function perfAllowsWebGL(performanceMode: ReturnType<typeof readReaderPerformanceMode>, perfTier: ReturnType<typeof useWebGLPerformanceTier>) {
+function perfAllowsWebGL(
+  performanceMode: ReturnType<typeof readReaderPerformanceMode>,
+  perfTier: ReturnType<typeof useWebGLPerformanceTier>,
+  tier: DecorativeWebglTier,
+) {
   if (performanceMode === "full_effects") return true;
   if (perfTier === "weak") return false;
-  if (perfTier === "pending") return false;
+  // World bg: mount WebGL while probe runs; reader accents stay off until classified.
+  if (perfTier === "pending") return tier === "global";
   return true;
 }
 
 export function useDecorativeWebglEnabled(options: DecorativeWebglOptions = {}) {
-  const { allowCompact = false, compactMaxWidth = 839 } = options;
+  const { allowCompact = false, compactMaxWidth = 839, tier = "global" } = options;
   const perfTier = useWebGLPerformanceTier();
   const [enabled, setEnabled] = useState(false);
 
@@ -68,16 +73,18 @@ export function useDecorativeWebglEnabled(options: DecorativeWebglOptions = {}) 
         return;
       }
 
-      if (!perfAllowsWebGL(performanceMode, perfTier)) {
+      if (!perfAllowsWebGL(performanceMode, perfTier, tier)) {
         setEnabled(false);
         return;
       }
 
+      const isCompact = compactQuery.matches;
+      const compactAllowed = tier === "reader" ? false : allowCompact;
       const isLowBattery = battery !== null && !battery.charging && battery.level < 0.25;
       const ignoreConstraints = performanceMode === "full_effects";
       setEnabled(
         !motionQuery.matches &&
-        (allowCompact || !compactQuery.matches) &&
+        (compactAllowed || !isCompact) &&
         !isLowBattery &&
         (ignoreConstraints || (!lowEnd && !weakGpu))
       );
@@ -108,7 +115,7 @@ export function useDecorativeWebglEnabled(options: DecorativeWebglOptions = {}) 
         battery.removeEventListener("chargingchange", update);
       }
     };
-  }, [allowCompact, compactMaxWidth, perfTier]);
+  }, [allowCompact, compactMaxWidth, perfTier, tier]);
 
   return enabled && !prefersReducedMotion() && canUseWebGL();
 }

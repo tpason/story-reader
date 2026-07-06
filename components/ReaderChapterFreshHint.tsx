@@ -45,7 +45,7 @@ export function ReaderChapterFreshHint({ storyId, storyTitle, hint, onDismiss }:
         <strong>{hint.kind === "next" ? "Linh khí tụ hội" : "Thiên thư cập nhật"}</strong>
         <span>
           {hint.kind === "next"
-            ? `Chương ${hint.chapterNumber} vừa ấn định — tiếp tục hành trình?`
+            ? `Chương ${hint.chapterNumber} vừa ấn định. Tiếp tục hành trình?`
             : `Nội dung chương ${hint.chapterNumber} vừa được polish lại.`}
         </span>
         {nextChapterHref ? (

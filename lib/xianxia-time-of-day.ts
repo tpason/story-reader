@@ -13,10 +13,10 @@ export function getClockTimeOfDay(date = new Date()): TimeOfDay {
 }
 
 /**
- * Sky always follows the real clock.
- * Theme toggle (auto/dark/light) only affects UI chrome via data-xi-theme.
+ * Sky follows the real clock (dawn/day/dusk/night).
+ * UI chrome uses data-xi-theme (light | dark) from the theme toggle.
  */
-export function resolveXianxiaTimeOfDay(_theme: GlobalTheme, date = new Date()): TimeOfDay {
+export function resolveXianxiaTimeOfDay(_theme?: GlobalTheme, date = new Date()): TimeOfDay {
   return getClockTimeOfDay(date);
 }
 
@@ -28,7 +28,6 @@ export const TIME_OF_DAY_LABELS: Record<TimeOfDay, string> = {
 };
 
 export const GLOBAL_THEME_LABELS: Record<GlobalTheme, string> = {
-  auto: "Tự động",
-  dark: "Tối",
   light: "Sáng",
+  dark: "Tối",
 };

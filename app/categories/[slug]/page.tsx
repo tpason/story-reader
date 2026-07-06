@@ -1,15 +1,17 @@
-import { Layers3 } from "lucide-react";
 import type { Metadata } from "next";
 import type { Route } from "next";
 import Link from "next/link";
+import nextDynamic from "next/dynamic";
 import { notFound } from "next/navigation";
-import { MotionFX } from "@/components/MotionFX";
+import { Layers3 } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { StoryLibrary } from "@/components/StoryLibrary";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { buildCategoryMetadata } from "@/lib/metadata";
 import { getCategoryBySlug, listStoriesCursor } from "@/lib/stories";
+
+const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX));
 
 export const revalidate = 300;
 

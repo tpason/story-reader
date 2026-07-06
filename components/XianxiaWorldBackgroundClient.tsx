@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { usePathname } from "next/navigation";
 import { XianxiaCssBackdrop } from "@/components/XianxiaCssBackdrop";
 import { useXianxiaTimeOfDay } from "@/hooks/useXianxiaTimeOfDay";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
@@ -11,16 +10,10 @@ const ThreeXianxiaWorldBackground = dynamic(
   { ssr: false }
 );
 
-const READER_PATH_RE = /^\/stories\/[^/]+\/chapters\/\d+/;
-
 export function XianxiaWorldBackgroundClient() {
-  const webglLayerVisible = useDecorativeWebglEnabled({ tier: "global" });
+  // Desktop only: CSS hides `.xianxia-world-background` ≤839px — must not mark CSS as underWebgl on mobile.
+  const webglLayerVisible = useDecorativeWebglEnabled({ tier: "global", allowCompact: false, compactMaxWidth: 839 });
   const timeOfDay = useXianxiaTimeOfDay();
-  const pathname = usePathname();
-
-  if (READER_PATH_RE.test(pathname ?? "")) {
-    return null;
-  }
 
   return (
     <>

@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
-import { ReaderClient } from "@/components/ReaderClient";
 import { buildChapterMetadata } from "@/lib/metadata";
 import { buildChapterArticleJsonLd } from "@/lib/json-ld";
 import { JsonLdScript } from "@/components/JsonLdScript";
+import { ReaderChapterShellSkeleton } from "@/components/ReaderChapterShellSkeleton";
+import { ReaderOfflineCacheProvider } from "@/components/reader/ReaderOfflineCacheProvider";
 import { getCachedChapterHead, getCachedStory, getReaderPayload } from "@/lib/stories";
 import { isStoryUuid, storyKeyToId } from "@/lib/urls";
+
+const ReaderClient = dynamic(() => import("@/components/ReaderClient").then((mod) => mod.ReaderClient), {
+  loading: () => <ReaderChapterShellSkeleton />,
+});
 
 export const revalidate = 300;
 
@@ -46,7 +52,9 @@ export default async function ReaderPage({
   return (
     <>
       <JsonLdScript data={buildChapterArticleJsonLd(payload.story, payload.chapter)} />
-      <ReaderClient payload={payload} />
+      <ReaderOfflineCacheProvider storyId={payload.story.id}>
+        <ReaderClient payload={payload} />
+      </ReaderOfflineCacheProvider>
     </>
   );
 }

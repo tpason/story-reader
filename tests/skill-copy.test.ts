@@ -4,7 +4,7 @@ import { formatSkillCastLabel, SKILL_ELEMENT_LABEL } from "../lib/skill-copy.ts"
 
 describe("formatSkillCastLabel", () => {
   it("wraps skill name in guillemets with caster", () => {
-    assert.equal(formatSkillCastLabel({ skillName: "Phong Nhận", username: "yuki" }), "「Phong Nhận」 — yuki");
+    assert.equal(formatSkillCastLabel({ skillName: "Phong Nhận", username: "yuki" }), "「Phong Nhận」 · yuki");
   });
 
   it("includes realm when provided", () => {

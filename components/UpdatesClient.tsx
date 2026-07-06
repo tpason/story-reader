@@ -1,9 +1,9 @@
 "use client";
 
 import { Bell, BookOpenCheck, Check, Feather, ScrollText, Sparkles } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, type MouseEvent, type ReactNode } from "react";
-import { MotionFX } from "@/components/MotionFX";
 import { SiteHeader } from "@/components/SiteHeader";
 import { StoryCover } from "@/components/StoryCover";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
@@ -18,6 +18,8 @@ import { type ReadingHistoryItem } from "@/lib/reading-history";
 import { NOTIFY_COPY } from "@/lib/xianxia-notify-copy";
 import { storyHref } from "@/lib/urls";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
+
+const MotionFX = dynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX), { ssr: false });
 
 type UpdateEntry = {
   item: ReturnType<typeof historyToFollowItem>;
@@ -36,9 +38,9 @@ function UpdateCard({ entry, fresh }: { entry: UpdateEntry; fresh: boolean }) {
   }
 
   return (
-    <div className={`update-card-row ${fresh ? "update-card-row-fresh" : ""}`.trim()}>
+    <article className={`update-card ${fresh ? "update-card-fresh" : ""}`.trim()}>
       <Link
-        className={`update-card ${fresh ? "update-card-fresh" : ""}`.trim()}
+        className="update-card-main"
         href={
           nextChapter
             ? storyHref({ id: item.storyId, title: item.storyTitle }, nextChapter)
@@ -57,23 +59,25 @@ function UpdateCard({ entry, fresh }: { entry: UpdateEntry; fresh: boolean }) {
             <span>{item.totalChapters} chương</span>
             {progress ? <span>Đã đọc {progress.maxReadChapterNumber}</span> : <span>Chưa bắt đầu</span>}
           </div>
-          <p className="story-description">
+          <p className="story-description update-card-cta">
             {nextChapter ? NOTIFY_COPY.readNext(nextChapter) : "Mở mục lục để bắt đầu đọc truyện này."}
           </p>
         </div>
-        <BookOpenCheck size={18} className="update-card-icon" />
+        <BookOpenCheck size={18} className="update-card-icon" aria-hidden="true" />
       </Link>
-      <button
-        type="button"
-        className="notification-caught-up-btn update-caught-up-btn"
-        title={NOTIFY_COPY.markCaughtUpHint}
-        aria-label={NOTIFY_COPY.markCaughtUp}
-        onClick={dismissCaughtUp}
-      >
-        <Check size={16} aria-hidden="true" />
-        <span>{NOTIFY_COPY.markCaughtUp}</span>
-      </button>
-    </div>
+      <div className="update-card-footer">
+        <button
+          type="button"
+          className="update-caught-up-btn"
+          title={NOTIFY_COPY.markCaughtUpHint}
+          aria-label={NOTIFY_COPY.markCaughtUp}
+          onClick={dismissCaughtUp}
+        >
+          <Check size={14} aria-hidden="true" />
+          <span>{NOTIFY_COPY.markCaughtUp}</span>
+        </button>
+      </div>
+    </article>
   );
 }
 

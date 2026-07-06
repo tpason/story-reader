@@ -1,8 +1,20 @@
+"use client";
+
 import Image from "next/image";
 
-export function StoryCover({ src, title, priority }: { src: string | null; title: string; priority?: boolean }) {
+export function StoryCover({
+  src,
+  title,
+  priority,
+  className
+}: {
+  src: string | null;
+  title: string;
+  priority?: boolean;
+  className?: string;
+}) {
   return (
-    <div className="cover cover-shimmer">
+    <div className={["cover cover-shimmer", className].filter(Boolean).join(" ")}>
       <Image
         src={src || "/default-story-cover.svg"}
         alt={title ? `${title} cover` : "Story cover"}

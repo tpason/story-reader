@@ -60,7 +60,7 @@ function pickColor(i: number): [number, number, number] {
   return COLORS[3];
 }
 
-export function SpiritParticles() {
+export function SpiritParticles({ count = COUNT }: { count?: number }) {
   const pointsRef = useRef<Points>(null);
 
   const { geo, mat, positions, velocities, baseSizes, phases, sizeAttr, discTex } = useMemo(() => {
@@ -73,7 +73,7 @@ export function SpiritParticles() {
     const phases     = new Float32Array(COUNT);
     const velocities = new Float32Array(COUNT * 2);
 
-    for (let i = 0; i < COUNT; i++) {
+    for (let i = 0; i < count; i++) {
       const i3 = i * 3;
       positions[i3]     = (Math.random() - 0.5) * 14;
       positions[i3 + 1] = (Math.random() - 0.5) * 10;
@@ -107,7 +107,7 @@ export function SpiritParticles() {
     });
 
     return { geo, mat, positions, velocities, baseSizes, phases, sizeAttr, discTex };
-  }, []);
+  }, [count]);
 
   useEffect(() => () => {
     geo.dispose();
@@ -120,7 +120,7 @@ export function SpiritParticles() {
     const posAttr = pointsRef.current?.geometry.attributes.position as BufferAttribute | undefined;
     if (!posAttr) return;
 
-    for (let i = 0; i < COUNT; i++) {
+    for (let i = 0; i < count; i++) {
       const i3 = i * 3;
       positions[i3]     += velocities[i * 2]     * delta;
       positions[i3 + 1] += velocities[i * 2 + 1] * delta;

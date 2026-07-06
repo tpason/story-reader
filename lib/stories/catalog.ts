@@ -25,7 +25,7 @@ export async function listStories(options: {
   maxChapters?: number;
   hasPolished?: boolean;
   hasAudio?: boolean;
-  sort?: "updated" | "chapters" | "hot" | "title";
+  sort?: "updated" | "chapters" | "hot" | "title" | "trending" | "reader_rank";
 } = {}): Promise<Paginated<StorySummary>> {
   const { page, pageSize, offset } = pageParams(options.page, options.pageSize);
   const where = ["s.is_active = TRUE"];
@@ -53,7 +53,7 @@ export async function listStories(options: {
   }
 
   if (options.hot) {
-    where.push("s.rank_position IS NOT NULL");
+    where.push("(s.reader_rank IS NOT NULL OR s.rank_position IS NOT NULL)");
   }
 
   if (Number.isFinite(options.minChapters) && Number(options.minChapters) > 0) {
@@ -120,7 +120,10 @@ export async function listStories(options: {
     `
       SELECT
         s.id, COALESCE(NULLIF(s.display_title, ''), s.title) AS title, s.original_title, s.author, s.category, s.status, s.description,
-        s.cover_image_url, s.rank_name, s.rank_position, s.total_chapters, s.is_completed,
+        s.cover_image_url, s.rank_name, s.rank_position,
+        s.reader_rank, s.reader_score, s.reader_count_total, s.reader_count_30d,
+        s.guest_count_total, s.guest_count_30d,
+        s.total_chapters, s.is_completed,
         s.updated_at, src.code AS source_code, cat.name AS primary_category_name, cat.slug AS primary_category_slug
       FROM stories s
       JOIN sources src ON src.id = s.source_id
@@ -172,7 +175,7 @@ export async function listStoriesCursor(options: {
   maxChapters?: number;
   hasPolished?: boolean;
   hasAudio?: boolean;
-  sort?: "updated" | "chapters" | "hot" | "title";
+  sort?: "updated" | "chapters" | "hot" | "title" | "trending" | "reader_rank";
 } = {}): Promise<CursorPage<StorySummary>> {
   const limit = limitParams(options.limit, DEFAULT_PAGE_SIZE);
   const offset = decodeCursor(options.cursor);
@@ -201,7 +204,7 @@ export async function listStoriesCursor(options: {
   }
 
   if (options.hot) {
-    where.push("s.rank_position IS NOT NULL");
+    where.push("(s.reader_rank IS NOT NULL OR s.rank_position IS NOT NULL)");
   }
 
   if (Number.isFinite(options.minChapters) && Number(options.minChapters) > 0) {
@@ -274,7 +277,10 @@ export async function listStoriesCursor(options: {
     `
       SELECT
         s.id, COALESCE(NULLIF(s.display_title, ''), s.title) AS title, s.original_title, s.author, s.category, s.status, s.description,
-        s.cover_image_url, s.rank_name, s.rank_position, s.total_chapters, s.is_completed,
+        s.cover_image_url, s.rank_name, s.rank_position,
+        s.reader_rank, s.reader_score, s.reader_count_total, s.reader_count_30d,
+        s.guest_count_total, s.guest_count_30d,
+        s.total_chapters, s.is_completed,
         s.updated_at, src.code AS source_code, cat.name AS primary_category_name, cat.slug AS primary_category_slug
       FROM stories s
       JOIN sources src ON src.id = s.source_id
@@ -362,7 +368,10 @@ export async function getStory(storyId: string): Promise<StorySummary> {
     `
       SELECT
         s.id, COALESCE(NULLIF(s.display_title, ''), s.title) AS title, s.original_title, s.author, s.category, s.status, s.description,
-        s.cover_image_url, s.rank_name, s.rank_position, s.total_chapters, s.is_completed,
+        s.cover_image_url, s.rank_name, s.rank_position,
+        s.reader_rank, s.reader_score, s.reader_count_total, s.reader_count_30d,
+        s.guest_count_total, s.guest_count_30d,
+        s.total_chapters, s.is_completed,
         s.updated_at, src.code AS source_code, cat.name AS primary_category_name, cat.slug AS primary_category_slug
       FROM stories s
       JOIN sources src ON src.id = s.source_id
@@ -396,7 +405,10 @@ export async function listRecommendedStories(storyId: string, limit = 6): Promis
       )
       SELECT
         s.id, COALESCE(NULLIF(s.display_title, ''), s.title) AS title, s.original_title, s.author, s.category, s.status, s.description,
-        s.cover_image_url, s.rank_name, s.rank_position, s.total_chapters, s.is_completed,
+        s.cover_image_url, s.rank_name, s.rank_position,
+        s.reader_rank, s.reader_score, s.reader_count_total, s.reader_count_30d,
+        s.guest_count_total, s.guest_count_30d,
+        s.total_chapters, s.is_completed,
         s.updated_at, src.code AS source_code, cat.name AS primary_category_name, cat.slug AS primary_category_slug
       FROM stories s
       CROSS JOIN current_story cs

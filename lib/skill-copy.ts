@@ -30,5 +30,5 @@ export function formatSkillCastLabel(input: {
   realm?: string | null;
 }) {
   const who = input.realm ? `${input.username} · ${input.realm}` : input.username;
-  return `「${input.skillName}」 — ${who}`;
+  return `「${input.skillName}」 · ${who}`;
 }

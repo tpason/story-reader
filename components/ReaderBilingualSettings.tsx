@@ -53,7 +53,7 @@ export function ReaderBilingualSettings({ story, availableLayers, onChange }: Re
           <div className="reader-bilingual-settings-body">
             <button type="button" className="reader-bilingual-preset-chip" onClick={() => update(learnEnglishPreset())}>
               <Sparkles size={14} aria-hidden />
-              Kiếm Anh — EN gốc + VI polish
+              Kiếm Anh · EN gốc + VI polish
             </button>
 
             <label className="reader-bilingual-field">
@@ -109,7 +109,7 @@ export function ReaderBilingualSettings({ story, availableLayers, onChange }: Re
                 checked={prefs.scrollHighlight}
                 onChange={(event) => update({ scrollHighlight: event.target.checked })}
               />
-              <span>Linh quang khi cuộn — sáng đoạn đang đọc</span>
+              <span>Linh quang khi cuộn, sáng đoạn đang đọc</span>
             </label>
           </div>
         ) : null}

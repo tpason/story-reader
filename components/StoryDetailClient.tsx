@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { MotionFX } from "@/components/MotionFX";
+const MotionFX = dynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX), { ssr: false });
 import { SiteHeader } from "@/components/SiteHeader";
 import { StoryDetailBreadcrumb } from "@/components/StoryDetailBreadcrumb";
 import { StoryCover } from "@/components/StoryCover";
@@ -140,7 +140,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
           <div className="story-detail-fresh-banner" role="status" aria-live="polite">
             <Sparkles size={15} aria-hidden="true" />
             <span>
-              Linh khí dịch chuyển — chương <strong>{freshChapterNumber}</strong> vừa ấn định
+              Linh khí dịch chuyển. Chương <strong>{freshChapterNumber}</strong> vừa ấn định
             </span>
             <Link className="chip chip-active" href={storyHref(currentStory, freshChapterNumber)}>
               Đọc ngay

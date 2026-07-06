@@ -314,11 +314,20 @@ export const {
 } = bookmarksSlice.actions;
 export const { recordDailyRead } = readingStreakSlice.actions;
 
-export type GlobalTheme = "auto" | "dark" | "light";
+export type GlobalTheme = "light" | "dark";
+
+/** Coerce persisted/legacy values (e.g. old `auto`) to a concrete theme. */
+export function normalizeGlobalTheme(value: unknown): GlobalTheme {
+  if (value === "dark" || value === "light") return value;
+  if (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    return "dark";
+  }
+  return "light";
+}
 
 const globalThemeSlice = createSlice({
   name: "globalTheme",
-  initialState: "auto" as GlobalTheme,
+  initialState: "light" as GlobalTheme,
   reducers: {
     setGlobalTheme(_, action: PayloadAction<GlobalTheme>) {
       return action.payload;

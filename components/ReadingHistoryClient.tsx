@@ -1,14 +1,13 @@
 "use client";
 
 import { BookMarked, BookOpen, ChevronRight, Clock, Flame, LoaderCircle, ScrollText, Trophy } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { StoryCover } from "@/components/StoryCover";
 import { fetchBookmarks, fetchReadingProgress } from "@/lib/api-client";
 import { storyHref } from "@/lib/urls";
-import { CultivationPanel } from "@/components/CultivationPanel";
-import { MotionFX } from "@/components/MotionFX";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
@@ -16,6 +15,9 @@ import { mergeBookmarkItems, mergeHistoryItems } from "@/lib/store";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 
 import type { ReadingHistoryItem } from "@/lib/reading-history";
+
+const MotionFX = dynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX), { ssr: false });
+const CultivationPanel = dynamic(() => import("@/components/CultivationPanel").then((mod) => mod.CultivationPanel));
 
 function ReadingStats({ items }: { items: ReadingHistoryItem[] }) {
   const reduxStreak = useAppSelector((s) => s.readingStreak);
@@ -150,7 +152,7 @@ export function ReadingHistoryClient() {
         {!loading && items.length === 0 ? (
           <XianxiaEmptyState
             title="Tán tu chưa hấp thu chương nào trên trình duyệt này."
-            hint="Mở một linh quyển và đọc vài chương — hành trình sẽ hiện ở đây."
+            hint="Mở một linh quyển và đọc vài chương. Hành trình sẽ hiện ở đây."
           />
         ) : null}
 

@@ -35,14 +35,25 @@ export async function GET() {
       ),
       ranked AS (
         SELECT
-          s.id, s.title, s.display_title, s.author, s.cover_image_url, s.total_chapters,
+          s.id,
+          s.title,
+          s.display_title,
+          s.author,
+          s.cover_image_url,
+          s.total_chapters,
           pc.name AS primary_category_name,
-          COALESCE(SUM(uc.weight), 0) + LEAST(s.total_chapters, 800) / 200.0 AS score
+          (
+            COALESCE(SUM(uc.weight), 0) * 3.0
+            + COALESCE(s.reader_score, 0) * 0.4
+            + LEAST(s.total_chapters, 800) / 200.0
+            + CASE WHEN s.reader_rank IS NOT NULL AND s.reader_rank <= 50 THEN (51 - s.reader_rank) * 0.5 ELSE 0 END
+          ) AS score
         FROM stories s
         LEFT JOIN story_categories sc ON sc.story_id = s.id
         LEFT JOIN user_categories uc ON uc.category_id = sc.category_id
         LEFT JOIN categories pc ON pc.id = s.primary_category_id
         WHERE NOT EXISTS (SELECT 1 FROM read_stories rs WHERE rs.story_id = s.id)
+          AND s.is_active = TRUE
           AND s.total_chapters > 0
         GROUP BY s.id, pc.name
       )

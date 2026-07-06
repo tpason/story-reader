@@ -15,11 +15,11 @@ export function RecommendationsSkeleton() {
           <div className="xi-skel" style={{ height: 20, width: 160 }} />
         </div>
       </div>
-      <div className="recommendation-row">
+      <div className="story-rec-row">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="recommendation-card xi-skel-card">
+          <div key={i} className="story-rec-card xi-skel-card">
             <div className="xi-skel xi-skel-cover" />
-            <div style={{ padding: "8px 4px", display: "flex", flexDirection: "column", gap: 6 }}>
+            <div className="story-rec-body">
               <div className="xi-skel xi-skel-line" />
               <div className="xi-skel xi-skel-line xi-skel-line-mid" />
             </div>
@@ -60,11 +60,11 @@ export function SameAuthorSkeleton() {
           <div className="xi-skel" style={{ height: 20, width: 200 }} />
         </div>
       </div>
-      <div className="recommendation-row">
+      <div className="story-rec-row">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="recommendation-card xi-skel-card">
+          <div key={i} className="story-rec-card xi-skel-card">
             <div className="xi-skel xi-skel-cover" />
-            <div style={{ padding: "8px 4px", display: "flex", flexDirection: "column", gap: 6 }}>
+            <div className="story-rec-body">
               <div className="xi-skel xi-skel-line" />
               <div className="xi-skel xi-skel-line xi-skel-line-mid" />
             </div>
@@ -112,13 +112,13 @@ export async function SameAuthorStoriesSection({
 
 function StoryRecommendationRow({ items }: { items: StorySummary[] }) {
   return (
-    <div className="recommendation-row">
+    <div className="story-rec-row">
       {items.map((item) => (
-        <Link className="recommendation-card" href={storyHref(item)} key={item.id}>
+        <Link className="story-rec-card" href={storyHref(item)} key={item.id}>
           <StoryCover src={item.coverImageUrl} title={item.title} />
-          <div>
+          <div className="story-rec-body">
             <h3>{item.title}</h3>
-            <div className="discovery-meta">
+            <div className="discovery-meta story-rec-meta">
               {item.author ? <span>{item.author}</span> : null}
               <span>{item.totalChapters} chương</span>
               {item.primaryCategoryName ? <span>{item.primaryCategoryName}</span> : null}

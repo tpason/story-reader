@@ -1,12 +1,14 @@
-import { BookOpenCheck, Clock3, Sparkles, WandSparkles } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import { MotionFX } from "@/components/MotionFX";
+import nextDynamic from "next/dynamic";
+import { BookOpenCheck, Clock3, Sparkles, WandSparkles } from "lucide-react";
 import { DiscoverListClient } from "@/components/DiscoverListClient";
 import { SiteHeader } from "@/components/SiteHeader";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { listRecentlyPolishedStoriesPage, listRecentlyUpdatedStoriesPage } from "@/lib/stories";
+
+const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX));
 
 export const revalidate = 120;
 
@@ -110,7 +112,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
             <DiscoverListClient items={page.items} kind={kind} />
           ) : (
             <XianxiaEmptyState
-              title="Thiên hạ yên tĩnh — chưa có linh quyển phù hợp bộ lọc."
+              title="Thiên hạ yên tĩnh. Chưa có linh quyển phù hợp bộ lọc."
               hint="Thử bỏ lọc Hôm nay hoặc đổi tab Vừa polish / Vừa cập nhật."
             />
           )}

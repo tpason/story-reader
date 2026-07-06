@@ -27,17 +27,22 @@ export default function UpdatesLoading() {
 
         <section className="updates-list" aria-hidden="true">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="update-card xi-skel-card" style={{ display: "flex", gap: 14, padding: "14px 0", borderBottom: "0.5px solid var(--hairline)" }}>
-              <div className="xi-skel" style={{ width: 56, minWidth: 56, aspectRatio: "2/3", borderRadius: 8 }} />
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 2 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                  <div className="xi-skel" style={{ height: 16, width: "65%" }} />
-                  <div className="xi-skel" style={{ width: 52, height: 22, borderRadius: 20, flexShrink: 0 }} />
+            <article key={i} className="update-card xi-skel-card" style={{ padding: 0, overflow: "hidden" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "64px 1fr", gap: 12, padding: "12px 14px 8px" }}>
+                <div className="xi-skel" style={{ width: 64, height: 96, borderRadius: 8 }} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <div className="xi-skel" style={{ height: 16, width: "70%" }} />
+                    <div className="xi-skel" style={{ width: 56, height: 22, borderRadius: 20, flexShrink: 0 }} />
+                  </div>
+                  <div className="xi-skel xi-skel-line xi-skel-line-mid" />
+                  <div className="xi-skel xi-skel-line xi-skel-line-short" />
                 </div>
-                <div className="xi-skel xi-skel-line xi-skel-line-mid" />
-                <div className="xi-skel xi-skel-line xi-skel-line-short" />
               </div>
-            </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", padding: "7px 12px 9px", borderTop: "1px solid var(--hairline)" }}>
+                <div className="xi-skel" style={{ width: 108, height: 28, borderRadius: 999 }} />
+              </div>
+            </article>
           ))}
         </section>
       </div>

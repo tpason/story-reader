@@ -1,6 +1,5 @@
 "use client";
 
-import { animate, stagger } from "animejs";
 import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
 import { prefersReducedMotion } from "@/lib/browser";
@@ -14,6 +13,15 @@ type MotionFXProps = {
   variant: "library" | "reader" | "error";
 };
 
+function scheduleIdle(task: () => void): () => void {
+  if (typeof window.requestIdleCallback === "function") {
+    const id = window.requestIdleCallback(task, { timeout: 1400 });
+    return () => window.cancelIdleCallback(id);
+  }
+  const id = window.setTimeout(task, 600);
+  return () => window.clearTimeout(id);
+}
+
 export function MotionFX({ variant }: MotionFXProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const reduceMotion = prefersReducedMotion();
@@ -22,86 +30,96 @@ export function MotionFX({ variant }: MotionFXProps) {
   useEffect(() => {
     if (reduceMotion) return;
 
+    let cancelled = false;
     const animations: Array<{ revert: () => void }> = [];
 
-    if (decorativeWebglEnabled) {
-      animations.push(
-        animate(".motion-line", {
-          x: ["-18vw", "118vw"],
-          opacity: [0, 0.55, 0],
-          duration: 4800,
-          delay: stagger(820),
-          loop: true,
-          ease: "inOutSine"
-        })
-      );
-    }
+    const cancelIdle = scheduleIdle(() => {
+      void (async () => {
+        const { animate, stagger } = await import("animejs");
+        if (cancelled) return;
 
-    if (variant === "library") {
-      animations.push(
-        animate(".library-header > *, .category-row, .discover-tabs", {
-          y: [18, 0],
-          opacity: [0, 1],
-          duration: 700,
-          delay: stagger(90),
-          ease: "outExpo"
-        }),
-        animate(".cultivation-panel, .continue-card, .discovery-panel, .story-card, .discover-list-card", {
-          y: [26, 0],
-          opacity: [0, 1],
-          duration: 760,
-          delay: stagger(36),
-          ease: "outExpo"
-        }),
-        animate(".chip, .discovery-more", {
-          scale: [0.96, 1],
-          opacity: [0, 1],
-          duration: 560,
-          delay: stagger(24),
-          ease: "outExpo"
-        })
-      );
-    }
+        if (decorativeWebglEnabled) {
+          animations.push(
+            animate(".motion-line", {
+              x: ["-18vw", "118vw"],
+              opacity: [0, 0.55, 0],
+              duration: 4800,
+              delay: stagger(820),
+              loop: true,
+              ease: "inOutSine"
+            })
+          );
+        }
 
-    if (variant === "reader") {
-      animations.push(
-        animate(".reader-heading, .audio-panel, .chapter-nav", {
-          y: [20, 0],
-          opacity: [0, 1],
-          duration: 780,
-          delay: stagger(100),
-          ease: "outExpo"
-        }),
-        animate(".reader-content p:nth-child(-n+12)", {
-          y: [12, 0],
-          opacity: [0, 1],
-          duration: 660,
-          delay: stagger(28),
-          ease: "outExpo"
-        }),
-        animate(".chapter-sidebar .sidebar-link", {
-          x: [-10, 0],
-          opacity: [0, 1],
-          duration: 540,
-          delay: stagger(20),
-          ease: "outExpo"
-        })
-      );
-    }
+        if (variant === "library") {
+          animations.push(
+            animate(".library-header > *, .category-row, .discover-tabs", {
+              y: [18, 0],
+              opacity: [0, 1],
+              duration: 700,
+              delay: stagger(90),
+              ease: "outExpo"
+            }),
+            animate(".cultivation-panel, .continue-card, .discovery-panel, .story-card, .discover-list-card", {
+              y: [26, 0],
+              opacity: [0, 1],
+              duration: 760,
+              delay: stagger(36),
+              ease: "outExpo"
+            }),
+            animate(".chip, .discovery-more", {
+              scale: [0.96, 1],
+              opacity: [0, 1],
+              duration: 560,
+              delay: stagger(24),
+              ease: "outExpo"
+            })
+          );
+        }
 
-    if (variant === "error") {
-      animations.push(
-        animate(".error-panel", {
-          scale: [0.96, 1],
-          y: [22, 0],
-          opacity: [0, 1],
-          duration: 740,
-          ease: "outExpo"
-        })
-      );
-    }
+        if (variant === "reader") {
+          animations.push(
+            animate(".reader-heading, .audio-panel, .chapter-nav", {
+              y: [20, 0],
+              opacity: [0, 1],
+              duration: 780,
+              delay: stagger(100),
+              ease: "outExpo"
+            }),
+            animate(".reader-content p:nth-child(-n+12)", {
+              y: [12, 0],
+              opacity: [0, 1],
+              duration: 660,
+              delay: stagger(28),
+              ease: "outExpo"
+            }),
+            animate(".chapter-sidebar .sidebar-link", {
+              x: [-10, 0],
+              opacity: [0, 1],
+              duration: 540,
+              delay: stagger(20),
+              ease: "outExpo"
+            })
+          );
+        }
+
+        if (variant === "error") {
+          animations.push(
+            animate(".error-panel", {
+              scale: [0.96, 1],
+              y: [22, 0],
+              opacity: [0, 1],
+              duration: 740,
+              ease: "outExpo"
+            })
+          );
+        }
+      })();
+    });
 
     return () => {
+      cancelled = true;
+      cancelIdle();
       animations.forEach((animation) => animation.revert());
     };
   }, [decorativeWebglEnabled, reduceMotion, variant]);

@@ -21,7 +21,7 @@ const VARIANT_CONFIG = {
     count: 16,
     gold: "#f0d06a",
     jade: "#26a882",
-    opacity: 0.13,
+    opacity: 0.17,
     cameraZ: 7.2
   },
   reader: {

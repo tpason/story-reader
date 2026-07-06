@@ -23,6 +23,12 @@ export type StoryRow = {
   cover_image_url: string | null;
   rank_name: string | null;
   rank_position: number | null;
+  reader_rank?: number | null;
+  reader_score?: string | null;
+  reader_count_total?: number | null;
+  reader_count_30d?: number | null;
+  guest_count_total?: number | null;
+  guest_count_30d?: number | null;
   total_chapters: number;
   is_completed: boolean;
   source_code: string;
@@ -159,6 +165,12 @@ export function mapStory(row: StoryRow): StorySummary {
     coverImageUrl: row.cover_image_url,
     rankName: row.rank_name,
     rankPosition: row.rank_position,
+    readerRank: row.reader_rank ?? null,
+    readerScore: row.reader_score != null ? Number(row.reader_score) : null,
+    readerCountTotal: row.reader_count_total ?? 0,
+    readerCount30d: row.reader_count_30d ?? 0,
+    guestCountTotal: row.guest_count_total ?? 0,
+    guestCount30d: row.guest_count_30d ?? 0,
     totalChapters: row.total_chapters,
     isCompleted: row.is_completed,
     sourceCode: row.source_code,
@@ -195,12 +207,16 @@ export function mapChapter(row: ChapterRow): ChapterSummary {
   };
 }
 
-export function storyOrderSql(sort?: "updated" | "chapters" | "hot" | "title") {
+export function storyOrderSql(sort?: "updated" | "chapters" | "hot" | "title" | "trending" | "reader_rank") {
   switch (sort) {
     case "chapters":
       return "s.total_chapters DESC, s.updated_at DESC, s.id ASC";
     case "hot":
-      return "s.rank_position NULLS LAST, s.total_chapters DESC, s.updated_at DESC, s.id ASC";
+      return "s.reader_rank ASC NULLS LAST, s.reader_score DESC NULLS LAST, s.rank_position ASC NULLS LAST, s.total_chapters DESC, s.updated_at DESC, s.id ASC";
+    case "trending":
+      return "s.reader_score DESC NULLS LAST, s.reader_count_30d DESC, s.updated_at DESC, s.id ASC";
+    case "reader_rank":
+      return "s.reader_rank ASC NULLS LAST, s.reader_score DESC NULLS LAST, s.id ASC";
     case "title":
       return "COALESCE(NULLIF(s.display_title, ''), s.title) ASC, s.id ASC";
     case "updated":

@@ -23,7 +23,7 @@ export function DiscoverListClient({ items, kind }: DiscoverListClientProps) {
   if (items.length === 0) {
     return (
       <XianxiaEmptyState
-        title="Thiên hạ yên tĩnh — chưa có linh quyển phù hợp bộ lọc."
+        title="Thiên hạ yên tĩnh. Chưa có linh quyển phù hợp bộ lọc."
         hint="Thử đổi tab hoặc bỏ lọc Hôm nay."
       />
     );

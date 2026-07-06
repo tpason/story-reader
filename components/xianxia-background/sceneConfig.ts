@@ -46,7 +46,7 @@ export const scenePresets: Record<TimeOfDay, ScenePreset> = {
       mieDirectionalG: 0.85,
     },
     godRays: true,
-    bgOpacity: 0.45,
+    bgOpacity: 0.52,
   },
   day: {
     background: backgrounds.day,
@@ -63,7 +63,7 @@ export const scenePresets: Record<TimeOfDay, ScenePreset> = {
       mieDirectionalG: 0.75,
     },
     godRays: false,
-    bgOpacity: 0.32,
+    bgOpacity: 0.42,
   },
   dusk: {
     background: backgrounds.dusk,
@@ -80,7 +80,7 @@ export const scenePresets: Record<TimeOfDay, ScenePreset> = {
       mieDirectionalG: 0.88,
     },
     godRays: true,
-    bgOpacity: 0.45,
+    bgOpacity: 0.52,
   },
   night: {
     background: backgrounds.night,

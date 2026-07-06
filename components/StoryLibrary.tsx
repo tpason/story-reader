@@ -1,6 +1,7 @@
 "use client";
 
 import { BookOpenCheck, ChevronRight, Sparkles } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { memo, useMemo, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -8,7 +9,6 @@ import type { CursorPage, StorySummary } from "@/lib/types";
 import { StoryCover } from "@/components/StoryCover";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { storyHref } from "@/lib/urls";
-import { CultivationPanel } from "@/components/CultivationPanel";
 import { storyDisplayDescription, storyCategoryLabel } from "@/lib/story-description";
 import { useAppSelector } from "@/lib/store-hooks";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
@@ -16,6 +16,8 @@ import { useStoryLibraryAdminEdit, type AdminStoryListEditField, type AdminStory
 import { useStoryLibraryFeed } from "@/hooks/useStoryLibraryFeed";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import { useCardTiltHandlers } from "@/hooks/useCardTiltHandlers";
+
+const CultivationPanel = dynamic(() => import("@/components/CultivationPanel").then((mod) => mod.CultivationPanel));
 
 export type StoryLibraryMode = "default" | "search" | "browse";
 

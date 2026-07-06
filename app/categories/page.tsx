@@ -1,9 +1,11 @@
-import { Layers3 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MotionFX } from "@/components/MotionFX";
+import nextDynamic from "next/dynamic";
+import { Layers3 } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getCachedCategories } from "@/lib/stories";
+
+const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX));
 
 export const revalidate = 600;
 

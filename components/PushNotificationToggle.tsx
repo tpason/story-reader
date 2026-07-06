@@ -91,7 +91,7 @@ export function PushNotificationToggle() {
           {NOTIFY_COPY.pushTitle}
         </h2>
         <p>
-          Nhận linh tin khi truyện đạo hữu <strong>đang tu hoặc theo dõi</strong> có chương mới — kể cả khi không mở Linh
+          Nhận linh tin khi truyện đạo hữu <strong>đang tu hoặc theo dõi</strong> có chương mới, kể cả khi không mở Linh
           Quyển Các. Chỉ gửi khi đạo hữu chưa đọc tới chương đó.
         </p>
         {showDiagnostics ? (
@@ -113,7 +113,7 @@ export function PushNotificationToggle() {
           disabled={loading}
         >
           {loading ? <LoaderCircle size={14} className="spin" /> : subscribed ? <BellOff size={14} /> : <Bell size={14} />}
-          {loading ? "Đang xử lý…" : subscribed ? "Đang bật — nhấn để tắt" : NOTIFY_COPY.pushCta}
+          {loading ? "Đang xử lý…" : subscribed ? "Đang bật. Nhấn để tắt" : NOTIFY_COPY.pushCta}
         </button>
       ) : (
         <p className="push-diagnostic-foot">Sửa các mục trên rồi tải lại trang để bật linh tin.</p>

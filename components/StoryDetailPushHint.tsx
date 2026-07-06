@@ -79,7 +79,7 @@ export function StoryDetailPushHint({ storyId, boosted = false }: StoryDetailPus
       <Sparkles size={16} aria-hidden="true" />
       <div className="story-detail-push-hint-copy">
         <strong>{NOTIFY_COPY.pushTitle}</strong>
-        <span>Nhận linh tin khi truyện này có chương mới — kể cả khi đóng tab.</span>
+        <span>Nhận linh tin khi truyện này có chương mới, kể cả khi đóng tab.</span>
         <button type="button" className="story-detail-push-hint-cta" onClick={enable} disabled={loading}>
           {loading ? <LoaderCircle size={14} className="spin" /> : <Feather size={14} />}
           {loading ? "Đang bật…" : NOTIFY_COPY.pushCta}

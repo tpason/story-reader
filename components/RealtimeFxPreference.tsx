@@ -6,7 +6,7 @@ import type { ReaderRealtimeFxMode } from "@/lib/reader-realtime-fx";
 
 const FX_OPTIONS: { mode: ReaderRealtimeFxMode; label: string; hint: string }[] = [
   { mode: "full", label: "Đầy đủ", hint: "Shimmer, toast và linh quang đầy đủ." },
-  { mode: "subtle", label: "Nhẹ", hint: "Chỉ viền nhẹ — ít chuyển động hơn." },
+  { mode: "subtle", label: "Nhẹ", hint: "Chỉ viền nhẹ, ít chuyển động hơn." },
   { mode: "off", label: "Tắt", hint: "Không shimmer; toast chỉ chữ." }
 ];
 
@@ -26,7 +26,7 @@ export function RealtimeFxPreference({ compact = false }: RealtimeFxPreferencePr
         </p>
         <h2>Hiệu ứng realtime</h2>
         {!compact ? (
-          <p>Điều chỉnh shimmer và toast khi có chương mới — không ảnh hưởng thông linh WebSocket.</p>
+          <p>Điều chỉnh shimmer và toast khi có chương mới. Không ảnh hưởng thông linh WebSocket.</p>
         ) : null}
       </div>
       <div className="segmented realtime-fx-segmented" role="radiogroup" aria-label="Chế độ hiệu ứng linh tin">

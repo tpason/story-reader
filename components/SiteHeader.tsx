@@ -30,6 +30,11 @@ const NAV_ITEMS: NavItem[] = [
     match: (pathname) => pathname.startsWith("/discover")
   },
   {
+    href: "/rankings",
+    label: "Thiên bảng",
+    match: (pathname) => pathname.startsWith("/rankings")
+  },
+  {
     href: "/updates",
     label: "Chương mới",
     match: (pathname) => pathname.startsWith("/updates")
@@ -141,8 +146,10 @@ export function SiteHeader({ className, showSearch = true }: SiteHeaderProps) {
         </nav>
 
         <div className="topbar-modern-actions">
-          <ThemeToggle />
-          <NotificationBell />
+          <div className="topbar-modern-utils">
+            <ThemeToggle />
+            <NotificationBell />
+          </div>
           <UserIdentity compact className="topbar-identity" />
         </div>
       </div>

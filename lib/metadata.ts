@@ -48,7 +48,7 @@ export function buildChapterMetadata(
 ): Metadata {
   const chapterLabel = `Chương ${chapter.chapterNumber}${chapter.title ? `: ${chapter.title}` : ""}`;
   const description = truncateMetaDescription(
-    `${chapterLabel} — ${story.title}${story.author ? ` · ${story.author}` : ""}. Đọc trên ${SITE_NAME}.`,
+    `${chapterLabel} · ${story.title}${story.author ? ` · ${story.author}` : ""}. Đọc trên ${SITE_NAME}.`,
   );
   const path = storyHref(story, chapter.chapterNumber);
   const title = `${chapterLabel} | ${story.title}`;
@@ -90,7 +90,7 @@ export function buildCategoryMetadata(name: string, storyCount: number, slug: st
       type: "website",
       locale: "vi_VN",
       siteName: SITE_NAME,
-      title: `${name} — thể loại truyện`,
+      title: `${name} · thể loại truyện`,
       description,
       url: absoluteSiteUrl(path),
     },

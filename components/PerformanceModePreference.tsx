@@ -12,7 +12,7 @@ import {
 const MODES: ReaderPerformanceMode[] = ["balanced", "battery_saver", "full_effects"];
 
 const MODE_HINTS: Record<ReaderPerformanceMode, string> = {
-  balanced: "Tự đo FPS WebGL khi mở tab — yếu thì giữ nền CSS tiên hiệp, mạnh mới phủ WebGL.",
+  balanced: "Tự đo FPS WebGL khi mở tab. Yếu thì giữ nền CSS tiên hiệp, mạnh mới phủ WebGL.",
   battery_saver: "Luôn dùng nền CSS nhẹ; tắt WebGL và giảm animation.",
   full_effects: "Bỏ qua đo FPS; bật toàn bộ linh quang WebGL (có thể nặng)."
 };
