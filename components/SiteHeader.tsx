@@ -35,6 +35,11 @@ const NAV_ITEMS: NavItem[] = [
     match: (pathname) => pathname.startsWith("/rankings")
   },
   {
+    href: "/following",
+    label: "Tủ truyện",
+    match: (pathname) => pathname.startsWith("/following")
+  },
+  {
     href: "/updates",
     label: "Chương mới",
     match: (pathname) => pathname.startsWith("/updates")

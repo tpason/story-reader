@@ -159,10 +159,15 @@ export function UpdatesClient() {
 
       <div className="page-wrap">
         <XiPageHeroStrip className="updates-header" eyebrow={<><Sparkles size={13} aria-hidden="true" />{NOTIFY_COPY.eyebrow}</>} title={NOTIFY_COPY.pageTitle} subtitle={NOTIFY_COPY.pageSubtitle}>
-          <div className="updates-summary">
-            <Bell size={18} />
-            <strong>{updates.length}</strong>
-            <span>truyện có linh tin</span>
+          <div className="updates-hero-actions">
+            <div className="updates-summary">
+              <Bell size={18} />
+              <strong>{updates.length}</strong>
+              <span>truyện có linh tin</span>
+            </div>
+            <Link className="chip chip-inverted" href="/following">
+              Tủ truyện đầy đủ
+            </Link>
           </div>
         </XiPageHeroStrip>
 

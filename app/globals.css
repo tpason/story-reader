@@ -17607,3 +17607,27 @@ html[data-reader-realtime-fx="off"] .notification-bell-live .notification-dot {
   }
 }
 
+/* P2 — deferred WebGL + updates/following nav */
+.updates-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.updates-hero-actions .chip {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 900px) {
+  .topbar-modern-nav-track {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .topbar-modern-nav-track::-webkit-scrollbar {
+    display: none;
+  }
+}
+

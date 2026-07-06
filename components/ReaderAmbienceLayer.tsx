@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
 import { ReaderAmbienceCss } from "@/components/ReaderAmbienceCss";
+import { useDeferredWebglMount } from "@/hooks/useDeferredWebglMount";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 
 const ThreeReaderAmbience = dynamic(
@@ -24,33 +24,7 @@ export function ReaderAmbienceLayer({ enabled = true }: ReaderAmbienceLayerProps
     tier: "reader",
     compactMaxWidth: 839,
   });
-  const [webglReady, setWebglReady] = useState(false);
-
-  useEffect(() => {
-    if (!webglEnabled) {
-      setWebglReady(false);
-      return;
-    }
-
-    let cancelled = false;
-    const mount = () => {
-      if (!cancelled) setWebglReady(true);
-    };
-
-    if (typeof window.requestIdleCallback === "function") {
-      const id = window.requestIdleCallback(mount, { timeout: 2000 });
-      return () => {
-        cancelled = true;
-        window.cancelIdleCallback(id);
-      };
-    }
-
-    const timer = window.setTimeout(mount, 500);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [webglEnabled]);
+  const webglReady = useDeferredWebglMount(webglEnabled, 2000);
 
   if (!enabled) return null;
 

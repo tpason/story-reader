@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { usePathname, useSearchParams } from "next/navigation";
 import { prefersReducedMotion } from "@/lib/browser";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
+import { useDeferredWebglMount } from "@/hooks/useDeferredWebglMount";
 import type { AppAuraVariant } from "@/components/ThreeAppAura";
 
 const ThreeAppAura = dynamic(() => import("@/components/ThreeAppAura").then((mod) => mod.ThreeAppAura), { ssr: false });
@@ -39,7 +40,9 @@ export function AppAuraLayer() {
     compactMaxWidth: 839,
   });
   const reduceMotion = prefersReducedMotion();
-  const showWebgl = webglEnabled && !reduceMotion && !isReaderChapter;
+  const canUseWebgl = webglEnabled && !reduceMotion && !isReaderChapter;
+  const webglReady = useDeferredWebglMount(canUseWebgl, 2400);
+  const showWebgl = canUseWebgl && webglReady;
 
   return (
     <div

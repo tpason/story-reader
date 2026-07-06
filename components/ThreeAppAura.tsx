@@ -4,7 +4,7 @@
  * App-wide mist / cloud / qi aura (all story_reader pages).
  * Reference: ~/Desktop/three.js/examples/ — see skill threejs-local-examples.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AdditiveBlending,
   BufferAttribute,
@@ -75,9 +75,6 @@ const VARIANT_CONFIG = {
     mistCount: 4
   }
 } satisfies Record<AppAuraVariant, AuraConfig>;
-
-/** @deprecated Use AppAuraVariant */
-export type RankingsAuraVariant = Exclude<AppAuraVariant, "global">;
 
 function seeded(seed: number) {
   const x = Math.sin(seed * 91.17) * 43758.5453;
@@ -152,10 +149,38 @@ type GlowSprite = {
 
 export function ThreeAppAura({ variant }: { variant: AppAuraVariant }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
+  const [active, setActive] = useState(true);
+  const intersectingRef = useRef(true);
+
+  const syncActive = () => {
+    setActive(intersectingRef.current && !document.hidden);
+  };
 
   useEffect(() => {
     const host = hostRef.current;
-    if (!host) return;
+    if (!host || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        intersectingRef.current = Boolean(entry?.isIntersecting);
+        syncActive();
+      },
+      { threshold: 0.02 },
+    );
+    observer.observe(host);
+
+    const onVisibility = () => syncActive();
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host || !active) return;
     const el = host;
     const config = VARIANT_CONFIG[variant];
 
@@ -320,10 +345,7 @@ export function ThreeAppAura({ variant }: { variant: AppAuraVariant }) {
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [variant]);
+  }, [variant, active]);
 
   return <div className="app-aura-webgl-scene" ref={hostRef} />;
 }
-
-/** @deprecated Use ThreeAppAura */
-export const ThreeRankingsAura = ThreeAppAura;
