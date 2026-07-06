@@ -52,9 +52,9 @@ export function FollowedStoriesPanel() {
         <div>
           <h2>Tủ truyện của đạo hữu</h2>
         </div>
-        <Link className="discovery-more" href="/updates">
+        <Link className="discovery-more" href={follows.length > 8 ? "/following" : "/updates"}>
           <Sparkles size={15} />
-          {totalUnread > 0 ? `Mới +${totalUnread}` : "Cập nhật"}
+          {follows.length > 8 ? "Xem tất cả" : totalUnread > 0 ? `Mới +${totalUnread}` : "Cập nhật"}
         </Link>
       </div>
 
@@ -83,6 +83,13 @@ export function FollowedStoriesPanel() {
           );
         })}
       </div>
+      {follows.length > 8 ? (
+        <p className="followed-shelf-more">
+          <Link className="chip" href="/following">
+            Xem cả {follows.length} quyển đang theo dõi
+          </Link>
+        </p>
+      ) : null}
     </section>
   );
 }

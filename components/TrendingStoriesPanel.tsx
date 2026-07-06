@@ -1,6 +1,8 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { ScrollText, Sparkles, Trophy } from "lucide-react";
+import { TrendingPeriodChips } from "@/components/TrendingPeriodChips";
+import { TRENDING_PERIOD_BANG_LABELS } from "@/lib/trending-period";
 import type { StoryTrendingItem, TrendingPeriod } from "@/lib/types";
 import { StoryCover } from "@/components/StoryCover";
 import { RankCalligraphySeal } from "@/components/RankCalligraphySeal";
@@ -9,24 +11,21 @@ import { storyHref } from "@/lib/urls";
 type TrendingStoriesPanelProps = {
   items: StoryTrendingItem[];
   period?: TrendingPeriod;
-};
-
-const PERIOD_LABEL: Record<TrendingPeriod, string> = {
-  day: "nhật bang",
-  week: "tuần bang",
-  month: "nguyệt bang",
-  year: "niên bang"
+  hrefForPeriod?: (period: TrendingPeriod) => Route;
 };
 
 const RANK_TIER = ["gold", "silver", "bronze"] as const;
 
-export function TrendingStoriesPanel({ items, period = "week" }: TrendingStoriesPanelProps) {
+export function TrendingStoriesPanel({ items, period = "week", hrefForPeriod }: TrendingStoriesPanelProps) {
+  const periodLabel = TRENDING_PERIOD_BANG_LABELS[period];
+
   if (!items.length) {
     return (
       <section className="trending-section trending-section-empty" aria-label="Truyện thịnh hành">
+        {hrefForPeriod ? <TrendingPeriodChips period={period} hrefForPeriod={hrefForPeriod} /> : null}
         <div className="section-heading-row">
           <div>
-            <h2>Phong vân {PERIOD_LABEL[period]} · chưa có linh quyển lên bảng</h2>
+            <h2>Phong vân {periodLabel} · chưa có linh quyển lên bảng</h2>
             <p className="trending-empty-copy">Tu đọc vài chương hoặc xem thiên bảng tích lũy để khám phá top truyện.</p>
           </div>
         </div>
@@ -47,13 +46,15 @@ export function TrendingStoriesPanel({ items, period = "week" }: TrendingStories
     <section className="trending-section" aria-label="Truyện thịnh hành">
       <div className="section-heading-row">
         <div>
-          <h2>Phong vân {PERIOD_LABEL[period]} · đạo hữu tu đọc nhiều nhất</h2>
+          <h2>Phong vân {periodLabel} · đạo hữu tu đọc nhiều nhất</h2>
         </div>
         <Link className="chip chip-inverted rankings-home-cta" href={"/rankings?tab=trending&period=" + period as Route}>
           <Trophy size={14} aria-hidden />
           Xem thiên bảng
         </Link>
       </div>
+
+      {hrefForPeriod ? <TrendingPeriodChips period={period} hrefForPeriod={hrefForPeriod} /> : null}
 
       <div className="trending-scroll-shell">
         <div className="trending-row">

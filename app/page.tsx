@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import { CheckCircle2, Flame, Headphones, Layers3, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -11,6 +12,8 @@ import { StoryDiscoveryRail } from "@/components/StoryDiscoveryRail";
 import { DiscoveryRailSkeleton } from "@/components/DiscoveryRailSkeleton";
 import { TrendingStoriesPanel } from "@/components/TrendingStoriesPanel";
 import { XianxiaPoetryColumn } from "@/components/XianxiaPoetryColumn";
+import { parseTrendingPeriod } from "@/lib/trending-period";
+import type { TrendingPeriod } from "@/lib/types";
 
 const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX));
 const FollowedStoriesPanel = nextDynamic(
@@ -36,6 +39,7 @@ type HomeProps = {
     hasPolished?: string;
     hasAudio?: string;
     sort?: string;
+    trendPeriod?: string;
   }>;
 };
 
@@ -47,9 +51,25 @@ function buildQuery(params: Record<string, string | undefined>) {
   return query.toString();
 }
 
-async function TrendingSection() {
-  const trending = await getCachedTrendingStories("week", 8);
-  return <TrendingStoriesPanel items={trending} period="week" />;
+function buildHomeTrendPeriodHref(period: TrendingPeriod, params: Record<string, string | undefined>): Route {
+  return `/?${buildQuery({ ...params, trendPeriod: period })}` as Route;
+}
+
+async function TrendingSection({
+  period,
+  linkParams,
+}: {
+  period: TrendingPeriod;
+  linkParams: Record<string, string | undefined>;
+}) {
+  const trending = await getCachedTrendingStories(period, 8);
+  return (
+    <TrendingStoriesPanel
+      items={trending}
+      period={period}
+      hrefForPeriod={(p) => buildHomeTrendPeriodHref(p, linkParams)}
+    />
+  );
 }
 
 async function DiscoverySection() {
@@ -98,6 +118,19 @@ export default async function Home({ searchParams }: HomeProps) {
   ]);
 
   const activeFilterLabels = buildHomeFilterLabels(params);
+  const trendPeriod = parseTrendingPeriod(params.trendPeriod);
+  const trendLinkParams = {
+    q: queryText,
+    author: authorText,
+    hot: params.hot,
+    completed: params.completed,
+    category: params.category,
+    minChapters: params.minChapters,
+    maxChapters: params.maxChapters,
+    hasPolished: params.hasPolished,
+    hasAudio: params.hasAudio,
+    sort: params.sort,
+  };
 
   return (
     <main className="app-shell">
@@ -247,8 +280,8 @@ export default async function Home({ searchParams }: HomeProps) {
         ) : (
           <>
             <FollowedStoriesPanel />
-            <Suspense fallback={<DiscoveryRailSkeleton />}>
-              <TrendingSection />
+            <Suspense fallback={<DiscoveryRailSkeleton />} key={`trending-${trendPeriod}`}>
+              <TrendingSection period={trendPeriod} linkParams={trendLinkParams} />
             </Suspense>
             <Suspense fallback={<DiscoveryRailSkeleton />}>
               <DiscoverySection />

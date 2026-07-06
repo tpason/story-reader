@@ -7,6 +7,7 @@ import { CultivationAvatar } from "@/components/CultivationAvatar";
 import { RankCalligraphySeal } from "@/components/RankCalligraphySeal";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import type { ReaderLeaderboardItem, ReaderLeaderboardScope, TrendingPeriod } from "@/lib/types";
+import { useAppSelector } from "@/lib/store-hooks";
 
 const PERIOD_LABELS: Record<TrendingPeriod, string> = {
   day: "Nhật bang",
@@ -26,6 +27,12 @@ function formatReadTime(seconds: number) {
   const minutes = Math.round(seconds / 60);
   if (minutes < 60) return `${minutes} phút tu đọc`;
   return `${(minutes / 60).toFixed(1)} giờ tu đọc`;
+}
+
+function readerProfileHref(reader: ReaderLeaderboardItem, currentUserId: string | null): Route | null {
+  if (reader.scope !== "members" || !reader.userId || !currentUserId) return null;
+  if (reader.userId !== currentUserId) return null;
+  return "/account#account-cultivation" as Route;
 }
 
 type ReaderLeaderboardProps = {
@@ -61,13 +68,10 @@ function ReaderStats({ reader }: { reader: ReaderLeaderboardItem }) {
   );
 }
 
-function ReaderPodiumCard({ reader }: { reader: ReaderLeaderboardItem }) {
+function ReaderPodiumCard({ reader, profileHref }: { reader: ReaderLeaderboardItem; profileHref: Route | null }) {
   const tier = tierForRank(reader.rank);
-  return (
-    <article
-      className={`reader-leaderboard-podium-card rankings-podium-card rankings-podium-${tier} reader-leaderboard-podium--${tier}`}
-      data-reader-rank={reader.rank}
-    >
+  const body = (
+    <>
       <span className="reader-leaderboard-fx reader-leaderboard-fx-aura" aria-hidden />
       <span className="reader-leaderboard-fx reader-leaderboard-fx-mist" aria-hidden />
       <span className="reader-leaderboard-fx reader-leaderboard-fx-sparkles" aria-hidden>
@@ -106,12 +110,33 @@ function ReaderPodiumCard({ reader }: { reader: ReaderLeaderboardItem }) {
           )}
         </p>
         <ReaderStats reader={reader} />
+        {profileHref ? (
+          <span className="reader-leaderboard-self-link">
+            <Sparkles size={12} aria-hidden />
+            Động phủ của bạn
+          </span>
+        ) : null}
       </div>
+    </>
+  );
+
+  return (
+    <article
+      className={`reader-leaderboard-podium-card rankings-podium-card rankings-podium-${tier} reader-leaderboard-podium--${tier}${profileHref ? " reader-leaderboard-card--linked" : ""}`}
+      data-reader-rank={reader.rank}
+    >
+      {profileHref ? (
+        <Link className="reader-leaderboard-podium-link" href={profileHref}>
+          {body}
+        </Link>
+      ) : (
+        body
+      )}
     </article>
   );
 }
 
-function ReaderPodium({ items }: { items: ReaderLeaderboardItem[] }) {
+function ReaderPodium({ items, currentUserId }: { items: ReaderLeaderboardItem[]; currentUserId: string | null }) {
   const [first, second, third] = items;
   if (!first) return null;
 
@@ -119,15 +144,25 @@ function ReaderPodium({ items }: { items: ReaderLeaderboardItem[] }) {
     <div className="reader-leaderboard-podium-wrap">
       <span className="reader-leaderboard-podium-veil" aria-hidden />
       <div className="reader-leaderboard-podium rankings-podium" aria-label="Tam hạng tu giả">
-      {second ? <ReaderPodiumCard reader={second} /> : <div className="rankings-podium-spacer" aria-hidden />}
-      <ReaderPodiumCard reader={first} />
-      {third ? <ReaderPodiumCard reader={third} /> : <div className="rankings-podium-spacer" aria-hidden />}
+        {second ? (
+          <ReaderPodiumCard reader={second} profileHref={readerProfileHref(second, currentUserId)} />
+        ) : (
+          <div className="rankings-podium-spacer" aria-hidden />
+        )}
+        <ReaderPodiumCard reader={first} profileHref={readerProfileHref(first, currentUserId)} />
+        {third ? (
+          <ReaderPodiumCard reader={third} profileHref={readerProfileHref(third, currentUserId)} />
+        ) : (
+          <div className="rankings-podium-spacer" aria-hidden />
+        )}
       </div>
     </div>
   );
 }
 
 export function ReaderLeaderboard({ items, scope, period = "week" }: ReaderLeaderboardProps) {
+  const currentUserId = useAppSelector((state) => state.identity.user?.id ?? null);
+
   if (!items.length) {
     return (
       <XianxiaEmptyState
@@ -168,19 +203,14 @@ export function ReaderLeaderboard({ items, scope, period = "week" }: ReaderLeade
         </span>
       </div>
 
-      {podiumItems.length >= 2 ? <ReaderPodium items={podiumItems} /> : null}
+      {podiumItems.length >= 2 ? <ReaderPodium items={podiumItems} currentUserId={currentUserId} /> : null}
 
       <ol className="reader-leaderboard-list rankings-list">
         {(podiumItems.length < 2 ? items : restItems).map((reader) => {
           const tier = tierForRank(reader.rank);
-          return (
-          <li
-            key={reader.userId ?? reader.anonymousId ?? reader.rank}
-            className={`reader-leaderboard-item rankings-item${reader.rank <= 3 ? " rankings-item-top reader-leaderboard-item--top" : ""}${reader.rank <= 3 ? ` reader-leaderboard-item--${tier}` : ""}`}
-            data-reader-rank={reader.rank}
-          >
-            <RankCalligraphySeal rank={reader.rank} />
-            <div className="reader-leaderboard-card rankings-card">
+          const profileHref = readerProfileHref(reader, currentUserId);
+          const cardBody = (
+            <>
               <div className={`reader-leaderboard-avatar-stage reader-leaderboard-avatar-stage--list${reader.rank <= 3 ? ` reader-leaderboard-avatar-stage--${tier}` : ""}`}>
                 <CultivationAvatar
                   username={reader.displayName}
@@ -204,9 +234,31 @@ export function ReaderLeaderboard({ items, scope, period = "week" }: ReaderLeade
                   )}
                 </p>
                 <ReaderStats reader={reader} />
+                {profileHref ? (
+                  <span className="reader-leaderboard-self-link">
+                    <Sparkles size={12} aria-hidden />
+                    Vào động phủ
+                  </span>
+                ) : null}
               </div>
-            </div>
-          </li>
+            </>
+          );
+
+          return (
+            <li
+              key={reader.userId ?? reader.anonymousId ?? reader.rank}
+              className={`reader-leaderboard-item rankings-item${reader.rank <= 3 ? " rankings-item-top reader-leaderboard-item--top" : ""}${reader.rank <= 3 ? ` reader-leaderboard-item--${tier}` : ""}${profileHref ? " reader-leaderboard-item--linked" : ""}`}
+              data-reader-rank={reader.rank}
+            >
+              <RankCalligraphySeal rank={reader.rank} />
+              {profileHref ? (
+                <Link className="reader-leaderboard-card rankings-card reader-leaderboard-card--link" href={profileHref}>
+                  {cardBody}
+                </Link>
+              ) : (
+                <div className="reader-leaderboard-card rankings-card">{cardBody}</div>
+              )}
+            </li>
           );
         })}
       </ol>

@@ -80,7 +80,9 @@ export default async function RankingsPage({ searchParams }: RankingsProps) {
 
   const [trending, betterbox, boards, topReaders] = await Promise.all([
     tab === "trending" ? getCachedTrendingStories(period, 30) : Promise.resolve([]),
-    tab === "betterbox" ? getCachedBetterBoxRankings(50) : Promise.resolve([]),
+    tab === "betterbox" || tab === "trending"
+      ? getCachedBetterBoxRankings(tab === "betterbox" ? 50 : 12)
+      : Promise.resolve([]),
     tab === "source" ? listSourceRankBoards(16) : Promise.resolve([] as SourceRankBoard[]),
     tab === "readers" ? getCachedTopReaders(readerScope, period, 40) : Promise.resolve([]),
   ]);
@@ -214,7 +216,27 @@ export default async function RankingsPage({ searchParams }: RankingsProps) {
           }
         >
           {tab === "trending" ? (
-            <RankingsList items={trending} variant="trending" period={period} />
+            trending.length > 0 ? (
+              <RankingsList items={trending} variant="trending" period={period} />
+            ) : (
+              <div className="rankings-trending-fallback">
+                <RankingsList
+                  items={[]}
+                  variant="trending"
+                  period={period}
+                  emptyTitle="Chưa có phong vân trong kỳ này. Tu đọc từ 5 giây để Thiên Thư ghi phiên."
+                />
+                {betterbox.length > 0 ? (
+                  <>
+                    <p className="rankings-fallback-heading">
+                      <Crown size={15} aria-hidden />
+                      Thiên bảng gợi ý trong lúc chờ phong vân
+                    </p>
+                    <RankingsList items={betterbox} variant="betterbox" />
+                  </>
+                ) : null}
+              </div>
+            )
           ) : tab === "betterbox" ? (
             <RankingsList items={betterbox} variant="betterbox" emptyTitle="Thiên bảng chưa có linh quyển. Tu đọc vài chương để Thiên Thư ghi nhận khí vận độc giả." />
           ) : tab === "readers" ? (
