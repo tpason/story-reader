@@ -17478,3 +17478,8 @@ html[data-reader-realtime-fx="off"] .notification-bell-live .notification-dot {
   color: rgba(240, 208, 106, 0.92);
 }
 
+/* App aura: WebGL path replaces CSS mist (no double GPU on desktop) */
+.app-aura-layer--webgl .app-aura-css {
+  display: none;
+}
+

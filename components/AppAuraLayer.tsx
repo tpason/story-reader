@@ -46,8 +46,7 @@ export function AppAuraLayer() {
       className={`app-aura-layer app-aura-layer--${variant}${isReaderChapter ? " app-aura-layer--reader" : ""}${showWebgl ? " app-aura-layer--webgl" : ""}`}
       aria-hidden
     >
-      {showWebgl ? <ThreeAppAura variant={variant} /> : null}
-      <AuraCssLayers />
+      {showWebgl ? <ThreeAppAura variant={variant} /> : <AuraCssLayers />}
     </div>
   );
 }
