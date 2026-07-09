@@ -37,7 +37,7 @@ test.describe("reader smoke", () => {
       await expect(shell).toHaveAttribute("data-theme", "dark");
     }
 
-    await themeGroup.locator('button[title="Xuan paper"]').click({ force: true });
+    await themeGroup.locator('button[title="Giấy xuan cổ — nền vàng nhạt, chữ mực"]').click({ force: true });
     await expect(shell).toHaveAttribute("data-theme", "parchment");
   });
 

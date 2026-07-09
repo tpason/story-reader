@@ -7,12 +7,12 @@ export type ReaderThemeOption = {
 };
 
 export const READER_THEME_OPTIONS: ReaderThemeOption[] = [
-  { id: "light", label: "Sáng", title: "Light" },
-  { id: "parchment", label: "宣纸", title: "Xuan paper" },
-  { id: "bamboo", label: "竹简", title: "Bamboo scroll" },
-  { id: "ink-night", label: "墨夜", title: "Ink night" },
-  { id: "dark", label: "Tối", title: "Dark" },
-  { id: "oled", label: "OLED", title: "OLED" }
+  { id: "light", label: "Sáng", title: "Nền sáng, chữ đen" },
+  { id: "parchment", label: "Tuyên chi", title: "Giấy xuan cổ — nền vàng nhạt, chữ mực" },
+  { id: "bamboo", label: "Trúc giản", title: "Cuốn trúc — tông tre xanh, viền trúc" },
+  { id: "ink-night", label: "Mặc dạ", title: "Đêm mực — nền đen than, chữ tro" },
+  { id: "dark", label: "Tối", title: "Nền tối dịu" },
+  { id: "oled", label: "OLED", title: "Đen tuyệt đối cho màn OLED" }
 ];
 export type ReaderFontFamily = "literata" | "noto-serif" | "sora" | "merriweather" | "serif" | "sans";
 export type ReaderLayoutMode = "scroll" | "page";
