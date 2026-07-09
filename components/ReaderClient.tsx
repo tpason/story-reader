@@ -38,6 +38,7 @@ import { ReaderChapterFreshHint, type ReaderChapterFreshHintState } from "@/comp
 import { ReaderAmbienceLayer } from "@/components/ReaderAmbienceLayer";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { ReaderQuickSettings } from "@/components/ReaderQuickSettings";
+import { ReaderThemeSegmented } from "@/components/ReaderThemeSegmented";
 import { fetchReaderChapter, readerQueryKeys } from "@/lib/reader-query";
 import {
   bilingualFetchOptions,
@@ -59,7 +60,6 @@ import {
   setReaderSkillEffectsEnabled,
   setReaderStyle,
   setReaderTapEdgeEnabled,
-  setReaderTheme,
   store,
   removeBookmarkItem,
   upsertBookmarkItem,
@@ -214,7 +214,7 @@ async function readCachedChapterPayload(storyId: string, chapterNumber: number) 
 const READER_COMFORT_PRESETS = {
   focus: {
     label: "Focus",
-    config: { theme: "sepia", fontSize: 20, fontFamily: "literata", lineHeight: 1.9, paragraphSpacing: 1.28, contentWidth: 760 }
+    config: { theme: "parchment", fontSize: 20, fontFamily: "literata", lineHeight: 1.9, paragraphSpacing: 1.28, contentWidth: 760 }
   },
   night: {
     label: "Đêm",
@@ -226,7 +226,7 @@ const READER_COMFORT_PRESETS = {
   },
   mobile: {
     label: "Mobile nhẹ",
-    config: { theme: "sepia", fontSize: 18, fontFamily: "sans", lineHeight: 1.78, paragraphSpacing: 1.08, contentWidth: 680 }
+    config: { theme: "parchment", fontSize: 18, fontFamily: "sans", lineHeight: 1.78, paragraphSpacing: 1.08, contentWidth: 680 }
   },
   wide: {
     label: "Desktop rộng",
@@ -3686,20 +3686,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 Trang
               </button>
             </div>
-            <div className="segmented reader-theme-mode" aria-label="Giao diện">
-              <button type="button" title="Light" aria-pressed={theme === "light"} onClick={() => dispatch(setReaderTheme("light"))}>
-                <Sun size={14} />
-              </button>
-              <button type="button" title="Sepia" aria-pressed={theme === "sepia"} onClick={() => dispatch(setReaderTheme("sepia"))}>
-                <BookOpen size={14} />
-              </button>
-              <button type="button" title="Dark" aria-pressed={theme === "dark"} onClick={() => dispatch(setReaderTheme("dark"))}>
-                <Moon size={14} />
-              </button>
-              <button type="button" title="OLED" aria-pressed={theme === "oled"} onClick={() => dispatch(setReaderTheme("oled"))}>
-                <Moon size={14} />
-              </button>
-            </div>
+            <ReaderThemeSegmented ariaLabel="Giao diện" />
               </div>
             </FloatingPortal>
           ) : null}
@@ -3955,20 +3942,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             <div className="reader-sheet-section">
               <span>Cài đọc</span>
               <div className="reader-sheet-section-body">
-                <div className="segmented reader-sheet-segmented" aria-label="Theme">
-                  <button type="button" aria-pressed={theme === "light"} onClick={() => dispatch(setReaderTheme("light"))}>
-                    <Sun size={15} />
-                  </button>
-                  <button type="button" aria-pressed={theme === "sepia"} onClick={() => dispatch(setReaderTheme("sepia"))}>
-                    <BookOpen size={15} />
-                  </button>
-                  <button type="button" aria-pressed={theme === "dark"} onClick={() => dispatch(setReaderTheme("dark"))}>
-                    <Moon size={15} />
-                  </button>
-                  <button type="button" aria-pressed={theme === "oled"} onClick={() => dispatch(setReaderTheme("oled"))}>
-                    <Moon size={15} />
-                  </button>
-                </div>
+                <ReaderThemeSegmented className="reader-sheet-segmented" ariaLabel="Theme" />
                 <div className="segmented reader-sheet-segmented reader-layout-mode" aria-label="Chế độ đọc">
                   <button type="button" aria-pressed={layoutMode === "scroll"} onClick={() => toggleLayoutMode("scroll")}>
                     Cuộn

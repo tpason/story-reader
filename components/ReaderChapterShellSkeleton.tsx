@@ -1,7 +1,7 @@
 /** Lightweight chapter reader shell while client bundle hydrates. */
 export function ReaderChapterShellSkeleton() {
   return (
-    <main className="reader-shell reader-shell--compact reader-shell-skeleton" data-theme="sepia" aria-busy="true" aria-label="Đang mở chương">
+    <main className="reader-shell reader-shell--compact reader-shell-skeleton" data-theme="parchment" aria-busy="true" aria-label="Đang mở chương">
       <div className="reader-chapter-skeleton-topbar" />
       <div className="reader-chapter-skeleton-body">
         <div className="reader-chapter-skeleton-heading" />

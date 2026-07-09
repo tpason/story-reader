@@ -6136,3 +6136,101 @@ button.chapter-sidebar-heatmap-cell:focus-visible {
     animation: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   XIANXIA READER THEMES v1 — 宣纸 / 竹简 / 墨夜 (CSS-only, mobile-safe)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.reader-shell[data-theme="parchment"],
+.reader-shell[data-theme="sepia"] {
+  --reader-bg: rgba(245, 240, 232, 0.94);
+  --reader-ink: #2a2218;
+  --reader-muted: #6b5a48;
+  --reader-line: rgba(200, 150, 46, 0.22);
+}
+
+.reader-shell[data-theme="bamboo"] {
+  --reader-bg: rgba(232, 224, 204, 0.94);
+  --reader-ink: #2c2418;
+  --reader-muted: #5f6b52;
+  --reader-line: rgba(90, 110, 72, 0.24);
+}
+
+.reader-shell[data-theme="ink-night"] {
+  --reader-bg: rgba(14, 20, 18, 0.95);
+  --reader-ink: #ebe4d6;
+  --reader-muted: #9a9284;
+  --reader-line: rgba(200, 150, 46, 0.18);
+}
+
+.reader-shell[data-theme="parchment"] .reader-content,
+.reader-shell[data-theme="sepia"] .reader-content {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.42), transparent 38%),
+    linear-gradient(180deg, rgba(245, 240, 232, 0.98), rgba(237, 230, 214, 0.96));
+  box-shadow: inset 0 0 0 1px rgba(200, 150, 46, 0.12);
+}
+
+.reader-shell[data-theme="bamboo"] .reader-content {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(90, 110, 72, 0.04) 0,
+      rgba(90, 110, 72, 0.04) 1px,
+      transparent 1px,
+      transparent 28px
+    ),
+    linear-gradient(180deg, rgba(236, 228, 208, 0.98), rgba(224, 214, 190, 0.96));
+  box-shadow: inset 0 0 0 1px rgba(90, 110, 72, 0.16);
+}
+
+.reader-shell[data-theme="ink-night"] .reader-content {
+  background:
+    radial-gradient(circle at 88% 0%, rgba(26, 107, 90, 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(16, 22, 20, 0.98), rgba(10, 14, 13, 0.97));
+  box-shadow: inset 0 0 0 1px rgba(200, 150, 46, 0.1);
+}
+
+.reader-shell[data-theme="parchment"] .reader-heading,
+.reader-shell[data-theme="sepia"] .reader-heading {
+  border-bottom-color: rgba(200, 150, 46, 0.28);
+}
+
+.reader-shell[data-theme="bamboo"] .reader-heading {
+  border-bottom-color: rgba(90, 110, 72, 0.32);
+}
+
+.reader-shell[data-theme="ink-night"] .reader-heading {
+  border-bottom-color: rgba(200, 150, 46, 0.22);
+}
+
+.reader-shell[data-theme="ink-night"] .reader-xi-light,
+.reader-shell[data-theme="ink-night"] .reader-xi-rays,
+.reader-shell[data-theme="ink-night"] .reader-xi-mote {
+  opacity: 0.42;
+}
+
+.reader-theme-mode--antique {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.reader-theme-mode--antique button {
+  min-width: 0;
+  padding-inline: 4px;
+}
+
+.reader-quick-settings-themes--antique {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 839px) {
+  .reader-shell[data-theme="parchment"] .reader-content,
+  .reader-shell[data-theme="sepia"] .reader-content,
+  .reader-shell[data-theme="bamboo"] .reader-content,
+  .reader-shell[data-theme="ink-night"] .reader-content {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

@@ -1,4 +1,19 @@
-export type ReaderTheme = "light" | "sepia" | "dark" | "oled";
+export type ReaderTheme = "light" | "parchment" | "bamboo" | "ink-night" | "dark" | "oled";
+
+export type ReaderThemeOption = {
+  id: ReaderTheme;
+  label: string;
+  title: string;
+};
+
+export const READER_THEME_OPTIONS: ReaderThemeOption[] = [
+  { id: "light", label: "Sáng", title: "Light" },
+  { id: "parchment", label: "宣纸", title: "Xuan paper" },
+  { id: "bamboo", label: "竹简", title: "Bamboo scroll" },
+  { id: "ink-night", label: "墨夜", title: "Ink night" },
+  { id: "dark", label: "Tối", title: "Dark" },
+  { id: "oled", label: "OLED", title: "OLED" }
+];
 export type ReaderFontFamily = "literata" | "noto-serif" | "sora" | "merriweather" | "serif" | "sans";
 export type ReaderLayoutMode = "scroll" | "page";
 
@@ -25,7 +40,7 @@ export const READER_CONTENT_WIDTH_MIN = 620;
 export const READER_CONTENT_WIDTH_MAX = 860;
 
 export const DEFAULT_READER_STYLE_CONFIG: ReaderStyleConfig = {
-  theme: "sepia",
+  theme: "parchment",
   fontSize: 19,
   fontFamily: "literata",
   lineHeight: 1.82,
@@ -38,8 +53,12 @@ export const DEFAULT_READER_STYLE_CONFIG: ReaderStyleConfig = {
 
 const DEFAULTS = DEFAULT_READER_STYLE_CONFIG;
 
-function isTheme(value: unknown): value is ReaderTheme {
-  return value === "light" || value === "sepia" || value === "dark" || value === "oled";
+function normalizeReaderTheme(value: unknown): ReaderTheme | null {
+  if (value === "sepia") return "parchment";
+  if (value === "light" || value === "parchment" || value === "bamboo" || value === "ink-night" || value === "dark" || value === "oled") {
+    return value;
+  }
+  return null;
 }
 
 function isFontFamily(value: unknown): value is ReaderFontFamily {
@@ -52,7 +71,7 @@ function isLayoutMode(value: unknown): value is ReaderLayoutMode {
 
 export function sanitizeReaderStyleConfig(input: unknown): ReaderStyleConfig {
   const candidate = (input ?? {}) as Partial<ReaderStyleConfig>;
-  const theme = isTheme(candidate.theme) ? candidate.theme : DEFAULTS.theme;
+  const theme = normalizeReaderTheme(candidate.theme) ?? DEFAULTS.theme;
   const fontFamily = isFontFamily(candidate.fontFamily) ? candidate.fontFamily : DEFAULTS.fontFamily;
   const fontSize = typeof candidate.fontSize === "number" && Number.isFinite(candidate.fontSize) ? candidate.fontSize : DEFAULTS.fontSize;
   const clampedFontSize = Math.min(READER_FONT_SIZE_MAX, Math.max(READER_FONT_SIZE_MIN, Math.round(fontSize)));

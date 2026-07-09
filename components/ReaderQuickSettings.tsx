@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Minus, Moon, Plus, Sun, Type } from "lucide-react";
+import { Minus, Plus, Type } from "lucide-react";
 import {
   autoUpdate,
   flip,
@@ -12,31 +12,24 @@ import {
   useInteractions
 } from "@floating-ui/react";
 import { useState } from "react";
+import { ReaderThemeSegmented } from "@/components/ReaderThemeSegmented";
 import {
   READER_CONTENT_WIDTH_MAX,
   READER_CONTENT_WIDTH_MIN,
   READER_FONT_SIZE_MAX,
-  READER_FONT_SIZE_MIN,
-  type ReaderTheme
+  READER_FONT_SIZE_MIN
 } from "@/lib/reader-preferences";
-import { setReaderContentWidth, setReaderFontSize, setReaderTheme } from "@/lib/store";
+import { setReaderContentWidth, setReaderFontSize } from "@/lib/store";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 
 type ReaderQuickSettingsProps = {
   className?: string;
 };
 
-const THEMES: { id: ReaderTheme; label: string; icon: typeof Sun }[] = [
-  { id: "light", label: "Sáng", icon: Sun },
-  { id: "sepia", label: "Giấy cổ", icon: BookOpen },
-  { id: "dark", label: "Tối", icon: Moon },
-  { id: "oled", label: "OLED", icon: Moon }
-];
-
 export function ReaderQuickSettings({ className }: ReaderQuickSettingsProps) {
   const [open, setOpen] = useState(false);
   const dispatch = useAppDispatch();
-  const { theme, fontSize, contentWidth } = useAppSelector((state) => state.readerStyle.config);
+  const { fontSize, contentWidth } = useAppSelector((state) => state.readerStyle.config);
   const { refs, floatingStyles, context } = useFloating({
     open,
     onOpenChange: setOpen,
@@ -70,24 +63,7 @@ export function ReaderQuickSettings({ className }: ReaderQuickSettingsProps) {
             {...getFloatingProps()}
           >
             <p className="reader-quick-settings-title">Tuỳ chọn nhanh</p>
-            <div className="reader-quick-settings-themes" role="group" aria-label="Giao diện đọc">
-              {THEMES.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`reader-quick-theme ${theme === item.id ? "reader-quick-theme-active" : ""}`}
-                    aria-pressed={theme === item.id}
-                    title={item.label}
-                    onClick={() => dispatch(setReaderTheme(item.id))}
-                  >
-                    <Icon size={15} aria-hidden />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <ReaderThemeSegmented variant="labels" ariaLabel="Giao diện đọc" />
             <div className="reader-quick-settings-font" role="group" aria-label="Cỡ chữ">
               <button
                 type="button"

@@ -125,7 +125,7 @@ const readerStyleSlice = createSlice({
       state.hydrated = true;
     },
     setReaderTheme(state, action: PayloadAction<ReaderTheme>) {
-      state.config.theme = action.payload;
+      state.config.theme = sanitizeReaderStyleConfig({ ...state.config, theme: action.payload }).theme;
       state.hydrated = true;
     },
     setReaderFontSize(state, action: PayloadAction<number>) {
