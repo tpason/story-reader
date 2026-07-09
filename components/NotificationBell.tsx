@@ -126,7 +126,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const [loading, setLoading] = useState(false);
   const [burstKey, setBurstKey] = useState(0);
   const panelRef = useRef<HTMLElement>(null);
-  const decorativeWebglEnabled = useDecorativeWebglEnabled({ allowCompact: true, compactMaxWidth: 720 });
+  const decorativeWebglEnabled = useDecorativeWebglEnabled({ compactMaxWidth: 720 });
   const { mode: fxMode } = useReaderRealtimeFx();
   const fxBurstEnabled = fxMode === "full";
   const caughtUpMap = useNotificationCaughtUp();

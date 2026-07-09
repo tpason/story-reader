@@ -1,11 +1,12 @@
 "use client";
 
 import { animate } from "animejs";
-import { BookOpenCheck, LoaderCircle, LogIn, UserPlus } from "lucide-react";
+import { BookOpenCheck, LoaderCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ReaderLogo } from "@/components/ReaderLogo";
+import { XiDisplayFontScope } from "@/components/XiDisplayFontScope";
 import { prefersReducedMotion } from "@/lib/browser";
 import { storeCurrentUser, type StoredReaderUser } from "@/lib/identity";
 import { useAppDispatch } from "@/lib/store-hooks";
@@ -16,26 +17,48 @@ type AuthFormProps = {
   mode: "login" | "signup";
 };
 
+const PORTAL_NAV = [
+  { href: "/", label: "Thư viện" },
+  { href: "/discover", label: "Khám phá" },
+  { href: "/reading-history", label: "Tàng thư" }
+] as const;
+
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const heroRef = useRef<HTMLElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const panel = panelRef.current;
-    if (!panel || prefersReducedMotion()) return;
+    if (prefersReducedMotion()) return;
+    if (window.matchMedia("(max-width: 839px)").matches) return;
 
-    const animation = animate(panel, {
-      y: [18, 0],
-      opacity: [0, 1],
-      duration: 680,
-      ease: "outExpo"
-    });
+    const panel = panelRef.current;
+    const hero = heroRef.current;
+
+    const panelAnimation = panel
+      ? animate(panel, {
+          y: [22, 0],
+          opacity: [0, 1],
+          duration: 720,
+          ease: "outExpo"
+        })
+      : null;
+
+    const heroAnimation = hero
+      ? animate(hero, {
+          opacity: [0, 1],
+          x: [-16, 0],
+          duration: 900,
+          ease: "outExpo"
+        })
+      : null;
 
     return () => {
-      animation.revert();
+      panelAnimation?.revert();
+      heroAnimation?.revert();
     };
   }, []);
 
@@ -76,55 +99,125 @@ export function AuthForm({ mode }: AuthFormProps) {
   const isSignup = mode === "signup";
 
   return (
-    <main className="auth-shell">
-      <section className="auth-panel" ref={panelRef}>
-        <Link href="/" className="brand auth-brand">
+    <main className="auth-shell auth-shell--portal">
+      <div className="auth-portal-backdrop" aria-hidden>
+        <span className="auth-portal-mist auth-portal-mist--a" />
+        <span className="auth-portal-mist auth-portal-mist--b" />
+        <span className="auth-portal-ridge" />
+      </div>
+
+      <header className="auth-portal-topbar">
+        <Link href="/" className="brand auth-portal-brand">
           <ReaderLogo />
-          <span>Linh Quyển Các</span>
+          <span className="auth-portal-brand-text">
+            Linh Quyển Các
+            <small>Động phủ</small>
+          </span>
         </Link>
 
-        <div className="auth-heading">
-          <span className="auth-icon">{isSignup ? <UserPlus size={22} /> : <LogIn size={22} />}</span>
-          <p className="eyebrow">{isSignup ? "Nhập môn" : "Động phủ"}</p>
-          <h1>{isSignup ? "Nhập môn để định danh đạo hữu" : "Đăng nhập động phủ"}</h1>
-          <p>
-            {isSignup
-              ? "Tán tu có thể đọc tự do; nhập môn giúp khắc tàng thư, chương đang đọc và tu vi vào Thiên Thư."
-              : "Khi đăng nhập, tiến độ tu luyện sẽ được khắc vào Thiên Thư thay vì chỉ lưu ở trình duyệt."}
-          </p>
-        </div>
+        <nav className="auth-portal-nav" aria-label="Điều hướng nhanh">
+          {PORTAL_NAV.map((item) => (
+            <Link key={item.href} href={item.href}>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      </header>
 
-        <form className="auth-form" onSubmit={submit}>
-          <label>
-            Tên tài khoản
-            <input name="username" autoComplete="username" minLength={3} maxLength={32} required />
-          </label>
+      <div className="auth-portal-stage">
+        <aside className="auth-portal-hero" ref={heroRef} aria-hidden>
+          <XiDisplayFontScope>
+            <blockquote className="auth-portal-quote">
+              <span>Truyện hay</span>
+              <span>khai mở</span>
+              <span>linh quyển</span>
+            </blockquote>
+          </XiDisplayFontScope>
+          <p className="auth-portal-quote-en">Good Stories Inspire more cultivators.</p>
+        </aside>
 
-          {isSignup ? (
-            <label>
-              Email
-              <input name="email" type="email" autoComplete="email" />
+        <section className="auth-panel auth-portal-panel" ref={panelRef}>
+          <div className="auth-portal-tabs" role="tablist" aria-label="Chọn hình thức vào môn">
+            <Link
+              href="/login"
+              className={`auth-portal-tab${isSignup ? "" : " auth-portal-tab--active"}`}
+              role="tab"
+              aria-selected={!isSignup}
+            >
+              <span className="auth-portal-tab-long">Đăng nhập động phủ</span>
+              <span className="auth-portal-tab-short" aria-hidden="true">
+                Đăng nhập
+              </span>
+            </Link>
+            <Link
+              href="/signup"
+              className={`auth-portal-tab${isSignup ? " auth-portal-tab--active" : ""}`}
+              role="tab"
+              aria-selected={isSignup}
+            >
+              Nhập môn
+            </Link>
+          </div>
+
+          <div className="auth-heading auth-portal-heading">
+            <h1>{isSignup ? "Nhập môn để định danh đạo hữu" : "Đăng nhập động phủ"}</h1>
+            <p className="auth-portal-lede">
+              {isSignup
+                ? "Tán tu có thể đọc tự do; nhập môn giúp khắc tàng thư, chương đang đọc và tu vi vào Thiên Thư."
+                : "Khi đăng nhập, tiến độ tu luyện sẽ được khắc vào Thiên Thư thay vì chỉ lưu ở trình duyệt."}
+            </p>
+          </div>
+
+          <form className="auth-form auth-portal-form" onSubmit={submit}>
+            <label className="auth-portal-field">
+              <span className="auth-portal-label">Tên tài khoản</span>
+              <input
+                name="username"
+                autoComplete="username"
+                minLength={3}
+                maxLength={32}
+                placeholder="Nhập tên đạo hữu"
+                required
+              />
             </label>
-          ) : null}
 
-          <label>
-            Mật khẩu
-            <input name="password" type="password" autoComplete={isSignup ? "new-password" : "current-password"} minLength={8} required />
-          </label>
+            {isSignup ? (
+              <label className="auth-portal-field">
+                <span className="auth-portal-label">Email</span>
+                <input name="email" type="email" autoComplete="email" placeholder="email@example.com" />
+              </label>
+            ) : null}
 
-          {error ? <p className="auth-error">{error}</p> : null}
+            <label className="auth-portal-field">
+              <span className="auth-portal-label">Mật khẩu</span>
+              <input
+                name="password"
+                type="password"
+                autoComplete={isSignup ? "new-password" : "current-password"}
+                minLength={8}
+                placeholder={isSignup ? "Tối thiểu 8 ký tự" : "Nhập mật khẩu"}
+                required
+              />
+            </label>
 
-          <button className="auth-submit" type="submit" disabled={loading}>
-            {loading ? <LoaderCircle size={16} className="spin" /> : <BookOpenCheck size={16} />}
-            {isSignup ? "Nhập môn" : "Đăng nhập"}
-          </button>
-        </form>
+            {error ? <p className="auth-error">{error}</p> : null}
 
-        <p className="auth-switch">
-          {isSignup ? "Đã có động phủ?" : "Vẫn là tán tu?"}{" "}
-          <Link href={isSignup ? "/login" : "/signup"}>{isSignup ? "Đăng nhập" : "Nhập môn"}</Link>
-        </p>
-      </section>
+            <button className="auth-submit auth-portal-submit" type="submit" disabled={loading}>
+              {loading ? <LoaderCircle size={16} className="spin" /> : <BookOpenCheck size={16} />}
+              {isSignup ? "Nhập môn" : "Đăng nhập"}
+            </button>
+          </form>
+
+          <p className="auth-switch auth-portal-switch">
+            {isSignup ? "Đã có động phủ?" : "Vẫn là tán tu?"}{" "}
+            <Link href={isSignup ? "/login" : "/signup"}>{isSignup ? "Đăng nhập" : "Nhập môn"}</Link>
+          </p>
+        </section>
+      </div>
+
+      <footer className="auth-portal-footer">
+        <p>© {new Date().getFullYear()} Linh Quyển Các — tu tiên từng chương</p>
+      </footer>
     </main>
   );
 }

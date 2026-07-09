@@ -17872,3 +17872,1312 @@ html[data-reader-realtime-fx="off"] .notification-bell-live .notification-dot {
   }
 }
 
+/* ── library-header direct children: exclude decorative/layout shells from hero card cascade
+   Root issue: `.library-header > div:not(.home-library-stage)` was meant for the hero
+   cloud card but also matched poetry, search hero, and xi-page-hero-strip inner. */
+.library-header > .xi-poetry-col,
+.library-header > .library-search-hero,
+.library-header > .xi-page-hero-strip-inner {
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  animation: none !important;
+  filter: none !important;
+  isolation: auto !important;
+  overflow: visible !important;
+}
+
+.library-header > .xi-poetry-col::before,
+.library-header > .xi-poetry-col::after,
+.library-header > .library-search-hero::before,
+.library-header > .library-search-hero::after,
+.library-header > .xi-page-hero-strip-inner::before,
+.library-header > .xi-page-hero-strip-inner::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Restore intended decor — do not inherit hero-shell aria-hidden stretch */
+.library-header > .xi-page-hero-strip-inner > .xi-page-hero-strip-glow {
+  inset: 0 !important;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  filter: none !important;
+}
+
+/* xi-page-hero-strip keeps its own card chrome (defined earlier) */
+.library-header.xi-page-hero-strip > .xi-page-hero-strip-inner {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 20px 22px !important;
+  border: 1px solid color-mix(in srgb, #c8962e 20%, var(--hairline) 80%) !important;
+  border-radius: 12px !important;
+  background:
+    radial-gradient(ellipse 80% 55% at 8% 0%, rgba(240, 208, 106, 0.14), transparent 58%),
+    radial-gradient(ellipse 70% 50% at 92% 100%, rgba(38, 168, 130, 0.1), transparent 52%),
+    color-mix(in srgb, var(--canvas) 93%, transparent) !important;
+  overflow: hidden !important;
+}
+
+.library-header > .library-search-hero {
+  grid-column: 1 / -1;
+  position: relative;
+  z-index: 2;
+  padding: 8px 4px 4px !important;
+  text-align: left;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   XIANXIA CSS BACKDROP v16 — ink-wash fallback (no WebGL / mobile)
+   Layered mountains, haze, grain; complements WebGL when under-webgl
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.xianxia-css-backdrop.xianxia-world-fallback {
+  background: transparent;
+  isolation: isolate;
+}
+
+/* ── Rich sky per data-xi-time ─────────────────────────────────────── */
+.xianxia-css-backdrop[data-xi-time="dawn"] .xi-css-sky {
+  background:
+    radial-gradient(ellipse 90% 55% at 72% 14%, rgba(255, 195, 130, 0.58), transparent 58%),
+    radial-gradient(ellipse 70% 45% at 18% 22%, rgba(120, 80, 140, 0.38), transparent 52%),
+    radial-gradient(ellipse 120% 40% at 50% 100%, rgba(180, 140, 110, 0.28), transparent 48%),
+    linear-gradient(180deg, #2e2038 0%, #6a4870 18%, #c88868 42%, #f0dcc0 72%, #c8b8a0 100%);
+}
+
+.xianxia-css-backdrop[data-xi-time="day"] .xi-css-sky {
+  background:
+    radial-gradient(ellipse 75% 50% at 78% 12%, rgba(255, 248, 220, 0.48), transparent 52%),
+    radial-gradient(ellipse 60% 40% at 22% 18%, rgba(140, 180, 200, 0.38), transparent 48%),
+    radial-gradient(ellipse 100% 35% at 50% 85%, rgba(38, 168, 130, 0.1), transparent 50%),
+    linear-gradient(180deg, #7aa8b8 0%, #b8d0d8 28%, #e8e4d8 58%, #d0c8b0 100%);
+}
+
+.xianxia-css-backdrop[data-xi-time="dusk"] .xi-css-sky {
+  background:
+    radial-gradient(ellipse 85% 50% at 22% 16%, rgba(255, 110, 70, 0.45), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 78% 20%, rgba(80, 40, 90, 0.4), transparent 50%),
+    radial-gradient(ellipse 110% 40% at 50% 90%, rgba(120, 60, 50, 0.25), transparent 48%),
+    linear-gradient(180deg, #1a1028 0%, #5a2848 22%, #b05858 42%, #e8b070 68%, #5a4840 100%);
+}
+
+.xianxia-css-backdrop[data-xi-time="night"] .xi-css-sky {
+  background:
+    radial-gradient(ellipse 60% 35% at 82% 10%, rgba(180, 160, 220, 0.14), transparent 52%),
+    radial-gradient(ellipse 55% 45% at 15% 85%, rgba(26, 107, 90, 0.18), transparent 48%),
+    radial-gradient(ellipse 90% 30% at 50% 100%, rgba(8, 16, 24, 0.7), transparent 55%),
+    linear-gradient(180deg, #030508 0%, #081018 35%, #0c1824 65%, #101c28 100%);
+}
+
+/* ── Ink wash grain + brush stroke texture ─────────────────────────── */
+.xianxia-css-backdrop .xi-css-ink-wash {
+  opacity: 0.52;
+  background:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(112deg, rgba(30, 38, 36, 0.045) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(168deg, rgba(50, 42, 32, 0.028) 0 1px, transparent 1px 28px),
+    radial-gradient(ellipse 100% 70% at 50% 100%, rgba(26, 107, 90, 0.14), transparent 62%),
+    radial-gradient(ellipse 80% 50% at 20% 30%, rgba(60, 50, 40, 0.07), transparent 55%);
+  background-size: 200px 200px, auto, auto, auto, auto;
+  mix-blend-mode: multiply;
+}
+
+/* ── PNG mountain parallax (reuse WebGL assets) ────────────────────── */
+.xianxia-css-backdrop .xi-css-mountains-far,
+.xianxia-css-backdrop .xi-css-mountains-mid,
+.xianxia-css-backdrop .xi-css-mountains-near {
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  bottom: 0;
+  pointer-events: none;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  background-size: cover;
+  transform-origin: center bottom;
+  -webkit-mask-image: linear-gradient(to top, #000 35%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 35%, transparent 100%);
+}
+
+.xianxia-css-backdrop .xi-css-mountains-far {
+  height: 58vh;
+  min-height: 200px;
+  background-image: url("/assets/xianxia/mountains/mountain_far_01.png");
+  opacity: 0.78;
+  filter: saturate(0.88) contrast(1.04);
+  animation: xi-css-parallax-far 52s ease-in-out infinite;
+}
+
+.xianxia-css-backdrop .xi-css-mountains-mid {
+  height: 48vh;
+  min-height: 170px;
+  background-image: url("/assets/xianxia/mountains/mountain_mid_01.png");
+  opacity: 0.88;
+  filter: saturate(0.92) contrast(1.06);
+  animation: xi-css-parallax-mid 38s ease-in-out infinite;
+}
+
+.xianxia-css-backdrop .xi-css-mountains-near {
+  height: 38vh;
+  min-height: 140px;
+  background-image: url("/assets/xianxia/mountains/mountain_near_01.png");
+  opacity: 0.94;
+  filter: saturate(0.95) contrast(1.08);
+  animation: xi-css-parallax-near 28s ease-in-out infinite;
+}
+
+@keyframes xi-css-parallax-far {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.03); }
+  50% { transform: translate3d(1.2vw, 0.25vh, 0) scale(1.035); }
+}
+
+@keyframes xi-css-parallax-mid {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.02); }
+  50% { transform: translate3d(2vw, 0.45vh, 0) scale(1.025); }
+}
+
+@keyframes xi-css-parallax-near {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(2.8vw, 0.7vh, 0); }
+}
+
+/* Ink silhouette overlay — depth between PNG layers and mist */
+.xianxia-css-backdrop .xi-css-mountains {
+  height: 46vh;
+  min-height: 190px;
+  opacity: 0.72;
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(18, 28, 32, 0.18) 42%, rgba(10, 18, 22, 0.62) 100%),
+    radial-gradient(ellipse 130% 85% at 14% 100%, rgba(22, 38, 36, 0.82), transparent 62%),
+    radial-gradient(ellipse 95% 72% at 58% 100%, rgba(18, 32, 30, 0.78), transparent 58%),
+    radial-gradient(ellipse 75% 58% at 90% 100%, rgba(14, 26, 24, 0.7), transparent 54%);
+  clip-path: polygon(0 100%, 0 62%, 6% 56%, 14% 64%, 22% 50%, 32% 58%, 42% 44%, 52% 52%, 62% 40%, 72% 48%, 82% 36%, 92% 46%, 100% 38%, 100% 100%);
+}
+
+.xianxia-css-backdrop[data-xi-time="night"] .xi-css-mountains {
+  opacity: 0.88;
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(4, 8, 14, 0.42) 45%, rgba(2, 6, 10, 0.85) 100%),
+    radial-gradient(ellipse 130% 85% at 14% 100%, rgba(6, 12, 18, 0.92), transparent 62%),
+    radial-gradient(ellipse 95% 72% at 58% 100%, rgba(4, 10, 16, 0.88), transparent 58%),
+    radial-gradient(ellipse 75% 58% at 90% 100%, rgba(2, 8, 14, 0.82), transparent 54%);
+}
+
+.xianxia-css-backdrop[data-xi-time="dawn"] .xi-css-mountains,
+.xianxia-css-backdrop[data-xi-time="dusk"] .xi-css-mountains {
+  opacity: 0.78;
+  filter: sepia(0.12) saturate(1.08);
+}
+
+.xianxia-css-backdrop[data-xi-time="night"] .xi-css-mountains-far,
+.xianxia-css-backdrop[data-xi-time="night"] .xi-css-mountains-mid,
+.xianxia-css-backdrop[data-xi-time="night"] .xi-css-mountains-near {
+  filter: saturate(0.62) brightness(0.72) contrast(1.1);
+  opacity: 0.82;
+}
+
+/* ── Atmospheric haze (warm / cool) ────────────────────────────────── */
+.xianxia-css-backdrop .xi-css-haze {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.36;
+  background: url("/assets/xianxia/atmosphere/haze_overlay_warm_01.png") center / cover no-repeat;
+  mix-blend-mode: soft-light;
+  animation: xi-css-haze-breathe 24s ease-in-out infinite;
+}
+
+.xianxia-css-backdrop[data-xi-time="night"] .xi-css-haze {
+  background-image: url("/assets/xianxia/atmosphere/haze_overlay_cool_01.png");
+  opacity: 0.3;
+  mix-blend-mode: screen;
+}
+
+@keyframes xi-css-haze-breathe {
+  0%, 100% { opacity: 0.32; }
+  50% { opacity: 0.42; }
+}
+
+/* ── Mist + cloud drift (richer motion) ────────────────────────────── */
+.xianxia-css-backdrop .xi-css-mist {
+  opacity: 0.44;
+  filter: blur(32px);
+  animation: xi-css-mist-drift-v16 22s ease-in-out infinite;
+}
+
+.xianxia-css-backdrop .xi-css-mist-a {
+  bottom: 16%;
+  background: radial-gradient(ellipse 75% 95% at 28% 82%, rgba(245, 242, 232, 0.62), transparent 72%);
+}
+
+.xianxia-css-backdrop .xi-css-mist-b {
+  bottom: 6%;
+  background: radial-gradient(ellipse 68% 88% at 74% 72%, rgba(190, 218, 205, 0.48), transparent 70%);
+  animation-delay: -11s;
+}
+
+.xianxia-css-backdrop[data-xi-time="night"] .xi-css-mist {
+  background: radial-gradient(ellipse 75% 90% at 50% 80%, rgba(70, 90, 120, 0.32), transparent 72%);
+  opacity: 0.32;
+}
+
+@keyframes xi-css-mist-drift-v16 {
+  0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.38; }
+  50% { transform: translate3d(5vw, -0.8vh, 0); opacity: 0.52; }
+}
+
+.xianxia-css-backdrop .xi-css-cloud {
+  filter: blur(36px);
+  animation: xi-css-cloud-drift-v16 26s ease-in-out infinite;
+}
+
+.xianxia-css-backdrop .xi-css-cloud-a {
+  opacity: 0.48;
+  width: 46vw;
+  height: 15vh;
+}
+
+.xianxia-css-backdrop .xi-css-cloud-b {
+  opacity: 0.38;
+  width: 40vw;
+  height: 13vh;
+}
+
+.xianxia-css-backdrop .xi-css-cloud-c {
+  opacity: 0.32;
+  width: 54vw;
+  height: 11vh;
+  bottom: 24%;
+}
+
+@keyframes xi-css-cloud-drift-v16 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  33% { transform: translate3d(4vw, -1vh, 0); }
+  66% { transform: translate3d(2vw, 0.6vh, 0); }
+}
+
+/* ── Celestial accents ─────────────────────────────────────────────── */
+.xianxia-css-backdrop .xi-css-moon {
+  position: absolute;
+  top: 9%;
+  right: 20%;
+  width: min(11vw, 68px);
+  height: min(11vw, 68px);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle at 32% 32%, #fff8e8 0%, #d8dce8 52%, rgba(180, 195, 220, 0.35) 100%);
+  box-shadow:
+    0 0 36px rgba(220, 230, 255, 0.28),
+    0 0 72px rgba(160, 185, 230, 0.14);
+  animation: xi-css-moon-glow 10s ease-in-out infinite;
+}
+
+@keyframes xi-css-moon-glow {
+  0%, 100% { opacity: 0.82; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+
+.xianxia-css-backdrop .xi-css-sun-halo {
+  top: 6%;
+  right: 14%;
+  width: 32vw;
+  height: 32vw;
+  background: radial-gradient(circle, rgba(255, 195, 110, 0.55) 0%, rgba(255, 160, 90, 0.18) 42%, transparent 70%);
+}
+
+.xianxia-css-backdrop[data-xi-time="dusk"] .xi-css-sun-halo {
+  right: auto;
+  left: 12%;
+  background: radial-gradient(circle, rgba(255, 130, 80, 0.5) 0%, rgba(200, 80, 60, 0.15) 45%, transparent 70%);
+}
+
+.xianxia-css-backdrop .xi-css-spirit-dust {
+  opacity: 0.62;
+  background-image:
+    radial-gradient(1.2px 1.2px at 8% 22%, rgba(240, 208, 106, 0.85), transparent),
+    radial-gradient(1px 1px at 18% 64%, rgba(38, 168, 130, 0.65), transparent),
+    radial-gradient(1.2px 1.2px at 32% 34%, rgba(255, 248, 220, 0.75), transparent),
+    radial-gradient(1px 1px at 48% 76%, rgba(200, 150, 46, 0.6), transparent),
+    radial-gradient(1.2px 1.2px at 62% 26%, rgba(38, 168, 130, 0.55), transparent),
+    radial-gradient(1px 1px at 76% 58%, rgba(255, 240, 200, 0.7), transparent),
+    radial-gradient(1px 1px at 88% 16%, rgba(240, 208, 106, 0.55), transparent),
+    radial-gradient(1px 1px at 94% 72%, rgba(38, 168, 130, 0.45), transparent);
+  animation: xi-css-spirit-float-v16 16s ease-in-out infinite;
+}
+
+@keyframes xi-css-spirit-float-v16 {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  50% { transform: translateY(-1.6vh); opacity: 0.78; }
+}
+
+.xianxia-css-backdrop[data-xi-time="night"] .xi-css-spirit-dust {
+  opacity: 0.48;
+}
+
+/* ── Vignette (ink painting edge darkening) ────────────────────────── */
+.xianxia-css-backdrop .xi-css-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 88% 78% at 50% 42%, transparent 40%, rgba(12, 18, 22, 0.42) 100%);
+  opacity: 0.58;
+}
+
+.xianxia-css-backdrop[data-xi-time="night"] .xi-css-vignette {
+  background: radial-gradient(ellipse 90% 80% at 50% 40%, transparent 35%, rgba(2, 6, 12, 0.55) 100%);
+  opacity: 0.72;
+}
+
+/* ── Under WebGL: complement, don't wash out ───────────────────────── */
+.xianxia-css-backdrop-under-webgl .xi-css-sky,
+.xianxia-css-backdrop-under-webgl .xi-css-cloud,
+.xianxia-css-backdrop-under-webgl .xi-css-mist,
+.xianxia-css-backdrop-under-webgl .xi-css-spirit-dust,
+.xianxia-css-backdrop-under-webgl .xi-css-stars,
+.xianxia-css-backdrop-under-webgl .xi-css-sun-halo,
+.xianxia-css-backdrop-under-webgl .xi-css-jade-glow,
+.xianxia-css-backdrop-under-webgl .xi-css-moon {
+  opacity: 0.34;
+}
+
+.xianxia-css-backdrop-under-webgl .xi-css-ink-wash {
+  opacity: 0.48;
+}
+
+.xianxia-css-backdrop-under-webgl .xi-css-mountains-far,
+.xianxia-css-backdrop-under-webgl .xi-css-mountains-mid,
+.xianxia-css-backdrop-under-webgl .xi-css-mountains-near {
+  opacity: 0.68;
+}
+
+.xianxia-css-backdrop-under-webgl .xi-css-mountains {
+  opacity: 0.78;
+}
+
+.xianxia-css-backdrop-under-webgl .xi-css-haze {
+  opacity: 0.26;
+  animation: none;
+}
+
+.xianxia-css-backdrop-under-webgl .xi-css-cranes {
+  opacity: 0.42;
+}
+
+.xianxia-css-backdrop-under-webgl .xi-css-vignette {
+  opacity: 0.38;
+}
+
+/* ── Mobile: let ink mountains breathe through page-wrap ───────────── */
+@media (max-width: 839px) {
+  body:has(.xianxia-css-backdrop) .page-wrap {
+    background: rgba(255, 254, 250, 0.64);
+  }
+
+  .xianxia-css-backdrop .xi-css-mountains-far {
+    height: 52vh;
+    opacity: 0.82;
+  }
+
+  .xianxia-css-backdrop .xi-css-mountains-mid {
+    height: 44vh;
+  }
+
+  .xianxia-css-backdrop .xi-css-mountains-near {
+    height: 34vh;
+  }
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .xianxia-css-backdrop .xi-css-mountains-far,
+  .xianxia-css-backdrop .xi-css-mountains-mid,
+  .xianxia-css-backdrop .xi-css-mountains-near,
+  .xianxia-css-backdrop .xi-css-haze,
+  .xianxia-css-backdrop .xi-css-moon {
+    animation: none !important;
+  }
+
+  .xianxia-css-backdrop .xi-css-mist,
+  .xianxia-css-backdrop .xi-css-cloud {
+    animation: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE BATTERY v1 — throttle CSS-only decorative path (≤839px, no WebGL)
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 839px) {
+  .xianxia-css-backdrop .xi-css-spirit-dust,
+  .xianxia-css-backdrop .xi-css-cranes {
+    display: none;
+  }
+
+  .xianxia-css-backdrop .xi-css-mountains-far,
+  .xianxia-css-backdrop .xi-css-mountains-mid,
+  .xianxia-css-backdrop .xi-css-mountains-near,
+  .xianxia-css-backdrop .xi-css-haze {
+    animation: none !important;
+  }
+
+  .xianxia-css-backdrop .xi-css-mist,
+  .xianxia-css-backdrop .xi-css-cloud {
+    animation-duration: 52s;
+  }
+
+  .app-aura-css-mist,
+  .app-aura-css-light,
+  .app-aura-css-qi {
+    animation: none !important;
+  }
+
+  .library-header > .library-hero-shell .xi-cloud-aura--primary,
+  .library-header > .xi-poetry-col .xi-poetry-cloud-bg {
+    animation-duration: 28s !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   AUTH PORTAL v1 — Fanqie-inspired split hero + clean card (login/signup)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.auth-shell--portal {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(26, 107, 90, 0.18), transparent 42%),
+    radial-gradient(circle at 82% 78%, rgba(200, 150, 46, 0.12), transparent 38%),
+    linear-gradient(165deg, #0a1210 0%, #121a18 38%, #0d1412 100%);
+  color: #f4efe6;
+  isolation: isolate;
+}
+
+.auth-portal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.auth-portal-mist {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(48px);
+  opacity: 0.55;
+  animation: auth-portal-drift 28s ease-in-out infinite;
+}
+
+.auth-portal-mist--a {
+  top: 8%;
+  left: -8%;
+  width: min(62vw, 720px);
+  height: min(42vw, 420px);
+  background: radial-gradient(circle, rgba(220, 228, 236, 0.16), transparent 68%);
+}
+
+.auth-portal-mist--b {
+  right: -6%;
+  bottom: 10%;
+  width: min(48vw, 560px);
+  height: min(36vw, 360px);
+  background: radial-gradient(circle, rgba(200, 150, 46, 0.14), transparent 70%);
+  animation-delay: -9s;
+}
+
+.auth-portal-ridge {
+  position: absolute;
+  inset: auto 0 0;
+  height: 42%;
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(8, 12, 11, 0.35) 38%, rgba(6, 9, 8, 0.82) 100%),
+    radial-gradient(ellipse 120% 80% at 50% 100%, rgba(255, 255, 255, 0.05), transparent 58%);
+  mask-image: linear-gradient(180deg, transparent, #000 42%);
+}
+
+@keyframes auth-portal-drift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2.5%, -1.5%, 0) scale(1.04);
+  }
+}
+
+.auth-portal-topbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: max(18px, env(safe-area-inset-top)) clamp(20px, 4vw, 40px) 12px;
+}
+
+.auth-portal-brand {
+  color: #f8f4ec;
+  text-decoration: none;
+}
+
+.auth-portal-brand-text {
+  display: grid;
+  gap: 1px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.auth-portal-brand-text small {
+  color: rgba(244, 239, 230, 0.62);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.auth-portal-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 18px;
+}
+
+.auth-portal-nav a {
+  color: rgba(244, 239, 230, 0.72);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.auth-portal-nav a:hover {
+  color: #f8f4ec;
+}
+
+.auth-portal-stage {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 460px);
+  align-items: center;
+  gap: clamp(20px, 4vw, 48px);
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: clamp(12px, 3vw, 28px) clamp(20px, 4vw, 40px) clamp(24px, 4vw, 40px);
+}
+
+.auth-portal-hero {
+  display: grid;
+  align-content: center;
+  min-height: 0;
+  padding: clamp(8px, 2vw, 24px) 0;
+}
+
+.auth-portal-quote {
+  display: grid;
+  gap: 0.08em;
+  margin: 0;
+  color: rgba(248, 244, 236, 0.94);
+  font-family: var(--font-literata), "Times New Roman", serif;
+  font-size: clamp(2.4rem, 5.8vw, 4.6rem);
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  text-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.auth-portal-quote span:nth-child(2) {
+  padding-left: clamp(12px, 2.4vw, 36px);
+}
+
+.auth-portal-quote span:nth-child(3) {
+  padding-left: clamp(24px, 4.8vw, 72px);
+}
+
+.auth-portal-quote-en {
+  margin: clamp(16px, 2.4vw, 28px) 0 0;
+  padding-left: clamp(8px, 1.6vw, 20px);
+  color: rgba(244, 239, 230, 0.58);
+  font-family: var(--font-sora), system-ui, sans-serif;
+  font-size: clamp(0.92rem, 1.5vw, 1.05rem);
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+.auth-shell--portal .auth-panel.auth-portal-panel {
+  --xi-ba: 0deg;
+  width: 100%;
+  margin: 0;
+  padding: clamp(22px, 3vw, 30px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(245, 215, 94, 0.08), transparent 34%),
+    rgba(252, 250, 246, 0.98);
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.34),
+    0 2px 0 rgba(255, 255, 255, 0.65) inset;
+  animation: none;
+  color: var(--ink);
+}
+
+.auth-portal-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin: 0 0 18px;
+  border-bottom: 1px solid rgba(45, 38, 29, 0.1);
+}
+
+.auth-portal-tab {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  padding: 8px 10px;
+  color: rgba(45, 38, 29, 0.48);
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.auth-portal-tab:hover {
+  color: rgba(45, 38, 29, 0.78);
+}
+
+.auth-portal-tab--active {
+  color: var(--charcoal);
+}
+
+.auth-portal-tab--active::after {
+  content: "";
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #c8962e, #e8b84a);
+}
+
+.auth-portal-heading {
+  margin-bottom: 18px;
+  text-align: left;
+}
+
+.auth-portal-heading h1 {
+  margin: 0;
+  color: var(--charcoal);
+  font-size: clamp(1.35rem, 2.4vw, 1.65rem);
+  line-height: 1.2;
+}
+
+.auth-portal-lede {
+  margin: 10px 0 0;
+  color: var(--slate);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.auth-portal-form {
+  gap: 12px;
+}
+
+.auth-portal-field {
+  gap: 6px;
+}
+
+.auth-portal-label {
+  color: rgba(45, 38, 29, 0.62);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.auth-shell--portal .auth-portal-form input {
+  height: 48px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 0 14px;
+  background: #f1f0ec;
+  color: var(--ink);
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.auth-shell--portal .auth-portal-form input::placeholder {
+  color: rgba(45, 38, 29, 0.38);
+}
+
+.auth-shell--portal .auth-portal-form input:hover {
+  background: #eceae4;
+}
+
+.auth-shell--portal .auth-portal-form input:focus {
+  outline: none;
+  border-color: rgba(200, 150, 46, 0.42);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(200, 150, 46, 0.14);
+}
+
+.auth-shell--portal .auth-submit.auth-portal-submit {
+  --xi-ba: 0deg;
+  min-height: 48px;
+  margin-top: 4px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #d4a04a 0%, #e8b85c 48%, #f0c878 100%);
+  box-shadow: 0 10px 24px rgba(200, 150, 46, 0.28);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(88, 52, 8, 0.22);
+  animation: none;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    filter 160ms ease;
+}
+
+.auth-shell--portal .auth-submit.auth-portal-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow: 0 14px 28px rgba(200, 150, 46, 0.34);
+  background: linear-gradient(135deg, #dbaa55 0%, #edc468 48%, #f4d286 100%);
+}
+
+.auth-shell--portal .auth-submit.auth-portal-submit:disabled {
+  border: none;
+  background: rgba(200, 150, 46, 0.42);
+  color: rgba(255, 255, 255, 0.82);
+  box-shadow: none;
+}
+
+.auth-portal-switch {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 0.86rem;
+}
+
+.auth-portal-switch a {
+  color: #9a6d18;
+  font-weight: 700;
+}
+
+.auth-portal-footer {
+  position: relative;
+  z-index: 2;
+  padding: 10px clamp(20px, 4vw, 40px) max(16px, env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+.auth-portal-footer p {
+  margin: 0;
+  color: rgba(244, 239, 230, 0.42);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 900px) {
+  .auth-portal-stage {
+    grid-template-columns: 1fr;
+    align-content: start;
+    width: min(520px, 100%);
+  }
+
+  .auth-portal-hero {
+    order: -1;
+    padding-top: 0;
+  }
+
+  .auth-portal-quote {
+    font-size: clamp(1.9rem, 8vw, 2.8rem);
+  }
+
+  .auth-portal-quote span:nth-child(2),
+  .auth-portal-quote span:nth-child(3) {
+    padding-left: clamp(10px, 4vw, 24px);
+  }
+
+  .auth-portal-quote-en {
+    margin-top: 10px;
+    font-size: 0.86rem;
+  }
+}
+
+@media (max-width: 620px) {
+  .auth-shell--portal {
+    overflow-y: auto;
+    overflow-x: clip;
+  }
+
+  .auth-portal-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .auth-portal-nav {
+    justify-content: flex-start;
+  }
+
+  .auth-portal-stage {
+    padding-inline: 14px;
+  }
+
+  .auth-shell--portal .auth-panel.auth-portal-panel {
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+
+  .auth-portal-tab {
+    font-size: 0.84rem;
+  }
+
+  .auth-portal-heading h1 {
+    font-size: 1.28rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-portal-mist {
+    animation: none;
+  }
+}
+
+[data-xi-theme="dark"] .auth-shell--portal .auth-panel.auth-portal-panel {
+  border-color: rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(circle at 92% 8%, rgba(245, 215, 94, 0.1), transparent 34%),
+    rgba(22, 20, 18, 0.96);
+}
+
+[data-xi-theme="dark"] .auth-portal-heading h1 {
+  color: #f0ebe2;
+}
+
+[data-xi-theme="dark"] .auth-portal-lede {
+  color: rgba(240, 235, 226, 0.68);
+}
+
+[data-xi-theme="dark"] .auth-portal-tab {
+  color: rgba(240, 235, 226, 0.45);
+}
+
+[data-xi-theme="dark"] .auth-portal-tab--active {
+  color: #f0ebe2;
+}
+
+[data-xi-theme="dark"] .auth-shell--portal .auth-portal-form input {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f0ebe2;
+}
+
+[data-xi-theme="dark"] .auth-shell--portal .auth-portal-form input:focus {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   AUTH PORTAL v1.1 — mobile layout (Fanqie: overlay hero + centered card)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.auth-portal-tab-short {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .auth-shell.auth-shell--portal {
+    min-height: 100dvh;
+  }
+
+  .auth-portal-stage {
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 0;
+    padding: clamp(8px, 2vh, 20px) clamp(14px, 4vw, 24px) clamp(16px, 3vh, 28px);
+  }
+
+  .auth-portal-hero {
+    position: absolute;
+    top: clamp(4px, 1.5vh, 16px);
+    left: clamp(14px, 4vw, 24px);
+    right: min(38%, 220px);
+    order: unset;
+    padding: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .auth-portal-quote {
+    font-size: clamp(1.55rem, 7.2vw, 2.35rem);
+    line-height: 1.04;
+  }
+
+  .auth-portal-quote span:nth-child(2) {
+    padding-left: clamp(8px, 3.2vw, 18px);
+  }
+
+  .auth-portal-quote span:nth-child(3) {
+    padding-left: clamp(16px, 6vw, 36px);
+  }
+
+  .auth-portal-quote-en {
+    margin-top: 8px;
+    padding-left: 2px;
+    font-size: clamp(0.74rem, 2.8vw, 0.84rem);
+    line-height: 1.35;
+  }
+
+  .auth-shell--portal .auth-panel.auth-portal-panel {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 400px);
+    margin: clamp(72px, 18vh, 120px) auto 0;
+  }
+
+  .auth-portal-lede,
+  .auth-portal-switch {
+    display: none;
+  }
+
+  .auth-portal-heading {
+    margin-bottom: 14px;
+  }
+
+  .auth-portal-heading h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+@media (max-width: 620px) {
+  .auth-shell.auth-shell--portal {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow-x: clip;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .auth-portal-topbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding:
+      max(12px, env(safe-area-inset-top))
+      max(14px, env(safe-area-inset-right))
+      8px
+      max(14px, env(safe-area-inset-left));
+  }
+
+  .auth-portal-brand .brand-mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .auth-portal-brand-text {
+    font-size: 0.92rem;
+  }
+
+  .auth-portal-brand-text small {
+    font-size: 0.62rem;
+  }
+
+  .auth-portal-nav {
+    flex: 0 1 auto;
+    justify-content: flex-end;
+    gap: 6px 10px;
+    max-width: 58%;
+  }
+
+  .auth-portal-nav a {
+    font-size: 0.68rem;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .auth-portal-stage {
+    flex: 1;
+    justify-content: center;
+    padding:
+      6px
+      max(14px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(14px, env(safe-area-inset-left));
+  }
+
+  .auth-portal-hero {
+    top: 2px;
+    right: 34%;
+  }
+
+  .auth-portal-quote {
+    font-size: clamp(1.35rem, 6.8vw, 1.85rem);
+  }
+
+  .auth-portal-quote-en {
+    display: none;
+  }
+
+  .auth-shell--portal .auth-panel.auth-portal-panel {
+    width: min(100%, calc(100vw - 28px));
+    margin: clamp(58px, 14vh, 92px) auto 0;
+    padding: 22px 18px 20px;
+    border-radius: 20px;
+    box-shadow:
+      0 22px 56px rgba(0, 0, 0, 0.38),
+      0 2px 0 rgba(255, 255, 255, 0.72) inset;
+  }
+
+  .auth-portal-tabs {
+    margin-bottom: 16px;
+  }
+
+  .auth-portal-tab {
+    min-height: 48px;
+    font-size: 0.9rem;
+  }
+
+  .auth-portal-tab-long {
+    display: none;
+  }
+
+  .auth-portal-tab-short {
+    display: inline;
+  }
+
+  .auth-portal-form {
+    gap: 10px;
+  }
+
+  .auth-shell--portal .auth-portal-form input {
+    height: 52px;
+    border-radius: 14px;
+    padding: 0 16px;
+    font-size: 16px;
+  }
+
+  .auth-shell--portal .auth-submit.auth-portal-submit {
+    min-height: 52px;
+    margin-top: 6px;
+    border-radius: 14px;
+    font-size: 1rem;
+  }
+
+  .auth-portal-footer {
+    flex-shrink: 0;
+    padding:
+      6px
+      max(14px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(14px, env(safe-area-inset-left));
+  }
+
+  .auth-portal-footer p {
+    font-size: 0.68rem;
+    line-height: 1.35;
+  }
+
+  .auth-portal-mist--a {
+    top: 2%;
+    width: 88vw;
+    height: 36vw;
+  }
+
+  .auth-portal-mist--b {
+    right: -18%;
+    bottom: 16%;
+    width: 72vw;
+    height: 30vw;
+  }
+}
+
+@media (max-width: 380px) {
+  .auth-portal-nav a:nth-child(2) {
+    display: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE BATTERY v2 — kill decorative infinite CSS anim (≤839px)
+   Scoped selectors only — do NOT match .spin, toasts, or loaders.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 839px) {
+  .auth-portal-mist {
+    display: none;
+  }
+
+  .auth-shell--portal {
+    background:
+      radial-gradient(circle at 20% 18%, rgba(26, 107, 90, 0.14), transparent 44%),
+      radial-gradient(circle at 78% 82%, rgba(200, 150, 46, 0.1), transparent 40%),
+      linear-gradient(168deg, #0a1210 0%, #121a18 42%, #0d1412 100%);
+  }
+
+  .auth-panel:not(.auth-portal-panel),
+  .chip-active,
+  .auth-submit:not(.auth-portal-submit),
+  .auth-icon,
+  .cultivation-panel,
+  .story-mobile-cta-primary,
+  .rankings-aura-css-mist,
+  .rankings-aura-css-mist-2,
+  .rankings-aura-css-light,
+  .rankings-aura-css-qi,
+  .xianxia-css-backdrop .xi-css-mist,
+  .xianxia-css-backdrop .xi-css-cloud,
+  .xianxia-css-backdrop .xi-css-moon,
+  .brand-mark .brand-vortex,
+  .brand-mark .brand-crescent,
+  .library-header > div:not(.home-library-stage):not(.xi-poetry-col),
+  .library-header > .library-hero-shell .xi-cloud-aura--primary,
+  .library-header > .xi-poetry-col .xi-poetry-cloud-bg,
+  .xi-poetry-line,
+  .xi-poetry-shimmer,
+  .cultivation-panel-breakthrough,
+  .cultivation-breakthrough-ring,
+  .cultivation-breakthrough-label,
+  .reading-stat-icon-fire,
+  .notification-bell-live .notification-trigger::before,
+  .notification-bell-live .notification-dot {
+    animation: none !important;
+  }
+
+  .xi-poetry-shimmer {
+    display: none !important;
+  }
+
+  .app-aura-css-mist,
+  .app-aura-css-light,
+  .app-aura-css-qi {
+    opacity: 0.35;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   XIANXIA ANTIQUE v1 — parchment / ink / seal tokens + surfaces
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --xi-paper: #f5f0e8;
+  --xi-paper-deep: #ede6d6;
+  --xi-ink-antique: #2a2218;
+  --xi-ink-muted-antique: #6b5a48;
+  --xi-seal: #b73555;
+  --xi-brush: rgba(200, 150, 46, 0.35);
+}
+
+body:has(.xianxia-css-backdrop) .page-wrap {
+  background: color-mix(in srgb, var(--xi-paper) 70%, transparent);
+}
+
+.auth-portal-hero .auth-portal-quote {
+  font-family: var(--font-xi-calligraphy), var(--font-literata), "Times New Roman", serif;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.story-card,
+.continue-card,
+.followed-card {
+  background:
+    linear-gradient(
+      148deg,
+      color-mix(in srgb, var(--xi-paper) 90%, white 10%),
+      color-mix(in srgb, var(--xi-paper-deep) 88%, transparent)
+    );
+  border-color: color-mix(in srgb, var(--xi-brush) 50%, var(--hairline) 50%);
+}
+
+.library-header > div:not(.home-library-stage):not(.xi-poetry-col) {
+  background: color-mix(in srgb, var(--xi-paper) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--xi-brush) 42%, transparent);
+  box-shadow:
+    0 14px 42px rgba(45, 38, 29, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+.cultivation-level {
+  border: 1.5px solid color-mix(in srgb, var(--xi-seal) 38%, var(--xi-gold, #c8962e) 62%);
+  border-radius: 4px;
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--xi-paper-deep) 55%, transparent);
+  color: var(--xi-ink-antique);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cultivation-heading .eyebrow {
+  color: color-mix(in srgb, var(--xi-seal) 72%, var(--xi-gold, #c8962e) 28%);
+  letter-spacing: 0.12em;
+}
+
+[data-xi-theme="dark"] body:has(.xianxia-css-backdrop) .page-wrap {
+  background: color-mix(in srgb, var(--xi-ink-antique) 42%, transparent);
+}
+
+[data-xi-theme="dark"] .story-card,
+[data-xi-theme="dark"] .continue-card,
+[data-xi-theme="dark"] .followed-card {
+  background:
+    linear-gradient(
+      148deg,
+      color-mix(in srgb, var(--xi-ink-antique) 88%, #1a1612),
+      color-mix(in srgb, var(--xi-ink-antique) 72%, transparent)
+    );
+  border-color: color-mix(in srgb, var(--xi-brush) 32%, rgba(255, 255, 255, 0.08));
+}
+
+[data-xi-theme="dark"] .library-header > div:not(.home-library-stage):not(.xi-poetry-col) {
+  background: color-mix(in srgb, var(--xi-ink-antique) 78%, transparent);
+  border-color: color-mix(in srgb, var(--xi-brush) 28%, rgba(255, 255, 255, 0.1));
+}
+
+@media (max-width: 839px) {
+  body:has(.xianxia-css-backdrop) .page-wrap {
+    background: color-mix(in srgb, var(--xi-paper) 62%, transparent);
+  }
+
+  .story-card:hover,
+  .continue-card:hover,
+  .followed-card:hover {
+    transform: none;
+  }
+}
+

@@ -271,7 +271,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
-  const decorativeWebglEnabled = useDecorativeWebglEnabled({ allowCompact: true, compactMaxWidth: 839 });
+  const decorativeWebglEnabled = useDecorativeWebglEnabled({ tier: "reader", compactMaxWidth: 839 });
   const { theme, fontSize, fontFamily, lineHeight, paragraphSpacing, contentWidth, layoutMode, tapEdgeEnabled, skillEffectsEnabled } = useAppSelector((state) => state.readerStyle.config);
   const historyHydrated = useAppSelector((state) => state.history.hydrated);
   const currentBookmark = useAppSelector(useMemo(() => selectCurrentBookmark(payload.story.id, payload.chapter.chapterNumber), [payload.story.id, payload.chapter.chapterNumber]));

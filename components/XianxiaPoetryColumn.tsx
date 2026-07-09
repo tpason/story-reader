@@ -15,8 +15,7 @@ const COLUMNS = [
 
 export function XianxiaPoetryColumn() {
   return (
-    <XiDisplayFontScope>
-      <div className="xi-poetry-col" role="presentation" aria-hidden="true">
+    <XiDisplayFontScope className="xi-poetry-col" role="presentation" aria-hidden="true">
       <div className="xi-poetry-cloud-bg xi-cloud-aura xi-cloud-aura--secondary" />
       <div className="xi-poetry-grid">
         {COLUMNS.map((col, ci) => (
@@ -34,7 +33,6 @@ export function XianxiaPoetryColumn() {
         ))}
       </div>
       <span className="xi-poetry-shimmer" aria-hidden="true" />
-      </div>
     </XiDisplayFontScope>
   );
 }

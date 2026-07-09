@@ -18,7 +18,11 @@ export function XianxiaCssBackdrop({ timeOfDay, underWebgl = false }: XianxiaCss
     >
       <div className="xi-css-sky" />
       <div className="xi-css-ink-wash" />
+      <div className="xi-css-mountains-far" />
+      <div className="xi-css-mountains-mid" />
+      <div className="xi-css-mountains-near" />
       <div className="xi-css-mountains" />
+      <div className="xi-css-haze" />
       <div className="xi-css-cranes" />
       <div className="xi-css-mist xi-css-mist-a" />
       <div className="xi-css-mist xi-css-mist-b" />
@@ -27,8 +31,10 @@ export function XianxiaCssBackdrop({ timeOfDay, underWebgl = false }: XianxiaCss
       <div className="xi-css-cloud xi-css-cloud-c" />
       <div className="xi-css-spirit-dust" />
       {timeOfDay === "night" ? <div className="xi-css-stars" /> : null}
+      {timeOfDay === "night" ? <div className="xi-css-moon" /> : null}
       {(timeOfDay === "dawn" || timeOfDay === "dusk") ? <div className="xi-css-sun-halo" /> : null}
       {timeOfDay === "day" ? <div className="xi-css-jade-glow" /> : null}
+      <div className="xi-css-vignette" />
     </div>
   );
 }

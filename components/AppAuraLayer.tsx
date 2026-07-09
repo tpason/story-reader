@@ -36,7 +36,7 @@ export function AppAuraLayer() {
   const isReaderChapter = READER_CHAPTER_RE.test(pathname ?? "");
   const webglEnabled = useDecorativeWebglEnabled({
     tier: isReaderChapter ? "reader" : "global",
-    allowCompact: !isReaderChapter,
+    allowCompact: false,
     compactMaxWidth: 839,
   });
   const reduceMotion = prefersReducedMotion();
