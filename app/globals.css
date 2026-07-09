@@ -19181,3 +19181,7 @@ body:has(.xianxia-css-backdrop) .page-wrap {
   }
 }
 
+/* Remove legacy CSS PNG crane flock — 3D animals live in ThreeXianxiaWorldBackground. */
+.xi-css-cranes {
+  display: none !important;
+}

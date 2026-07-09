@@ -4,9 +4,10 @@ import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { AnimationMixer, Color, DoubleSide, Group, Mesh, MeshStandardMaterial } from "three";
+import { CRANE_MODEL_URL, CRANE_ORBIT_SCALE } from "./craneModel";
 
-const MODEL_URL = "/assets/xianxia/models/flamingo.glb";
-const BIRD_SCALE = 0.0055;
+const MODEL_URL = CRANE_MODEL_URL;
+const BIRD_SCALE = CRANE_ORBIT_SCALE;
 const ORBIT_RADIUS = 0.72;
 const ORBIT_SPEED = 0.28;
 const BOB_AMP = 0.09;

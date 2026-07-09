@@ -8,28 +8,28 @@ import { AnimationClip, AnimationMixer, DoubleSide, Group, Material, Mesh, MeshS
 // ── Stork (cò) ─────────────────────────────────────────────────────────────
 // 2 storks flying independently, original GLTF colors, deeper than cranes
 const STORK_CFG = [
-  { startX:  3.8, y: 0.44, z: -4.05, speed: -0.36, dur: 0.92, phase: 0.4 },
-  { startX: -3.5, y: 0.68, z: -4.30, speed:  0.28, dur: 1.04, phase: 2.1 },
+  { startX:  3.8, y: 0.72, z: -1.22, speed: -0.36, dur: 0.92, phase: 0.4 },
+  { startX: -3.5, y: 0.95, z: -1.28, speed:  0.28, dur: 1.04, phase: 2.1 },
 ];
-const STORK_SCALE = 0.010;
+const STORK_SCALE = 0.012;
 
 // ── Parrot (vẹt) ────────────────────────────────────────────────────────────
 // 3 parrots, faster wing-beat, closer to camera, original colors
 const PARROT_CFG = [
-  { startX:  2.5, y: 1.10, z: -2.65, speed: -0.80, dur: 0.46, phase: 0.0 },
-  { startX: -1.8, y: 0.88, z: -2.80, speed:  0.68, dur: 0.52, phase: 2.3 },
-  { startX:  5.2, y: 1.38, z: -2.55, speed: -0.73, dur: 0.49, phase: 1.2 },
+  { startX:  2.5, y: 1.25, z: -0.92, speed: -0.80, dur: 0.46, phase: 0.0 },
+  { startX: -1.8, y: 1.05, z: -0.98, speed:  0.68, dur: 0.52, phase: 2.3 },
+  { startX:  5.2, y: 1.48, z: -0.88, speed: -0.73, dur: 0.49, phase: 1.2 },
 ];
-const PARROT_SCALE = 0.006;
+const PARROT_SCALE = 0.008;
 
 // ── Horse (thiên mã) ────────────────────────────────────────────────────────
 // 3 horses galloping along far mountain ridges
 const HORSE_CFG = [
-  { startX: -4.5, y: -1.80, z: -6.20, speed:  0.55, dur: 0.9,  phase: 0.0 },
-  { startX:  1.5, y: -1.95, z: -6.45, speed:  0.48, dur: 1.02, phase: 0.7 },
-  { startX: -0.5, y: -1.65, z: -6.05, speed:  0.62, dur: 0.88, phase: 1.5 },
+  { startX: -4.5, y: -1.55, z: -3.85, speed:  0.55, dur: 0.9,  phase: 0.0 },
+  { startX:  1.5, y: -1.70, z: -4.05, speed:  0.48, dur: 1.02, phase: 0.7 },
+  { startX: -0.5, y: -1.40, z: -3.75, speed:  0.62, dur: 0.88, phase: 1.5 },
 ];
-const HORSE_SCALE = 0.0045;
+const HORSE_SCALE = 0.006;
 
 const BOUNDARY_X = 7.5;
 
@@ -72,6 +72,7 @@ function setupAnimals(
 
     group.position.set(cfg.startX, cfg.y, cfg.z);
     group.rotation.y = cfg.speed < 0 ? -Math.PI / 2 : Math.PI / 2;
+    group.renderOrder = 12;
 
     const mixer = new AnimationMixer(group);
     mixer.clipAction(gltf.animations[0]).setDuration(cfg.dur).play();
@@ -111,23 +112,29 @@ export function WildAnimals() {
   const horsesRef  = useRef<AnimalInstance[]>([]);
 
   useEffect(() => {
-    if (
-      !storkGltf.animations.length ||
-      !parrotGltf.animations.length ||
-      !horseGltf.animations.length
-    ) return;
+    const spawned: AnimalInstance[][] = [[], [], []];
 
-    storksRef.current  = setupAnimals(storkGltf  as typeof storkGltf & { scene: Group },  STORK_CFG,  STORK_SCALE,  scene);
-    parrotsRef.current = setupAnimals(parrotGltf as typeof parrotGltf & { scene: Group }, PARROT_CFG, PARROT_SCALE, scene);
-    horsesRef.current  = setupAnimals(horseGltf  as typeof horseGltf & { scene: Group },  HORSE_CFG,  HORSE_SCALE,  scene);
+    if (storkGltf.animations.length) {
+      spawned[0] = setupAnimals(storkGltf as typeof storkGltf & { scene: Group }, STORK_CFG, STORK_SCALE, scene);
+    }
+    if (parrotGltf.animations.length) {
+      spawned[1] = setupAnimals(parrotGltf as typeof parrotGltf & { scene: Group }, PARROT_CFG, PARROT_SCALE, scene);
+    }
+    if (horseGltf.animations.length) {
+      spawned[2] = setupAnimals(horseGltf as typeof horseGltf & { scene: Group }, HORSE_CFG, HORSE_SCALE, scene);
+    }
+
+    storksRef.current = spawned[0];
+    parrotsRef.current = spawned[1];
+    horsesRef.current = spawned[2];
 
     return () => {
-      cleanupAnimals(storksRef.current,  scene);
+      cleanupAnimals(storksRef.current, scene);
       cleanupAnimals(parrotsRef.current, scene);
-      cleanupAnimals(horsesRef.current,  scene);
-      storksRef.current  = [];
+      cleanupAnimals(horsesRef.current, scene);
+      storksRef.current = [];
       parrotsRef.current = [];
-      horsesRef.current  = [];
+      horsesRef.current = [];
     };
   }, [scene, storkGltf, parrotGltf, horseGltf]);
 

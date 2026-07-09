@@ -3,9 +3,16 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
-import { AnimationMixer, Color, DoubleSide, Group, Mesh, MeshStandardMaterial, SphereGeometry } from "three";
+import { AnimationMixer, Color, DoubleSide, Group, MathUtils, Mesh, MeshStandardMaterial, SphereGeometry } from "three";
+import {
+  CRANE_CROWN_HEAD_FACTOR,
+  CRANE_FLOCK_SCALE,
+  CRANE_LONER_SCALE,
+  CRANE_MODEL_URL,
+  CRANE_TURN_LERP,
+} from "./craneModel";
 
-const MODEL_URL = "/assets/xianxia/models/flamingo.glb";
+const MODEL_URL = CRANE_MODEL_URL;
 
 // V-formation trailing offsets: [deltaX_behind, deltaY, deltaZ_depth]
 // ox > 0 = trailing behind leader when flying left
@@ -33,9 +40,10 @@ const BIRD_CONFIGS: [number, number, number, number][] = [
   [0x8A9BB4, 0x1B2740, 0.04, 0.46],  // left-bk    — nhòa vào lam đêm
 ];
 
-const BIRD_SCALE   = 0.009;
-const FLOCK_BASE_Y = 0.85;
-const FLOCK_BASE_Z = -3.1;
+const BIRD_SCALE   = CRANE_FLOCK_SCALE;
+const FLOCK_BASE_Y = 1.05;
+/** In front of mountain billboards (near z ≈ -2.3) so flock is visible in the sky. */
+const FLOCK_BASE_Z = -1.15;
 const FLOCK_SPEED  = 0.50;
 const BOUNDARY_X   = 7.5;
 
@@ -45,9 +53,9 @@ const CROWN_COLOR  = 0xB8473D;
 const CROWN_EMISSIVE = 0x601a12;
 
 // Con lạc đàn — tím khói, bay ngược chiều ở tầng cao
-const LONER_SCALE  = 0.008;
+const LONER_SCALE  = CRANE_LONER_SCALE;
 const LONER_Y      = 1.78;
-const LONER_Z      = -4.05;
+const LONER_Z      = -1.35;
 const LONER_SPEED  = 0.26;
 
 export function FlyingCranes() {
@@ -116,11 +124,12 @@ export function FlyingCranes() {
       // Red crown — counteract parent scale so world radius = CROWN_RADIUS
       const crown = new Mesh(crownGeo, crownMat);
       crown.scale.setScalar(1 / BIRD_SCALE);
-      crown.position.set(0, geoHeadY * 0.80, 0);
+      crown.position.set(0, geoHeadY * CRANE_CROWN_HEAD_FACTOR, 0);
       bird.add(crown);
 
       bird.position.set(flockXRef.current + ox, FLOCK_BASE_Y + oy, FLOCK_BASE_Z - oz);
       bird.rotation.y = -Math.PI / 2; // face left (-X)
+      bird.renderOrder = 12;
 
       const mixer = new AnimationMixer(bird);
       mixer.clipAction(gltf.animations[0]).setDuration(0.70 + Math.random() * 0.38).play();
@@ -147,7 +156,7 @@ export function FlyingCranes() {
 
     const lonerCrown = new Mesh(crownGeo, crownMat);
     lonerCrown.scale.setScalar(1 / LONER_SCALE);
-    lonerCrown.position.set(0, geoHeadY * 0.80, 0);
+    lonerCrown.position.set(0, geoHeadY * CRANE_CROWN_HEAD_FACTOR, 0);
 
     const loner = gltf.scene.clone(true) as Group;
     loner.scale.setScalar(LONER_SCALE);
@@ -155,6 +164,7 @@ export function FlyingCranes() {
     loner.add(lonerCrown);
     loner.position.set(lonerXRef.current, LONER_Y, LONER_Z);
     loner.rotation.y = Math.PI / 2; // face right (+X)
+    loner.renderOrder = 12;
 
     const lonerMixer = new AnimationMixer(loner);
     lonerMixer.clipAction(gltf.animations[0]).setDuration(1.10).play();
@@ -198,8 +208,8 @@ export function FlyingCranes() {
     if (flockXRef.current >  BOUNDARY_X) flockDirRef.current = -1;
     if (flockXRef.current < -BOUNDARY_X) flockDirRef.current =  1;
 
-    // ±π/2 = bird faces direction of travel; instant snap (realistic for birds)
-    const flockRotY = flockDirRef.current < 0 ? -Math.PI / 2 : Math.PI / 2;
+    const targetFlockRotY = flockDirRef.current < 0 ? -Math.PI / 2 : Math.PI / 2;
+    const turnAlpha = Math.min(1, CRANE_TURN_LERP * delta);
 
     groupsRef.current.forEach((bird, i) => {
       if (!mixersRef.current[i]) return;
@@ -209,7 +219,7 @@ export function FlyingCranes() {
       bird.position.x = flockXRef.current + ox;
       bird.position.y = FLOCK_BASE_Y + oy + Math.sin(t * 0.40 + phasesRef.current[i]) * 0.10;
       bird.position.z = FLOCK_BASE_Z - oz;
-      bird.rotation.y = flockRotY;
+      bird.rotation.y = MathUtils.lerp(bird.rotation.y, targetFlockRotY, turnAlpha);
     });
 
     // ── Loner ────────────────────────────────────────────────────────────
@@ -219,9 +229,10 @@ export function FlyingCranes() {
       lonerXRef.current += lonerDirRef.current * LONER_SPEED * delta;
       if (lonerXRef.current >  BOUNDARY_X) lonerDirRef.current = -1;
       if (lonerXRef.current < -BOUNDARY_X) lonerDirRef.current =  1;
+      const targetLonerRotY = lonerDirRef.current < 0 ? -Math.PI / 2 : Math.PI / 2;
       loner.position.x = lonerXRef.current;
       loner.position.y = LONER_Y + Math.sin(t * 0.25 + 1.7) * 0.07;
-      loner.rotation.y = lonerDirRef.current < 0 ? -Math.PI / 2 : Math.PI / 2;
+      loner.rotation.y = MathUtils.lerp(loner.rotation.y, targetLonerRotY, turnAlpha);
     }
   });
 

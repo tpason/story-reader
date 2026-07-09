@@ -5,8 +5,8 @@ const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "tr
 
 const nextConfig: NextConfig = {
   typedRoutes: true,
-  // Playwright / LAN dev hits 127.0.0.1 while Next binds 0.0.0.0 — silence cross-origin dev warnings.
-  allowedDevOrigins: ["127.0.0.1", "localhost"],
+  // Playwright / LAN dev hits 127.0.0.1 or 192.168.x.x while Next binds 0.0.0.0.
+  allowedDevOrigins: ["127.0.0.1", "localhost", "192.168.1.9"],
   experimental: {
     cpus: 1
   },

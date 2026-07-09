@@ -23,7 +23,6 @@ export function XianxiaCssBackdrop({ timeOfDay, underWebgl = false }: XianxiaCss
       <div className="xi-css-mountains-near" />
       <div className="xi-css-mountains" />
       <div className="xi-css-haze" />
-      <div className="xi-css-cranes" />
       <div className="xi-css-mist xi-css-mist-a" />
       <div className="xi-css-mist xi-css-mist-b" />
       <div className="xi-css-cloud xi-css-cloud-a" />

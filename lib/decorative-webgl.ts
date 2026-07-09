@@ -48,7 +48,7 @@ function perfAllowsWebGL(
   tier: DecorativeWebglTier,
 ) {
   if (performanceMode === "full_effects") return true;
-  if (perfTier === "weak") return false;
+  if (perfTier === "weak") return tier === "global";
   // World bg: mount WebGL while probe runs; reader accents stay off until classified.
   if (perfTier === "pending") return tier === "global";
   return true;
