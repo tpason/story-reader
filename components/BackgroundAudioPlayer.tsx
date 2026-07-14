@@ -37,7 +37,12 @@ function readStoredAudioState(): StoredAudioState {
   }
 }
 
-export function BackgroundAudioPlayer() {
+type BackgroundAudioPlayerProps = {
+  /** fab = fixed corner control; inline = sheet/overflow embed (no dock collision). */
+  mode?: "fab" | "inline";
+};
+
+export function BackgroundAudioPlayer({ mode = "fab" }: BackgroundAudioPlayerProps) {
   const stored = useMemo(readStoredAudioState, []);
   const [trackId, setTrackId] = useState(stored.trackId ?? BACKGROUND_AUDIO_TRACKS[0]?.id ?? "");
   const [volume, setVolume] = useState(clampVolume(stored.volume));
@@ -167,8 +172,10 @@ export function BackgroundAudioPlayer() {
 
   if (!activeTrack) return null;
 
+  const isInline = mode === "inline";
+
   return (
-    <div className={`background-audio ${isOpen ? "background-audio-open" : ""}`}>
+    <div className={`background-audio ${isInline ? "background-audio-inline" : ""} ${isOpen ? "background-audio-open" : ""}`}>
       <audio
         ref={audioRef}
         loop
@@ -189,9 +196,16 @@ export function BackgroundAudioPlayer() {
           isPlayingRef.current = true;
         }}
       />
-      <button className="background-audio-trigger" type="button" aria-label="Nhạc nền đọc truyện" aria-expanded={isOpen} onClick={() => setIsOpen((value) => !value)}>
-        <Music2 size={17} />
-        {isPlaying ? <span className="background-audio-pulse" /> : null}
+      <button
+        className={isInline ? "reader-sheet-action background-audio-trigger-inline" : "background-audio-trigger"}
+        type="button"
+        aria-label="Nhạc nền đọc truyện"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((value) => !value)}
+      >
+        <Music2 size={isInline ? 16 : 17} />
+        {isInline ? (isPlaying ? "Đang phát nhạc nền" : "Nhạc nền") : null}
+        {!isInline && isPlaying ? <span className="background-audio-pulse" /> : null}
       </button>
 
       {isOpen ? (

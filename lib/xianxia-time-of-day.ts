@@ -31,3 +31,6 @@ export const GLOBAL_THEME_LABELS: Record<GlobalTheme, string> = {
   light: "Sáng",
   dark: "Tối",
 };
+
+/** Short helper copy: theme toggle only controls UI chrome, not the sky clock. */
+export const GLOBAL_THEME_SKY_HINT = "Bầu trời theo giờ thực";

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { memo, useMemo, useState, type FormEvent } from "react";
 import { ChapterTimestamp } from "@/components/ChapterTimestamp";
 import { isTodayLocal } from "@/lib/date";
+import { formatChapterCardTitle } from "@/lib/chapter-title";
 import type { ChapterSummary, StorySummary } from "@/lib/types";
 import { storyHref } from "@/lib/urls";
 
@@ -39,7 +40,7 @@ const ChapterCard = memo(function ChapterCard({
     >
       {isCurrent && <span className="story-chapter-current-bar" aria-hidden="true" />}
       <span className="story-chapter-title">
-        {chapter.chapterNumber}. {chapter.title}
+        {chapter.chapterNumber}. {formatChapterCardTitle(chapter.chapterNumber, chapter.title)}
       </span>
       <span className="chapter-status-row">
         {isRead ? (

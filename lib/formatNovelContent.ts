@@ -19,8 +19,20 @@ const MAX_TITLE_STRIP_LINES = 4;
 
 export const READER_CONTENT_FORMAT_VERSION = 5;
 
-export function formatNovelContent(content: string | null, maxParagraphLength = DEFAULT_MAX_PARAGRAPH_LENGTH, chapterTitle?: string | null) {
+export type FormatNovelContentOptions = {
+  /** Keep blank-line boundaries; skip dialogue breaks and length splits (bilingual align). */
+  preserveParagraphBoundaries?: boolean;
+};
+
+export function formatNovelContent(
+  content: string | null,
+  maxParagraphLength = DEFAULT_MAX_PARAGRAPH_LENGTH,
+  chapterTitle?: string | null,
+  options?: FormatNovelContentOptions
+) {
   if (!content) return [];
+  const preserveParagraphBoundaries = options?.preserveParagraphBoundaries === true;
+  const effectiveMaxLength = preserveParagraphBoundaries ? Number.MAX_SAFE_INTEGER : maxParagraphLength;
 
   const rawLines = content
     .replace(/\r\n?/g, "\n")
@@ -56,7 +68,7 @@ export function formatNovelContent(content: string | null, maxParagraphLength = 
   const paragraphs = normalized
     .split(/\n{2,}/)
     .map(joinSoftWrappedLines)
-    .flatMap((block) => formatParagraphBlock(block, maxParagraphLength))
+    .flatMap((block) => formatParagraphBlock(block, effectiveMaxLength, preserveParagraphBoundaries))
     .map((paragraph) => normalizePunctuationSpacing(paragraph.replace(/\n+/g, " ").trim()))
     .filter(Boolean);
 
@@ -162,9 +174,10 @@ function normalizePunctuationSpacing(value: string) {
     .trim();
 }
 
-function formatParagraphBlock(block: string, maxParagraphLength: number) {
+function formatParagraphBlock(block: string, maxParagraphLength: number, preserveParagraphBoundaries = false) {
   const paragraph = normalizePunctuationSpacing(block.replace(/\n+/g, " ").trim());
   if (!paragraph) return [];
+  if (preserveParagraphBoundaries) return [paragraph];
 
   const withDialogueBreaks = paragraph
     .replace(new RegExp(`([.!?。！？…][”"'’]?)\\s+(?=${OPENING_QUOTE_PATTERN})`, "g"), "$1\n\n");

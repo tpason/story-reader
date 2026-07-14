@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Moon, ScrollText, Sun, Waves } from "lucide-react";
+import { BookOpen, Circle, Moon, ScrollText, Sun, Waves } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { READER_THEME_OPTIONS, type ReaderTheme } from "@/lib/reader-preferences";
 import { setReaderTheme } from "@/lib/store";
@@ -12,7 +12,7 @@ const THEME_ICONS: Record<ReaderTheme, LucideIcon> = {
   bamboo: ScrollText,
   "ink-night": Waves,
   dark: Moon,
-  oled: Moon
+  oled: Circle
 };
 
 type ReaderThemeSegmentedProps = {

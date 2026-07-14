@@ -1,3 +1,4 @@
+import { formatChapterLabel } from "@/lib/chapter-title";
 import type { StoryDiscoveryItem } from "@/lib/types";
 
 const ABSOLUTE_DATE_FORMATTER = new Intl.DateTimeFormat("vi-VN", {
@@ -16,11 +17,7 @@ const ABSOLUTE_DATE_TIME_FORMATTER = new Intl.DateTimeFormat("vi-VN", {
 
 export function formatDiscoveryChapterLabel(story: Pick<StoryDiscoveryItem, "latestChapterNumber" | "latestChapterTitle">) {
   if (!story.latestChapterNumber) return "Chưa có chương";
-  if (!story.latestChapterTitle) return `Chương ${story.latestChapterNumber}`;
-
-  const normalizedTitle = story.latestChapterTitle.trim();
-  const hasChapterPrefix = new RegExp(`^chương\\s+${story.latestChapterNumber}(\\D|$)`, "i").test(normalizedTitle);
-  return hasChapterPrefix ? normalizedTitle : `Chương ${story.latestChapterNumber}: ${normalizedTitle}`;
+  return formatChapterLabel(story.latestChapterNumber, story.latestChapterTitle);
 }
 
 export function formatRelativeActivity(value: string) {

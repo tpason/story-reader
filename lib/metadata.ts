@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { formatChapterLabel } from "@/lib/chapter-title";
 import type { ChapterSummary, StorySummary } from "@/lib/types";
 import { absoluteSiteUrl, truncateMetaDescription } from "@/lib/seo-text";
 import { storyDisplayDescription } from "@/lib/story-description";
@@ -46,7 +47,7 @@ export function buildChapterMetadata(
   story: StorySummary,
   chapter: Pick<ChapterSummary, "chapterNumber" | "title">,
 ): Metadata {
-  const chapterLabel = `Chương ${chapter.chapterNumber}${chapter.title ? `: ${chapter.title}` : ""}`;
+  const chapterLabel = formatChapterLabel(chapter.chapterNumber, chapter.title);
   const description = truncateMetaDescription(
     `${chapterLabel} · ${story.title}${story.author ? ` · ${story.author}` : ""}. Đọc trên ${SITE_NAME}.`,
   );

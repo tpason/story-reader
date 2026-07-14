@@ -1,3 +1,4 @@
+import { formatChapterLabel } from "./chapter-title.ts";
 import type { ChapterSummary, StorySummary } from "./types.ts";
 import { absoluteSiteUrl } from "./seo-text.ts";
 import { storyDisplayDescription } from "./story-description.ts";
@@ -33,7 +34,7 @@ export function buildChapterArticleJsonLd(
   story: StorySummary,
   chapter: Pick<ChapterSummary, "chapterNumber" | "title" | "updatedAt">
 ) {
-  const chapterLabel = `Chương ${chapter.chapterNumber}${chapter.title ? `: ${chapter.title}` : ""}`;
+  const chapterLabel = formatChapterLabel(chapter.chapterNumber, chapter.title);
   const url = absoluteSiteUrl(storyHref(story, chapter.chapterNumber));
 
   return {

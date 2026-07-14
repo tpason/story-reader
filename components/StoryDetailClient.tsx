@@ -33,6 +33,7 @@ import { StoryDetailOfflineDownload } from "@/components/StoryDetailOfflineDownl
 import { useStoryDetailAdminEdit } from "@/hooks/useStoryDetailAdminEdit";
 import { writeResumeNavigationTarget } from "@/lib/reader-resume";
 import { estimateReadingMinutes, formatReadingDuration } from "@/lib/reading-estimate";
+import { displayStoryAuthor, resolveStoryStatusBadge } from "@/lib/story-status";
 
 const ThreeStoryStage = dynamic(() => import("@/components/ThreeStoryStage").then((mod) => mod.ThreeStoryStage), {
   ssr: false
@@ -50,7 +51,7 @@ type StoryDetailClientProps = {
 export function StoryDetailClient({ story, chapters, totalChapters, recommendations = [], recommendationsSlot, sameAuthorSlot }: StoryDetailClientProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const decorativeWebglEnabled = useDecorativeWebglEnabled({ compactMaxWidth: 1099 });
+  const decorativeWebglEnabled = useDecorativeWebglEnabled({ compactMaxWidth: 839 });
   const currentUser = useAppSelector((state) => state.identity.user);
   const [descExpanded, setDescExpanded] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -113,6 +114,8 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
     }
   });
   const updatedLabel = formatStoryUpdatedLabel(currentStory.updatedAt);
+  const statusBadge = resolveStoryStatusBadge(currentStory);
+  const authorLabel = displayStoryAuthor(currentStory.author);
   useReadingProgressSync();
 
   useEffect(() => {
@@ -194,17 +197,17 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
                   onDoubleClick={() => startAdminEdit("author", currentStory.author)}
                 >
                   <User size={12} aria-hidden="true" />
-                  {currentStory.author || "Vô danh tác giả"}
+                  {authorLabel}
                 </span>
               )}
               <span className="story-meta-icon-badge">
                 <BookOpen size={12} aria-hidden="true" />
                 {totalChapters} chương
               </span>
-              {currentStory.isCompleted ? (
-                <span className="xi-badge-completed">Hoàn thành</span>
+              {statusBadge.completed ? (
+                <span className="xi-badge-completed">{statusBadge.label}</span>
               ) : (
-                <span className="xi-badge-ongoing">{currentStory.status || "Đang cập nhật"}</span>
+                <span className="xi-badge-ongoing">{statusBadge.label}</span>
               )}
               <span className="story-meta-icon-badge">
                 <Clock3 size={12} aria-hidden="true" />
@@ -377,6 +380,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
             <BookOpenCheck size={16} />
             {heroCtaLabel}
           </Link>
+          <FollowButton story={currentStory} compact className="story-mobile-cta-follow" />
           <a className="story-mobile-cta-secondary" href="#story-chapters">
             Mục lục
           </a>

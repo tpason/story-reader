@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import { ReaderAmbienceCss } from "@/components/ReaderAmbienceCss";
 import { useDeferredWebglMount } from "@/hooks/useDeferredWebglMount";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
@@ -10,23 +11,34 @@ const ThreeReaderAmbience = dynamic(
   { ssr: false },
 );
 
+const COMPACT_QUERY = "(max-width: 839px)";
+
 type ReaderAmbienceLayerProps = {
   enabled?: boolean;
 };
 
 /**
  * Chapter reader foreground ambience.
- * Mobile / battery saver: CSS only (petals, mist, qi, sway).
- * Desktop: deferred WebGL (wind, petals, spirit particles) — no CSS+WebGL double stack.
+ * Mobile ≤839px: off entirely (blur/filter layers heat phones even with animation:none).
+ * Desktop: deferred WebGL, CSS fallback when WebGL gated off.
  */
 export function ReaderAmbienceLayer({ enabled = true }: ReaderAmbienceLayerProps) {
+  const [isCompact, setIsCompact] = useState(false);
   const webglEnabled = useDecorativeWebglEnabled({
     tier: "reader",
     compactMaxWidth: 839,
   });
   const webglReady = useDeferredWebglMount(webglEnabled, 2000);
 
-  if (!enabled) return null;
+  useEffect(() => {
+    const query = window.matchMedia(COMPACT_QUERY);
+    const sync = () => setIsCompact(query.matches);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
+
+  if (!enabled || isCompact) return null;
 
   const showWebgl = webglEnabled && webglReady;
 

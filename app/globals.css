@@ -4668,7 +4668,7 @@ select {
     bottom: calc(env(safe-area-inset-bottom) + 12px);
     z-index: 58;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     gap: 8px;
     width: min(420px, calc(100vw - 24px));
     border: 1px solid color-mix(in srgb, var(--hairline) 82%, transparent);
@@ -4678,6 +4678,15 @@ select {
     box-shadow: 0 18px 46px rgba(45, 38, 29, 0.18);
     transform: translateX(50%) translateZ(0);
     backdrop-filter: blur(18px) saturate(1.12);
+  }
+
+  .story-mobile-cta-follow {
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--hairline) 84%, transparent);
+    background: color-mix(in srgb, var(--canvas) 92%, transparent);
   }
 
   .story-mobile-cta-primary,
@@ -5216,8 +5225,10 @@ select {
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* ── 1. DROP-CAP — ink-style first character ──────────────────────── */
-/* Float first letter of first visible paragraph as a xianxia drop-cap */
-.reader-content .reader-paragraph:first-child .reader-paragraph-text::first-letter {
+/* Only the chapter's first paragraph (index 0). Do NOT use :first-child —
+   virtualized rows wrap each <p> in its own div, so :first-child matched every
+   paragraph and painted a gold drop-cap on all of them. */
+.reader-content .reader-paragraph[data-paragraph-index="0"] .reader-paragraph-text::first-letter {
   float: left;
   font-size: 2.88em;
   line-height: 0.84;
@@ -5231,12 +5242,14 @@ select {
     0 0 28px rgba(200, 150, 46, 0.14);
 }
 
-.reader-shell[data-theme="sepia"] .reader-content .reader-paragraph:first-child .reader-paragraph-text::first-letter {
+.reader-shell[data-theme="sepia"] .reader-content .reader-paragraph[data-paragraph-index="0"] .reader-paragraph-text::first-letter,
+.reader-shell[data-theme="parchment"] .reader-content .reader-paragraph[data-paragraph-index="0"] .reader-paragraph-text::first-letter {
   color: color-mix(in srgb, var(--xi-gold) 84%, var(--xi-crimson) 16%);
   text-shadow: 0 1px 6px rgba(180, 110, 30, 0.3);
 }
 
-.reader-shell[data-theme="dark"] .reader-content .reader-paragraph:first-child .reader-paragraph-text::first-letter {
+.reader-shell[data-theme="dark"] .reader-content .reader-paragraph[data-paragraph-index="0"] .reader-paragraph-text::first-letter,
+.reader-shell[data-theme="ink-night"] .reader-content .reader-paragraph[data-paragraph-index="0"] .reader-paragraph-text::first-letter {
   color: var(--xi-gold-light);
   text-shadow:
     0 2px 14px rgba(226, 188, 114, 0.48),
@@ -19184,4 +19197,367 @@ body:has(.xianxia-css-backdrop) .page-wrap {
 /* Remove legacy CSS PNG crane flock — 3D animals live in ThreeXianxiaWorldBackground. */
 .xi-css-cranes {
   display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   NOTIFICATION BADGE — keep unread count above live FX / orb overlays
+   topbar-modern-utils pinned badge to top:0/right:0 (under icon + ring).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.notification-bell,
+.topbar-modern-utils .notification-bell,
+.reader-controls .notification-bell {
+  overflow: visible !important;
+}
+
+.notification-bell .notification-trigger,
+.topbar-modern-utils .notification-trigger,
+.icon-button.notification-trigger {
+  position: relative;
+  z-index: 2;
+  overflow: visible !important;
+}
+
+.notification-spirit-burst,
+.three-notification-orb,
+.notification-bell .notification-spirit-burst,
+.notification-bell .three-notification-orb {
+  z-index: 0 !important;
+}
+
+.notification-bell .notification-dot,
+.notification-bell-live .notification-dot,
+.topbar-modern-utils .notification-dot,
+.reader-controls .notification-dot {
+  position: absolute !important;
+  top: -5px !important;
+  right: -6px !important;
+  z-index: 5 !important;
+  display: grid !important;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 2px solid var(--canvas, #fff);
+  border-radius: 999px;
+  padding: 0 4px;
+  background: linear-gradient(135deg, #ef4444, #f59e0b) !important;
+  color: #fff !important;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1;
+  transform: none !important;
+  opacity: 1 !important;
+  pointer-events: none;
+}
+
+.notification-bell-live .notification-trigger::before {
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TEXT CONTRAST AUDIT v1 — global + dark theme
+   Root cause: dark theme set --steel/#726c64 and --muted/#524e4a (too dark
+   for dark surfaces). Secondary UI using those tokens sinks everywhere.
+   Also lift common secondary labels over mountain / frosted glass.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* --- Dark theme tokens: secondary text must be LIGHTER than canvas --- */
+[data-xi-theme="dark"] {
+  --slate: #c9c0b4;
+  --steel: #b7aea2;
+  --muted: #a69e94;
+  --ink: #f5f1e8;
+  --charcoal: #efeae2;
+}
+
+/* Primary / secondary text floors on dark surfaces */
+[data-xi-theme="dark"] body,
+[data-xi-theme="dark"] .app-shell,
+[data-xi-theme="dark"] .page-wrap {
+  color: var(--ink);
+}
+
+[data-xi-theme="dark"] .eyebrow,
+[data-xi-theme="dark"] .library-subtitle,
+[data-xi-theme="dark"] .section-heading-row p,
+[data-xi-theme="dark"] .discovery-heading p,
+[data-xi-theme="dark"] .story-card-kicker,
+[data-xi-theme="dark"] .story-meta,
+[data-xi-theme="dark"] .story-card-footer,
+[data-xi-theme="dark"] .story-card-cta,
+[data-xi-theme="dark"] .followed-card p,
+[data-xi-theme="dark"] .followed-kicker,
+[data-xi-theme="dark"] .continue-card p,
+[data-xi-theme="dark"] .continue-card span,
+[data-xi-theme="dark"] .bookmark-card p,
+[data-xi-theme="dark"] .bookmark-card span,
+[data-xi-theme="dark"] .notification-item span,
+[data-xi-theme="dark"] .notification-empty,
+[data-xi-theme="dark"] .topbar-nav a,
+[data-xi-theme="dark"] .identity-copy small,
+[data-xi-theme="dark"] .identity-copy span,
+[data-xi-theme="dark"] .cultivation-panel span:not(.cultivation-dot),
+[data-xi-theme="dark"] .chip:not(.chip-active),
+[data-xi-theme="dark"] .empty-state p,
+[data-xi-theme="dark"] .auth-panel p,
+[data-xi-theme="dark"] .auth-hint,
+[data-xi-theme="dark"] .updates-item p,
+[data-xi-theme="dark"] .history-item p,
+[data-xi-theme="dark"] .account-panel p,
+[data-xi-theme="dark"] .trending-card p,
+[data-xi-theme="dark"] .discover-list p {
+  color: var(--slate) !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .story-card-title,
+[data-xi-theme="dark"] .followed-card h3,
+[data-xi-theme="dark"] .continue-card strong,
+[data-xi-theme="dark"] .continue-card h3,
+[data-xi-theme="dark"] .bookmark-card strong,
+[data-xi-theme="dark"] .notification-item strong,
+[data-xi-theme="dark"] .identity-copy strong,
+[data-xi-theme="dark"] .cultivation-panel strong,
+[data-xi-theme="dark"] .section-heading-row h2,
+[data-xi-theme="dark"] .library-title,
+[data-xi-theme="dark"] .auth-panel h1,
+[data-xi-theme="dark"] .auth-panel h2,
+[data-xi-theme="dark"] .topbar .brand,
+[data-xi-theme="dark"] .topbar-modern-wordmark {
+  color: var(--ink) !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .topbar-nav a:hover,
+[data-xi-theme="dark"] .topbar-nav a:focus-visible {
+  color: var(--xi-gold-light, #f0d06a) !important;
+}
+
+[data-xi-theme="dark"] input::placeholder,
+[data-xi-theme="dark"] textarea::placeholder {
+  color: var(--steel) !important;
+  opacity: 0.9;
+}
+
+/* Light / auto UI over mountain: keep secondary text ink-strong on frosted cards */
+body:not([data-xi-theme="dark"]) .page-wrap .eyebrow,
+html:not([data-xi-theme="dark"]) .page-wrap .eyebrow {
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 72%, var(--charcoal) 28%);
+  font-weight: 700;
+}
+
+html:not([data-xi-theme="dark"]) .page-wrap .library-subtitle,
+html:not([data-xi-theme="dark"]) .page-wrap .story-card-kicker,
+html:not([data-xi-theme="dark"]) .page-wrap .story-meta,
+html:not([data-xi-theme="dark"]) .page-wrap .followed-kicker,
+html:not([data-xi-theme="dark"]) .page-wrap .continue-card p,
+html:not([data-xi-theme="dark"]) .page-wrap .notification-item span,
+html:not([data-xi-theme="dark"]) .page-wrap .identity-copy small,
+html:not([data-xi-theme="dark"]) .page-wrap .cultivation-panel span:not(.cultivation-dot) {
+  color: color-mix(in srgb, var(--charcoal) 78%, var(--slate) 22%);
+  opacity: 1;
+}
+
+html:not([data-xi-theme="dark"]) .page-wrap .story-card-title,
+html:not([data-xi-theme="dark"]) .page-wrap .followed-card h3,
+html:not([data-xi-theme="dark"]) .page-wrap .section-heading-row h2,
+html:not([data-xi-theme="dark"]) .page-wrap .identity-copy strong {
+  color: var(--ink);
+  opacity: 1;
+}
+
+/* Topbar always: nav + utils readable on translucent bar */
+.topbar,
+.topbar-modern {
+  color: var(--ink);
+}
+
+.topbar-nav a {
+  color: color-mix(in srgb, var(--ink) 82%, var(--slate) 18%);
+  opacity: 1;
+}
+
+.topbar .icon-button,
+.topbar-modern .icon-button {
+  color: var(--ink);
+}
+
+/* Frosted cards: ensure text isn't washed by low-opacity parents */
+.story-card,
+.followed-card,
+.continue-card,
+.bookmark-card,
+.discovery-panel,
+.notification-panel,
+.auth-panel,
+.cultivation-panel,
+.account-panel,
+.library-header-card,
+.page-wrap .empty-state {
+  color: var(--ink);
+}
+
+.story-card p,
+.followed-card p,
+.continue-card p,
+.bookmark-card p,
+.discovery-panel p,
+.notification-item span,
+.empty-state p {
+  opacity: 1;
+}
+
+/* ── Chrome declutter — SiteHeader secondary + home bury ─────────── */
+.topbar-modern-more {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.topbar-modern-more-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.topbar-modern-more-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  min-width: 168px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--hairline) 80%, transparent);
+  background: color-mix(in srgb, var(--canvas) 94%, transparent);
+  box-shadow: 0 14px 36px rgba(18, 16, 13, 0.14);
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+
+.topbar-modern-more-link {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: var(--charcoal, var(--ink));
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.topbar-modern-more-link:hover,
+.topbar-modern-more-link:focus-visible {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.topbar-modern-more-link-active {
+  color: var(--xi-jade, #1a6b5a);
+  background: color-mix(in srgb, var(--xi-jade, #1a6b5a) 8%, transparent);
+}
+
+.site-header-drawer-group-label {
+  margin: 14px 4px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--slate, var(--steel)) 88%, transparent);
+}
+
+.home-sort-details,
+.home-discovery-more {
+  margin: 0 0 18px;
+}
+
+.home-sort-details > summary,
+.home-discovery-more > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.home-sort-details > summary::-webkit-details-marker,
+.home-discovery-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.home-sort-summary {
+  display: inline-flex;
+  width: fit-content;
+}
+
+.home-sort-details[open] .home-sort-summary {
+  margin-bottom: 10px;
+}
+
+.home-discovery-more > summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 0;
+}
+
+.home-discovery-more > summary strong {
+  font-size: 15px;
+  font-weight: 720;
+  color: var(--charcoal, var(--ink));
+}
+
+.home-discovery-more[open] > summary {
+  margin-bottom: 8px;
+}
+
+
+/* === UI/UX audit 2026-07-14 — P1/P2 polish === */
+/* Keep engagement away from mobile reader dock (read first). */
+@media (max-width: 839px) {
+  .reader-engagement-prompt {
+    top: max(64px, calc(52px + env(safe-area-inset-top)));
+    bottom: auto;
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    width: auto;
+  }
+
+  /* Story detail: sticky CTA already covers resume — hide duplicate bar. */
+  .story-detail-shell .resume-mini-bar {
+    display: none;
+  }
+
+  /* Soften hero density: keep % label, hide heatmap gold cells. */
+  .story-detail-hero-progress .chapter-sidebar-heatmap-grid {
+    display: none;
+  }
+
+  .story-detail-hero-progress {
+    margin-top: 8px;
+  }
+}
+
+
+/* === UI/UX audit 2026-07-14 — P3 breakpoint align (incremental) ===
+   Site header CSS flipped to mobile at 900px while page/JS compact gate is 839.
+   Restore desktop chrome for 840–900 so header + library grids agree.
+   === */
+@media (min-width: 840px) and (max-width: 900px) {
+  .topbar-modern-inner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "brand search actions";
+    row-gap: 0;
+    min-height: 64px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .site-header-menu-btn {
+    display: none !important;
+  }
+
+  .topbar-modern-nav {
+    display: block;
+  }
+
+  .topbar-identity .identity-copy {
+    display: initial;
+  }
 }

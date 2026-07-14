@@ -126,7 +126,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const [loading, setLoading] = useState(false);
   const [burstKey, setBurstKey] = useState(0);
   const panelRef = useRef<HTMLElement>(null);
-  const decorativeWebglEnabled = useDecorativeWebglEnabled({ compactMaxWidth: 720 });
+  const decorativeWebglEnabled = useDecorativeWebglEnabled({ compactMaxWidth: 839 });
   const { mode: fxMode } = useReaderRealtimeFx();
   const fxBurstEnabled = fxMode === "full";
   const caughtUpMap = useNotificationCaughtUp();
@@ -197,7 +197,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   }, [refresh, queryKey]);
 
   useEffect(() => {
-    const pollMs = live ? 120_000 : 30_000;
+    const pollMs = live ? 120_000 : typeof window !== "undefined" && window.matchMedia("(max-width: 839px)").matches ? 120_000 : 30_000;
     const timer = window.setInterval(refresh, pollMs);
     const onVisibilityChange = () => {
       if (!document.hidden) refresh();

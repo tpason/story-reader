@@ -3642,7 +3642,7 @@ html[data-sidebar-resizing="true"] * {
   z-index: 1210;
   display: flex;
   flex-direction: column;
-  min-width: 188px;
+  min-width: 228px;
   max-height: min(70vh, calc(100dvh - env(safe-area-inset-top) - 72px));
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -3689,6 +3689,52 @@ html[data-sidebar-resizing="true"] * {
   height: 1px;
   background: color-mix(in srgb, var(--reader-line) 60%, transparent);
   margin: 4px 6px;
+}
+
+.reader-overflow-group-label {
+  margin: 8px 10px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--reader-ink) 52%, transparent);
+}
+
+.reader-overflow-group-label:first-child {
+  margin-top: 4px;
+}
+
+.reader-overflow-account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 8px;
+}
+
+.reader-overflow-account .reader-cultivation,
+.reader-overflow-account .reader-stats-pill {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.background-audio-inline {
+  position: static;
+  left: auto;
+  bottom: auto;
+  z-index: auto;
+  width: 100%;
+}
+
+.background-audio-inline .background-audio-panel {
+  position: static;
+  margin-top: 8px;
+  width: 100%;
+  box-shadow: none;
+}
+
+.background-audio-trigger-inline {
+  width: 100%;
 }
 
 /* ── Sprint B: Mobile title-stack — fix aggressive truncation ─────── */
@@ -6234,3 +6280,564 @@ button.chapter-sidebar-heatmap-cell:focus-visible {
     -webkit-backdrop-filter: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE PARAGRAPH WIDTH FIX
+   globals.css makes .paragraph-bookmark-button position:absolute on ≤839px
+   and collapses the paragraph grid to 1 column. reader.css later redefines
+   .reader-paragraph { grid-template-columns: 28px minmax(0, 1fr) }, so the
+   absolute bookmark leaves the first 28px track empty and the text span
+   auto-places into that narrow column → 1–2 chars per line.
+   Re-assert the single-column mobile layout here (reader.css loads last).
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 839px) {
+  .reader-paragraph,
+  .reader-paragraph-bilingual {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding-left: 30px;
+  }
+
+  .reader-paragraph > .paragraph-bookmark-button,
+  .reader-paragraph > .paragraph-note-button {
+    position: absolute;
+    left: 0;
+    top: 0.1em;
+    margin: 0;
+    transform: none;
+  }
+
+  .reader-paragraph > .paragraph-note-button {
+    top: 1.85em;
+  }
+
+  .reader-paragraph > .reader-paragraph-text,
+  .reader-paragraph > .reader-paragraph-bilingual-primary,
+  .reader-paragraph > .reader-paragraph-bilingual-secondary {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DROP-CAP SCOPE FIX — only paragraph index 0
+   Virtualized rows wrap each <p> so :first-child matched every paragraph.
+   Neutralize legacy :first-child drop-caps; keep gold initial on index 0.
+   ═══════════════════════════════════════════════════════════════════════ */
+.reader-content .reader-paragraph:first-child .reader-paragraph-text::first-letter {
+  float: none;
+  font-size: inherit;
+  line-height: inherit;
+  margin: 0;
+  font-weight: inherit;
+  color: inherit;
+  text-shadow: none;
+}
+
+.reader-content .reader-paragraph[data-paragraph-index="0"] .reader-paragraph-text::first-letter {
+  float: left;
+  font-size: 2.88em;
+  line-height: 0.84;
+  margin-right: 5px;
+  margin-top: 4px;
+  font-family: var(--font-literata), ui-serif, Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  color: var(--xi-gold);
+  text-shadow:
+    0 2px 8px rgba(200, 150, 46, 0.36),
+    0 0 28px rgba(200, 150, 46, 0.14);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE BATTERY v3 — reader page (reader.css loads after globals)
+   Kill continuous CSS ambience + chrome pulses that still ran on ≤839px
+   after WebGL was already gated off.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 839px) {
+  .reader-xi-light,
+  .reader-xi-rays,
+  .reader-xi-mist,
+  .reader-xi-qi,
+  .reader-xi-wind,
+  .reader-xi-sway,
+  .reader-xi-petal,
+  .reader-xi-mote {
+    animation: none !important;
+  }
+
+  .reader-xi-petals,
+  .reader-xi-dust,
+  .reader-xi-wind,
+  .reader-xi-sway {
+    display: none !important;
+  }
+
+  .reader-xi-light,
+  .reader-xi-rays,
+  .reader-xi-mist,
+  .reader-xi-qi {
+    opacity: 0.28;
+  }
+
+  .reader-heading::before,
+  .reader-topbar::after,
+  .reader-progress-bar,
+  .scroll-top-button-visible,
+  .sidebar-link-active,
+  .reader-mobile-dock-primary-active,
+  .reader-continue-fab-active,
+  .reader-continue-fab-active::after,
+  .audio-panel,
+  .audio-panel::before,
+  .chapter-audio-aura,
+  .chapter-audio-orbit,
+  .chapter-audio-wave,
+  .nav-card-next-active,
+  .nav-card-next-active::before,
+  .background-audio-pulse,
+  .comment-editor-shell::before,
+  .comment-editor-shell::after,
+  .chapter-comments::before {
+    animation: none !important;
+  }
+
+  .reader-heading {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   READER UX FIX — mục lục + header contrast + notification badge
+   reader.css sets .chapter-sidebar / .drawer-backdrop { display:none } and
+   loads after globals, so mobile (and desktop) TOC never becomes visible.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 840px) {
+  .chapter-sidebar {
+    display: block;
+  }
+
+  .reader-layout[data-sidebar="open"] .chapter-sidebar-resize {
+    display: block;
+  }
+}
+
+@media (max-width: 839px) {
+  .drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 56px 0 0;
+    z-index: 64;
+    border: 0;
+    padding: 0;
+    background: rgba(18, 16, 13, 0.42);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+  }
+
+  .drawer-backdrop-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .chapter-sidebar {
+    position: fixed;
+    top: 56px;
+    bottom: 0;
+    left: 0;
+    z-index: 65;
+    display: block;
+    width: min(86vw, 330px);
+    height: calc(100dvh - 56px);
+    overflow: auto;
+    border-right: 1px solid var(--reader-line);
+    padding: 18px 14px;
+    background: color-mix(in srgb, var(--reader-bg) 97%, var(--reader-ink) 3%);
+    box-shadow: 18px 0 44px rgba(18, 16, 13, 0.22);
+    pointer-events: none;
+    transform: translateX(-105%);
+    transition: transform 220ms ease;
+  }
+
+  .chapter-sidebar-open {
+    pointer-events: auto;
+    transform: translateX(0);
+  }
+
+  /* Header: opaque bar so title/chapter text stays readable over mountain bg */
+  .reader-topbar,
+  .reader-topbar-modern {
+    background: color-mix(in srgb, var(--reader-bg) 94%, var(--reader-ink) 6%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow:
+      0 1px 0 color-mix(in srgb, var(--reader-line) 70%, transparent),
+      0 10px 28px rgba(18, 16, 13, 0.12);
+  }
+
+  .reader-topbar-modern .reader-story-title {
+    color: var(--reader-ink);
+    text-shadow: none;
+  }
+
+  .reader-topbar-modern .reader-chapter-kicker {
+    color: color-mix(in srgb, var(--reader-ink) 72%, var(--xi-jade, #1a6b5a) 28%);
+    background: color-mix(in srgb, var(--reader-bg) 88%, var(--xi-gold, #c8962e) 12%);
+    border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 28%, var(--reader-line) 72%);
+  }
+
+  .reader-topbar-modern .icon-button {
+    background: color-mix(in srgb, var(--reader-bg) 96%, var(--reader-ink) 4%);
+    color: var(--reader-ink);
+    border-color: color-mix(in srgb, var(--reader-line) 80%, var(--reader-ink) 20%);
+  }
+}
+
+/* Notification badge must stay above live ring / spirit orb overlays */
+.reader-controls,
+.reader-controls-mobile,
+.notification-bell,
+.reader-topbar .notification-bell,
+.topbar-modern-utils .notification-bell {
+  overflow: visible;
+}
+
+.notification-bell .notification-trigger {
+  position: relative;
+  z-index: 2;
+  overflow: visible;
+}
+
+.notification-bell .notification-spirit-burst,
+.notification-bell .three-notification-orb {
+  z-index: 0;
+}
+
+.notification-bell .notification-dot,
+.notification-bell-live .notification-dot,
+.topbar-modern-utils .notification-dot,
+.reader-topbar .notification-dot {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  z-index: 5;
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 2px solid var(--canvas, #fff);
+  border-radius: 999px;
+  padding: 0 4px;
+  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  color: #fff !important;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1;
+  animation: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+  pointer-events: none;
+}
+
+.notification-bell-live .notification-trigger::before {
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE READER CHROME v1 — declutter sheet + distinct theme chips
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 839px) {
+  .reader-sheet-themes.reader-quick-settings-themes,
+  .reader-sheet-themes.reader-quick-settings-themes--antique {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0;
+  }
+
+  .reader-sheet-themes .reader-quick-theme {
+    flex-direction: column;
+    gap: 4px;
+    min-height: 52px;
+    padding: 8px 4px;
+    font-size: 0.68rem;
+    letter-spacing: 0.01em;
+  }
+
+  .reader-sheet-account-row {
+    margin-bottom: 2px;
+  }
+
+  .reader-sheet-grid-primary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reader-sheet-collapsible {
+    margin: 0 0 10px;
+  }
+
+  .reader-sheet-collapsible[open] summary svg {
+    transform: rotate(90deg);
+  }
+
+  .reader-sheet-collapsible summary svg {
+    transition: transform 160ms ease;
+  }
+
+  .reader-mobile-dock-primary-progress {
+    min-width: 7.5rem;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE BATTERY v4 — remove ambience DOM cost + kill remaining blur
+   Blur/filter full-screen layers heat phones even when animation:none.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 839px) {
+  .reader-ambience-layer,
+  .reader-ambience-css {
+    display: none !important;
+  }
+
+  .reader-shell--compact .reader-progress-bar,
+  .reader-shell--compact .reader-heading,
+  .reader-shell--compact .format-controls,
+  .reader-shell--compact .reader-mobile-sheet-panel,
+  .reader-shell--compact .chapter-sidebar,
+  .reader-shell--compact .audio-panel,
+  .reader-shell--compact .reader-quick-settings {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .reader-shell--compact .reader-xi-mist,
+  .reader-shell--compact .reader-xi-rays,
+  .reader-shell--compact .reader-xi-light,
+  .reader-shell--compact .reader-xi-qi {
+    filter: none !important;
+    will-change: auto !important;
+    mix-blend-mode: normal !important;
+  }
+
+  /* Continuous chrome pulses still expensive on OLED */
+  .reader-shell--compact .reader-continue-fab,
+  .reader-shell--compact .reader-continue-fab::after,
+  .reader-shell--compact .nav-card-next-active,
+  .reader-shell--compact .nav-card-next-active::before,
+  .reader-shell--compact .chapter-audio-aura,
+  .reader-shell--compact .chapter-audio-orbit,
+  .reader-shell--compact .chapter-audio-wave,
+  .reader-shell--compact .background-audio-pulse {
+    animation: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE HEADER CONTRAST v2 — title/kicker readable on dark themes
+   Base kicker uses muted+jade on dark gold mix → sinks into OLED/dark bg.
+   Also restore story title (Sprint B hid it ≤640px) with clear ink.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 839px) {
+  .reader-topbar,
+  .reader-topbar-modern {
+    background: color-mix(in srgb, var(--reader-bg) 96%, #000 4%) !important;
+    border-bottom-color: color-mix(in srgb, var(--reader-line) 70%, var(--xi-gold, #c8962e) 30%) !important;
+  }
+
+  .reader-topbar-modern .reader-title-stack {
+    max-width: min(58vw, 360px);
+    gap: 3px;
+  }
+
+  .reader-topbar-modern .reader-story-title {
+    display: block !important;
+    color: color-mix(in srgb, var(--reader-ink) 92%, #fff 8%) !important;
+    opacity: 1 !important;
+    font-size: 12.5px !important;
+    font-weight: 750 !important;
+    letter-spacing: -0.01em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  }
+
+  .reader-topbar-modern .reader-chapter-kicker {
+    color: #1c1610 !important;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--xi-gold-light, #f0d06a) 88%, #fff 12%),
+      color-mix(in srgb, var(--xi-gold, #c8962e) 82%, #e8c56a 18%)
+    ) !important;
+    border: 1px solid color-mix(in srgb, var(--xi-gold-light, #f0d06a) 70%, #fff 30%) !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.28) inset,
+      0 4px 12px rgba(0, 0, 0, 0.28);
+    font-size: 11px !important;
+    font-weight: 780 !important;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    max-width: 100%;
+  }
+
+  /* Dark / OLED / mực dạ: keep gold pill + near-black ink (highest contrast) */
+  .reader-shell[data-theme="dark"] .reader-topbar-modern .reader-story-title,
+  .reader-shell[data-theme="oled"] .reader-topbar-modern .reader-story-title,
+  .reader-shell[data-theme="ink-night"] .reader-topbar-modern .reader-story-title {
+    color: #f4efe6 !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  }
+
+  .reader-shell[data-theme="dark"] .reader-topbar,
+  .reader-shell[data-theme="dark"] .reader-topbar-modern,
+  .reader-shell[data-theme="oled"] .reader-topbar,
+  .reader-shell[data-theme="oled"] .reader-topbar-modern,
+  .reader-shell[data-theme="ink-night"] .reader-topbar,
+  .reader-shell[data-theme="ink-night"] .reader-topbar-modern {
+    background: rgba(12, 12, 11, 0.96) !important;
+  }
+
+  /* Dock progress % — was pale on gold wash */
+  .reader-mobile-dock-primary-progress .reader-dock-meta,
+  .reader-mobile-dock-primary-progress .reader-dock-meta span {
+    color: #1c1610 !important;
+    font-weight: 780;
+  }
+
+  .reader-mobile-dock-primary-progress .reader-dock-time {
+    color: color-mix(in srgb, #1c1610 72%, #5a4a28 28%) !important;
+    opacity: 1 !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   READER TEXT CONTRAST AUDIT v1 — muted labels + dark themes
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.reader-shell[data-theme="dark"] {
+  --reader-muted: #c2bbb2;
+  --reader-ink: #f7f4ef;
+}
+
+.reader-shell[data-theme="oled"] {
+  --reader-muted: #b8b2aa;
+  --reader-ink: #f5f2ec;
+}
+
+.reader-shell[data-theme="ink-night"] {
+  --reader-muted: #c0b7a8;
+  --reader-ink: #f0e9dc;
+}
+
+/* Sheet / sidebar / chrome secondary labels */
+.reader-sheet-current span,
+.reader-sheet-section > span,
+.reader-sheet-nav-card small,
+.reader-sheet-bookmark small,
+.reader-sheet-paragraph-bookmark small,
+.reader-sheet-toggle span,
+.reader-range-control > span,
+.chapter-sidebar-title,
+.sidebar-link span:not(.sidebar-link-title),
+.sidebar-link small,
+.format-controls .font-size-value,
+.reader-quick-settings-title,
+.reader-overflow-item,
+.audio-panel p,
+.audio-panel span,
+.reader-stats-pill,
+.reader-offline-badge,
+.reader-dock-time,
+.comment-meta,
+.comment-time,
+.reader-bilingual-settings-note,
+.reader-bilingual-eyebrow {
+  color: color-mix(in srgb, var(--reader-ink) 55%, var(--reader-muted) 45%) !important;
+  opacity: 1 !important;
+}
+
+.reader-sheet-current strong,
+.reader-sheet-nav-card,
+.reader-sheet-bookmark strong,
+.reader-sheet-action,
+.sidebar-link,
+.chapter-sidebar-search input,
+.reader-sheet-header h2,
+.reader-mobile-sheet-header h2,
+.format-controls,
+.reader-quick-settings,
+.audio-panel strong,
+.comment-body,
+.reader-bilingual-settings-heading h3 {
+  color: var(--reader-ink) !important;
+  opacity: 1 !important;
+}
+
+/* Dark reader themes: force secondary up further */
+.reader-shell[data-theme="dark"] .reader-sheet-current span,
+.reader-shell[data-theme="oled"] .reader-sheet-current span,
+.reader-shell[data-theme="ink-night"] .reader-sheet-current span,
+.reader-shell[data-theme="dark"] .reader-sheet-section > span,
+.reader-shell[data-theme="oled"] .reader-sheet-section > span,
+.reader-shell[data-theme="ink-night"] .reader-sheet-section > span,
+.reader-shell[data-theme="dark"] .chapter-sidebar-title,
+.reader-shell[data-theme="oled"] .chapter-sidebar-title,
+.reader-shell[data-theme="ink-night"] .chapter-sidebar-title,
+.reader-shell[data-theme="dark"] .reader-chapter-kicker,
+.reader-shell[data-theme="oled"] .reader-chapter-kicker,
+.reader-shell[data-theme="ink-night"] .reader-chapter-kicker {
+  color: var(--reader-muted) !important;
+}
+
+/* Light/parchment reader: muted must stay readable on parchment */
+.reader-shell[data-theme="light"] {
+  --reader-muted: #5c5852;
+}
+
+.reader-shell[data-theme="parchment"],
+.reader-shell[data-theme="sepia"] {
+  --reader-muted: #5f5346;
+}
+
+.reader-shell[data-theme="bamboo"] {
+  --reader-muted: #4f5a45;
+}
+
+/* Keep gold chapter pill high-contrast (do not let muted audit override) */
+@media (max-width: 839px) {
+  .reader-topbar-modern .reader-chapter-kicker,
+  .reader-shell[data-theme="dark"] .reader-topbar-modern .reader-chapter-kicker,
+  .reader-shell[data-theme="oled"] .reader-topbar-modern .reader-chapter-kicker,
+  .reader-shell[data-theme="ink-night"] .reader-topbar-modern .reader-chapter-kicker,
+  .reader-shell[data-theme="light"] .reader-topbar-modern .reader-chapter-kicker,
+  .reader-shell[data-theme="parchment"] .reader-topbar-modern .reader-chapter-kicker,
+  .reader-shell[data-theme="bamboo"] .reader-topbar-modern .reader-chapter-kicker {
+    color: #1c1610 !important;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--xi-gold-light, #f0d06a) 88%, #fff 12%),
+      color-mix(in srgb, var(--xi-gold, #c8962e) 82%, #e8c56a 18%)
+    ) !important;
+  }
+
+  .reader-topbar-modern .reader-story-title,
+  .reader-shell[data-theme="dark"] .reader-topbar-modern .reader-story-title,
+  .reader-shell[data-theme="oled"] .reader-topbar-modern .reader-story-title,
+  .reader-shell[data-theme="ink-night"] .reader-topbar-modern .reader-story-title {
+    color: #f4efe6 !important;
+  }
+
+  .reader-shell[data-theme="light"] .reader-topbar-modern .reader-story-title,
+  .reader-shell[data-theme="parchment"] .reader-topbar-modern .reader-story-title,
+  .reader-shell[data-theme="bamboo"] .reader-topbar-modern .reader-story-title,
+  .reader-shell[data-theme="sepia"] .reader-topbar-modern .reader-story-title {
+    color: #1c1610 !important;
+    text-shadow: none !important;
+  }
+}
+
+
+/* === UI/UX audit 2026-07-14 — P3 dead early reader-controls ===
+   Legacy rules near :1912 (.reader-controls-mobile { display:none } and
+   @media min-width:840 .reader-controls-desktop { display:flex }) are superseded
+   by the :6036–6046 topbar-modern !important gates. Keep those gates as SoT.
+   === */

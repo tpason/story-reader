@@ -265,8 +265,13 @@ export async function getReaderPayload(
   const displayMode = options.displayMode ?? "single";
   const bilingualActive = Boolean(secondaryLayer && displayMode !== "single");
 
-  const primaryParagraphs = layerToParagraphs({ row, layer: primaryLayer, chapterTitle: current.title });
-  const formattedContent = primaryLayer === "polished" ? readerFormattedContent(row) : null;
+  const primaryParagraphs = layerToParagraphs({
+    row,
+    layer: primaryLayer,
+    chapterTitle: current.title,
+    forBilingual: bilingualActive
+  });
+  const formattedContent = !bilingualActive && primaryLayer === "polished" ? readerFormattedContent(row) : null;
   const contentPath = textPath(row);
   const content =
     formattedContent ??
@@ -276,7 +281,12 @@ export async function getReaderPayload(
 
   let bilingualPairs: BilingualParagraphPair[] | undefined;
   if (bilingualActive && secondaryLayer) {
-    const secondaryParagraphs = layerToParagraphs({ row, layer: secondaryLayer, chapterTitle: current.title });
+    const secondaryParagraphs = layerToParagraphs({
+      row,
+      layer: secondaryLayer,
+      chapterTitle: current.title,
+      forBilingual: true
+    });
     bilingualPairs = buildBilingualParagraphPairs({
       primaryParagraphs,
       secondaryParagraphs,

@@ -42,8 +42,8 @@ const MAX_VISIBLE_SKILL_EFFECTS = SKILL_POLICY.desktop.maxVisibleEffects;
 const MOBILE_MAX_VISIBLE_SKILL_EFFECTS = SKILL_POLICY.mobile.maxVisibleEffects;
 const MOBILE_SKILL_DURATION_CAP_MS = SKILL_POLICY.mobile.durationCapMs;
 const DESKTOP_SKILL_POLL_MS = 4200;
-const MOBILE_SKILL_POLL_MS = 30000;
-const HIDDEN_SKILL_POLL_MS = 60000;
+const MOBILE_SKILL_POLL_MS = 60000;
+const HIDDEN_SKILL_POLL_MS = 90000;
 
 function isMobileSkillDevice() {
   return isMobile || (typeof window !== "undefined" && window.matchMedia("(max-width: 839px)").matches);

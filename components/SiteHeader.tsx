@@ -1,10 +1,10 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
+import { ChevronDown, Menu, X } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { SiteHeaderSearch } from "@/components/SiteHeaderSearch";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -17,7 +17,8 @@ type NavItem = {
   match: (pathname: string) => boolean;
 };
 
-const NAV_ITEMS: NavItem[] = [
+/** Always visible in the desktop track — core destinations. */
+const PRIMARY_NAV: NavItem[] = [
   {
     href: "/",
     label: "Thư viện",
@@ -30,14 +31,23 @@ const NAV_ITEMS: NavItem[] = [
     match: (pathname) => pathname.startsWith("/discover")
   },
   {
-    href: "/rankings?tab=betterbox",
-    label: "Thiên bảng",
-    match: (pathname) => pathname.startsWith("/rankings")
-  },
-  {
     href: "/following",
     label: "Tủ truyện",
     match: (pathname) => pathname.startsWith("/following")
+  },
+  {
+    href: "/account",
+    label: "Động phủ",
+    match: (pathname) => pathname.startsWith("/account")
+  }
+];
+
+/** Bury behind “Thêm” on desktop; still listed in the mobile drawer. */
+const SECONDARY_NAV: NavItem[] = [
+  {
+    href: "/rankings?tab=betterbox",
+    label: "Thiên bảng",
+    match: (pathname) => pathname.startsWith("/rankings")
   },
   {
     href: "/updates",
@@ -48,11 +58,6 @@ const NAV_ITEMS: NavItem[] = [
     href: "/reading-history",
     label: "Tàng thư",
     match: (pathname) => pathname.startsWith("/reading-history")
-  },
-  {
-    href: "/account",
-    label: "Động phủ",
-    match: (pathname) => pathname.startsWith("/account")
   }
 ];
 
@@ -62,17 +67,19 @@ type SiteHeaderProps = {
 };
 
 function NavLinks({
+  items,
   pathname,
   className,
   onNavigate
 }: {
+  items: NavItem[];
   pathname: string;
   className?: string;
   onNavigate?: () => void;
 }) {
   return (
     <>
-      {NAV_ITEMS.map((item) => {
+      {items.map((item) => {
         const active = item.match(pathname);
         return (
           <Link
@@ -87,6 +94,79 @@ function NavLinks({
         );
       })}
     </>
+  );
+}
+
+function SecondaryNavMenu({
+  pathname,
+  onNavigate
+}: {
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const secondaryActive = SECONDARY_NAV.some((item) => item.match(pathname));
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onPointerDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div className="topbar-modern-more" ref={rootRef}>
+      <button
+        type="button"
+        className={`topbar-modern-link topbar-modern-more-trigger${secondaryActive || open ? " topbar-modern-link-active" : ""}`}
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={() => setOpen((value) => !value)}
+      >
+        Thêm
+        <ChevronDown size={14} aria-hidden="true" />
+      </button>
+      {open ? (
+        <div className="topbar-modern-more-panel" id={menuId} role="menu">
+          {SECONDARY_NAV.map((item) => {
+            const active = item.match(pathname);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                role="menuitem"
+                className={`topbar-modern-more-link${active ? " topbar-modern-more-link-active" : ""}`}
+                aria-current={active ? "page" : undefined}
+                onClick={() => {
+                  setOpen(false);
+                  onNavigate?.();
+                }}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -146,7 +226,8 @@ export function SiteHeader({ className, showSearch = true }: SiteHeaderProps) {
 
         <nav className="topbar-nav topbar-modern-nav" aria-label="Reader navigation">
           <div className="topbar-modern-nav-track">
-            <NavLinks pathname={pathname} />
+            <NavLinks items={PRIMARY_NAV} pathname={pathname} />
+            <SecondaryNavMenu pathname={pathname} />
           </div>
         </nav>
 
@@ -173,7 +254,19 @@ export function SiteHeader({ className, showSearch = true }: SiteHeaderProps) {
               <strong>Điều hướng</strong>
             </div>
             <div className="site-header-drawer-links">
-              <NavLinks pathname={pathname} className="site-header-drawer-link" onNavigate={() => setMobileMenuOpen(false)} />
+              <NavLinks
+                items={PRIMARY_NAV}
+                pathname={pathname}
+                className="site-header-drawer-link"
+                onNavigate={() => setMobileMenuOpen(false)}
+              />
+              <p className="site-header-drawer-group-label">Thêm</p>
+              <NavLinks
+                items={SECONDARY_NAV}
+                pathname={pathname}
+                className="site-header-drawer-link"
+                onNavigate={() => setMobileMenuOpen(false)}
+              />
             </div>
           </nav>
         </>

@@ -280,29 +280,32 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
         ) : (
           <>
-            <LibrarySortChips
-              currentSort={params.sort}
-              hrefForSort={(sort) =>
-                buildQuery({
-                  q: params.q,
-                  hot: params.hot,
-                  completed: params.completed,
-                  category: params.category,
-                  minChapters: params.minChapters,
-                  maxChapters: params.maxChapters,
-                  hasPolished: params.hasPolished,
-                  hasAudio: params.hasAudio,
-                  sort,
-                  trendPeriod: params.trendPeriod
-                })
-              }
-            />
+            <details className="home-sort-details">
+              <summary className="chip home-sort-summary">
+                <Layers3 size={15} />
+                Sắp xếp thư viện
+              </summary>
+              <LibrarySortChips
+                currentSort={params.sort}
+                hrefForSort={(sort) =>
+                  buildQuery({
+                    q: params.q,
+                    hot: params.hot,
+                    completed: params.completed,
+                    category: params.category,
+                    minChapters: params.minChapters,
+                    maxChapters: params.maxChapters,
+                    hasPolished: params.hasPolished,
+                    hasAudio: params.hasAudio,
+                    sort,
+                    trendPeriod: params.trendPeriod
+                  })
+                }
+              />
+            </details>
             <FollowedStoriesPanel />
             <Suspense fallback={<DiscoveryRailSkeleton />} key={`trending-${trendPeriod}`}>
               <TrendingSection period={trendPeriod} linkParams={trendLinkParams} />
-            </Suspense>
-            <Suspense fallback={<DiscoveryRailSkeleton />}>
-              <DiscoverySection />
             </Suspense>
             <HomeRecommendationsPanel />
           </>
@@ -314,6 +317,18 @@ export default async function Home({ searchParams }: HomeProps) {
           mode={isSearchActive ? "search" : "default"}
           query={{ q: queryText, author: authorText, hot: params.hot, completed: params.completed, category: params.category, minChapters: params.minChapters, maxChapters: params.maxChapters, hasPolished: params.hasPolished, hasAudio: params.hasAudio, sort: params.sort }}
         />
+
+        {!isSearchActive ? (
+          <details className="home-discovery-more">
+            <summary>
+              <span className="eyebrow">Khám phá thêm</span>
+              <strong>Rail polish & cập nhật</strong>
+            </summary>
+            <Suspense fallback={<DiscoveryRailSkeleton />}>
+              <DiscoverySection />
+            </Suspense>
+          </details>
+        ) : null}
       </div>
     </main>
   );

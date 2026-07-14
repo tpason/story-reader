@@ -7,10 +7,16 @@ export function layerToParagraphs(options: {
   row: ChapterRow;
   layer: ContentLayer;
   chapterTitle: string;
+  /** Bilingual pairing: same splitter both sides, never reader_formatted cache. */
+  forBilingual?: boolean;
 }) {
-  const { row, layer, chapterTitle } = options;
+  const { row, layer, chapterTitle, forBilingual = false } = options;
   const text = readLayerText(row, layer);
   if (!text) return [];
+
+  if (forBilingual) {
+    return formatNovelContent(text, undefined, chapterTitle, { preserveParagraphBoundaries: true });
+  }
 
   if (layer === "polished" && row.reader_formatted_content_version === READER_CONTENT_FORMAT_VERSION) {
     const formatted = readerFormattedContent(row);

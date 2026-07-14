@@ -1,3 +1,4 @@
+import { formatChapterLabel } from "@/lib/chapter-title";
 import { query } from "@/lib/db";
 import { sendPush, VAPID_PUBLIC } from "@/lib/push";
 import { slugify } from "@/lib/urls";
@@ -94,7 +95,7 @@ export async function sendChapterPushToReaders(params: ChapterPushParams): Promi
 
   return deliverPushBatch(subs, {
     title: storyTitle,
-    body: chapterTitle ? `Chương ${chapterNumber}: ${chapterTitle}` : `Chương ${chapterNumber} mới`,
+    body: chapterTitle ? formatChapterLabel(chapterNumber, chapterTitle) : `Chương ${chapterNumber} mới`,
     icon: "/icons/icon-192.svg",
     badge: "/icons/icon-192.svg",
     storyId,

@@ -51,7 +51,25 @@ describe("json-ld", () => {
       updatedAt: "2026-06-19T00:00:00.000Z"
     });
     assert.equal(json["@type"], "Article");
-    assert.match(String(json.headline), /Chương 3/);
+    assert.equal(json.headline, "Chương 3: Khởi đầu");
     assert.equal((json.isPartOf as { "@type"?: string })["@type"], "Book");
+  });
+
+  it("dedupes crawled chapter titles in Article headline", () => {
+    const json = buildChapterArticleJsonLd(story, {
+      id: "ch-1",
+      storyId: story.id,
+      chapterNumber: 1,
+      title: "Chương 1: Chương 1",
+      isDownloaded: true,
+      isPolished: true,
+      isTranslated: true,
+      isAudioGenerated: false,
+      hasDbText: true,
+      textSource: "polished",
+      hasAudio: false,
+      updatedAt: "2026-06-19T00:00:00.000Z"
+    });
+    assert.equal(json.headline, "Chương 1");
   });
 });
