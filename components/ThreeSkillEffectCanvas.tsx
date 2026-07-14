@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { AdditiveBlending, AmbientLight, BoxGeometry, BufferAttribute, BufferGeometry, CapsuleGeometry, CircleGeometry, Color, ConeGeometry, CylinderGeometry, DirectionalLight, DoubleSide, ExtrudeGeometry, Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Shape, SphereGeometry, TorusGeometry, Vector2, WebGLRenderer } from "three";
 import { canUseWebGL } from "@/lib/webgl-capability";
 import { getSkillBloomConfig, getSkillWebglPalette, scaleSkillPalette, type SkillPalette } from "@/lib/skill-webgl-palettes";
-import { seededNoise } from "@/lib/skill-webgl-utils";
+import { seededNoise, getSoftParticleTexture } from "@/lib/skill-webgl-utils";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
@@ -168,6 +168,7 @@ function buildJianSwordParts(palette: SkillPalette, scale = 1): JianSwordParts {
 type WindBladeRig = {
   group: Group;
   blades: Mesh[];
+  speedLines: Mesh[];
 };
 
 type RainRippleRig = {
@@ -186,6 +187,8 @@ type WaterDragonRig = {
 type LightningRig = {
   group: Group;
   branches: LineSegments<BufferGeometry, LineBasicMaterial>[];
+  glows: Mesh[];
+  flash: Mesh;
 };
 
 type LotusDomainRig = {
@@ -195,9 +198,15 @@ type LotusDomainRig = {
   dome: Mesh<SphereGeometry, MeshBasicMaterial>;
 };
 
+type StarfallMeteor = {
+  group: Group;
+  head: Mesh;
+  trail: Mesh;
+};
+
 type StarfallRig = {
   group: Group;
-  meteors: Mesh[];
+  meteors: StarfallMeteor[];
 };
 
 type FireDragonRig = {
@@ -255,17 +264,53 @@ function createParticleField(skillId: string, palette: SkillPalette) {
   geometry.setAttribute("position", new BufferAttribute(positions, 3));
   geometry.setAttribute("seed", new BufferAttribute(seeds, 1));
 
+  const softMap = getSoftParticleTexture();
   const material = new PointsMaterial({
     color: new Color(palette.primary),
-    size: isRainSkill(skillId) ? 0.034 : 0.06,
+    map: softMap ?? undefined,
+    size: isRainSkill(skillId) ? 0.048 : 0.078,
     sizeAttenuation: true,
     transparent: true,
     opacity: skillId === "heaven_thunder" ? 0.92 : 0.72,
     blending: AdditiveBlending,
-    depthWrite: false
+    depthWrite: false,
+    alphaTest: softMap ? 0.01 : 0,
   });
 
   return new Points(geometry, material);
+}
+
+function createWindCrescentGeometry() {
+  const shape = new Shape();
+  shape.moveTo(0, 0);
+  shape.quadraticCurveTo(0.55, 0.42, 1.35, 0.12);
+  shape.quadraticCurveTo(0.95, 0.28, 0.42, 0.16);
+  shape.quadraticCurveTo(0.18, 0.08, 0, 0);
+  shape.closePath();
+  const geometry = new ExtrudeGeometry(shape, {
+    depth: 0.018,
+    bevelEnabled: true,
+    bevelThickness: 0.004,
+    bevelSize: 0.004,
+    bevelSegments: 2,
+  });
+  geometry.center();
+  return geometry;
+}
+
+function createPetalLeafGeometry() {
+  const shape = new Shape();
+  shape.moveTo(0, -0.48);
+  shape.quadraticCurveTo(0.32, -0.08, 0.26, 0.4);
+  shape.quadraticCurveTo(0, 0.58, -0.26, 0.4);
+  shape.quadraticCurveTo(-0.32, -0.08, 0, -0.48);
+  shape.closePath();
+  const geometry = new ExtrudeGeometry(shape, {
+    depth: 0.01,
+    bevelEnabled: false,
+  });
+  geometry.center();
+  return geometry;
 }
 
 function createSealRings(palette: SkillPalette) {
@@ -332,26 +377,46 @@ function createSkillBeam(skillId: string, palette: SkillPalette) {
 function createWindBladeRig(palette: SkillPalette): WindBladeRig {
   const group = new Group();
   group.position.set(-5.4, 0.12, 0.15);
+  const crescentGeometry = createWindCrescentGeometry();
 
-  const blades = Array.from({ length: 7 }).map((_, index) => {
+  const blades = Array.from({ length: 5 }).map((_, index) => {
     const blade = new Mesh(
-      new TorusGeometry(0.42 + index * 0.055, 0.012 + index * 0.002, 8, 72, Math.PI * 0.86),
+      crescentGeometry,
       new MeshBasicMaterial({
         color: index % 2 === 0 ? palette.primary : palette.secondary,
         transparent: true,
-        opacity: 0.4 - index * 0.035,
+        opacity: 0.52 - index * 0.06,
         blending: AdditiveBlending,
-        depthWrite: false
+        depthWrite: false,
+        side: DoubleSide,
       })
     );
-    blade.position.set(-index * 0.28, -0.22 + index * 0.11, -0.16 - index * 0.08);
-    blade.rotation.set(Math.PI / 2.5, 0.2 + index * 0.1, -0.42 + index * 0.16);
-    blade.scale.set(1.55 + index * 0.16, 0.42 + index * 0.06, 1);
+    blade.position.set(-index * 0.32, -0.12 + index * 0.1, -0.12 - index * 0.06);
+    blade.rotation.set(0.18, 0.35 + index * 0.08, -0.55 + index * 0.12);
+    blade.scale.setScalar(1.15 + index * 0.12);
     group.add(blade);
     return blade;
   });
 
-  return { group, blades };
+  const speedLines = Array.from({ length: 6 }).map((_, index) => {
+    const line = new Mesh(
+      new PlaneGeometry(1.4 + index * 0.22, 0.025, 1, 1),
+      new MeshBasicMaterial({
+        color: index % 2 === 0 ? palette.hot : palette.secondary,
+        transparent: true,
+        opacity: 0.28 - index * 0.03,
+        blending: AdditiveBlending,
+        side: DoubleSide,
+        depthWrite: false,
+      })
+    );
+    line.position.set(-0.9 - index * 0.28, 0.08 + index * 0.05, -0.2);
+    line.rotation.z = -0.12 + index * 0.03;
+    group.add(line);
+    return line;
+  });
+
+  return { group, blades, speedLines };
 }
 
 function createSwordFlightRig(palette: SkillPalette): SwordFlightRig {
@@ -589,7 +654,40 @@ function createLightningRig(palette: SkillPalette): LightningRig {
     group.add(line);
     return line;
   });
-  return { group, branches };
+
+  const glows = Array.from({ length: 4 }).map((_, index) => {
+    const glow = new Mesh(
+      new PlaneGeometry(0.18 + index * 0.04, 3.6 + index * 0.3, 1, 1),
+      new MeshBasicMaterial({
+        color: index % 2 === 0 ? palette.hot : palette.secondary,
+        transparent: true,
+        opacity: 0,
+        blending: AdditiveBlending,
+        side: DoubleSide,
+        depthWrite: false,
+      })
+    );
+    glow.position.set(-0.35 + index * 0.42, 0.55, -0.2 - index * 0.05);
+    glow.rotation.z = (seededNoise(index + 401) - 0.5) * 0.2;
+    group.add(glow);
+    return glow;
+  });
+
+  const flash = new Mesh(
+    new PlaneGeometry(14, 8, 1, 1),
+    new MeshBasicMaterial({
+      color: palette.hot,
+      transparent: true,
+      opacity: 0,
+      blending: AdditiveBlending,
+      depthWrite: false,
+      side: DoubleSide,
+    })
+  );
+  flash.position.set(0, 0.4, -1.6);
+  group.add(flash);
+
+  return { group, branches, glows, flash };
 }
 
 function createLotusDomainRig(palette: SkillPalette): LotusDomainRig {
@@ -651,22 +749,40 @@ function createLotusDomainRig(palette: SkillPalette): LotusDomainRig {
 
 function createStarfallRig(palette: SkillPalette): StarfallRig {
   const group = new Group();
-  const meteors = Array.from({ length: 15 }).map((_, index) => {
-    const meteor = new Mesh(
-      new PlaneGeometry(1.15 + seededNoise(index + 1201) * 0.9, 0.035, 1, 1),
+  const meteors = Array.from({ length: 14 }).map((_, index) => {
+    const meteorGroup = new Group();
+    const head = new Mesh(
+      new SphereGeometry(0.05 + seededNoise(index + 1201) * 0.03, 10, 8),
       new MeshBasicMaterial({
         color: index % 2 === 0 ? palette.hot : palette.secondary,
         transparent: true,
-        opacity: 0.34,
+        opacity: 0.92,
         blending: AdditiveBlending,
-        side: DoubleSide,
-        depthWrite: false
+        depthWrite: false,
       })
     );
-    meteor.position.set(-3.8 + seededNoise(index + 1211) * 7.6, 2.6 + seededNoise(index + 1223) * 2.4, -0.8 - seededNoise(index + 1231) * 1.6);
-    meteor.rotation.z = -0.72;
-    group.add(meteor);
-    return meteor;
+    const trail = new Mesh(
+      new PlaneGeometry(1.35 + seededNoise(index + 1205) * 0.7, 0.07, 1, 1),
+      new MeshBasicMaterial({
+        color: index % 2 === 0 ? palette.primary : palette.hot,
+        transparent: true,
+        opacity: 0.4,
+        blending: AdditiveBlending,
+        side: DoubleSide,
+        depthWrite: false,
+      })
+    );
+    trail.position.set(-0.72, 0, 0);
+    trail.rotation.z = 0.05;
+    meteorGroup.add(trail, head);
+    meteorGroup.position.set(
+      -3.8 + seededNoise(index + 1211) * 7.6,
+      2.6 + seededNoise(index + 1223) * 2.4,
+      -0.8 - seededNoise(index + 1231) * 1.6
+    );
+    meteorGroup.rotation.z = -0.72;
+    group.add(meteorGroup);
+    return { group: meteorGroup, head, trail };
   });
   return { group, meteors };
 }
@@ -760,21 +876,22 @@ function createSwordRainRig(palette: SkillPalette): SwordRainRig {
 
 function createPetalCascadeRig(palette: SkillPalette): PetalCascadeRig {
   const group = new Group();
+  const petalGeometry = createPetalLeafGeometry();
 
-  const petals = Array.from({ length: 54 }).map((_, index) => {
-    const w = 0.13 + seededNoise(index + 1101) * 0.11;
-    const h = 0.19 + seededNoise(index + 1107) * 0.09;
+  const petals = Array.from({ length: 48 }).map((_, index) => {
+    const scale = 0.55 + seededNoise(index + 1101) * 0.55;
     const petal = new Mesh(
-      new PlaneGeometry(w, h, 1, 1),
+      petalGeometry,
       new MeshBasicMaterial({
         color: new Color(index % 4 === 0 ? palette.hot : index % 3 === 0 ? "#fce7f3" : index % 2 === 0 ? palette.primary : palette.secondary),
         transparent: true,
-        opacity: 0.58,
+        opacity: 0.62,
         blending: AdditiveBlending,
         side: DoubleSide,
         depthWrite: false
       })
     );
+    petal.scale.setScalar(scale);
     petal.position.set(
       -4.8 + seededNoise(index + 1113) * 9.6,
       2.5 + seededNoise(index + 1119) * 3.0,
@@ -1058,6 +1175,8 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
     let disposed = false;
     let lastFrameAt = 0;
     let longFrameCount = 0;
+    let qualityTier = 0; // 0 full → 1 no afterimage → 2 lower pixelRatio → 3 dispose
+    const basePixelRatio = Math.min(window.devicePixelRatio || 1, 1.6);
 
     function resize() {
       const width = Math.max(1, container.clientWidth);
@@ -1079,7 +1198,18 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
       if (lastFrameAt > 0) {
         const frameDelta = now - lastFrameAt;
         longFrameCount = frameDelta > 84 ? longFrameCount + 1 : Math.max(0, longFrameCount - 1);
-        if (longFrameCount >= 5) {
+        if (longFrameCount >= 3 && qualityTier === 0) {
+          qualityTier = 1;
+          if (afterimagePass) afterimagePass.enabled = false;
+          longFrameCount = 0;
+        } else if (longFrameCount >= 4 && qualityTier === 1) {
+          qualityTier = 2;
+          renderer.setPixelRatio(Math.min(1, basePixelRatio));
+          const width = Math.max(1, container.clientWidth);
+          const height = Math.max(1, container.clientHeight);
+          composer.setSize(width, height);
+          longFrameCount = 0;
+        } else if (longFrameCount >= 5 && qualityTier >= 2) {
           dispose();
           return;
         }
@@ -1164,10 +1294,14 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
         windBladeRig.group.position.y = 0.04 + Math.sin(time * 3.2) * 0.2;
         windBladeRig.group.rotation.z = -0.1 + Math.sin(time * 4.4) * 0.08;
         windBladeRig.blades.forEach((blade, index) => {
-          blade.rotation.z += (0.055 + index * 0.01) * effectPower;
-          blade.rotation.y = 0.24 + Math.sin(time * 2 + index) * 0.22;
-          blade.scale.x = 1.4 + pulse * 0.7 + index * 0.13;
-          (blade.material as MeshBasicMaterial).opacity = Math.max(0, (0.28 + effectPower * 0.08 - index * 0.032) * pulse);
+          blade.rotation.z += (0.04 + index * 0.008) * effectPower;
+          blade.rotation.y = 0.28 + Math.sin(time * 2.2 + index) * 0.18;
+          blade.scale.setScalar(1.05 + pulse * 0.35 + index * 0.08);
+          (blade.material as MeshBasicMaterial).opacity = Math.max(0, (0.42 + effectPower * 0.1 - index * 0.05) * pulse);
+        });
+        windBladeRig.speedLines.forEach((line, index) => {
+          line.position.x = -0.9 - index * 0.28 - Math.sin(time * 5 + index) * 0.12;
+          (line.material as MeshBasicMaterial).opacity = Math.max(0, (0.3 - index * 0.035) * pulse);
         });
       }
 
@@ -1288,26 +1422,35 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
       }
 
       if (lightningRig) {
+        let peakStrobe = 0;
         lightningRig.branches.forEach((branch, index) => {
           const strobe = Math.max(0, Math.sin(time * (8.4 + index * 1.8) + index) - 0.22);
+          peakStrobe = Math.max(peakStrobe, strobe);
           branch.material.opacity = Math.min(1, strobe * pulse * (index === 0 ? 1 : 0.64));
           branch.scale.x = 0.86 + strobe * 0.28;
           branch.position.x = -0.5 + index * 0.34 + Math.sin(time * 18 + index) * 0.025;
         });
+        lightningRig.glows.forEach((glow, index) => {
+          const strobe = Math.max(0, Math.sin(time * (7.2 + index * 1.4) + index * 0.7) - 0.18);
+          (glow.material as MeshBasicMaterial).opacity = Math.min(0.55, strobe * pulse * 0.42 * effectPower);
+          glow.scale.y = 0.9 + strobe * 0.35;
+        });
+        (lightningRig.flash.material as MeshBasicMaterial).opacity = Math.min(0.28, peakStrobe * pulse * 0.22 * effectPower);
       }
 
       if (starfallRig) {
         starfallRig.group.rotation.z = Math.sin(time * 0.2) * 0.03;
         starfallRig.meteors.forEach((meteor, index) => {
           const speed = 1.6 + seededNoise(index + 1301) * 0.9;
-          meteor.position.x += speed * 0.035;
-          meteor.position.y -= speed * 0.03;
-          if (meteor.position.y < -2.8 || meteor.position.x > 4.8) {
-            meteor.position.x = -4.8 - seededNoise(index + 1311) * 1.8;
-            meteor.position.y = 2.2 + seededNoise(index + 1321) * 2.2;
+          meteor.group.position.x += speed * 0.035;
+          meteor.group.position.y -= speed * 0.03;
+          if (meteor.group.position.y < -2.8 || meteor.group.position.x > 4.8) {
+            meteor.group.position.x = -4.8 - seededNoise(index + 1311) * 1.8;
+            meteor.group.position.y = 2.2 + seededNoise(index + 1321) * 2.2;
           }
-          meteor.scale.x = 0.8 + pulse * 0.6 + Math.sin(time * 3 + index) * 0.08;
-          (meteor.material as MeshBasicMaterial).opacity = Math.min(0.9, (0.16 + pulse * 0.32 * effectPower) * (0.75 + seededNoise(index + 1331) * 0.25));
+          meteor.trail.scale.x = 0.85 + pulse * 0.55 + Math.sin(time * 3 + index) * 0.08;
+          (meteor.head.material as MeshBasicMaterial).opacity = Math.min(1, (0.55 + pulse * 0.4 * effectPower));
+          (meteor.trail.material as MeshBasicMaterial).opacity = Math.min(0.85, (0.18 + pulse * 0.34 * effectPower) * (0.75 + seededNoise(index + 1331) * 0.25));
         });
       }
 

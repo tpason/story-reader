@@ -1452,3 +1452,16 @@
   }
 }
 
+
+/* === P0: honor data-reduce-motion (attribute set by SkillEffectLayer) === */
+.skill-effect[data-reduce-motion="true"],
+.skill-effect[data-reduce-motion="true"] * {
+  animation: none !important;
+  transition: none !important;
+}
+
+.skill-effect[data-reduce-motion="true"] .skill-particles span:nth-child(n + 4),
+.skill-effect[data-reduce-motion="true"] .fire-embers,
+.skill-effect[data-reduce-motion="true"] .divine-runes {
+  display: none !important;
+}
