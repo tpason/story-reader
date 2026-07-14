@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
+import { formatChapterCardTitle } from "@/lib/chapter-title";
 import { CHAPTER_DISPLAY_AT_SQL } from "@/lib/content-timestamps";
 import { READER_CONTENT_FORMAT_VERSION } from "@/lib/formatNovelContent";
 import { buildPreviousChapterRecap } from "@/lib/reader-chapter-recap";

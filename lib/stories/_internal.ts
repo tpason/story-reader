@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
+import { formatChapterCardTitle } from "@/lib/chapter-title";
 import { READER_CONTENT_FORMAT_VERSION } from "@/lib/formatNovelContent";
 import type {
   ChapterSummary,
@@ -181,10 +182,15 @@ export function mapStory(row: StoryRow): StorySummary {
 }
 
 export function mapDiscoveryStory(row: StoryDiscoveryRow): StoryDiscoveryItem {
+  const latestChapterNumber = row.latest_chapter_number;
+  const latestChapterTitle =
+    latestChapterNumber != null
+      ? formatChapterCardTitle(latestChapterNumber, row.latest_chapter_title)
+      : row.latest_chapter_title;
   return {
     ...mapStory(row),
-    latestChapterNumber: row.latest_chapter_number,
-    latestChapterTitle: row.latest_chapter_title,
+    latestChapterNumber,
+    latestChapterTitle,
     latestActivityAt: row.latest_activity_at.toISOString(),
     polishedChapterCount: Number(row.polished_chapter_count ?? 0)
   };
@@ -195,7 +201,7 @@ export function mapChapter(row: ChapterRow): ChapterSummary {
     id: row.id,
     storyId: row.story_id,
     chapterNumber: row.chapter_number,
-    title: row.title,
+    title: formatChapterCardTitle(row.chapter_number, row.title),
     isDownloaded: row.is_downloaded,
     isPolished: row.is_polished,
     isTranslated: row.is_translated,
