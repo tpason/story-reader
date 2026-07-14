@@ -403,7 +403,7 @@ export async function searchStoryChapterContent(
       hits.push({
         chapterId: row.id,
         chapterNumber: row.chapter_number,
-        chapterTitle: row.title,
+        chapterTitle: formatChapterCardTitle(row.chapter_number, row.title),
         paragraphIndex,
         excerpt
       });
@@ -421,7 +421,10 @@ export const getCachedChapterHead = unstable_cache(
       [storyId, chapterNumber],
     );
     if (!rows[0]) return null;
-    return { chapterNumber: rows[0].chapter_number, title: rows[0].title };
+    return {
+      chapterNumber: rows[0].chapter_number,
+      title: formatChapterCardTitle(rows[0].chapter_number, rows[0].title),
+    };
   },
   ["chapter-head"],
   { revalidate: 300 },
