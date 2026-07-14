@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AdditiveBlending, AmbientLight, BoxGeometry, BufferAttribute, BufferGeometry, CapsuleGeometry, CircleGeometry, Color, ConeGeometry, CylinderGeometry, DirectionalLight, DoubleSide, ExtrudeGeometry, Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Shape, SphereGeometry, TorusGeometry, Vector2, WebGLRenderer } from "three";
+import { AdditiveBlending, AmbientLight, BoxGeometry, BufferAttribute, BufferGeometry, CapsuleGeometry, CatmullRomCurve3, CircleGeometry, Color, ConeGeometry, CylinderGeometry, DirectionalLight, DoubleSide, DynamicDrawUsage, ExtrudeGeometry, Float32BufferAttribute, Group, InstancedMesh, LineBasicMaterial, LineSegments, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, PerspectiveCamera, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Shape, SphereGeometry, TorusGeometry, TubeGeometry, Vector2, Vector3, WebGLRenderer } from "three";
 import { canUseWebGL } from "@/lib/webgl-capability";
 import { getSkillBloomConfig, getSkillWebglPalette, scaleSkillPalette, type SkillPalette } from "@/lib/skill-webgl-palettes";
 import { seededNoise, getSoftParticleTexture } from "@/lib/skill-webgl-utils";
@@ -180,7 +180,10 @@ type RainRippleRig = {
 
 type WaterDragonRig = {
   group: Group;
-  beads: Mesh[];
+  body: Mesh;
+  head: Mesh;
+  pointCount: number;
+  majestic: boolean;
   whiskers: LineSegments<BufferGeometry, LineBasicMaterial>[];
 };
 
@@ -211,21 +214,21 @@ type StarfallRig = {
 
 type FireDragonRig = {
   group: Group;
-  bodyBeads: Mesh[];
+  body: Mesh;
+  head: Mesh;
+  pointCount: number;
   mane: Mesh[];
   fireParticles: Points;
 };
 
 type SwordRainRig = {
   group: Group;
-  swords: Array<{
-    group: Group;
-    blade: Mesh;
-    guard: Mesh;
-    glow: Mesh;
-    speed: number;
-    phase: number;
-  }>;
+  blades: InstancedMesh;
+  glows: InstancedMesh;
+  count: number;
+  speeds: Float32Array;
+  phases: Float32Array;
+  dummy: Object3D;
 };
 
 type PetalCascadeRig = {
@@ -460,24 +463,84 @@ function createSwordFlightRig(palette: SkillPalette): SwordFlightRig {
   return { group, blade, trail, aura, afterimages };
 }
 
+function sampleWaterDragonPoints(count: number, time: number, majestic: boolean): Vector3[] {
+  const radius = majestic ? 1.42 : 1.02;
+  const length = majestic ? 5.4 : 3.9;
+  const points: Vector3[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const t = index / Math.max(1, count - 1);
+    const angle = time * (majestic ? 2.4 : 1.75) + t * Math.PI * (majestic ? 4.8 : 3.6);
+    const taper = 1 - Math.abs(t - 0.5) * 0.62;
+    points.push(
+      new Vector3(
+        -length / 2 + t * length,
+        -0.22 + Math.sin(angle) * radius * 0.34 * taper,
+        Math.cos(angle) * radius * 0.42 * taper
+      )
+    );
+  }
+  return points;
+}
+
+function sampleFireDragonPoints(count: number, time: number, headX: number, pulse: number): Vector3[] {
+  const points: Vector3[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const t = index / Math.max(1, count - 1);
+    const tLocal = time * 2.4 - t * 1.2;
+    points.push(
+      new Vector3(
+        headX - t * 3.8,
+        Math.sin(tLocal) * 0.78 * pulse,
+        Math.cos(tLocal * 0.7) * 0.28
+      )
+    );
+  }
+  return points;
+}
+
+function rebuildTubeMesh(
+  mesh: Mesh,
+  points: Vector3[],
+  tubularSegments: number,
+  radius: number,
+  radialSegments: number
+) {
+  if (points.length < 2) return;
+  const next = new TubeGeometry(new CatmullRomCurve3(points), tubularSegments, radius, radialSegments, false);
+  mesh.geometry.dispose();
+  mesh.geometry = next;
+}
+
 function createWaterDragonRig(palette: SkillPalette, majestic = false): WaterDragonRig {
   const group = new Group();
-  const count = majestic ? 36 : 22;
-  const beadGeometry = new SphereGeometry(majestic ? 0.07 : 0.048, 14, 10);
-  const beads = Array.from({ length: count }).map((_, index) => {
-    const bead = new Mesh(
-      beadGeometry,
-      new MeshBasicMaterial({
-        color: index % 3 === 0 ? palette.hot : index % 2 === 0 ? palette.primary : palette.secondary,
-        transparent: true,
-        opacity: majestic ? 0.46 : 0.34,
-        blending: AdditiveBlending,
-        depthWrite: false
-      })
-    );
-    group.add(bead);
-    return bead;
-  });
+  const pointCount = majestic ? 24 : 16;
+  const points = sampleWaterDragonPoints(pointCount, 0, majestic);
+  const bodyRadius = majestic ? 0.09 : 0.062;
+  const body = new Mesh(
+    new TubeGeometry(new CatmullRomCurve3(points), majestic ? 72 : 52, bodyRadius, 8, false),
+    new MeshBasicMaterial({
+      color: palette.primary,
+      transparent: true,
+      opacity: majestic ? 0.42 : 0.32,
+      blending: AdditiveBlending,
+      depthWrite: false
+    })
+  );
+  group.add(body);
+
+  const head = new Mesh(
+    new SphereGeometry(majestic ? 0.14 : 0.1, 16, 12),
+    new MeshBasicMaterial({
+      color: palette.hot,
+      transparent: true,
+      opacity: majestic ? 0.72 : 0.58,
+      blending: AdditiveBlending,
+      depthWrite: false
+    })
+  );
+  const tip = points[points.length - 1];
+  head.position.copy(tip);
+  group.add(head);
 
   const whiskers = Array.from({ length: majestic ? 4 : 2 }).map((_, index) => {
     const geometry = new BufferGeometry();
@@ -497,7 +560,7 @@ function createWaterDragonRig(palette: SkillPalette, majestic = false): WaterDra
   });
 
   group.position.set(0, -0.28, 0.35);
-  return { group, beads, whiskers };
+  return { group, body, head, pointCount, majestic, whiskers };
 }
 
 function createRainRippleRig(palette: SkillPalette, majestic = false): RainRippleRig {
@@ -789,24 +852,36 @@ function createStarfallRig(palette: SkillPalette): StarfallRig {
 
 function createFireDragonRig(palette: SkillPalette): FireDragonRig {
   const group = new Group();
+  const pointCount = 18;
+  const points = sampleFireDragonPoints(pointCount, 0, -5.6, 1);
+  const body = new Mesh(
+    new TubeGeometry(new CatmullRomCurve3(points), 64, 0.11, 8, false),
+    new MeshStandardMaterial({
+      color: new Color(palette.primary),
+      emissive: new Color("#ff4400"),
+      emissiveIntensity: 0.78,
+      roughness: 0.28,
+      metalness: 0.12,
+      transparent: true,
+      opacity: 0.96
+    })
+  );
+  group.add(body);
 
-  const bodyBeads = Array.from({ length: 30 }).map((_, index) => {
-    const radius = Math.max(0.042, 0.16 - index * 0.005);
-    const bead = new Mesh(
-      new SphereGeometry(radius, 12, 8),
-      new MeshStandardMaterial({
-        color: new Color(index < 4 ? palette.hot : index < 10 ? palette.primary : palette.secondary),
-        emissive: new Color(index < 8 ? "#ff4400" : palette.primary),
-        emissiveIntensity: 0.72 - index * 0.024,
-        roughness: 0.3,
-        metalness: 0.1,
-        transparent: true,
-        opacity: 0.96
-      })
-    );
-    group.add(bead);
-    return bead;
-  });
+  const head = new Mesh(
+    new SphereGeometry(0.18, 14, 10),
+    new MeshStandardMaterial({
+      color: new Color(palette.hot),
+      emissive: new Color(palette.hot),
+      emissiveIntensity: 0.9,
+      roughness: 0.22,
+      metalness: 0.18,
+      transparent: true,
+      opacity: 0.98
+    })
+  );
+  head.position.copy(points[0]);
+  group.add(head);
 
   const mane = Array.from({ length: 10 }).map((_, index) => {
     const m = new Mesh(
@@ -830,48 +905,80 @@ function createFireDragonRig(palette: SkillPalette): FireDragonRig {
     positions[i * 3 + 1] = (seededNoise(i + 509) - 0.5) * 4.8;
     positions[i * 3 + 2] = (seededNoise(i + 513) - 0.5) * 2.4;
   }
+  const softMap = getSoftParticleTexture();
   const fireParticles = new Points(
     new BufferGeometry().setAttribute("position", new BufferAttribute(positions, 3)),
     new PointsMaterial({
       color: new Color(palette.primary),
+      map: softMap ?? undefined,
       size: 0.072,
       transparent: true,
       opacity: 0.82,
       blending: AdditiveBlending,
-      depthWrite: false
+      depthWrite: false,
+      ...(softMap ? { alphaTest: 0.01 } : {})
     })
   );
   group.add(fireParticles);
-  return { group, bodyBeads, mane, fireParticles };
+  return { group, body, head, pointCount, mane, fireParticles };
 }
 
 function createSwordRainRig(palette: SkillPalette): SwordRainRig {
   const group = new Group();
+  const count = 28;
+  const dummy = new Object3D();
+  const speeds = new Float32Array(count);
+  const phases = new Float32Array(count);
 
-  const swords = Array.from({ length: 22 }).map((_, index) => {
-    const sg = new Group();
-    const rainScale = 0.36 + seededNoise(index + 880) * 0.14;
-    const { group: sword, blade, aura } = buildJianSwordParts(palette, rainScale);
-    sword.rotation.z = (seededNoise(index + 931) - 0.5) * 0.18;
-    sg.add(sword);
+  const bladeGeo = createJianBladeGeometry(0.42, 0.022);
+  const blades = new InstancedMesh(
+    bladeGeo,
+    new MeshStandardMaterial({
+      color: "#f6f9ff",
+      emissive: new Color(palette.secondary),
+      emissiveIntensity: 0.58,
+      roughness: 0.08,
+      metalness: 0.92,
+      transparent: true,
+      opacity: 0.96
+    }),
+    count
+  );
+  blades.instanceMatrix.setUsage(DynamicDrawUsage);
 
-    const xPos = -4.8 + (index / 21) * 9.6 + (seededNoise(index + 907) - 0.5) * 1.5;
+  const glows = new InstancedMesh(
+    new PlaneGeometry(0.95, 0.2, 1, 1),
+    new MeshBasicMaterial({
+      color: palette.secondary,
+      transparent: true,
+      opacity: 0.36,
+      blending: AdditiveBlending,
+      side: DoubleSide,
+      depthWrite: false
+    }),
+    count
+  );
+  glows.instanceMatrix.setUsage(DynamicDrawUsage);
+
+  for (let index = 0; index < count; index += 1) {
+    speeds[index] = 1.5 + seededNoise(index + 901) * 0.9;
+    phases[index] = seededNoise(index + 941) * Math.PI * 2;
+    const xPos = -4.8 + (index / Math.max(1, count - 1)) * 9.6 + (seededNoise(index + 907) - 0.5) * 1.5;
     const yStart = 4.2 + seededNoise(index + 911) * 2.4;
-    sg.position.set(xPos, yStart, -0.4 + seededNoise(index + 921) * 0.8);
-    sg.rotation.z += (seededNoise(index + 931) - 0.5) * 0.28;
-
-    group.add(sg);
-    return {
-      group: sg,
-      blade,
-      guard: aura,
-      glow: aura,
-      speed: 1.5 + seededNoise(index + 901) * 0.9,
-      phase: seededNoise(index + 941) * Math.PI * 2,
-    };
-  });
-
-  return { group, swords };
+    const z = -0.4 + seededNoise(index + 921) * 0.8;
+    const rotZ = (seededNoise(index + 931) - 0.5) * 0.46;
+    dummy.position.set(xPos, yStart, z);
+    dummy.rotation.set(0, 0, rotZ - Math.PI / 2);
+    dummy.scale.setScalar(0.9 + seededNoise(index + 880) * 0.28);
+    dummy.updateMatrix();
+    blades.setMatrixAt(index, dummy.matrix);
+    dummy.scale.set(1.15, 1.15, 1.15);
+    glows.setMatrixAt(index, dummy.matrix);
+  }
+  blades.instanceMatrix.needsUpdate = true;
+  glows.instanceMatrix.needsUpdate = true;
+  group.add(blades, glows);
+  return { group, blades, glows, count, speeds, phases, dummy };
 }
 
 function createPetalCascadeRig(palette: SkillPalette): PetalCascadeRig {
@@ -1366,23 +1473,25 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
       }
 
       if (waterDragonRig) {
-        const majestic = skillId === "celestial_rain";
-        const radius = majestic ? 1.42 : 1.02;
-        const length = majestic ? 5.4 : 3.9;
+        const majestic = waterDragonRig.majestic;
+        const points = sampleWaterDragonPoints(waterDragonRig.pointCount, time, majestic);
+        const bodyRadius = (majestic ? 0.09 : 0.062) * (0.92 + pulse * (majestic ? 0.28 : 0.18));
+        rebuildTubeMesh(waterDragonRig.body, points, majestic ? 72 : 52, bodyRadius, 8);
         waterDragonRig.group.rotation.y = Math.sin(time * 0.35) * 0.32;
         waterDragonRig.group.rotation.z = Math.sin(time * 0.26) * 0.08;
-        waterDragonRig.beads.forEach((bead, index) => {
-          const t = index / Math.max(1, waterDragonRig.beads.length - 1);
-          const angle = time * (majestic ? 2.4 : 1.75) + t * Math.PI * (majestic ? 4.8 : 3.6);
-          const taper = 1 - Math.abs(t - 0.5) * 0.62;
-          bead.position.x = -length / 2 + t * length;
-          bead.position.y = -0.22 + Math.sin(angle) * radius * 0.34 * taper;
-          bead.position.z = Math.cos(angle) * radius * 0.42 * taper;
-          bead.scale.setScalar((majestic ? 0.92 : 0.74) + pulse * (majestic ? 0.72 : 0.42) + Math.sin(angle) * 0.08);
-          (bead.material as MeshBasicMaterial).opacity = Math.min(0.82, (majestic ? 0.34 : 0.24) * effectPower * pulse * (0.78 + taper * 0.24));
-        });
+        (waterDragonRig.body.material as MeshBasicMaterial).opacity = Math.min(
+          0.78,
+          (majestic ? 0.42 : 0.3) * effectPower * pulse
+        );
 
-        const head = waterDragonRig.beads[waterDragonRig.beads.length - 1];
+        const tip = points[points.length - 1];
+        waterDragonRig.head.position.copy(tip);
+        waterDragonRig.head.scale.setScalar((majestic ? 1 : 0.86) + pulse * (majestic ? 0.35 : 0.22));
+        (waterDragonRig.head.material as MeshBasicMaterial).opacity = Math.min(
+          0.9,
+          (majestic ? 0.68 : 0.52) * effectPower * pulse
+        );
+
         waterDragonRig.whiskers.forEach((whisker, index) => {
           const positions = whisker.geometry.getAttribute("position") as BufferAttribute;
           const array = positions.array as Float32Array;
@@ -1390,12 +1499,12 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
             const offset = segment * 6;
             const side = index % 2 === 0 ? 1 : -1;
             const curl = Math.sin(time * 3 + segment + index) * 0.1;
-            array[offset] = head.position.x;
-            array[offset + 1] = head.position.y + side * 0.04;
-            array[offset + 2] = head.position.z;
-            array[offset + 3] = head.position.x + 0.35 + segment * 0.28;
-            array[offset + 4] = head.position.y + side * (0.12 + segment * 0.08) + curl;
-            array[offset + 5] = head.position.z + side * (0.08 + segment * 0.04);
+            array[offset] = tip.x;
+            array[offset + 1] = tip.y + side * 0.04;
+            array[offset + 2] = tip.z;
+            array[offset + 3] = tip.x + 0.35 + segment * 0.28;
+            array[offset + 4] = tip.y + side * (0.12 + segment * 0.08) + curl;
+            array[offset + 5] = tip.z + side * (0.08 + segment * 0.04);
           }
           positions.needsUpdate = true;
           whisker.material.opacity = Math.min(0.7, (majestic ? 0.3 : 0.18) * effectPower * pulse);
@@ -1455,25 +1564,23 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
       }
 
       if (fireDragonRig) {
-        const totalBeads = fireDragonRig.bodyBeads.length;
         const headX = -5.6 + progress * 12.4;
-        fireDragonRig.bodyBeads.forEach((bead, index) => {
-          const t = index / (totalBeads - 1);
-          const tLocal = time * 2.4 - t * 1.2;
-          bead.position.x = headX - t * 3.8;
-          bead.position.y = Math.sin(tLocal) * 0.78 * pulse;
-          bead.position.z = Math.cos(tLocal * 0.7) * 0.28;
-          const sc = Math.max(0.1, (1 - t * 0.6) * (0.6 + pulse * 0.58));
-          bead.scale.setScalar(sc);
-          (bead.material as MeshStandardMaterial).emissiveIntensity = (0.7 - t * 0.02) * (0.5 + pulse * 0.9);
-          (bead.material as MeshStandardMaterial).opacity = Math.min(0.98, (1 - t * 0.42) * pulse);
-        });
-        const headBead = fireDragonRig.bodyBeads[0];
+        const points = sampleFireDragonPoints(fireDragonRig.pointCount, time, headX, pulse);
+        const bodyRadius = 0.11 * (0.72 + pulse * 0.42);
+        rebuildTubeMesh(fireDragonRig.body, points, 64, bodyRadius, 8);
+        (fireDragonRig.body.material as MeshStandardMaterial).emissiveIntensity = 0.55 + pulse * 0.55;
+        (fireDragonRig.body.material as MeshStandardMaterial).opacity = Math.min(0.98, 0.72 + pulse * 0.26);
+
+        const headPos = points[0];
+        fireDragonRig.head.position.copy(headPos);
+        fireDragonRig.head.scale.setScalar(0.85 + pulse * 0.4);
+        (fireDragonRig.head.material as MeshStandardMaterial).emissiveIntensity = 0.7 + pulse * 0.45;
+
         fireDragonRig.mane.forEach((m, index) => {
           const mAngle = (index / fireDragonRig.mane.length) * Math.PI * 2 + time * 3.2;
-          m.position.x = headBead.position.x + Math.cos(mAngle) * 0.22;
-          m.position.y = headBead.position.y + Math.sin(mAngle) * 0.2;
-          m.position.z = headBead.position.z + 0.08;
+          m.position.x = headPos.x + Math.cos(mAngle) * 0.22;
+          m.position.y = headPos.y + Math.sin(mAngle) * 0.2;
+          m.position.z = headPos.z + 0.08;
           m.rotation.z = mAngle + Math.PI;
           m.scale.setScalar(0.48 + pulse * 0.82);
           (m.material as MeshBasicMaterial).opacity = 0.52 + pulse * 0.48;
@@ -1484,7 +1591,7 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
           fArr[i + 1] += 0.022 + seededNoise(i + 503) * 0.016;
           if (Math.abs(fArr[i] - headX) > 4.4 || fArr[i + 1] > 2.6) {
             fArr[i] = headX + (seededNoise(i + 521) - 0.5) * 2.4;
-            fArr[i + 1] = headBead.position.y + (seededNoise(i + 527) - 0.5) * 0.8;
+            fArr[i + 1] = headPos.y + (seededNoise(i + 527) - 0.5) * 0.8;
           }
         }
         fPos.needsUpdate = true;
@@ -1492,17 +1599,25 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
       }
 
       if (swordRainRig) {
-        swordRainRig.swords.forEach((sword) => {
-          sword.group.position.y -= sword.speed * 0.022;
-          sword.group.position.x += Math.sin(time * 1.4 + sword.phase) * 0.007;
-          if (sword.group.position.y < -3.6) {
-            sword.group.position.y = 4.2 + seededNoise(Math.floor(sword.phase * 100)) * 1.8;
+        const { blades, glows, dummy, count, speeds, phases } = swordRainRig;
+        for (let index = 0; index < count; index += 1) {
+          blades.getMatrixAt(index, dummy.matrix);
+          dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
+          dummy.position.y -= speeds[index] * 0.022;
+          dummy.position.x += Math.sin(time * 1.4 + phases[index]) * 0.007;
+          if (dummy.position.y < -3.6) {
+            dummy.position.y = 4.2 + seededNoise(Math.floor(phases[index] * 100)) * 1.8;
           }
-          const impactGlow = sword.group.position.y < -1.8 ? Math.max(0, 1 - (sword.group.position.y + 3.6) / 1.8) * 0.6 : 0;
-          (sword.blade.material as MeshStandardMaterial).opacity = Math.min(0.96, (0.58 + impactGlow) * pulse);
-          (sword.glow.material as MeshBasicMaterial).opacity = (0.44 + impactGlow * 0.5) * pulse;
-          (sword.guard.material as MeshBasicMaterial).opacity = (0.7 + impactGlow) * pulse;
-        });
+          dummy.updateMatrix();
+          blades.setMatrixAt(index, dummy.matrix);
+          glows.setMatrixAt(index, dummy.matrix);
+        }
+        blades.instanceMatrix.needsUpdate = true;
+        glows.instanceMatrix.needsUpdate = true;
+        const bladeMat = blades.material as MeshStandardMaterial;
+        const glowMat = glows.material as MeshBasicMaterial;
+        bladeMat.opacity = Math.min(0.96, (0.62 + pulse * 0.28) * pulse);
+        glowMat.opacity = (0.32 + pulse * 0.28) * pulse;
       }
 
       if (petalRig) {

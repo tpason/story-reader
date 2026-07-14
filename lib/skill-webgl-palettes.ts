@@ -141,30 +141,30 @@ export function getSkillBloomConfig(skillId: string, effectPower: number): Skill
   const p = effectPower * 1.12;
   switch (skillId) {
     case "heaven_thunder":
-      return { strength: 2.45 * p, radius: 0.56, threshold: 0 };
+      return { strength: 2.45 * p, radius: 0.56, threshold: 0.22 };
     case "sword_flight":
-      return { strength: 2.05 * p, radius: 0.32, threshold: 0, afterimage: 0.9 };
+      return { strength: 2.05 * p, radius: 0.32, threshold: 0.18, afterimage: 0.9 };
     case "wind_blade":
-      return { strength: 1.85 * p, radius: 0.38, threshold: 0, afterimage: 0.86 };
+      return { strength: 1.85 * p, radius: 0.38, threshold: 0.2, afterimage: 0.86 };
     case "starfall":
-      return { strength: 2.25 * p, radius: 0.44, threshold: 0, afterimage: 0.8 };
+      return { strength: 2.25 * p, radius: 0.44, threshold: 0.16, afterimage: 0.8 };
     case "celestial_rain":
-      return { strength: 1.55 * p, radius: 0.62, threshold: 0 };
+      return { strength: 1.55 * p, radius: 0.62, threshold: 0.28 };
     case "summon_rain":
-      return { strength: 1.25 * p, radius: 0.58, threshold: 0 };
+      return { strength: 1.25 * p, radius: 0.58, threshold: 0.3 };
     case "lotus_domain":
-      return { strength: 1.35 * p, radius: 0.54, threshold: 0 };
+      return { strength: 1.35 * p, radius: 0.54, threshold: 0.26 };
     case "bean_soldiers":
-      return { strength: 1.15 * p, radius: 0.48, threshold: 0 };
+      return { strength: 1.15 * p, radius: 0.48, threshold: 0.32 };
     case "hoa_long":
-      return { strength: 2.65 * p, radius: 0.5, threshold: 0, afterimage: 0.86 };
+      return { strength: 2.65 * p, radius: 0.5, threshold: 0.14, afterimage: 0.86 };
     case "van_kiem":
-      return { strength: 2.45 * p, radius: 0.36, threshold: 0, afterimage: 0.84 };
+      return { strength: 2.45 * p, radius: 0.36, threshold: 0.16, afterimage: 0.84 };
     case "dao_hoa_tan":
-      return { strength: 1.55 * p, radius: 0.58, threshold: 0 };
+      return { strength: 1.55 * p, radius: 0.58, threshold: 0.28 };
     case "thien_dia_an":
-      return { strength: 3.1 * p, radius: 0.66, threshold: 0 };
+      return { strength: 3.1 * p, radius: 0.66, threshold: 0.12 };
     default:
-      return { strength: 1.35 * p, radius: 0.46, threshold: 0 };
+      return { strength: 1.35 * p, radius: 0.46, threshold: 0.24 };
   }
 }

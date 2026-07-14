@@ -17,6 +17,8 @@ describe("skill webgl palettes", () => {
     const bloom = getSkillBloomConfig("van_kiem", 1.2);
     assert.ok(bloom.strength > 1);
     assert.equal(bloom.afterimage, 0.84);
+    assert.ok(bloom.threshold > 0);
     assert.equal(getSkillBloomConfig("thien_dia_an", 1).strength, 3.1 * 1.12);
+    assert.equal(getSkillBloomConfig("thien_dia_an", 1).threshold, 0.12);
   });
 });
