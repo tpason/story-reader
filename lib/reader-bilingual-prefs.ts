@@ -3,6 +3,9 @@ import type { ReaderFetchOptions } from "@/lib/types";
 
 export type BilingualDisplayMode = "single" | "interleaved" | "secondary_hidden";
 
+/** stacked = EN then VI; columns = side-by-side desktop only (≥840px). */
+export type BilingualLayoutStyle = "stacked" | "columns";
+
 export type ReaderBilingualPrefs = {
   enabled: boolean;
   primaryLayer: ContentLayer;
@@ -11,6 +14,8 @@ export type ReaderBilingualPrefs = {
   secondaryVisible: boolean;
   /** Soft jade highlight on the paragraph in view while scrolling (bilingual mode). */
   scrollHighlight: boolean;
+  /** Desktop layout preference; mobile always stacks. */
+  layoutStyle: BilingualLayoutStyle;
 };
 
 export const READER_BILINGUAL_PREFS_KEY = "reader:bilingual-prefs";
@@ -21,7 +26,8 @@ export const DEFAULT_BILINGUAL_PREFS: ReaderBilingualPrefs = {
   secondaryLayer: "polished",
   displayMode: "interleaved",
   secondaryVisible: true,
-  scrollHighlight: true
+  scrollHighlight: true,
+  layoutStyle: "stacked"
 };
 
 export function readReaderBilingualPrefs(): ReaderBilingualPrefs {
@@ -42,7 +48,8 @@ export function readReaderBilingualPrefs(): ReaderBilingualPrefs {
           ? parsed.displayMode
           : "interleaved",
       secondaryVisible: parsed.secondaryVisible !== false,
-      scrollHighlight: parsed.scrollHighlight !== false
+      scrollHighlight: parsed.scrollHighlight !== false,
+      layoutStyle: parsed.layoutStyle === "columns" ? "columns" : "stacked"
     };
   } catch {
     return DEFAULT_BILINGUAL_PREFS;
@@ -61,7 +68,8 @@ export function learnEnglishPreset(): ReaderBilingualPrefs {
     secondaryLayer: "polished",
     displayMode: "interleaved",
     secondaryVisible: true,
-    scrollHighlight: true
+    scrollHighlight: true,
+    layoutStyle: "stacked"
   };
 }
 

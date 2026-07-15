@@ -46,6 +46,18 @@ import {
   writeReaderBilingualPrefs,
   type ReaderBilingualPrefs
 } from "@/lib/reader-bilingual-prefs";
+import {
+  clipPairedText,
+  clipPhrase,
+  createPhraseNoteId,
+  phraseNotesForStory,
+  readPhraseNotes,
+  removePhraseNote,
+  upsertPhraseNote,
+  writePhraseNotes,
+  type ReaderPhraseNote
+} from "@/lib/reader-phrase-notes";
+import { normalizeLookupQuery, extractLookupContextSentence } from "@/lib/reader-lookup";
 import { supportsBilingualReader } from "@/lib/reader-source-language";
 import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
 import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
@@ -185,6 +197,7 @@ const ReaderOnboardingCoach = dynamic(() => import("@/components/ReaderOnboardin
 const ReaderEngagementPrompt = dynamic(() => import("@/components/ReaderEngagementPrompt").then((mod) => mod.ReaderEngagementPrompt), { ssr: false });
 const ReaderNotesSidebar = dynamic(() => import("@/components/ReaderNotesSidebar").then((mod) => mod.ReaderNotesSidebar));
 const ReaderCommentsSidebar = dynamic(() => import("@/components/ReaderCommentsSidebar").then((mod) => mod.ReaderCommentsSidebar));
+const ReaderLookupPanel = dynamic(() => import("@/components/ReaderLookupPanel").then((mod) => mod.ReaderLookupPanel));
 const ChapterSidebarHeatmap = dynamic(() => import("@/components/ChapterSidebarHeatmap").then((mod) => mod.ChapterSidebarHeatmap));
 const ReaderKeyboardHelp = dynamic(() => import("@/components/ReaderKeyboardHelp").then((mod) => mod.ReaderKeyboardHelp));
 const ReaderBilingualSettings = dynamic(() => import("@/components/ReaderBilingualSettings").then((mod) => mod.ReaderBilingualSettings));
@@ -412,7 +425,20 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   );
   const bilingualSecondaryVisible = bilingualActive && bilingualPrefs.secondaryVisible;
   const bilingualScrollHighlight = bilingualActive && bilingualPrefs.scrollHighlight && !prefersReducedMotion();
+  const bilingualColumnsLayout = bilingualActive && bilingualPrefs.layoutStyle === "columns";
   const [scrollFocusParagraphIndex, setScrollFocusParagraphIndex] = useState<number | null>(null);
+  const [bilingualRevealedIndexes, setBilingualRevealedIndexes] = useState<Set<number>>(() => new Set());
+  const [phraseNotes, setPhraseNotes] = useState<ReaderPhraseNote[]>([]);
+  const [phraseNoteEditor, setPhraseNoteEditor] = useState<ReaderPhraseNote | null>(null);
+  const [lookupRequest, setLookupRequest] = useState<{
+    query: string;
+    contextEnglish: string | null;
+    contextPaired: string | null;
+    chapterId: string;
+    chapterNumber: number;
+    chapterTitle: string;
+    paragraphIndex: number;
+  } | null>(null);
   const bilingualScrollHighlightRef = useRef(bilingualScrollHighlight);
   const sessionMinutes = useReadingSessionMinutes(activePayload.chapter.id);
   const chapterSidebarRef = useRef<HTMLElement | null>(null);
@@ -584,6 +610,16 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     progressRef,
     onNotice: setSwipeNotice,
   });
+  const storyPhraseNotes = useMemo(
+    () => phraseNotesForStory(phraseNotes, activePayload.story.id),
+    [phraseNotes, activePayload.story.id]
+  );
+  useEffect(() => {
+    setPhraseNotes(readPhraseNotes());
+  }, []);
+  useEffect(() => {
+    setBilingualRevealedIndexes(new Set());
+  }, [activePayload.chapter.id, bilingualPrefs.secondaryVisible]);
   const primaryChapterNumber = activePayload.chapter.chapterNumber;
   const currentChapterParagraphBookmarks = paragraphBookmarksForChapter(primaryChapterNumber);
   const bookmarkedParagraphIndexes = bookmarkedIndexesForChapter(primaryChapterNumber);
@@ -1548,19 +1584,39 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     if (bilingualScrollHighlight && scrollFocusParagraphIndex === index) {
       classes.push("reader-paragraph-bilingual-focus");
     }
+    if (bilingualRevealedIndexes.has(index)) classes.push("reader-paragraph-bilingual-revealed");
     return classes.join(" ");
+  }
+
+  function isBilingualSecondaryVisibleForIndex(index: number) {
+    if (!bilingualActive) return false;
+    if (bilingualSecondaryVisible) return true;
+    return bilingualRevealedIndexes.has(index);
+  }
+
+  function toggleBilingualParagraphReveal(index: number) {
+    if (!bilingualActive || !bilingualPairs[index]?.secondary?.text) return;
+    setBilingualRevealedIndexes((current) => {
+      const next = new Set(current);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
   }
 
   function renderBilingualSecondary(index: number, options?: { measureHiddenSecondary?: boolean }) {
     const secondary = bilingualPairs[index]?.secondary;
     if (!secondary?.text) return null;
-    const visible = options?.measureHiddenSecondary ? false : bilingualSecondaryVisible;
+    const visible = options?.measureHiddenSecondary ? false : isBilingualSecondaryVisibleForIndex(index);
     return (
       <span
         className={`reader-paragraph-bilingual-secondary${visible ? "" : " reader-paragraph-bilingual-secondary-collapsed"}`}
         lang={secondary.lang}
         aria-hidden={!visible}
       >
+        <span className="reader-paragraph-bilingual-lang" aria-hidden>
+          {secondary.lang.toUpperCase()}
+        </span>
         {secondary.text}
       </span>
     );
@@ -1571,13 +1627,34 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     if (!bilingualActive) {
       return <span className="reader-paragraph-text">{text}</span>;
     }
+    const secondary = bilingualPairs[index]?.secondary;
+    const canReveal = Boolean(secondary?.text) && !bilingualSecondaryVisible;
+    const primaryLang = bilingualPairs[index]?.primary.lang ?? "en";
     return (
-      <>
-        <span className="reader-paragraph-text reader-paragraph-bilingual-primary" lang={bilingualPairs[index]?.primary.lang}>
-          {text}
+      <span className="reader-paragraph-bilingual-pair">
+        <span className="reader-paragraph-bilingual-primary" lang={primaryLang}>
+          <span className="reader-paragraph-bilingual-lang" aria-hidden>
+            {primaryLang.toUpperCase()}
+          </span>
+          {/* Keep plain .reader-paragraph-text for drop-cap / search / glossary spans */}
+          <span className="reader-paragraph-text">{text}</span>
         </span>
+        {canReveal ? (
+          <button
+            type="button"
+            className="reader-paragraph-bilingual-reveal"
+            aria-pressed={bilingualRevealedIndexes.has(index)}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              toggleBilingualParagraphReveal(index);
+            }}
+          >
+            {bilingualRevealedIndexes.has(index) ? "Ẩn đối chiếu" : "Xem đối chiếu"}
+          </button>
+        ) : null}
         {renderBilingualSecondary(index)}
-      </>
+      </span>
     );
   }
 
@@ -2335,6 +2412,143 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     window.getSelection()?.removeAllRanges();
   }
 
+  function resolveSelectionParagraphContext(): {
+    chapterId: string;
+    chapterNumber: number;
+    chapterTitle: string;
+    paragraphIndex: number;
+  } | null {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return null;
+    const node = selection.anchorNode;
+    const element = node instanceof Element ? node : node?.parentElement;
+    const paragraphEl = element?.closest("[data-paragraph-index]") as HTMLElement | null;
+    if (!paragraphEl) return null;
+    const paragraphIndex = Number(paragraphEl.getAttribute("data-paragraph-index"));
+    if (!Number.isInteger(paragraphIndex) || paragraphIndex < 0) return null;
+    const chapterNumberAttr = paragraphEl.getAttribute("data-chapter-number");
+    const chapterNumber = chapterNumberAttr != null ? Number(chapterNumberAttr) : primaryChapterNumber;
+    const chapterId = paragraphEl.getAttribute("data-chapter-id") || activePayload.chapter.id;
+    const chapterTitle = paragraphEl.getAttribute("data-chapter-title") || activePayload.chapter.title;
+    if (!Number.isInteger(chapterNumber)) return null;
+    return { chapterId, chapterNumber, chapterTitle, paragraphIndex };
+  }
+
+  function saveSelectedPhrase() {
+    if (!selectionAction?.text) return;
+    const phrase = clipPhrase(selectionAction.text);
+    if (!phrase) {
+      showSwipeNotice("Chọn cụm từ / câu trước đã");
+      return;
+    }
+    const context = resolveSelectionParagraphContext();
+    const chapterId = context?.chapterId ?? activePayload.chapter.id;
+    const chapterNumber = context?.chapterNumber ?? primaryChapterNumber;
+    const chapterTitle = context?.chapterTitle ?? activePayload.chapter.title;
+    const paragraphIndex = context?.paragraphIndex ?? 0;
+    const pairedText =
+      bilingualActive && chapterNumber === primaryChapterNumber
+        ? clipPairedText(bilingualPairs[paragraphIndex]?.secondary?.text)
+        : null;
+    const draft: ReaderPhraseNote = {
+      id: createPhraseNoteId(activePayload.story.id, chapterNumber, paragraphIndex, phrase),
+      storyId: activePayload.story.id,
+      chapterId,
+      chapterNumber,
+      chapterTitle,
+      paragraphIndex,
+      phrase,
+      pairedText,
+      note: null,
+      createdAt: new Date().toISOString()
+    };
+    setSelectionAction(null);
+    window.getSelection()?.removeAllRanges();
+    setPhraseNoteEditor(draft);
+  }
+
+  function openLookupFromSelection() {
+    if (!selectionAction?.text) return;
+    const normalized = normalizeLookupQuery(selectionAction.text);
+    if (!normalized) {
+      showSwipeNotice("Chọn từ hoặc cụm ngắn để tra");
+      return;
+    }
+    const context = resolveSelectionParagraphContext();
+    const chapterId = context?.chapterId ?? activePayload.chapter.id;
+    const chapterNumber = context?.chapterNumber ?? primaryChapterNumber;
+    const chapterTitle = context?.chapterTitle ?? activePayload.chapter.title;
+    const paragraphIndex = context?.paragraphIndex ?? 0;
+    const paragraphText =
+      chapterNumber === primaryChapterNumber
+        ? paragraphs[paragraphIndex] ?? ""
+        : inlineChapters.find((block) => block.chapterNumber === chapterNumber)?.paragraphs[paragraphIndex] ?? "";
+    const contextEnglish = extractLookupContextSentence(paragraphText, normalized.query);
+    const pairedText =
+      bilingualActive && chapterNumber === primaryChapterNumber
+        ? clipPairedText(bilingualPairs[paragraphIndex]?.secondary?.text)
+        : null;
+    setSelectionAction(null);
+    window.getSelection()?.removeAllRanges();
+    setLookupRequest({
+      query: normalized.query,
+      contextEnglish,
+      contextPaired: pairedText,
+      chapterId,
+      chapterNumber,
+      chapterTitle,
+      paragraphIndex
+    });
+  }
+
+  function savePhraseFromLookup(payload: { phrase: string; pairedText: string | null }) {
+    const phrase = clipPhrase(payload.phrase);
+    if (!phrase) return;
+    const chapterId = lookupRequest?.chapterId ?? activePayload.chapter.id;
+    const chapterNumber = lookupRequest?.chapterNumber ?? primaryChapterNumber;
+    const chapterTitle = lookupRequest?.chapterTitle ?? activePayload.chapter.title;
+    const paragraphIndex = lookupRequest?.paragraphIndex ?? 0;
+    const draft: ReaderPhraseNote = {
+      id: createPhraseNoteId(activePayload.story.id, chapterNumber, paragraphIndex, phrase),
+      storyId: activePayload.story.id,
+      chapterId,
+      chapterNumber,
+      chapterTitle,
+      paragraphIndex,
+      phrase,
+      pairedText: clipPairedText(payload.pairedText),
+      note: null,
+      createdAt: new Date().toISOString()
+    };
+    setLookupRequest(null);
+    setPhraseNoteEditor(draft);
+  }
+
+  function persistPhraseNote(note: ReaderPhraseNote) {
+    const next = upsertPhraseNote(phraseNotes, note);
+    setPhraseNotes(next);
+    writePhraseNotes(next);
+  }
+
+  function savePhraseNoteEditor() {
+    if (!phraseNoteEditor) return;
+    const noteText = phraseNoteEditor.note?.trim() ? phraseNoteEditor.note.trim() : null;
+    persistPhraseNote({
+      ...phraseNoteEditor,
+      note: noteText,
+      updatedAt: new Date().toISOString()
+    });
+    setPhraseNoteEditor(null);
+    showSwipeNotice("Đã lưu cụm từ");
+  }
+
+  function deleteStoryPhraseNote(note: ReaderPhraseNote) {
+    const next = removePhraseNote(phraseNotes, note.id);
+    setPhraseNotes(next);
+    writePhraseNotes(next);
+    showSwipeNotice("Đã xóa cụm từ");
+  }
+
   function editSelectedContent() {
     if (!selectionAction || !currentUser?.isAdmin) return;
     const content = activePayload.chapter.content ?? paragraphs.join("\n\n");
@@ -3031,6 +3245,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         <p
           className={paragraphClassName(index, bookmarked, hasNote)}
           data-paragraph-index={index}
+          {...primaryChapterParagraphAttrs}
           key={`${index}-${paragraph.slice(0, 12)}`}
           onDoubleClick={(event) => {
             const target = event.target instanceof Element ? event.target : null;
@@ -3175,6 +3390,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           onShare={shareSelectedContent}
           onShareImage={shareSelectedContentAsImage}
           onEdit={editSelectedContent}
+          onSavePhrase={supportsBilingual ? saveSelectedPhrase : undefined}
+          onLookup={supportsBilingual ? openLookupFromSelection : undefined}
         />
       ) : null}
 
@@ -3212,6 +3429,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       <ReaderNotesSidebar
         open={notesSidebarOpen && !compactReader}
         bookmarks={sessionParagraphBookmarks}
+        phraseNotes={supportsBilingual ? storyPhraseNotes : []}
+        showPhraseTab={supportsBilingual}
         onClose={() => setNotesSidebarOpen(false)}
         onJump={(bookmark) => {
           setNotesSidebarOpen(false);
@@ -3221,6 +3440,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           setNotesSidebarOpen(false);
           openParagraphNoteEditor(bookmark.chapterNumber, bookmark.paragraphIndex);
         }}
+        onJumpPhrase={(note) => {
+          setNotesSidebarOpen(false);
+          window.requestAnimationFrame(() => scrollToParagraph(note.paragraphIndex, "smooth", note.chapterNumber));
+        }}
+        onEditPhrase={(note) => {
+          setNotesSidebarOpen(false);
+          setPhraseNoteEditor(note);
+        }}
+        onDeletePhrase={deleteStoryPhraseNote}
       />
 
       <ReaderGlossaryDrawer
@@ -3872,6 +4100,47 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               </div>
             ) : null}
 
+            {supportsBilingual && storyPhraseNotes.length > 0 ? (
+              <div className="reader-sheet-section reader-sheet-bookmarks">
+                <span>Cụm từ đã lưu ({storyPhraseNotes.length})</span>
+                <div className="reader-sheet-paragraph-bookmarks">
+                  {storyPhraseNotes.slice(0, 8).map((note) => (
+                    <div className="reader-sheet-paragraph-bookmark-row" key={note.id}>
+                      <button
+                        className="reader-sheet-paragraph-bookmark"
+                        type="button"
+                        onClick={() => {
+                          setMobileSheetOpen(false);
+                          window.requestAnimationFrame(() =>
+                            scrollToParagraph(note.paragraphIndex, "smooth", note.chapterNumber)
+                          );
+                        }}
+                      >
+                        <Highlighter size={14} />
+                        <span>
+                          <small>Ch.{note.chapterNumber}</small>
+                          {note.phrase}
+                          {note.pairedText ? <small>{note.pairedText}</small> : null}
+                          {note.note ? <small>{note.note}</small> : null}
+                        </span>
+                      </button>
+                      <button
+                        className="reader-sheet-paragraph-note"
+                        type="button"
+                        aria-label="Sửa ghi chú cụm từ"
+                        onClick={() => {
+                          setMobileSheetOpen(false);
+                          setPhraseNoteEditor(note);
+                        }}
+                      >
+                        <StickyNote size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             {autoScrollEnabled ? (
               <div className="reader-sheet-section">
                 <span>Tốc độ tự cuộn</span>
@@ -4462,6 +4731,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                           ]?.slice(0, 120)) ??
                       ""
                     }
+                    pairedExcerpt={
+                      bilingualActive && paragraphNoteEditor.chapterNumber === primaryChapterNumber
+                        ? bilingualPairs[paragraphNoteEditor.paragraphIndex]?.secondary?.text?.slice(0, 240) ?? null
+                        : null
+                    }
                     note={paragraphNoteEditor.note}
                     onChange={(value) => setParagraphNoteEditor((current) => (current ? { ...current, note: value } : current))}
                     onSave={saveParagraphNote}
@@ -4470,6 +4744,31 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   document.body
                 )
               : null}
+
+            {phraseNoteEditor && floatingActionsMounted
+              ? createPortal(
+                  <ReaderParagraphNoteEditor
+                    title="Ghi chú cụm từ"
+                    excerpt={phraseNoteEditor.phrase}
+                    pairedExcerpt={phraseNoteEditor.pairedText}
+                    note={phraseNoteEditor.note ?? ""}
+                    placeholder="Nghĩa, ngữ cảnh, cách dùng…"
+                    ariaLabel="Ghi chú cụm từ"
+                    onChange={(value) => setPhraseNoteEditor((current) => (current ? { ...current, note: value } : current))}
+                    onSave={savePhraseNoteEditor}
+                    onClose={() => setPhraseNoteEditor(null)}
+                  />,
+                  document.body
+                )
+              : null}
+
+            {lookupRequest && floatingActionsMounted ? (
+              <ReaderLookupPanel
+                request={lookupRequest}
+                onClose={() => setLookupRequest(null)}
+                onSavePhrase={savePhraseFromLookup}
+              />
+            ) : null}
 
             {audioPanelOpen ? (
               <section className="audio-panel" aria-label="Chapter audio" ref={audioPanelRef}>
@@ -4494,7 +4793,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             ) : null}
 
             <section
-              className={`reader-content ${isPageLayout ? "reader-content-paginated" : ""} ${bilingualActive ? "reader-content-bilingual" : ""} ${currentUser?.isAdmin ? "admin-editable-content-hidden" : ""}`}
+              className={`reader-content ${isPageLayout ? "reader-content-paginated" : ""} ${bilingualActive ? "reader-content-bilingual" : ""} ${bilingualColumnsLayout ? "reader-content-bilingual-columns" : ""} ${currentUser?.isAdmin ? "admin-editable-content-hidden" : ""}`}
               aria-label="Chapter content"
               ref={paragraphContainerRef}
               onMouseUp={() => window.setTimeout(() => maybeShowContentSelectionActions(), 0)}
@@ -4510,12 +4809,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                     >
                       <span className="reader-page-measure-gutter" />
                       {bilingualActive ? (
-                        <>
-                          <span className="reader-paragraph-text reader-paragraph-bilingual-primary">
-                            {renderParagraphText(index, paragraph)}
+                        <span className="reader-paragraph-bilingual-pair">
+                          <span
+                            className="reader-paragraph-bilingual-primary"
+                            lang={bilingualPairs[index]?.primary.lang ?? "en"}
+                          >
+                            <span className="reader-paragraph-text">{renderParagraphText(index, paragraph)}</span>
                           </span>
-                          {bilingualSecondaryVisible ? renderBilingualSecondary(index) : null}
-                        </>
+                          {bilingualSecondaryVisible ? renderBilingualSecondary(index, { measureHiddenSecondary: false }) : null}
+                        </span>
                       ) : (
                         <span className="reader-paragraph-text">{renderParagraphText(index, paragraph)}</span>
                       )}

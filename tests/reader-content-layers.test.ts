@@ -21,5 +21,6 @@ describe("bilingual reader scope", () => {
       readReaderBilingualPrefs().scrollHighlight,
       DEFAULT_BILINGUAL_PREFS.scrollHighlight
     );
+    assert.equal(DEFAULT_BILINGUAL_PREFS.layoutStyle, "stacked");
   });
 });

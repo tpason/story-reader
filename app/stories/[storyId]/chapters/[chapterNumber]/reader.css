@@ -6841,3 +6841,596 @@ button.chapter-sidebar-heatmap-cell:focus-visible {
    @media min-width:840 .reader-controls-desktop { display:flex }) are superseded
    by the :6036–6046 topbar-modern !important gates. Keep those gates as SoT.
    === */
+
+/* === Bilingual ESL · phrase notes + layout (2026-07-15) === */
+
+.reader-content-bilingual {
+  --reader-bilingual-gap: 0.72em;
+}
+
+.reader-paragraph-bilingual {
+  gap: var(--reader-bilingual-gap);
+  padding: 0.42em 0.2em 0.55em 0.6em;
+}
+
+.reader-paragraph-bilingual-lang {
+  display: inline-block;
+  margin: 0 0.45em 0.15em 0;
+  padding: 0.08em 0.42em;
+  border-radius: 999px;
+  font-family: var(--reader-ui-font, system-ui, sans-serif);
+  font-size: 0.68em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  vertical-align: 0.12em;
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 78%, var(--reader-ink) 22%);
+  background: color-mix(in srgb, var(--xi-jade, #1a6b5a) 12%, var(--reader-bg) 88%);
+  border: 1px solid color-mix(in srgb, var(--xi-jade, #1a6b5a) 22%, var(--reader-line) 78%);
+}
+
+.reader-paragraph-bilingual-secondary .reader-paragraph-bilingual-lang {
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 55%, var(--reader-ink) 45%);
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 10%, var(--reader-bg) 90%);
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 28%, var(--reader-line) 72%);
+}
+
+.reader-paragraph-bilingual-secondary {
+  margin-top: 0.12em;
+  padding: 0.45em 0.7em 0.4em 0.85em;
+  border-radius: 0 10px 10px 0;
+  background: color-mix(in srgb, var(--xi-jade, #1a6b5a) 6%, var(--reader-bg) 94%);
+}
+
+.reader-paragraph-bilingual-reveal {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  margin: 0.15em 0 0.35em;
+  padding: 0.28em 0.7em;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--xi-jade, #1a6b5a) 28%, var(--reader-line) 72%);
+  background: color-mix(in srgb, var(--reader-bg) 88%, var(--xi-jade, #1a6b5a) 12%);
+  color: color-mix(in srgb, var(--reader-ink) 82%, var(--xi-jade, #1a6b5a) 18%);
+  font-family: var(--reader-ui-font, system-ui, sans-serif);
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+}
+
+.reader-paragraph-bilingual-reveal:hover,
+.reader-paragraph-bilingual-reveal:focus-visible {
+  border-color: color-mix(in srgb, var(--xi-jade-light, #2fa890) 55%, var(--reader-line) 45%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--xi-jade, #1a6b5a) 14%, transparent);
+}
+
+.reader-paragraph-bilingual-reveal[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--xi-jade, #1a6b5a) 16%, var(--reader-bg) 84%);
+}
+
+.reader-paragraph-bilingual-pair {
+  display: grid;
+  gap: var(--reader-bilingual-gap, 0.72em);
+  min-width: 0;
+  width: 100%;
+}
+
+@media (min-width: 840px) {
+  .reader-content-bilingual-columns .reader-paragraph-bilingual-pair {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 1.1rem;
+    align-items: start;
+  }
+
+  .reader-content-bilingual-columns .reader-paragraph-bilingual-primary {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .reader-content-bilingual-columns .reader-paragraph-bilingual-reveal {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  .reader-content-bilingual-columns .reader-paragraph-bilingual-secondary {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+    max-height: none;
+  }
+
+  .reader-content-bilingual-columns .reader-paragraph-bilingual-secondary-collapsed {
+    max-height: 0;
+  }
+}
+
+.reader-paragraph-note-paired {
+  margin: 0 0 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border-left: 2px solid color-mix(in srgb, var(--xi-jade, #1a6b5a) 40%, transparent);
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--xi-jade, #1a6b5a) 7%, var(--reader-bg) 93%);
+  color: color-mix(in srgb, var(--reader-ink) 78%, var(--xi-jade, #1a6b5a) 22%);
+  font-size: 0.9em;
+  line-height: 1.55;
+}
+
+.reader-notes-sidebar-tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0 0.85rem 0.55rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--reader-line) 80%, transparent);
+}
+
+.reader-notes-sidebar-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.2rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--reader-muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.reader-notes-sidebar-tab.is-active {
+  color: var(--reader-ink);
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 40%, var(--reader-line) 60%);
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 10%, var(--reader-bg) 90%);
+}
+
+.reader-notes-sidebar-tab-count {
+  display: inline-flex;
+  min-width: 1.25rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  font-size: 0.72em;
+  background: color-mix(in srgb, var(--reader-line) 55%, transparent);
+}
+
+.reader-notes-sidebar-phrase {
+  display: block;
+  color: var(--reader-ink);
+  font-weight: 600;
+}
+
+.reader-notes-sidebar-paired {
+  display: block;
+  color: color-mix(in srgb, var(--reader-muted) 75%, var(--xi-jade, #1a6b5a) 25%);
+}
+
+.reader-notes-sidebar-phrase-actions {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.reader-notes-sidebar-item-phrase .reader-notes-sidebar-jump small {
+  white-space: normal;
+}
+
+@media (max-width: 839px) {
+  .reader-content-bilingual-columns .reader-paragraph-bilingual-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reader-paragraph-bilingual-lang {
+    font-size: 0.64em;
+  }
+
+  .reader-paragraph-bilingual-reveal {
+    min-height: 2.35rem;
+    padding: 0.4em 0.85em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-paragraph-bilingual-reveal {
+    transition: none;
+  }
+}
+
+/* === end bilingual ESL 2026-07-15 === */
+
+/* bilingual pair wrapper — keep text full-width on mobile grid */
+@media (max-width: 839px) {
+  .reader-paragraph > .reader-paragraph-bilingual-pair {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+/* === Reader word lookup panel (ESL dictionary) 2026-07-15 === */
+
+.reader-lookup-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.reader-lookup-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: color-mix(in srgb, var(--reader-ink) 42%, transparent);
+  cursor: pointer;
+}
+
+.reader-lookup-panel {
+  position: relative;
+  z-index: 1;
+  width: min(34rem, calc(100vw - 1.5rem));
+  max-height: min(82vh, 40rem);
+  overflow: auto;
+  padding: 1rem 1.05rem 1.15rem;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--xi-jade, #1a6b5a) 28%, var(--reader-line) 72%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--xi-jade, #1a6b5a) 7%, var(--reader-bg) 93%), var(--reader-bg));
+  color: var(--reader-ink);
+  box-shadow:
+    0 18px 48px color-mix(in srgb, var(--reader-ink) 22%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--xi-gold, #c8962e) 10%, transparent);
+}
+
+.reader-lookup-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.reader-lookup-eyebrow {
+  margin: 0 0 0.2rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 70%, var(--reader-muted) 30%);
+}
+
+.reader-lookup-header h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  font-family: var(--reader-font-en, Georgia, "Times New Roman", serif);
+}
+
+.reader-lookup-ipa {
+  margin: 0.3rem 0 0;
+  color: var(--reader-muted);
+  font-size: 0.92rem;
+}
+
+.reader-lookup-close {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid var(--reader-line);
+  background: color-mix(in srgb, var(--reader-bg) 90%, transparent);
+  color: var(--reader-ink);
+  cursor: pointer;
+}
+
+.reader-lookup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+}
+
+.reader-lookup-play,
+.reader-lookup-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--xi-jade, #1a6b5a) 32%, var(--reader-line) 68%);
+  background: color-mix(in srgb, var(--xi-jade, #1a6b5a) 12%, var(--reader-bg) 88%);
+  color: var(--reader-ink);
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.reader-lookup-play-secondary,
+.reader-lookup-save {
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 10%, var(--reader-bg) 90%);
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 34%, var(--reader-line) 66%);
+}
+
+.reader-lookup-context {
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  border-left: 2px solid color-mix(in srgb, var(--xi-jade, #1a6b5a) 45%, transparent);
+  background: color-mix(in srgb, var(--xi-jade, #1a6b5a) 8%, var(--reader-bg) 92%);
+  color: color-mix(in srgb, var(--reader-ink) 82%, var(--xi-jade, #1a6b5a) 18%);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.reader-lookup-context span {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--reader-muted);
+}
+
+.reader-lookup-status,
+.reader-lookup-error,
+.reader-lookup-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0.75rem;
+  color: var(--reader-muted);
+  font-size: 0.9rem;
+}
+
+.reader-lookup-error {
+  color: color-mix(in srgb, #b4453a 70%, var(--reader-ink) 30%);
+}
+
+.reader-lookup-spinner {
+  animation: reader-lookup-spin 0.9s linear infinite;
+}
+
+@keyframes reader-lookup-spin {
+  to { transform: rotate(360deg); }
+}
+
+.reader-lookup-vi {
+  margin-bottom: 0.9rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 28%, var(--reader-line) 72%);
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 8%, var(--reader-bg) 92%);
+}
+
+.reader-lookup-vi strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 65%, var(--reader-ink) 35%);
+}
+
+.reader-lookup-vi p {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 650;
+}
+
+.reader-lookup-vi ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--reader-muted);
+  font-size: 0.88rem;
+}
+
+.reader-lookup-vi small {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--reader-muted);
+  font-size: 0.78rem;
+}
+
+.reader-lookup-meaning {
+  margin: 0 0 0.9rem;
+}
+
+.reader-lookup-meaning h3 {
+  margin: 0 0 0.4rem;
+}
+
+.reader-lookup-pos {
+  display: inline-block;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 80%, var(--reader-ink) 20%);
+  background: color-mix(in srgb, var(--xi-jade, #1a6b5a) 12%, var(--reader-bg) 88%);
+  border: 1px solid color-mix(in srgb, var(--xi-jade, #1a6b5a) 24%, var(--reader-line) 76%);
+}
+
+.reader-lookup-meaning ol {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.reader-lookup-meaning li + li {
+  margin-top: 0.55rem;
+}
+
+.reader-lookup-definition {
+  margin: 0;
+  line-height: 1.5;
+  font-family: var(--reader-font-en, Georgia, "Times New Roman", serif);
+}
+
+.reader-lookup-example {
+  margin: 0.25rem 0 0;
+  color: var(--reader-muted);
+  font-style: italic;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.reader-lookup-synonyms {
+  margin: 0.2rem 0 0;
+  color: color-mix(in srgb, var(--reader-muted) 80%, var(--xi-jade, #1a6b5a) 20%);
+  font-size: 0.82rem;
+}
+
+.reader-lookup-source {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  color: var(--reader-muted);
+}
+
+.reader-lookup-source a {
+  color: color-mix(in srgb, var(--xi-jade-light, #2fa890) 70%, var(--reader-ink) 30%);
+}
+
+@media (max-width: 839px) {
+  .reader-lookup-modal {
+    place-items: end center;
+    padding: 0;
+  }
+
+  .reader-lookup-panel {
+    width: 100%;
+    max-height: min(78vh, 36rem);
+    border-radius: 18px 18px 0 0;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .reader-lookup-play,
+  .reader-lookup-save {
+    min-height: 2.45rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-lookup-spinner {
+    animation: none;
+  }
+}
+
+/* === end reader word lookup 2026-07-15 === */
+
+/* === Lookup UX pass — Readlang/LingQ context (2026-07-15) === */
+
+.reader-lookup-context-card {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0 0 0.8rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--reader-line) 75%, var(--xi-jade, #1a6b5a) 25%);
+  background: color-mix(in srgb, var(--reader-bg) 94%, var(--xi-jade, #1a6b5a) 6%);
+}
+
+.reader-lookup-context-en,
+.reader-lookup-context-vi {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.reader-lookup-context-en {
+  font-family: var(--reader-font-en, Georgia, "Times New Roman", serif);
+  color: var(--reader-ink);
+}
+
+.reader-lookup-context-vi {
+  color: color-mix(in srgb, var(--reader-ink) 78%, var(--xi-jade, #1a6b5a) 22%);
+  padding-top: 0.35rem;
+  border-top: 1px dashed color-mix(in srgb, var(--reader-line) 70%, transparent);
+}
+
+.reader-lookup-context-en span,
+.reader-lookup-context-vi span {
+  display: block;
+  margin-bottom: 0.18rem;
+  font-family: var(--reader-ui-font, system-ui, sans-serif);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--reader-muted);
+}
+
+.reader-lookup-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0 0 0.7rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--reader-line) 35%, transparent);
+}
+
+.reader-lookup-tab {
+  flex: 1;
+  min-height: 2.15rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--reader-muted);
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.reader-lookup-tab.is-active {
+  background: color-mix(in srgb, var(--reader-bg) 92%, var(--xi-gold, #c8962e) 8%);
+  color: var(--reader-ink);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--reader-ink) 8%, transparent);
+}
+
+@media (max-width: 839px) {
+  .reader-lookup-tab {
+    min-height: 2.4rem;
+  }
+}
+
+/* === end lookup UX pass === */
+
+/* === Regression guards — ESL vs existing reader (2026-07-15) === */
+
+/* Lookup must sit above notes/glossary drawers and note modal (1220). */
+.reader-lookup-modal {
+  z-index: 1230;
+}
+
+/* Focus highlight survived pair wrapper — use descendants, not direct child. */
+.reader-paragraph-bilingual-focus .reader-paragraph-bilingual-primary {
+  color: color-mix(in srgb, var(--reader-ink) 96%, var(--xi-jade-light, #2fa890) 4%);
+}
+
+.reader-paragraph-bilingual-focus .reader-paragraph-bilingual-secondary {
+  border-left-color: color-mix(in srgb, var(--xi-gold, #c8962e) 42%, var(--xi-jade, #1a6b5a) 58%);
+  color: color-mix(in srgb, var(--reader-ink) 78%, var(--xi-jade, #1a6b5a) 22%);
+}
+
+/* Drop-cap still targets .reader-paragraph-text inside bilingual primary. */
+.reader-paragraph-bilingual-primary {
+  display: block;
+}
+
+.reader-paragraph-bilingual-primary > .reader-paragraph-text {
+  display: inline;
+}
+
+/* Mobile: text node may sit under pair > primary > text */
+@media (max-width: 839px) {
+  .reader-paragraph > .reader-paragraph-bilingual-pair .reader-paragraph-text,
+  .reader-paragraph > .reader-paragraph-bilingual-pair .reader-paragraph-bilingual-primary,
+  .reader-paragraph > .reader-paragraph-bilingual-pair .reader-paragraph-bilingual-secondary {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+/* === end regression guards === */

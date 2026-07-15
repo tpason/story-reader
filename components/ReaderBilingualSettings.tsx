@@ -8,6 +8,7 @@ import {
   readReaderBilingualPrefs,
   writeReaderBilingualPrefs,
   type BilingualDisplayMode,
+  type BilingualLayoutStyle,
   type ReaderBilingualPrefs
 } from "@/lib/reader-bilingual-prefs";
 import type { StorySummary } from "@/lib/types";
@@ -40,7 +41,7 @@ export function ReaderBilingualSettings({ story, availableLayers, onChange }: Re
           </p>
           <h3>Song ngữ linh quyển</h3>
           <p className="reader-bilingual-settings-note">
-            Chỉ mở với truyện nguồn Anh. Tiếng Việt polish là bản đối chiếu; audio vẫn theo bản Việt.
+            Đọc EN gốc, nhìn VI polish khi cần — luyện đọc hiểu. Bôi đen cụm từ rồi <strong>Lưu câu</strong>. Audio vẫn theo bản Việt.
           </p>
         </div>
 
@@ -99,7 +100,18 @@ export function ReaderBilingualSettings({ story, availableLayers, onChange }: Re
                 }}
               >
                 <option value="interleaved">Xen kẽ từng đoạn</option>
-                <option value="secondary_hidden">Ẩn bản đối chiếu (phím H)</option>
+                <option value="secondary_hidden">Ẩn đối chiếu (phím H / nút Xem đối chiếu)</option>
+              </select>
+            </label>
+
+            <label className="reader-bilingual-field">
+              <span>Bố cục desktop</span>
+              <select
+                value={prefs.layoutStyle}
+                onChange={(event) => update({ layoutStyle: event.target.value as BilingualLayoutStyle })}
+              >
+                <option value="stacked">Xếp dọc (EN trên, VI dưới)</option>
+                <option value="columns">Hai cột (desktop ≥840px)</option>
               </select>
             </label>
 

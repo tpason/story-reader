@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Share2, StickyNote, X } from "lucide-react";
+import { BookOpen, BookmarkPlus, BookOpenCheck, Share2, StickyNote, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { GlossaryCharacter } from "@/lib/reader-glossary";
@@ -63,6 +63,10 @@ type ReaderSelectionToolbarProps = {
   onShare: () => void;
   onShareImage?: () => void;
   onEdit: () => void;
+  /** ESL: save selected phrase / sentence into local phrase bank. */
+  onSavePhrase?: () => void;
+  /** ESL: open dictionary / pronunciation lookup. */
+  onLookup?: () => void;
 };
 
 export function ReaderSelectionToolbar({
@@ -74,7 +78,9 @@ export function ReaderSelectionToolbar({
   onCopy,
   onShare,
   onShareImage,
-  onEdit
+  onEdit,
+  onSavePhrase,
+  onLookup
 }: ReaderSelectionToolbarProps) {
   return (
     <div
@@ -90,6 +96,18 @@ export function ReaderSelectionToolbar({
           {glossaryCharacter.role ? <span>{glossaryCharacter.role}</span> : null}
           {glossaryCharacter.pronouns3rd ? <small>{glossaryCharacter.pronouns3rd}</small> : null}
         </div>
+      ) : null}
+      {onLookup ? (
+        <button type="button" onClick={onLookup}>
+          <BookOpenCheck size={14} aria-hidden />
+          Tra từ
+        </button>
+      ) : null}
+      {onSavePhrase ? (
+        <button type="button" onClick={onSavePhrase}>
+          <BookmarkPlus size={14} aria-hidden />
+          Lưu câu
+        </button>
       ) : null}
       <button type="button" onClick={onCopy}>
         Sao chép
@@ -114,13 +132,27 @@ export function ReaderSelectionToolbar({
 
 type ReaderParagraphNoteEditorProps = {
   excerpt: string;
+  pairedExcerpt?: string | null;
   note: string;
   onChange: (value: string) => void;
   onSave: () => void;
   onClose: () => void;
+  title?: string;
+  placeholder?: string;
+  ariaLabel?: string;
 };
 
-export function ReaderParagraphNoteEditor({ excerpt, note, onChange, onSave, onClose }: ReaderParagraphNoteEditorProps) {
+export function ReaderParagraphNoteEditor({
+  excerpt,
+  pairedExcerpt,
+  note,
+  onChange,
+  onSave,
+  onClose,
+  title = "Ghi chú đoạn",
+  placeholder = "Ghi nhớ manh mối, nhân vật, suy nghĩ…",
+  ariaLabel
+}: ReaderParagraphNoteEditorProps) {
   const [portalReady, setPortalReady] = useState(false);
 
   useEffect(() => {
@@ -143,23 +175,24 @@ export function ReaderParagraphNoteEditor({ excerpt, note, onChange, onSave, onC
   if (!portalReady) return null;
 
   return createPortal(
-    <div className="reader-note-modal" role="dialog" aria-modal="true" aria-label="Ghi chú đoạn">
-      <button className="reader-note-modal-backdrop" type="button" aria-label="Đóng ghi chú đoạn" onClick={onClose} />
+    <div className="reader-note-modal" role="dialog" aria-modal="true" aria-label={ariaLabel ?? title}>
+      <button className="reader-note-modal-backdrop" type="button" aria-label="Đóng ghi chú" onClick={onClose} />
       <div className="reader-paragraph-note-editor reader-note-modal-panel">
         <div className="reader-paragraph-note-editor-header">
           <StickyNote size={16} />
-          <strong>Ghi chú đoạn</strong>
+          <strong>{title}</strong>
           <button type="button" className="reader-paragraph-note-close" aria-label="Đóng" onClick={onClose}>
             <X size={15} />
           </button>
         </div>
         <p className="reader-paragraph-note-excerpt">{excerpt}</p>
+        {pairedExcerpt ? <p className="reader-paragraph-note-paired">{pairedExcerpt}</p> : null}
         <textarea
           className="reader-paragraph-note-input"
           value={note}
           maxLength={500}
           autoFocus
-          placeholder="Ghi nhớ manh mối, nhân vật, suy nghĩ…"
+          placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
         />
         <div className="reader-paragraph-note-actions">

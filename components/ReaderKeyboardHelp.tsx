@@ -16,7 +16,8 @@ export const READER_KEYBOARD_SHORTCUTS: ReaderKeyboardShortcut[] = [
   { keys: "F", label: "Bật / tắt focus mode" },
   { keys: "G", label: "Nhân vật & thuật ngữ" },
   { keys: "H", label: "Ẩn / hiện bản đối chiếu song ngữ" },
-  { keys: "N", label: "Panel ghi chú (desktop)" },
+  { keys: "N", label: "Panel ghi chú đoạn & cụm từ (desktop)" },
+  { keys: "Bôi đen", label: "Tra từ · Lưu câu (toolbar)" },
   { keys: "T", label: "Mục lục chương" },
   { keys: "?", label: "Bảng phím tắt này" },
   { keys: "Esc", label: "Đóng panel / sheet đang mở" }
