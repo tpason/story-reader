@@ -37,6 +37,7 @@ import { estimateOfflineCacheBytes, formatOfflineCacheSize, OFFLINE_DOWNLOAD_PRE
 import { useReaderOfflineCache } from "@/components/reader/ReaderOfflineCacheProvider";
 import { ReaderChapterFreshHint, type ReaderChapterFreshHintState } from "@/components/ReaderChapterFreshHint";
 import { ReaderAmbienceLayer } from "@/components/ReaderAmbienceLayer";
+import { ReaderSpiritCompanion } from "@/components/ReaderSpiritCompanion";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { ReaderThemeSegmented } from "@/components/ReaderThemeSegmented";
 import { fetchReaderChapter, readerQueryKeys } from "@/lib/reader-query";
@@ -3317,6 +3318,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       {/* Compact: FAB competes with dock — inline player lives in sheet “Tiện ích thêm”. */}
       {focusModeEnabled || compactReader ? null : <BackgroundAudioPlayer />}
       {focusModeEnabled ? null : <ReaderAmbienceLayer />}
+      {focusModeEnabled || compactReader ? null : <ReaderSpiritCompanion />}
       <div className="reader-progress" aria-hidden="true">
         {decorativeWebglEnabled && !focusModeEnabled ? <ThreeReaderProgress progress={mobileProgress} /> : null}
         <div className="reader-progress-bar" ref={progressBarRef} />
