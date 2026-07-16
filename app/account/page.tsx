@@ -1,4 +1,5 @@
 import nextDynamic from "next/dynamic";
+import { AccountEmailPanel } from "@/components/AccountEmailPanel";
 import { MotionFX } from "@/components/MotionFX";
 import { SiteHeader } from "@/components/SiteHeader";
 import { AccountSectionNav } from "@/components/AccountSectionNav";
@@ -40,6 +41,7 @@ export default function AccountPage() {
           <div id="account-identity">
             <UserIdentity panel />
           </div>
+          <AccountEmailPanel />
           <section id="account-linh-tin" className="account-linh-tin-block" aria-label="Linh tin">
             <div className="account-linh-tin-heading">
               <p className="eyebrow">Linh tin</p>

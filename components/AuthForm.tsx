@@ -78,7 +78,11 @@ export function AuthForm({ mode }: AuthFormProps) {
       })
     });
 
-    const data = (await response.json().catch(() => ({}))) as { error?: string; user?: StoredReaderUser };
+    const data = (await response.json().catch(() => ({}))) as {
+      error?: string;
+      user?: StoredReaderUser;
+      mailWarning?: string;
+    };
 
     if (!response.ok) {
       setError(data.error ?? "Không xử lý được yêu cầu.");
@@ -92,7 +96,13 @@ export function AuthForm({ mode }: AuthFormProps) {
       await persistor.flush();
     }
 
-    router.push("/");
+    if (isSignup && data.mailWarning) {
+      router.push(`/account?verify=sent&warn=${encodeURIComponent(data.mailWarning)}`);
+      router.refresh();
+      return;
+    }
+
+    router.push(isSignup && !data.user?.emailVerified ? "/account?verify=sent" : "/");
     router.refresh();
   }
 
@@ -170,21 +180,25 @@ export function AuthForm({ mode }: AuthFormProps) {
 
           <form className="auth-form auth-portal-form" onSubmit={submit}>
             <label className="auth-portal-field">
-              <span className="auth-portal-label">Tên tài khoản</span>
+              <span className="auth-portal-label">
+                {isSignup ? "Tên tài khoản" : "Tên tài khoản hoặc email"}
+              </span>
               <input
                 name="username"
                 autoComplete="username"
                 minLength={3}
-                maxLength={32}
-                placeholder="Nhập tên đạo hữu"
+                maxLength={isSignup ? 32 : 254}
+                pattern={isSignup ? "[^@]+" : undefined}
+                title={isSignup ? "Tên tài khoản không được chứa @" : undefined}
+                placeholder={isSignup ? "Nhập tên đạo hữu" : "username hoặc email@example.com"}
                 required
               />
             </label>
 
             {isSignup ? (
               <label className="auth-portal-field">
-                <span className="auth-portal-label">Email</span>
-                <input name="email" type="email" autoComplete="email" placeholder="email@example.com" />
+                <span className="auth-portal-label">Email (bắt buộc)</span>
+                <input name="email" type="email" autoComplete="email" placeholder="email@example.com" required />
               </label>
             ) : null}
 
@@ -207,6 +221,12 @@ export function AuthForm({ mode }: AuthFormProps) {
               {isSignup ? "Nhập môn" : "Đăng nhập"}
             </button>
           </form>
+
+          {!isSignup ? (
+            <p className="auth-switch auth-portal-switch">
+              <Link href="/forgot-password">Quên mật khẩu?</Link>
+            </p>
+          ) : null}
 
           <p className="auth-switch auth-portal-switch">
             {isSignup ? "Đã có động phủ?" : "Vẫn là tán tu?"}{" "}

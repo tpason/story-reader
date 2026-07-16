@@ -4,6 +4,7 @@ export type StoredReaderUser = {
   id: string;
   username: string;
   email: string | null;
+  emailVerified?: boolean;
   isAdmin?: boolean;
 };
 
