@@ -7708,3 +7708,60 @@ html[data-xi-perf="saver"] .reader-shell[data-theme="ink-night"] {
   background: color-mix(in srgb, var(--reader-ink) 8%, transparent);
   color: var(--reader-muted);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE THERMAL v2 — chapter reader (2026-07-16)
+   Kill scroll-time compositor work: blur layers, spinning borders, pulses.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 839px) {
+  .reader-shell--compact .reader-content,
+  .reader-shell--compact .reader-heading,
+  .reader-shell--compact .reader-mobile-sheet-panel,
+  .reader-shell--compact .format-controls,
+  .reader-shell--compact .reader-topbar,
+  .reader-shell--compact .reader-topbar-modern {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--reader-panel-solid, var(--reader-bg));
+  }
+
+  .reader-shell--compact .reader-content {
+    isolation: isolate;
+    box-shadow: 0 12px 32px rgba(18, 16, 13, 0.08);
+  }
+
+  .reader-shell--compact .reader-content::before,
+  .reader-shell--compact .reader-content::after,
+  .reader-shell--compact .audio-panel::before,
+  .reader-shell--compact .audio-panel::after,
+  .reader-shell--compact .chapter-audio-aura,
+  .reader-shell--compact .chapter-audio-orbit,
+  .reader-shell--compact .chapter-audio-wave,
+  .reader-shell--compact .comment-body,
+  .reader-shell--compact .chapter-comments::before,
+  .reader-shell--compact .comment-editor-shell::before,
+  .reader-shell--compact .comment-editor-shell::after,
+  .reader-shell--compact .reader-mobile-dock-primary-active,
+  .reader-shell--compact .nav-card-next-active,
+  .reader-shell--compact .nav-card-next-active::before,
+  .reader-shell--compact .reader-shell-fresh-pulse,
+  .reader-shell--compact .reader-continue-fab-active,
+  .reader-shell--compact .reader-continue-fab-active::after {
+    animation: none !important;
+  }
+
+  .reader-shell--compact .reader-content::before,
+  .reader-shell--compact .reader-content::after {
+    display: none !important;
+  }
+
+  .reader-shell--compact .reader-mobile-dock-primary-progress::before {
+    opacity: 0.5;
+  }
+
+  .reader-shell--compact .reader-chapter-fresh-hint-glow,
+  .reader-shell--compact .reader-engagement-prompt-glow {
+    display: none;
+  }
+}

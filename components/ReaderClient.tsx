@@ -214,13 +214,14 @@ const StoryCompletionOverlay = dynamic(
 
 const COMPACT_VIEWPORT_QUERY = "(max-width: 839px)";
 const READER_PARAGRAPH_POSITION_PREFIX = "reader:paragraph-position";
-const MOBILE_PROGRESS_COMMIT_INTERVAL_MS = 900;
+const MOBILE_PROGRESS_COMMIT_INTERVAL_MS = 1800;
 const DESKTOP_PROGRESS_COMMIT_INTERVAL_MS = 250;
 /** Cheap localStorage-only memory for reload restore (no Redux/network). */
-const MOBILE_LOCAL_POSITION_PERSIST_MS = 2000;
+const MOBILE_LOCAL_POSITION_PERSIST_MS = 2500;
 const DESKTOP_LOCAL_POSITION_PERSIST_MS = 1500;
 /** Redux history upsert — keep mobile cooler; unload flush still captures latest. */
-const MOBILE_HISTORY_PERSIST_MS = 5000;
+const MOBILE_HISTORY_PERSIST_MS = 12000;
+const MOBILE_VISIBLE_CHAPTER_THROTTLE_MS = 320;
 const DESKTOP_HISTORY_PERSIST_MS = 4000;
 const MOBILE_REMOTE_PROGRESS_PERSIST_MS = 20000;
 const DESKTOP_REMOTE_PROGRESS_PERSIST_MS = 5000;
@@ -327,7 +328,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [sheetProgress, setSheetProgress] = useState(0);
   const [mobileProgress, setMobileProgress] = useState(0);
   const [focusModeEnabled, setFocusModeEnabled] = useState(false);
-  useWebGLRuntimeWatchdog({ enabled: decorativeWebglEnabled && !focusModeEnabled });
   const readerOverflowRef = useRef<HTMLDivElement>(null);
   const [floatingActionsMounted, setFloatingActionsMounted] = useState(false);
   const [showContinuePrompt, setShowContinuePrompt] = useState(false);
@@ -351,6 +351,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [shellFreshPulse, setShellFreshPulse] = useState(false);
   const freshHintTimerRef = useRef<number | null>(null);
   const [compactReader, setCompactReader] = useState(false);
+  useWebGLRuntimeWatchdog({ enabled: decorativeWebglEnabled && !focusModeEnabled && !compactReader });
   const [paragraphScrollMargin, setParagraphScrollMargin] = useState(0);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageViewportHeight, setPageViewportHeight] = useState(640);
@@ -398,6 +399,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     progressBucket: number;
   } | null>(null);
   const lastVirtualVisibleParagraphRef = useRef<number | null>(null);
+  const lastMobileVisibleChapterSyncRef = useRef(0);
   const [pageColumns, setPageColumns] = useState<ReaderPageColumns>(() => readReaderPageColumns());
   const panelScrollAnchorRef = useRef<{ scrollY: number; paragraphIndex: number } | null>(null);
   const [jumpBackTarget, setJumpBackTarget] = useState<{ scrollY: number; paragraphIndex: number } | null>(null);
@@ -657,7 +659,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         paragraphSpacing,
         contentWidth
       }),
-    overscan: 10,
+    overscan: compactReader ? 3 : 10,
     scrollMargin: paragraphScrollMargin
   });
   const paragraphVirtualizerRef = useRef(paragraphVirtualizer);
@@ -1212,6 +1214,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setCommentsChapterId(activePayload.chapter.id);
     lastVirtualVisibleParagraphRef.current = null;
     lastPersistedHistoryRef.current = null;
+    lastMobileVisibleChapterSyncRef.current = 0;
   }, [activePayload.chapter.id, activePayload.chapter.chapterNumber, activePayload.chapter.title]);
 
   useEffect(() => {
@@ -1798,6 +1801,17 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }
 
   const applyVisibleChapter = useCallback((next: ReaderVisibleChapter) => {
+    const unchanged =
+      visibleChapterRef.current.chapterId === next.chapterId &&
+      visibleChapterRef.current.paragraphIndex === next.paragraphIndex;
+    if (unchanged) return;
+
+    if (compactViewportRef.current) {
+      const now = Date.now();
+      if (now - lastMobileVisibleChapterSyncRef.current < MOBILE_VISIBLE_CHAPTER_THROTTLE_MS) return;
+      lastMobileVisibleChapterSyncRef.current = now;
+    }
+
     visibleChapterRef.current = next;
     activeParagraphIndexRef.current = next.paragraphIndex;
 
@@ -1971,8 +1985,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
         if (showScrollTopRef.current !== shouldShowScrollTop) {
           showScrollTopRef.current = shouldShowScrollTop;
-          // Desktop: DOM class toggle below is enough — setState re-renders the whole reader on scroll.
-          if (isCompactViewport) setShowScrollTop(shouldShowScrollTop);
         }
         const scrollTopButton = scrollTopButtonRef.current;
         if (scrollTopButton) {
@@ -2010,10 +2022,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           if (shouldCommitProgress) {
             mobileProgressStateRef.current = roundedProgress;
             lastMobileProgressCommitRef.current = now;
-            // Desktop: keep progress in refs/DOM/CSS only while scrolling. setState here was
-            // re-rendering the whole reader + re-triggering chapter-list anime (flash).
-            if (isCompactViewport) setMobileProgress(roundedProgress);
-            else readerShellRef.current?.style.setProperty("--reader-dock-progress", String(roundedProgress));
+            readerShellRef.current?.style.setProperty("--reader-dock-progress", String(roundedProgress));
           }
           if (mobileProgressIdleTimerRef.current) {
             window.clearTimeout(mobileProgressIdleTimerRef.current);
@@ -2025,14 +2034,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               mobileProgressStateRef.current = latestProgress;
               lastMobileProgressCommitRef.current = Date.now();
             }
-            // Sync React consumers only after scroll settles. Desktop keeps progress in refs/CSS
-            // to avoid re-rendering the reader + WebGL progress bar while scrolling.
-            if (compactViewportRef.current) {
-              setMobileProgress(latestProgress);
-            } else {
-              readerShellRef.current?.style.setProperty("--reader-dock-progress", String(latestProgress));
-            }
-          }, isCompactViewport ? 360 : 480);
+            // Sync React consumers only after scroll settles — never during active scroll.
+            readerShellRef.current?.style.setProperty("--reader-dock-progress", String(latestProgress));
+            setMobileProgress(latestProgress);
+            setShowScrollTop(showScrollTopRef.current);
+            setShowContinuePrompt(showContinuePromptRef.current);
+            setHighlightContinuePrompt(highlightContinuePromptRef.current);
+          }, isCompactViewport ? 520 : 480);
         }
 
         const continueStateChanged = showContinuePromptRef.current !== shouldShowContinue || highlightContinuePromptRef.current !== shouldHighlightContinue;
@@ -2046,11 +2054,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           btn.tabIndex = shouldShowContinue ? 0 : -1;
         }
         if (continueStateChanged) {
-          // Desktop FAB visibility is driven via continueButtonRef below; skip setState while scrolling.
-          if (isCompactViewport) {
-            setShowContinuePrompt(shouldShowContinue);
-            setHighlightContinuePrompt(shouldHighlightContinue);
-          }
           const navCard = navCardNextRef.current;
           if (navCard) {
             navCard.classList.toggle("nav-card-next-active", shouldHighlightContinue);
@@ -3791,7 +3794,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               }}
             >
               <span className="reader-dock-meta">
-                <span ref={mobileProgressLabelRef}>{mobileProgress}%</span>
+                <span ref={mobileProgressLabelRef}>0%</span>
                 <span ref={mobileMinutesLabelRef} className="reader-dock-time" hidden={minutesLeft <= 0}>
                   {minutesLeft > 0 ? `~${minutesLeft} phút` : ""}
                 </span>

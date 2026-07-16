@@ -93,7 +93,7 @@ export function AccountEmailPanel() {
   }
 
   async function savePrefs(patch: Partial<EmailPrefs>) {
-    if (!user.emailVerified) {
+    if (!user?.emailVerified) {
       setError("Cần xác thực email trước khi bật bản tin.");
       return;
     }
