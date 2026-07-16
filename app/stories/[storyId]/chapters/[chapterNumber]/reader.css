@@ -7433,6 +7433,84 @@ button.chapter-sidebar-heatmap-cell:focus-visible {
 /* === end regression guards === */
 
 /* ═══════════════════════════════════════════════════════════════════════
+   MOBILE READER COOLER — audit 2026-07-15
+   Opaque shell so blurred sky is not composited under text.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 839px) {
+  .reader-shell {
+    background: #fffefa;
+  }
+
+  .reader-shell[data-theme="light"] {
+    background: #fffefa;
+    --reader-bg: #fffefa;
+  }
+
+  .reader-shell[data-theme="sepia"],
+  .reader-shell[data-theme="parchment"] {
+    background: #f3ead8;
+    --reader-bg: #f3ead8;
+  }
+
+  .reader-shell[data-theme="dark"],
+  .reader-shell[data-theme="ink-night"] {
+    background: #12151a;
+    --reader-bg: #12151a;
+  }
+}
+
+/* battery_saver also forces opaque reader on any viewport */
+html[data-xi-perf="saver"] .reader-shell {
+  background: var(--reader-bg, #fffefa);
+}
+
+html[data-xi-perf="saver"] .reader-shell[data-theme="light"] {
+  background: #fffefa;
+  --reader-bg: #fffefa;
+}
+
+html[data-xi-perf="saver"] .reader-shell[data-theme="sepia"],
+html[data-xi-perf="saver"] .reader-shell[data-theme="parchment"] {
+  background: #f3ead8;
+  --reader-bg: #f3ead8;
+}
+
+html[data-xi-perf="saver"] .reader-shell[data-theme="dark"],
+html[data-xi-perf="saver"] .reader-shell[data-theme="ink-night"] {
+  background: #12151a;
+  --reader-bg: #12151a;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Mobile bilingual discoverability — 2026-07-15
+   Compact topbar/sheet expose Song ngữ (overflow menu is desktop-only).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.reader-sheet-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reader-sheet-action-bilingual {
+  border-color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 34%, var(--reader-line) 66%);
+  background: color-mix(in srgb, var(--reader-bg) 88%, var(--xi-jade, #1a6b5a) 12%);
+}
+
+.reader-sheet-action-bilingual.reader-sheet-action-active {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 42%, var(--xi-jade, #1a6b5a) 58%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--xi-gold, #c8962e) 28%, transparent);
+}
+
+@media (max-width: 839px) {
+  .reader-controls-mobile .icon-button-active {
+    color: var(--xi-jade, #1a6b5a);
+    border-color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 40%, var(--reader-line) 60%);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    Reader spirit companion — tiểu hồ linh (desktop margin, look-at gaze)
    ═══════════════════════════════════════════════════════════════════════ */
 
@@ -7480,6 +7558,7 @@ button.chapter-sidebar-heatmap-cell:focus-visible {
     display: none !important;
   }
 }
+
 
 /* ═══════════════════════════════════════════════════════════════════════
    Chapter kicker contrast — desktop + mobile, light + dark (2026-07-16)
@@ -7540,4 +7619,92 @@ button.chapter-sidebar-heatmap-cell:focus-visible {
     padding: 3px 9px !important;
     max-width: min(58vw, 280px);
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DESKTOP SCROLL STABILITY + OPAQUE READER OVERLAYS (2026-07-16)
+   backdrop-filter on scrolling .reader-content repaints against animated
+   mountain/ambience → visible flash. Semi-transparent --canvas/--reader-bg
+   on fixed hints sinks into the body backdrop.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.reader-shell[data-theme="light"] {
+  --reader-panel-solid: #fffefa;
+}
+
+.reader-shell[data-theme="sepia"] {
+  --reader-panel-solid: #f3ead8;
+}
+
+.reader-shell[data-theme="dark"] {
+  --reader-panel-solid: #10100f;
+}
+
+.reader-shell[data-theme="oled"] {
+  --reader-panel-solid: #000000;
+}
+
+.reader-shell[data-theme="parchment"] {
+  --reader-panel-solid: #f5f0e8;
+}
+
+.reader-shell[data-theme="bamboo"] {
+  --reader-panel-solid: #ece4cc;
+}
+
+.reader-shell[data-theme="ink-night"] {
+  --reader-panel-solid: #0e1412;
+}
+
+@media (min-width: 840px) {
+  .reader-shell--desktop .reader-content,
+  .reader-shell--desktop .reader-heading {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--reader-panel-solid, var(--reader-bg));
+    isolation: isolate;
+  }
+
+  .reader-shell--desktop .reader-content {
+    box-shadow:
+      0 22px 56px rgba(18, 16, 13, 0.1),
+      inset 0 1px 0 color-mix(in srgb, var(--reader-panel-solid, var(--reader-bg)) 88%, #fff 12%);
+  }
+}
+
+/* Fixed reader hints/toasts: opaque panel, no backdrop bleed */
+.reader-shell .reader-engagement-prompt,
+.reader-shell .reader-chapter-fresh-hint,
+.reader-shell .reader-swipe-notice,
+.reader-shell .reader-resume-banner {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--reader-panel-solid, var(--reader-bg));
+  border-color: color-mix(in srgb, var(--reader-line) 72%, var(--reader-ink) 28%);
+  box-shadow: 0 16px 40px rgba(18, 16, 13, 0.2);
+}
+
+.reader-shell .reader-engagement-prompt-copy,
+.reader-shell .reader-chapter-fresh-hint-copy {
+  color: var(--reader-muted);
+}
+
+.reader-shell .reader-engagement-prompt-copy strong,
+.reader-shell .reader-chapter-fresh-hint-copy strong {
+  color: var(--reader-ink);
+}
+
+.reader-shell .reader-chapter-fresh-hint-copy strong {
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 72%, var(--reader-ink) 28%);
+}
+
+.reader-shell .reader-swipe-notice {
+  color: var(--reader-ink);
+  font-weight: 760;
+}
+
+.reader-shell .reader-engagement-prompt-close,
+.reader-shell .reader-chapter-fresh-hint-close {
+  background: color-mix(in srgb, var(--reader-ink) 8%, transparent);
+  color: var(--reader-muted);
 }

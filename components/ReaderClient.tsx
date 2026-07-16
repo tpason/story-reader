@@ -43,6 +43,7 @@ import { ReaderThemeSegmented } from "@/components/ReaderThemeSegmented";
 import { fetchReaderChapter, readerQueryKeys } from "@/lib/reader-query";
 import {
   bilingualFetchOptions,
+  learnEnglishPreset,
   readReaderBilingualPrefs,
   writeReaderBilingualPrefs,
   type ReaderBilingualPrefs
@@ -220,7 +221,7 @@ const MOBILE_LOCAL_POSITION_PERSIST_MS = 2000;
 const DESKTOP_LOCAL_POSITION_PERSIST_MS = 1500;
 /** Redux history upsert — keep mobile cooler; unload flush still captures latest. */
 const MOBILE_HISTORY_PERSIST_MS = 5000;
-const DESKTOP_HISTORY_PERSIST_MS = 1500;
+const DESKTOP_HISTORY_PERSIST_MS = 4000;
 const MOBILE_REMOTE_PROGRESS_PERSIST_MS = 20000;
 const DESKTOP_REMOTE_PROGRESS_PERSIST_MS = 5000;
 
@@ -391,6 +392,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     paragraphIndex: 0
   });
   const syncedReaderUrlChapterRef = useRef(payload.chapter.chapterNumber);
+  const lastPersistedHistoryRef = useRef<{
+    chapterNumber: number;
+    paragraphIndex: number;
+    progressBucket: number;
+  } | null>(null);
+  const lastVirtualVisibleParagraphRef = useRef<number | null>(null);
   const [pageColumns, setPageColumns] = useState<ReaderPageColumns>(() => readReaderPageColumns());
   const panelScrollAnchorRef = useRef<{ scrollY: number; paragraphIndex: number } | null>(null);
   const [jumpBackTarget, setJumpBackTarget] = useState<{ scrollY: number; paragraphIndex: number } | null>(null);
@@ -413,6 +420,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const formatDismiss = useDismiss(formatFloatingContext);
   const { getFloatingProps: getFormatFloatingProps, getReferenceProps: getFormatReferenceProps } = useInteractions([formatDismiss]);
   const activePayload = cachedPayload ?? payload;
+  const activePayloadRef = useRef(activePayload);
+  activePayloadRef.current = activePayload;
   const [bilingualPrefs, setBilingualPrefs] = useState<ReaderBilingualPrefs>(() => readReaderBilingualPrefs());
   const supportsBilingual = useMemo(() => supportsBilingualReader(activePayload.story.sourceCode), [activePayload.story.sourceCode]);
   const bilingualQueryOptions = useMemo(
@@ -651,6 +660,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     overscan: 10,
     scrollMargin: paragraphScrollMargin
   });
+  const paragraphVirtualizerRef = useRef(paragraphVirtualizer);
+  paragraphVirtualizerRef.current = paragraphVirtualizer;
+  const shouldVirtualizeParagraphsRef = useRef(shouldVirtualizeParagraphs);
+  shouldVirtualizeParagraphsRef.current = shouldVirtualizeParagraphs;
   const isPageLayout = layoutMode === "page";
   const {
     enabled: autoScrollEnabled,
@@ -812,7 +825,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   chapterVirtualizerRef.current = chapterVirtualizer;
   const canVirtualizeChapterListRef = useRef(canVirtualizeChapterList);
   canVirtualizeChapterListRef.current = canVirtualizeChapterList;
-
   const storageKey = `reader:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
   const forceTopKey = `reader:force-top:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
   const paragraphPositionKey = `${READER_PARAGRAPH_POSITION_PREFIX}:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
@@ -1198,6 +1210,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     };
     syncedReaderUrlChapterRef.current = activePayload.chapter.chapterNumber;
     setCommentsChapterId(activePayload.chapter.id);
+    lastVirtualVisibleParagraphRef.current = null;
+    lastPersistedHistoryRef.current = null;
   }, [activePayload.chapter.id, activePayload.chapter.chapterNumber, activePayload.chapter.title]);
 
   useEffect(() => {
@@ -1332,9 +1346,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     return () => {
       animation.revert();
     };
-    // Intentionally omit centerActiveChapter / virtualizer identity — those change every render and
-    // were re-running this effect (scroll + anime) continuously while reading → sidebar flash.
-  }, [activePayload.chapter.chapterNumber, centerActiveChapter, chapters.length, desktopSidebarOpen, mobileMenuOpen]);
+    // Intentionally omit centerActiveChapter — stable callback; including it re-ran sidebar anime every render.
+  }, [activePayload.chapter.chapterNumber, chapters.length, desktopSidebarOpen, mobileMenuOpen]);
 
   useEffect(() => {
     const button = desktopSidebarButtonRef.current;
@@ -1470,7 +1483,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       const rect = contentNode.getBoundingClientRect();
       contentTopRef.current = rect.top + window.scrollY;
       contentHeightRef.current = Math.max(1, contentNode.offsetHeight);
-      setParagraphScrollMargin(contentNode.offsetTop);
+      const nextMargin = contentNode.offsetTop;
+      setParagraphScrollMargin((current) => (current === nextMargin ? current : nextMargin));
     };
 
     updateContentMetrics();
@@ -1783,6 +1797,71 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     );
   }
 
+  const applyVisibleChapter = useCallback((next: ReaderVisibleChapter) => {
+    visibleChapterRef.current = next;
+    activeParagraphIndexRef.current = next.paragraphIndex;
+
+    if (
+      bilingualScrollHighlightRef.current &&
+      next.chapterNumber === activePayload.chapter.chapterNumber
+    ) {
+      setScrollFocusParagraphIndex((current) =>
+        current === next.paragraphIndex ? current : next.paragraphIndex
+      );
+    }
+
+    if (next.chapterNumber !== syncedReaderUrlChapterRef.current) {
+      syncedReaderUrlChapterRef.current = next.chapterNumber;
+      const href = storyHref(activePayload.story, next.chapterNumber);
+      if (window.location.pathname !== new URL(href, window.location.origin).pathname) {
+        window.history.replaceState(null, "", href);
+      }
+      setCommentsChapterId(next.chapterId);
+    }
+
+    if (
+      shouldAutoPromotePrimaryChapter({
+        continuousEnabled: continuousChapterEnabledRef.current,
+        primaryChapterNumber: activePayload.chapter.chapterNumber,
+        visibleChapterNumber: next.chapterNumber,
+        inlineChapters: inlineChaptersRef.current,
+        primarySectionBottomPx: paragraphContainerRef.current?.getBoundingClientRect().bottom ?? 0,
+        viewportHeight: window.innerHeight,
+        promoteInFlight: promoteInlineInFlightRef.current
+      })
+    ) {
+      void promoteHeadInlineRef.current();
+    }
+  }, [activePayload.chapter.chapterNumber, activePayload.story]);
+
+  const applyVisibleChapterRef = useRef(applyVisibleChapter);
+  applyVisibleChapterRef.current = applyVisibleChapter;
+
+  const syncVisibleChapterFromVirtualizer = useCallback(() => {
+    const virtualizer = paragraphVirtualizerRef.current;
+    const payload = activePayloadRef.current;
+    if (!virtualizer) return;
+
+    const items = virtualizer.getVirtualItems();
+    if (items.length === 0) return;
+
+    // First visible virtual row ≈ paragraph at top of reading zone.
+    const best = items[Math.min(1, items.length - 1)] ?? items[0];
+
+    if (lastVirtualVisibleParagraphRef.current === best.index) return;
+    lastVirtualVisibleParagraphRef.current = best.index;
+
+    applyVisibleChapterRef.current({
+      chapterId: payload.chapter.id,
+      chapterNumber: payload.chapter.chapterNumber,
+      chapterTitle: payload.chapter.title,
+      paragraphIndex: best.index
+    });
+  }, []);
+
+  const syncVisibleChapterFromVirtualizerRef = useRef(syncVisibleChapterFromVirtualizer);
+  syncVisibleChapterFromVirtualizerRef.current = syncVisibleChapterFromVirtualizer;
+
   useEffect(() => {
     function persistLocalPosition(scrollY: number) {
       const visible = visibleChapterRef.current;
@@ -1814,6 +1893,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
     function persistProgress(scrollY: number, currentProgress: number, syncRemote: boolean) {
       const visible = visibleChapterRef.current;
+      const progressBucket = Math.floor(currentProgress / 4);
+      const lastPersisted = lastPersistedHistoryRef.current;
+      const historyChanged =
+        !lastPersisted ||
+        lastPersisted.chapterNumber !== visible.chapterNumber ||
+        lastPersisted.paragraphIndex !== visible.paragraphIndex ||
+        lastPersisted.progressBucket !== progressBucket;
+
       const item = {
         storyId: activePayload.story.id,
         storyTitle: activePayload.story.title,
@@ -1830,6 +1917,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       };
 
       persistLocalPosition(scrollY);
+
+      if (!historyChanged) return;
+
+      lastPersistedHistoryRef.current = {
+        chapterNumber: visible.chapterNumber,
+        paragraphIndex: visible.paragraphIndex,
+        progressBucket
+      };
+
       dispatch(upsertHistoryItem(item));
       dispatch(recordDailyRead(new Date().toISOString().slice(0, 10))); // "YYYY-MM-DD"
 
@@ -1875,7 +1971,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
         if (showScrollTopRef.current !== shouldShowScrollTop) {
           showScrollTopRef.current = shouldShowScrollTop;
-          setShowScrollTop(shouldShowScrollTop);
+          // Desktop: DOM class toggle below is enough — setState re-renders the whole reader on scroll.
+          if (isCompactViewport) setShowScrollTop(shouldShowScrollTop);
         }
         const scrollTopButton = scrollTopButtonRef.current;
         if (scrollTopButton) {
@@ -1928,9 +2025,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               mobileProgressStateRef.current = latestProgress;
               lastMobileProgressCommitRef.current = Date.now();
             }
-            // Sync React consumers (stats pill / initial label children) only after scroll settles.
-            setMobileProgress(latestProgress);
-            if (!compactViewportRef.current) {
+            // Sync React consumers only after scroll settles. Desktop keeps progress in refs/CSS
+            // to avoid re-rendering the reader + WebGL progress bar while scrolling.
+            if (compactViewportRef.current) {
+              setMobileProgress(latestProgress);
+            } else {
               readerShellRef.current?.style.setProperty("--reader-dock-progress", String(latestProgress));
             }
           }, isCompactViewport ? 360 : 480);
@@ -1947,12 +2046,19 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           btn.tabIndex = shouldShowContinue ? 0 : -1;
         }
         if (continueStateChanged) {
-          setShowContinuePrompt(shouldShowContinue);
-          setHighlightContinuePrompt(shouldHighlightContinue);
+          // Desktop FAB visibility is driven via continueButtonRef below; skip setState while scrolling.
+          if (isCompactViewport) {
+            setShowContinuePrompt(shouldShowContinue);
+            setHighlightContinuePrompt(shouldHighlightContinue);
+          }
           const navCard = navCardNextRef.current;
           if (navCard) {
             navCard.classList.toggle("nav-card-next-active", shouldHighlightContinue);
           }
+        }
+
+        if (shouldVirtualizeParagraphsRef.current) {
+          syncVisibleChapterFromVirtualizerRef.current();
         }
 
         if (
@@ -2155,9 +2261,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     readerShellRef.current?.classList.toggle("reader-shell-chrome-hidden", readerChromeHiddenRef.current);
   });
 
+  useLayoutEffect(() => {
+    readerShellRef.current?.style.setProperty("--reader-dock-progress", String(mobileProgressRef.current));
+  }, [mobileProgress]);
+
   useEffect(() => {
     const button = scrollTopButtonRef.current;
-    if (!button || prefersReducedMotion() || !animeRef.current) return;
+    if (!button || compactReader || prefersReducedMotion() || !animeRef.current) return;
 
     const animation = animeRef.current(button, {
       scale: showScrollTop ? [0.84, 1] : [1, 0.9],
@@ -2195,6 +2305,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, [bilingualScrollHighlight]);
 
   useEffect(() => {
+    // Virtualized chapters track visible paragraph via scroll + virtualizer (see onScroll).
+    if (shouldVirtualizeParagraphs) return;
+
     const article = document.querySelector(".reader-article");
     if (!article) return;
 
@@ -2213,40 +2326,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         const next = readVisibleChapterFromParagraph(best.target as HTMLElement, fallback);
         if (!next) return;
 
-        visibleChapterRef.current = next;
-        activeParagraphIndexRef.current = next.paragraphIndex;
-
-        if (
-          bilingualScrollHighlightRef.current &&
-          next.chapterNumber === activePayload.chapter.chapterNumber
-        ) {
-          setScrollFocusParagraphIndex((current) =>
-            current === next.paragraphIndex ? current : next.paragraphIndex
-          );
-        }
-
-        if (next.chapterNumber !== syncedReaderUrlChapterRef.current) {
-          syncedReaderUrlChapterRef.current = next.chapterNumber;
-          const href = storyHref(activePayload.story, next.chapterNumber);
-          if (window.location.pathname !== new URL(href, window.location.origin).pathname) {
-            window.history.replaceState(null, "", href);
-          }
-          setCommentsChapterId(next.chapterId);
-        }
-
-        if (
-          shouldAutoPromotePrimaryChapter({
-            continuousEnabled: continuousChapterEnabledRef.current,
-            primaryChapterNumber: activePayload.chapter.chapterNumber,
-            visibleChapterNumber: next.chapterNumber,
-            inlineChapters: inlineChaptersRef.current,
-            primarySectionBottomPx: paragraphContainerRef.current?.getBoundingClientRect().bottom ?? 0,
-            viewportHeight: window.innerHeight,
-            promoteInFlight: promoteInlineInFlightRef.current
-          })
-        ) {
-          void promoteHeadInlineRef.current();
-        }
+        applyVisibleChapterRef.current(next);
       },
       { rootMargin: "-33% 0px -63% 0px", threshold: [0, 0.2, 0.45, 0.7, 1] }
     );
@@ -2255,15 +2335,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
     return () => observer.disconnect();
   }, [
+    shouldVirtualizeParagraphs,
     activePayload.chapter.chapterNumber,
     activePayload.chapter.id,
     activePayload.chapter.title,
     activePayload.story,
-    inlineChapters,
-    paragraphs,
-    shouldVirtualizeParagraphs,
-    paragraphVirtualizer.range?.startIndex,
-    paragraphVirtualizer.range?.endIndex
+    inlineChapters.length,
+    paragraphs.length
   ]);
 
   function scrollToTop() {
@@ -2978,6 +3056,20 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setBilingualPrefs(next);
     writeReaderBilingualPrefs(next);
   }, []);
+
+  const openBilingualSettingsSheet = useCallback(() => {
+    setMobileSheetTab("settings");
+    setMobileSheetOpen(true);
+  }, [setMobileSheetOpen, setMobileSheetTab]);
+
+  const toggleBilingualQuick = useCallback(() => {
+    if (!supportsBilingual) return;
+    if (bilingualPrefs.enabled) {
+      handleBilingualPrefsChange({ ...bilingualPrefs, enabled: false });
+      return;
+    }
+    handleBilingualPrefsChange(learnEnglishPreset());
+  }, [supportsBilingual, bilingualPrefs, handleBilingualPrefsChange]);
 
   useEffect(() => {
     if (!supportsBilingualReader(payload.story.sourceCode) || !bilingualPrefs.enabled) {
@@ -3868,8 +3960,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                     className={`reader-overflow-item ${bilingualPrefs.enabled ? "reader-overflow-item-active" : ""}`}
                     type="button"
                     onClick={() => {
-                      setMobileSheetTab("settings");
-                      setMobileSheetOpen(true);
+                      openBilingualSettingsSheet();
                       setReaderOverflowOpen(false);
                     }}
                   >
@@ -4094,6 +4185,21 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         {compactReader ? (
           <div className="reader-controls reader-controls-mobile" aria-label="Mobile reader controls">
             <NotificationBell className="reader-notification" />
+            {supportsBilingual ? (
+              <button
+                className={`icon-button ${bilingualPrefs.enabled ? "icon-button-active" : ""}`}
+                type="button"
+                title={bilingualPrefs.enabled ? "Song ngữ đang bật — mở cài đặt" : "Bật song ngữ Anh – Việt"}
+                aria-label={bilingualPrefs.enabled ? "Cài đặt song ngữ" : "Bật song ngữ Anh – Việt"}
+                aria-pressed={bilingualPrefs.enabled}
+                onClick={() => {
+                  if (!bilingualPrefs.enabled) toggleBilingualQuick();
+                  openBilingualSettingsSheet();
+                }}
+              >
+                <Languages size={17} />
+              </button>
+            ) : null}
             <button
               className="icon-button"
               type="button"
@@ -4143,6 +4249,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   onClick={() => setMobileSheetTab("settings")}
                 >
                   Cài đặt
+                  {supportsBilingual ? <Languages size={13} aria-hidden /> : null}
                 </button>
                 <button
                   className={`reader-sheet-tab ${mobileSheetTab === "offline" ? "reader-sheet-tab-active" : ""}`}
@@ -4181,6 +4288,20 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             </div>
 
             <div className="reader-sheet-grid reader-sheet-grid-primary">
+              {supportsBilingual ? (
+                <button
+                  className={`reader-sheet-action reader-sheet-action-bilingual ${bilingualPrefs.enabled ? "reader-sheet-action-active" : ""}`}
+                  type="button"
+                  aria-pressed={bilingualPrefs.enabled}
+                  onClick={() => {
+                    if (!bilingualPrefs.enabled) toggleBilingualQuick();
+                    openBilingualSettingsSheet();
+                  }}
+                >
+                  <Languages size={16} />
+                  {bilingualPrefs.enabled ? "Song ngữ · chỉnh" : "Song ngữ EN–VI"}
+                </button>
+              ) : null}
               <button className="reader-sheet-action" type="button" onClick={toggleBookmark}>
                 <Image src="/icons/bookmark-jade.svg" className="bookmark-jade-icon" alt="" aria-hidden="true" width={18} height={18} />
                 {currentBookmark ? "Bỏ dấu" : "Đánh dấu"}
