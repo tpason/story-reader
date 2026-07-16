@@ -5,15 +5,17 @@ import { AdditiveBlending, BoxGeometry, BufferAttribute, BufferGeometry, CircleG
 import { canUseWebGL } from "@/lib/webgl-capability";
 
 type ThreeReaderProgressProps = {
-  progress: number;
+  progress?: number;
+  /** Prefer live ref during scroll to avoid parent re-renders. */
+  progressRef?: { current: number };
 };
 
-export function ThreeReaderProgress({ progress }: ThreeReaderProgressProps) {
+export function ThreeReaderProgress({ progress = 0, progressRef: externalProgressRef }: ThreeReaderProgressProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
-  const progressRef = useRef(progress);
+  const internalProgressRef = useRef(progress);
 
   useEffect(() => {
-    progressRef.current = progress;
+    internalProgressRef.current = progress;
   }, [progress]);
 
   useEffect(() => {
@@ -149,7 +151,7 @@ export function ThreeReaderProgress({ progress }: ThreeReaderProgressProps) {
       if (now - lastRender < FRAME_MS) return;
       lastRender = now;
       const t = now * 0.001;
-      const target = Math.min(1, Math.max(0.001, progressRef.current / 100));
+      const target = Math.min(1, Math.max(0.001, (externalProgressRef?.current ?? internalProgressRef.current) / 100));
 
       // Detect progress jump for burst trigger
       if (target - lastProgress > 0.005) {

@@ -529,8 +529,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     "--reader-line-height": lineHeight,
     "--reader-paragraph-spacing": `${paragraphSpacing}em`,
     "--reader-content-width": `${contentWidth}px`,
-    "--reader-dim-opacity": readerDimEnabled ? readerDimLevel : 0,
-    "--reader-dock-progress": `${mobileProgress}`
+    "--reader-dim-opacity": readerDimEnabled ? readerDimLevel : 0
   } as CSSProperties;
 
   const buildCurrentBookmark = useCallback((): ReaderBookmarkItem => {
@@ -807,6 +806,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     overscan: 8,
     getItemKey: (index) => filteredChapters[index]?.id ?? index
   });
+  const filteredChaptersRef = useRef(filteredChapters);
+  filteredChaptersRef.current = filteredChapters;
+  const chapterVirtualizerRef = useRef(chapterVirtualizer);
+  chapterVirtualizerRef.current = chapterVirtualizer;
+  const canVirtualizeChapterListRef = useRef(canVirtualizeChapterList);
+  canVirtualizeChapterListRef.current = canVirtualizeChapterList;
+
   const storageKey = `reader:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
   const forceTopKey = `reader:force-top:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
   const paragraphPositionKey = `${READER_PARAGRAPH_POSITION_PREFIX}:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
@@ -1280,10 +1286,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, []);
 
   const centerActiveChapter = useCallback((behavior: ScrollBehavior = "smooth") => {
-    if (canVirtualizeChapterList) {
-      const activeIndex = filteredChapters.findIndex((chapter) => chapter.chapterNumber === activePayload.chapter.chapterNumber);
+    if (canVirtualizeChapterListRef.current) {
+      const chapters = filteredChaptersRef.current;
+      const activeIndex = chapters.findIndex((chapter) => chapter.chapterNumber === activePayload.chapter.chapterNumber);
       if (activeIndex >= 0) {
-        chapterVirtualizer.scrollToIndex(activeIndex, { align: "center", behavior: prefersReducedMotion() ? "auto" : behavior });
+        chapterVirtualizerRef.current.scrollToIndex(activeIndex, {
+          align: "center",
+          behavior: prefersReducedMotion() ? "auto" : behavior
+        });
         return true;
       }
       return false;
@@ -1302,7 +1312,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       behavior: reduceMotion ? "auto" : behavior
     });
     return true;
-  }, [activePayload.chapter.chapterNumber, canVirtualizeChapterList, chapterVirtualizer, filteredChapters]);
+  }, [activePayload.chapter.chapterNumber]);
 
   useLayoutEffect(() => {
     const didCenter = centerActiveChapter(mobileMenuOpen ? "smooth" : "auto");
@@ -1322,6 +1332,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     return () => {
       animation.revert();
     };
+    // Intentionally omit centerActiveChapter / virtualizer identity — those change every render and
+    // were re-running this effect (scroll + anime) continuously while reading → sidebar flash.
   }, [activePayload.chapter.chapterNumber, centerActiveChapter, chapters.length, desktopSidebarOpen, mobileMenuOpen]);
 
   useEffect(() => {
@@ -1901,7 +1913,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           if (shouldCommitProgress) {
             mobileProgressStateRef.current = roundedProgress;
             lastMobileProgressCommitRef.current = now;
-            if (!isCompactViewport) setMobileProgress(roundedProgress);
+            // Desktop: keep progress in refs/DOM/CSS only while scrolling. setState here was
+            // re-rendering the whole reader + re-triggering chapter-list anime (flash).
+            if (isCompactViewport) setMobileProgress(roundedProgress);
+            else readerShellRef.current?.style.setProperty("--reader-dock-progress", String(roundedProgress));
           }
           if (mobileProgressIdleTimerRef.current) {
             window.clearTimeout(mobileProgressIdleTimerRef.current);
@@ -1912,9 +1927,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             if (mobileProgressStateRef.current !== latestProgress) {
               mobileProgressStateRef.current = latestProgress;
               lastMobileProgressCommitRef.current = Date.now();
-              if (!isCompactViewport) setMobileProgress(latestProgress);
             }
-          }, isCompactViewport ? 360 : 140);
+            // Sync React consumers (stats pill / initial label children) only after scroll settles.
+            setMobileProgress(latestProgress);
+            if (!compactViewportRef.current) {
+              readerShellRef.current?.style.setProperty("--reader-dock-progress", String(latestProgress));
+            }
+          }, isCompactViewport ? 360 : 480);
         }
 
         const continueStateChanged = showContinuePromptRef.current !== shouldShowContinue || highlightContinuePromptRef.current !== shouldHighlightContinue;
@@ -3471,7 +3490,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       {focusModeEnabled ? null : <ReaderAmbienceLayer />}
       {focusModeEnabled || compactReader ? null : <ReaderSpiritCompanion />}
       <div className="reader-progress" aria-hidden="true">
-        {decorativeWebglEnabled && !focusModeEnabled ? <ThreeReaderProgress progress={mobileProgress} /> : null}
+        {decorativeWebglEnabled && !focusModeEnabled ? (
+          <ThreeReaderProgress progress={mobileProgress} progressRef={mobileProgressRef} />
+        ) : null}
         <div className="reader-progress-bar" ref={progressBarRef} />
       </div>
       <div className={`reader-dim-overlay ${readerDimEnabled ? "reader-dim-overlay-active" : ""}`} aria-hidden="true" />

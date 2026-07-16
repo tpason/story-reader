@@ -6,16 +6,13 @@ import { useGLTF } from "@react-three/drei";
 import { AnimationClip, AnimationMixer, DoubleSide, Group, Material, Mesh, MeshStandardMaterial, Scene } from "three";
 
 // ── Stork (cò) ─────────────────────────────────────────────────────────────
-// 2 storks flying independently, original GLTF colors, deeper than cranes
 const STORK_CFG = [
   { startX:  3.8, y: 0.72, z: -1.22, speed: -0.36, dur: 0.92, phase: 0.4 },
   { startX: -3.5, y: 0.95, z: -1.28, speed:  0.28, dur: 1.04, phase: 2.1 },
 ];
-// Keep z from 7940cc1 (in front of mountains); scale ÷ ~1.7 vs pre-visibility-fix size.
 const STORK_SCALE = 0.007;
 
 // ── Parrot (vẹt) ────────────────────────────────────────────────────────────
-// 3 parrots, faster wing-beat, closer to camera, original colors
 const PARROT_CFG = [
   { startX:  2.5, y: 1.25, z: -0.92, speed: -0.80, dur: 0.46, phase: 0.0 },
   { startX: -1.8, y: 1.05, z: -0.98, speed:  0.68, dur: 0.52, phase: 2.3 },
@@ -23,14 +20,7 @@ const PARROT_CFG = [
 ];
 const PARROT_SCALE = 0.0047;
 
-// ── Horse (thiên mã) ────────────────────────────────────────────────────────
-// 3 horses galloping along far mountain ridges
-const HORSE_CFG = [
-  { startX: -4.5, y: -1.55, z: -3.85, speed:  0.55, dur: 0.9,  phase: 0.0 },
-  { startX:  1.5, y: -1.70, z: -4.05, speed:  0.48, dur: 1.02, phase: 0.7 },
-  { startX: -0.5, y: -1.40, z: -3.75, speed:  0.62, dur: 0.88, phase: 1.5 },
-];
-const HORSE_SCALE = 0.0036;
+// Horses removed — heavy GLB mixers + large screen footprint; keep birds + butterflies/carrot.
 
 const BOUNDARY_X = 7.5;
 
@@ -52,24 +42,19 @@ function setupAnimals(
   cfgs: AnimalConfig[],
   scale: number,
   scene: Scene,
-  keepOriginalColors = true,
 ): AnimalInstance[] {
   return cfgs.map(cfg => {
     const group = gltf.scene.clone(true) as Group;
     group.scale.setScalar(scale);
 
-    if (keepOriginalColors) {
-      // Keep GLTF colors — only add DoubleSide so the mesh renders both faces
-      // when the bird flips direction.
-      group.traverse(node => {
-        if (node instanceof Mesh) {
-          const orig = node.material as Material;
-          const mat  = orig.clone() as MeshStandardMaterial;
-          mat.side = DoubleSide;
-          node.material = mat;
-        }
-      });
-    }
+    group.traverse(node => {
+      if (node instanceof Mesh) {
+        const orig = node.material as Material;
+        const mat  = orig.clone() as MeshStandardMaterial;
+        mat.side = DoubleSide;
+        node.material = mat;
+      }
+    });
 
     group.position.set(cfg.startX, cfg.y, cfg.z);
     group.rotation.y = cfg.speed < 0 ? -Math.PI / 2 : Math.PI / 2;
@@ -106,38 +91,28 @@ export function WildAnimals() {
   const { scene }  = useThree();
   const storkGltf  = useGLTF("/assets/xianxia/models/stork.glb");
   const parrotGltf = useGLTF("/assets/xianxia/models/parrot.glb");
-  const horseGltf  = useGLTF("/assets/xianxia/models/horse.glb");
 
   const storksRef  = useRef<AnimalInstance[]>([]);
   const parrotsRef = useRef<AnimalInstance[]>([]);
-  const horsesRef  = useRef<AnimalInstance[]>([]);
 
   useEffect(() => {
-    const spawned: AnimalInstance[][] = [[], [], []];
+    const storks = storkGltf.animations.length
+      ? setupAnimals(storkGltf as typeof storkGltf & { scene: Group }, STORK_CFG, STORK_SCALE, scene)
+      : [];
+    const parrots = parrotGltf.animations.length
+      ? setupAnimals(parrotGltf as typeof parrotGltf & { scene: Group }, PARROT_CFG, PARROT_SCALE, scene)
+      : [];
 
-    if (storkGltf.animations.length) {
-      spawned[0] = setupAnimals(storkGltf as typeof storkGltf & { scene: Group }, STORK_CFG, STORK_SCALE, scene);
-    }
-    if (parrotGltf.animations.length) {
-      spawned[1] = setupAnimals(parrotGltf as typeof parrotGltf & { scene: Group }, PARROT_CFG, PARROT_SCALE, scene);
-    }
-    if (horseGltf.animations.length) {
-      spawned[2] = setupAnimals(horseGltf as typeof horseGltf & { scene: Group }, HORSE_CFG, HORSE_SCALE, scene);
-    }
-
-    storksRef.current = spawned[0];
-    parrotsRef.current = spawned[1];
-    horsesRef.current = spawned[2];
+    storksRef.current = storks;
+    parrotsRef.current = parrots;
 
     return () => {
       cleanupAnimals(storksRef.current, scene);
       cleanupAnimals(parrotsRef.current, scene);
-      cleanupAnimals(horsesRef.current, scene);
       storksRef.current = [];
       parrotsRef.current = [];
-      horsesRef.current = [];
     };
-  }, [scene, storkGltf, parrotGltf, horseGltf]);
+  }, [scene, storkGltf, parrotGltf]);
 
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
@@ -158,7 +133,6 @@ export function WildAnimals() {
 
     updateGroup(storksRef.current,  0.08, 0.35);
     updateGroup(parrotsRef.current, 0.06, 0.60);
-    updateGroup(horsesRef.current,  0.02, 0.20);
   });
 
   return null;
@@ -166,4 +140,3 @@ export function WildAnimals() {
 
 useGLTF.preload("/assets/xianxia/models/stork.glb");
 useGLTF.preload("/assets/xianxia/models/parrot.glb");
-useGLTF.preload("/assets/xianxia/models/horse.glb");

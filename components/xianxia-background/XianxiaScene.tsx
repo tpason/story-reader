@@ -253,9 +253,10 @@ export function XianxiaScene({ timeOfDay, qualityTier = "full" }: XianxiaScenePr
       />
 
       <FlyingCranes />
-      <WildAnimals />
-      {isFull && timeOfDay !== "night" && <FlyingButterflies />}
-      {isFull && timeOfDay !== "night" && <FlyingCarrot />}
+      {/* Mid+full desktop: butterflies / carrot / parrots. Phone keeps them off for heat. */}
+      {!isPhone && <WildAnimals />}
+      {!isPhone && timeOfDay !== "night" && <FlyingButterflies />}
+      {!isPhone && timeOfDay !== "night" && <FlyingCarrot />}
       <WindCurrentLines />
 
       <WindLayer

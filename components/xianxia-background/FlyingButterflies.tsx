@@ -24,15 +24,18 @@ import {
 
 const TEXTURE_URL = "/xianxia/butterflies/tex.png";
 
-/** Habitat box in scene units (camera z≈5). */
-const WORLD = { halfW: 6.5, yMin: 0.35, yMax: 1.55, zMin: -1.85, zMax: -1.15 };
-const NEIGHBOR_R = 2.4;
+/** Habitat: left/right corridors only — center |x| < SIDE_GAP is covered by page body. */
+const WORLD = { halfW: 6.8, yMin: 0.35, yMax: 1.55, zMin: -1.85, zMax: -1.15 };
+/** Keep butterflies outside the frosted content column. */
+const SIDE_GAP = 2.75;
+const NEIGHBOR_R = 2.2;
 const MAX_SPEED = 0.55;
 const MAX_STEER = 0.09;
-const COUNT = 5;
+/** 2 left + 2 right — enough motion without mixer/boid overload. */
+const COUNT = 4;
 
-// Warm xianxia HSV hues (H 0–1): gold / amber / jade / crimson / soft gold
-const COLOR_HUES = [0.12, 0.08, 0.38, 0.02, 0.15] as const;
+// Warm xianxia HSV hues (H 0–1): gold / amber / jade / crimson / soft gold / peach
+const COLOR_HUES = [0.12, 0.08, 0.38, 0.02, 0.15, 0.06] as const;
 
 const VS = /* glsl */ `
   uniform float index;
@@ -102,6 +105,8 @@ type BoidState = {
   acc: Vector3;
   size: number;
   phase: number;
+  /** -1 = left corridor, +1 = right corridor */
+  side: -1 | 1;
 };
 
 const _steer = new Vector3();
@@ -122,6 +127,16 @@ function avoidWall(b: BoidState, wallPoint: Vector3, strength: number) {
   b.acc.add(_steer);
 }
 
+function clampXToSide(x: number, side: -1 | 1) {
+  if (side < 0) return Math.max(-WORLD.halfW, Math.min(-SIDE_GAP, x));
+  return Math.max(SIDE_GAP, Math.min(WORLD.halfW, x));
+}
+
+function spawnX(side: -1 | 1) {
+  const span = WORLD.halfW - SIDE_GAP;
+  return side * (SIDE_GAP + Math.random() * span);
+}
+
 export function FlyingButterflies() {
   const texture = useLoader(TextureLoader, TEXTURE_URL);
   const groupRef = useRef<Group>(null);
@@ -140,6 +155,7 @@ export function FlyingButterflies() {
 
     const boids: BoidState[] = Array.from({ length: COUNT }, (_, i) => {
       const size = 0.18 + (i % 3) * 0.03;
+      const side: -1 | 1 = i % 2 === 0 ? -1 : 1;
       const mat = new ShaderMaterial({
         uniforms: {
           index: { value: i },
@@ -161,14 +177,15 @@ export function FlyingButterflies() {
       group.add(mesh);
 
       const pos = new Vector3(
-        (Math.random() * 2 - 1) * 4.5,
+        spawnX(side),
         WORLD.yMin + Math.random() * (WORLD.yMax - WORLD.yMin),
         WORLD.zMin + Math.random() * (WORLD.zMax - WORLD.zMin),
       );
+      // Prefer vertical/depth drift along the margin; soft X so they stay in corridor
       const vel = new Vector3(
-        (Math.random() * 2 - 1) * 0.35,
-        (Math.random() * 2 - 1) * 0.12,
-        (Math.random() * 2 - 1) * 0.08,
+        side * (0.08 + Math.random() * 0.18),
+        (Math.random() * 2 - 1) * 0.16,
+        (Math.random() * 2 - 1) * 0.1,
       );
 
       mesh.position.copy(pos);
@@ -181,6 +198,7 @@ export function FlyingButterflies() {
         acc: new Vector3(),
         size,
         phase: Math.random() * Math.PI * 2,
+        side,
       };
     });
 
@@ -207,16 +225,17 @@ export function FlyingButterflies() {
       b.mat.uniforms.time.value = t;
       b.acc.set(0, 0, 0);
 
-      // Soft habitat walls (BlurSpline avoid, scaled to our box)
+      // Soft habitat walls — outer + inner corridor edge (keep out of page body)
       avoidWall(b, _wall.set(-WORLD.halfW, b.pos.y, b.pos.z), 2.2);
       avoidWall(b, _wall.set(WORLD.halfW, b.pos.y, b.pos.z), 2.2);
+      avoidWall(b, _wall.set(b.side < 0 ? -SIDE_GAP : SIDE_GAP, b.pos.y, b.pos.z), 3.4);
       avoidWall(b, _wall.set(b.pos.x, WORLD.yMin, b.pos.z), 2.8);
       avoidWall(b, _wall.set(b.pos.x, WORLD.yMax, b.pos.z), 2.8);
       avoidWall(b, _wall.set(b.pos.x, b.pos.y, WORLD.zMin), 2.0);
       avoidWall(b, _wall.set(b.pos.x, b.pos.y, WORLD.zMax), 2.0);
 
-      // Alignment / cohesion / separation — sample sparsely like the gist
-      if (Math.random() > 0.45) {
+      // Alignment / cohesion / separation — deterministic cadence (no Math.random/frame)
+      if (((Math.floor(t * 8) + i) % 2) === 0) {
         let alignCount = 0;
         let coCount = 0;
         _steer.set(0, 0, 0);
@@ -224,8 +243,11 @@ export function FlyingButterflies() {
         _sep.set(0, 0, 0);
 
         for (let j = 0; j < boids.length; j++) {
-          if (j === i || Math.random() > 0.7) continue;
+          if (j === i) continue;
+          // Skip every other neighbor by index parity — cheaper than random
+          if (((i + j) & 1) === 1) continue;
           const other = boids[j];
+          if (other.side !== b.side) continue;
           const dist = b.pos.distanceTo(other.pos);
           if (dist <= 0 || dist > NEIGHBOR_R) continue;
 
@@ -257,7 +279,7 @@ export function FlyingButterflies() {
       if (speed > MAX_SPEED) b.vel.multiplyScalar(MAX_SPEED / speed);
       b.pos.addScaledVector(b.vel, dt);
 
-      b.pos.x = Math.max(-WORLD.halfW, Math.min(WORLD.halfW, b.pos.x));
+      b.pos.x = clampXToSide(b.pos.x, b.side);
       b.pos.y = Math.max(WORLD.yMin, Math.min(WORLD.yMax, b.pos.y));
       b.pos.z = Math.max(WORLD.zMin, Math.min(WORLD.zMax, b.pos.z));
 

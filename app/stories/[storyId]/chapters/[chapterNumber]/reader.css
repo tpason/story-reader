@@ -6781,10 +6781,7 @@ button.chapter-sidebar-heatmap-cell:focus-visible {
 .reader-shell[data-theme="ink-night"] .reader-sheet-section > span,
 .reader-shell[data-theme="dark"] .chapter-sidebar-title,
 .reader-shell[data-theme="oled"] .chapter-sidebar-title,
-.reader-shell[data-theme="ink-night"] .chapter-sidebar-title,
-.reader-shell[data-theme="dark"] .reader-chapter-kicker,
-.reader-shell[data-theme="oled"] .reader-chapter-kicker,
-.reader-shell[data-theme="ink-night"] .reader-chapter-kicker {
+.reader-shell[data-theme="ink-night"] .chapter-sidebar-title {
   color: var(--reader-muted) !important;
 }
 
@@ -7481,5 +7478,66 @@ button.chapter-sidebar-heatmap-cell:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .reader-spirit-companion {
     display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Chapter kicker contrast — desktop + mobile, light + dark (2026-07-16)
+   SoT for .reader-topbar-modern .reader-chapter-kicker across all themes.
+   Gold chip + near-black ink stays readable on parchment and OLED topbars.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.reader-topbar-modern .reader-chapter-kicker,
+.reader-shell--compact .reader-topbar-modern .reader-chapter-kicker,
+.reader-shell--desktop .reader-topbar-modern .reader-chapter-kicker,
+.reader-shell[data-theme="light"] .reader-topbar-modern .reader-chapter-kicker,
+.reader-shell[data-theme="parchment"] .reader-topbar-modern .reader-chapter-kicker,
+.reader-shell[data-theme="sepia"] .reader-topbar-modern .reader-chapter-kicker,
+.reader-shell[data-theme="bamboo"] .reader-topbar-modern .reader-chapter-kicker,
+.reader-shell[data-theme="dark"] .reader-topbar-modern .reader-chapter-kicker,
+.reader-shell[data-theme="oled"] .reader-topbar-modern .reader-chapter-kicker,
+.reader-shell[data-theme="ink-night"] .reader-topbar-modern .reader-chapter-kicker {
+  display: inline-flex !important;
+  align-items: center;
+  max-width: 100%;
+  min-height: 18px;
+  padding: 3px 10px !important;
+  border-radius: 999px !important;
+  color: #1c1610 !important;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--xi-gold-light, #f0d06a) 88%, #fff 12%),
+    color-mix(in srgb, var(--xi-gold, #c8962e) 82%, #e8c56a 18%)
+  ) !important;
+  border: 1px solid color-mix(in srgb, var(--xi-gold-light, #f0d06a) 70%, #fff 30%) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.32) inset,
+    0 2px 8px rgba(0, 0, 0, 0.14);
+  font-size: 11px !important;
+  font-weight: 780 !important;
+  letter-spacing: 0.03em;
+  line-height: 1.2 !important;
+  text-transform: uppercase;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+/* Dark topbars: deepen chip edge so gold does not wash into black chrome */
+.reader-shell[data-theme="dark"] .reader-topbar-modern .reader-chapter-kicker,
+.reader-shell[data-theme="oled"] .reader-topbar-modern .reader-chapter-kicker,
+.reader-shell[data-theme="ink-night"] .reader-topbar-modern .reader-chapter-kicker {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 55%, #000 45%) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 3px 10px rgba(0, 0, 0, 0.45);
+}
+
+@media (max-width: 839px) {
+  .reader-topbar-modern .reader-chapter-kicker,
+  .reader-shell--compact .reader-topbar-modern .reader-chapter-kicker {
+    font-size: 11px !important;
+    padding: 3px 9px !important;
+    max-width: min(58vw, 280px);
   }
 }
