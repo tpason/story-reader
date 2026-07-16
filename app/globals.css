@@ -19596,3 +19596,45 @@ html:not([data-xi-theme="dark"]) .page-wrap .identity-copy strong {
     animation: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   POETRY CLOUD CONTAINMENT — keep cloud aura inside page-wrap / body
+   Negative insets + 120px halos + overflow:visible were painting past the
+   frosted panel onto the full viewport (felt “outside body”).
+   ═══════════════════════════════════════════════════════════════════════ */
+.page-wrap {
+  overflow-x: clip;
+}
+
+@media (min-width: 840px) {
+  .library-header {
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .library-header > .xi-poetry-col {
+    right: clamp(8px, 3.5%, 28px) !important;
+    top: 18% !important;
+    max-width: min(260px, 34%) !important;
+    padding: 22px 26px !important;
+    /* Clip filter/box-shadow bleed to the column box inside the header */
+    overflow: hidden !important;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-cloud-bg,
+  .library-header > .xi-poetry-col .xi-cloud-aura--secondary {
+    inset: -10px -12px !important;
+    box-shadow:
+      inset 0 0 18px rgba(200, 150, 46, 0.10),
+      0 0 10px 3px rgba(200, 150, 46, 0.16),
+      0 0 24px 8px rgba(200, 150, 46, 0.08) !important;
+  }
+
+  html[data-xi-time="night"] .library-header > .xi-poetry-col .xi-cloud-aura--secondary {
+    box-shadow:
+      inset 0 0 16px rgba(200, 150, 46, 0.10),
+      inset 0 0 10px rgba(0, 0, 0, 0.20),
+      0 0 12px 4px rgba(200, 150, 46, 0.12),
+      0 0 22px 8px rgba(0, 0, 0, 0.16) !important;
+  }
+}

@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, DynamicDrawUsage, Points, ShaderMaterial } from "three";
 
-const DEFAULT_COUNT = 120;
+const DEFAULT_COUNT = 160;
+const MAX_COUNT = 160;
 
 // Per-particle pulsing size — each hạt linh khí breathes independently
 const VS = `
@@ -25,7 +26,7 @@ const FS = `
   void main() {
     vec4 tex = texture2D(pointTexture, gl_PointCoord);
     if (tex.a < 0.04) discard;
-    gl_FragColor = vec4(vColor, tex.a * 0.72);
+    gl_FragColor = vec4(vColor, tex.a * 0.82);
   }
 `;
 
@@ -62,7 +63,7 @@ function pickColor(i: number): [number, number, number] {
 
 export function SpiritParticles({ count = DEFAULT_COUNT }: { count?: number }) {
   const pointsRef = useRef<Points>(null);
-  const safeCount = Math.max(8, Math.min(count, DEFAULT_COUNT));
+  const safeCount = Math.max(8, Math.min(count, MAX_COUNT));
 
   const { geo, mat, positions, velocities, baseSizes, phases, sizeAttr, discTex } = useMemo(() => {
     const discTex = makeDiscTex(128);
@@ -76,14 +77,15 @@ export function SpiritParticles({ count = DEFAULT_COUNT }: { count?: number }) {
 
     for (let i = 0; i < safeCount; i++) {
       const i3 = i * 3;
+      // Bias spawn toward lower sky so the bottom→top rise reads more often
       positions[i3]     = (Math.random() - 0.5) * 14;
-      positions[i3 + 1] = (Math.random() - 0.5) * 10;
-      positions[i3 + 2] = -0.6 - Math.random() * 7;
+      positions[i3 + 1] = -5.2 + Math.random() * 8.5;
+      positions[i3 + 2] = -0.5 - Math.random() * 6.5;
 
-      velocities[i * 2]     = (Math.random() - 0.5) * 0.14;
-      velocities[i * 2 + 1] = 0.07 + Math.random() * 0.20;
+      velocities[i * 2]     = (Math.random() - 0.5) * 0.12;
+      velocities[i * 2 + 1] = 0.09 + Math.random() * 0.24;
 
-      baseSizes[i] = 7 + Math.random() * 14;   // pixel base sizes 7–21px
+      baseSizes[i] = 8 + Math.random() * 16;   // slightly larger glow
       sizes[i]     = baseSizes[i];
       phases[i]    = Math.random() * Math.PI * 2;
 
@@ -127,12 +129,13 @@ export function SpiritParticles({ count = DEFAULT_COUNT }: { count?: number }) {
       positions[i3 + 1] += velocities[i * 2 + 1] * delta;
 
       if (positions[i3 + 1] > 5.8) {
-        positions[i3 + 1] = -5.8;
+        positions[i3 + 1] = -5.6 - Math.random() * 1.2;
         positions[i3]     = (Math.random() - 0.5) * 14;
+        positions[i3 + 2] = -0.5 - Math.random() * 6.5;
       }
 
       // Per-particle breathing size
-      sizeAttr.array[i] = baseSizes[i] * (0.55 + 0.45 * Math.sin(t * 1.55 + phases[i]));
+      sizeAttr.array[i] = baseSizes[i] * (0.5 + 0.5 * Math.sin(t * 1.45 + phases[i]));
     }
 
     (posAttr.array as Float32Array).set(positions);

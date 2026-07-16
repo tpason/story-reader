@@ -321,9 +321,26 @@ function Rain({ intense = false, compact = false }: { intense?: boolean; compact
 
 function BeanSoldiers({ compact = false }: { compact?: boolean }) {
   const count = compact ? 4 : 9;
+  const carrotCount = compact ? 2 : 3;
   return (
     <div className={`bean-soldiers ${compact ? "bean-soldiers--compact" : ""}`}>
       {!compact ? <div className="soldier-banner" /> : null}
+      <div className="bean-soldier-carrots" aria-hidden="true">
+        {Array.from({ length: carrotCount }).map((_, index) => (
+          <span
+            className="bean-flying-carrot"
+            key={`carrot-${index}`}
+            style={
+              {
+                "--skill-delay": `${180 + index * 420}ms`,
+                "--carrot-lane": `${index}`
+              } as React.CSSProperties
+            }
+          >
+            <FlyingCarrotIcon />
+          </span>
+        ))}
+      </div>
       {Array.from({ length: count }).map((_, index) => (
         <span
           className="bean-soldier"
@@ -339,6 +356,22 @@ function BeanSoldiers({ compact = false }: { compact?: boolean }) {
         </span>
       ))}
     </div>
+  );
+}
+
+function FlyingCarrotIcon() {
+  return (
+    <svg className="bean-flying-carrot-svg" viewBox="0 0 48 28" role="presentation" focusable="false">
+      <ellipse className="bean-flying-carrot-wing bean-flying-carrot-wing--left" cx="18" cy="10" rx="7" ry="3.5" />
+      <ellipse className="bean-flying-carrot-wing bean-flying-carrot-wing--right" cx="18" cy="18" rx="7" ry="3.5" />
+      <path
+        className="bean-flying-carrot-body"
+        d="M6 14c0-4 4-8 10-9 8-1 18 3 26 8-7 6-17 10-26 8-7-1-10-4-10-7Z"
+      />
+      <path className="bean-flying-carrot-leaf" d="M38 10c4-5 8-4 10-8-1 6 1 10-4 12-3 1-5-1-6-4Z" />
+      <path className="bean-flying-carrot-leaf" d="M36 16c5-2 9 1 12 4-4 2-8 1-11-1-2-1-2-2-1-3Z" />
+      <circle className="bean-flying-carrot-eye" cx="14" cy="13" r="1.2" />
+    </svg>
   );
 }
 

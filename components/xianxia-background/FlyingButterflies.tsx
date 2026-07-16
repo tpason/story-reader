@@ -4,9 +4,7 @@
  * Decorative butterflies for the xianxia desktop scene.
  *
  * Wing-flap shader + texture: Yoichi Kobayashi (ykob/sketch-threejs, MIT).
- * Flocking / facing motion: lean adaptation of Joshua Koo (@BlurSpline) boids
- * as used in Brannon Dorsey’s “Butterfly Habitat” gist
- * https://gist.github.com/brannondorsey/a80f7b673a924ef8d297
+ * Motion: independent mid-air wanderers — stay above ground, gentle pitch.
  */
 
 import { useEffect, useMemo, useRef } from "react";
@@ -24,18 +22,14 @@ import {
 
 const TEXTURE_URL = "/xianxia/butterflies/tex.png";
 
-/** Habitat: left/right corridors only — center |x| < SIDE_GAP is covered by page body. */
-const WORLD = { halfW: 6.8, yMin: 0.35, yMax: 1.55, zMin: -1.85, zMax: -1.15 };
-/** Keep butterflies outside the frosted content column. */
-const SIDE_GAP = 2.75;
-const NEIGHBOR_R = 2.2;
-const MAX_SPEED = 0.55;
-const MAX_STEER = 0.09;
-/** 2 left + 2 right — enough motion without mixer/boid overload. */
+/** Habitat: side corridors; y kept clearly above water/ground. */
+const WORLD = { halfW: 6.8, yMin: 0.72, yMax: 1.95, zMin: -2.2, zMax: -0.95 };
+const SIDE_GAP = 2.85;
 const COUNT = 4;
+const MIN_SEP = 1.05;
+const MAX_SPEED = 0.62;
 
-// Warm xianxia HSV hues (H 0–1): gold / amber / jade / crimson / soft gold / peach
-const COLOR_HUES = [0.12, 0.08, 0.38, 0.02, 0.15, 0.06] as const;
+const COLOR_HUES = [0.12, 0.08, 0.38, 0.02] as const;
 
 const VS = /* glsl */ `
   uniform float index;
@@ -48,9 +42,9 @@ const VS = /* glsl */ `
 
   void main() {
     float flapTime = radians(
-      sin(time * 4.0 - length(position.xy) / size * 2.0 + index * 2.0) * 45.0 + 30.0
+      sin(time * 5.2 - length(position.xy) / size * 2.0 + index * 2.4) * 48.0 + 28.0
     );
-    float hovering = cos(time * 2.0 + index * 3.0) * size / 16.0;
+    float hovering = cos(time * 2.2 + index * 2.7) * size / 18.0;
     vec3 updatePosition = vec3(
       cos(flapTime) * position.x,
       position.y + hovering,
@@ -59,7 +53,7 @@ const VS = /* glsl */ `
 
     vPosition = position;
     vUv = uv;
-    vOpacity = 0.82;
+    vOpacity = 0.84;
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4(updatePosition, 1.0);
   }
@@ -97,52 +91,55 @@ const FS = /* glsl */ `
   }
 `;
 
-type BoidState = {
+type Wanderer = {
   mesh: Mesh;
   mat: ShaderMaterial;
   pos: Vector3;
-  vel: Vector3;
-  acc: Vector3;
+  prev: Vector3;
+  home: Vector3;
+  side: -1 | 1;
   size: number;
   phase: number;
-  /** -1 = left corridor, +1 = right corridor */
-  side: -1 | 1;
+  fx: number;
+  fy: number;
+  fz: number;
+  ax: number;
+  ay: number;
+  az: number;
+  drift: number;
 };
 
-const _steer = new Vector3();
-const _tmp = new Vector3();
-const _wall = new Vector3();
 const _sep = new Vector3();
-
-function clampSteer(v: Vector3, max: number) {
-  const len = v.length();
-  if (len > max) v.multiplyScalar(max / len);
-  return v;
-}
-
-function avoidWall(b: BoidState, wallPoint: Vector3, strength: number) {
-  _steer.copy(b.pos).sub(wallPoint);
-  const d2 = Math.max(b.pos.distanceToSquared(wallPoint), 0.08);
-  _steer.multiplyScalar(strength / d2);
-  b.acc.add(_steer);
-}
+const _desired = new Vector3();
+const _facing = new Vector3();
 
 function clampXToSide(x: number, side: -1 | 1) {
-  if (side < 0) return Math.max(-WORLD.halfW, Math.min(-SIDE_GAP, x));
-  return Math.max(SIDE_GAP, Math.min(WORLD.halfW, x));
+  if (side < 0) return Math.max(-WORLD.halfW + 0.15, Math.min(-SIDE_GAP - 0.1, x));
+  return Math.max(SIDE_GAP + 0.1, Math.min(WORLD.halfW - 0.15, x));
 }
 
-function spawnX(side: -1 | 1) {
-  const span = WORLD.halfW - SIDE_GAP;
-  return side * (SIDE_GAP + Math.random() * span);
+function homeForIndex(i: number, side: -1 | 1): Vector3 {
+  const onSide = Math.floor(i / 2);
+  const slots = Math.ceil(COUNT / 2);
+  const t = slots <= 1 ? 0.5 : onSide / (slots - 1);
+  const span = WORLD.halfW - SIDE_GAP - 0.35;
+  const x = side * (SIDE_GAP + 0.25 + t * span);
+  // Bias homes toward upper half of the fly band
+  const yBand = WORLD.yMax - WORLD.yMin;
+  const y = WORLD.yMin + 0.28 + ((onSide * 0.41 + (side > 0 ? 0.22 : 0.08)) % 1) * (yBand * 0.55);
+  const z =
+    WORLD.zMin +
+    0.25 +
+    ((onSide * 0.41 + (i % 2) * 0.22) % 1) * (WORLD.zMax - WORLD.zMin - 0.45);
+  return new Vector3(x, y, z);
 }
 
 export function FlyingButterflies() {
   const texture = useLoader(TextureLoader, TEXTURE_URL);
   const groupRef = useRef<Group>(null);
-  const boidsRef = useRef<BoidState[]>([]);
+  const listRef = useRef<Wanderer[]>([]);
 
-  const sharedGeo = useMemo(() => new PlaneGeometry(1, 0.5, 24, 12), []);
+  const sharedGeo = useMemo(() => new PlaneGeometry(1, 0.5, 20, 10), []);
 
   useEffect(() => {
     texture.colorSpace = SRGBColorSpace;
@@ -153,12 +150,13 @@ export function FlyingButterflies() {
     const group = groupRef.current;
     if (!group) return;
 
-    const boids: BoidState[] = Array.from({ length: COUNT }, (_, i) => {
-      const size = 0.18 + (i % 3) * 0.03;
+    const list: Wanderer[] = Array.from({ length: COUNT }, (_, i) => {
+      const size = 0.16 + (i % 3) * 0.035;
       const side: -1 | 1 = i % 2 === 0 ? -1 : 1;
+      const home = homeForIndex(i, side);
       const mat = new ShaderMaterial({
         uniforms: {
-          index: { value: i },
+          index: { value: i * 1.7 },
           time: { value: 0 },
           size: { value: 1 },
           butterflyMap: { value: texture },
@@ -175,41 +173,36 @@ export function FlyingButterflies() {
       mesh.scale.setScalar(size);
       mesh.renderOrder = 12;
       group.add(mesh);
-
-      const pos = new Vector3(
-        spawnX(side),
-        WORLD.yMin + Math.random() * (WORLD.yMax - WORLD.yMin),
-        WORLD.zMin + Math.random() * (WORLD.zMax - WORLD.zMin),
-      );
-      // Prefer vertical/depth drift along the margin; soft X so they stay in corridor
-      const vel = new Vector3(
-        side * (0.08 + Math.random() * 0.18),
-        (Math.random() * 2 - 1) * 0.16,
-        (Math.random() * 2 - 1) * 0.1,
-      );
-
-      mesh.position.copy(pos);
+      mesh.position.copy(home);
 
       return {
         mesh,
         mat,
-        pos,
-        vel,
-        acc: new Vector3(),
-        size,
-        phase: Math.random() * Math.PI * 2,
+        pos: home.clone(),
+        prev: home.clone(),
+        home,
         side,
+        size,
+        phase: i * 1.37 + 0.4,
+        fx: 0.2 + i * 0.065,
+        fy: 0.28 + i * 0.08,
+        fz: 0.16 + i * 0.055,
+        ax: 0.48 + (i % 3) * 0.14,
+        // Small vertical amp — flutter, not dive
+        ay: 0.12 + (i % 2) * 0.06,
+        az: 0.28 + ((i + 1) % 3) * 0.12,
+        drift: 0.07 + (i % 4) * 0.025,
       };
     });
 
-    boidsRef.current = boids;
+    listRef.current = list;
 
     return () => {
-      boids.forEach(({ mesh, mat }) => {
+      list.forEach(({ mesh, mat }) => {
         group.remove(mesh);
         mat.dispose();
       });
-      boidsRef.current = [];
+      listRef.current = [];
     };
   }, [texture, sharedGeo]);
 
@@ -218,66 +211,50 @@ export function FlyingButterflies() {
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
     const dt = Math.min(delta, 0.05);
-    const boids = boidsRef.current;
+    const list = listRef.current;
 
-    for (let i = 0; i < boids.length; i++) {
-      const b = boids[i];
+    for (let i = 0; i < list.length; i++) {
+      const b = list[i];
       b.mat.uniforms.time.value = t;
-      b.acc.set(0, 0, 0);
+      b.prev.copy(b.pos);
 
-      // Soft habitat walls — outer + inner corridor edge (keep out of page body)
-      avoidWall(b, _wall.set(-WORLD.halfW, b.pos.y, b.pos.z), 2.2);
-      avoidWall(b, _wall.set(WORLD.halfW, b.pos.y, b.pos.z), 2.2);
-      avoidWall(b, _wall.set(b.side < 0 ? -SIDE_GAP : SIDE_GAP, b.pos.y, b.pos.z), 3.4);
-      avoidWall(b, _wall.set(b.pos.x, WORLD.yMin, b.pos.z), 2.8);
-      avoidWall(b, _wall.set(b.pos.x, WORLD.yMax, b.pos.z), 2.8);
-      avoidWall(b, _wall.set(b.pos.x, b.pos.y, WORLD.zMin), 2.0);
-      avoidWall(b, _wall.set(b.pos.x, b.pos.y, WORLD.zMax), 2.0);
+      const p = b.phase + t;
+      // Vertical: mostly soft bob around home (lift-biased), not deep sine dives
+      const bob =
+        Math.sin(p * b.fy + 0.8) * b.ay * 0.55 +
+        Math.abs(Math.sin(p * b.fy * 0.85)) * b.ay * 0.45;
 
-      // Alignment / cohesion / separation — deterministic cadence (no Math.random/frame)
-      if (((Math.floor(t * 8) + i) % 2) === 0) {
-        let alignCount = 0;
-        let coCount = 0;
-        _steer.set(0, 0, 0);
-        _tmp.set(0, 0, 0);
-        _sep.set(0, 0, 0);
+      _desired.set(
+        b.home.x + Math.sin(p * b.fx) * b.ax + Math.sin(p * b.fx * 0.37 + 1.2) * b.ax * 0.28,
+        b.home.y + bob,
+        b.home.z + Math.cos(p * b.fz + 0.3) * b.az + Math.sin(p * b.fz * 0.7) * b.az * 0.3,
+      );
 
-        for (let j = 0; j < boids.length; j++) {
-          if (j === i) continue;
-          // Skip every other neighbor by index parity — cheaper than random
-          if (((i + j) & 1) === 1) continue;
-          const other = boids[j];
-          if (other.side !== b.side) continue;
-          const dist = b.pos.distanceTo(other.pos);
-          if (dist <= 0 || dist > NEIGHBOR_R) continue;
+      _desired.x += Math.sin(t * b.drift + b.phase) * 0.28 * b.side;
+      _desired.y += Math.sin(t * (b.drift + 0.04) + 2.1) * 0.05;
 
-          _steer.add(other.vel);
-          alignCount++;
-          _tmp.add(other.pos);
-          coCount++;
+      _desired.x = clampXToSide(_desired.x, b.side);
+      _desired.y = Math.max(WORLD.yMin, Math.min(WORLD.yMax, _desired.y));
+      _desired.z = Math.max(WORLD.zMin, Math.min(WORLD.zMax, _desired.z));
 
-          _wall.subVectors(b.pos, other.pos).normalize().divideScalar(Math.max(dist, 0.05));
-          _sep.add(_wall);
-        }
+      b.pos.lerp(_desired, 1 - Math.exp(-2.1 * dt));
 
-        if (alignCount > 0) {
-          _steer.divideScalar(alignCount);
-          clampSteer(_steer, MAX_STEER);
-          b.acc.add(_steer);
-        }
-        if (coCount > 0) {
-          _tmp.divideScalar(coCount).sub(b.pos);
-          clampSteer(_tmp, MAX_STEER);
-          b.acc.add(_tmp);
-        }
-        clampSteer(_sep, MAX_STEER * 1.4);
-        b.acc.add(_sep);
+      // Separation — prefer horizontal push so we don't shove them into the ground
+      for (let j = 0; j < list.length; j++) {
+        if (j === i) continue;
+        const other = list[j];
+        if (other.side !== b.side) continue;
+        const dist = b.pos.distanceTo(other.pos);
+        if (dist >= MIN_SEP || dist < 1e-4) continue;
+        _sep.subVectors(b.pos, other.pos);
+        _sep.y *= 0.25;
+        const len = _sep.length();
+        if (len < 1e-4) continue;
+        _sep.multiplyScalar(1 / len);
+        const push = (MIN_SEP - dist) * 0.5;
+        b.pos.addScaledVector(_sep, push * 0.55);
+        other.pos.addScaledVector(_sep, -push * 0.45);
       }
-
-      b.vel.addScaledVector(b.acc, dt);
-      const speed = b.vel.length();
-      if (speed > MAX_SPEED) b.vel.multiplyScalar(MAX_SPEED / speed);
-      b.pos.addScaledVector(b.vel, dt);
 
       b.pos.x = clampXToSide(b.pos.x, b.side);
       b.pos.y = Math.max(WORLD.yMin, Math.min(WORLD.yMax, b.pos.y));
@@ -285,15 +262,20 @@ export function FlyingButterflies() {
 
       b.mesh.position.copy(b.pos);
 
-      // Face travel direction (gist atan2 / asin)
-      const vLen = Math.max(b.vel.length(), 1e-4);
-      b.mesh.rotation.y = Math.atan2(-b.vel.z, b.vel.x);
-      b.mesh.rotation.z = Math.asin(Math.max(-1, Math.min(1, b.vel.y / vLen)));
-      b.mesh.rotation.x = -0.55 + b.mesh.rotation.z * 0.25;
+      _facing.subVectors(b.pos, b.prev);
+      const move = _facing.length();
+      if (move > 1e-5) {
+        _facing.multiplyScalar(1 / move);
+        const yaw = Math.atan2(-_facing.z, _facing.x);
+        // Soft bank — never nose-dive toward ground
+        const pitch = Math.max(-0.22, Math.min(0.28, _facing.y * 0.55));
+        b.mesh.rotation.y += (yaw - b.mesh.rotation.y) * Math.min(1, 5.5 * dt);
+        b.mesh.rotation.z += (pitch - b.mesh.rotation.z) * Math.min(1, 4.5 * dt);
+        b.mesh.rotation.x = -0.42 + b.mesh.rotation.z * 0.15;
+      }
 
-      // Climb → slightly faster flap phase (feeds shader index offset)
-      b.phase = (b.phase + (Math.max(0, b.mesh.rotation.z) + 0.25) * dt * 6) % (Math.PI * 2);
-      b.mat.uniforms.index.value = i + b.phase * 0.15;
+      const flapBoost = Math.min(1.1, move / (MAX_SPEED * dt + 1e-4));
+      b.mat.uniforms.index.value = i * 1.7 + t * (1.1 + flapBoost * 0.3) + b.phase;
     }
   });
 

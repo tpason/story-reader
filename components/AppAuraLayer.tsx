@@ -42,13 +42,18 @@ export function AppAuraLayer() {
     compactMaxWidth: 839,
   });
   const reduceMotion = prefersReducedMotion();
-  const canUseWebgl = webglEnabled && !reduceMotion && !isReaderChapter;
+  // Homepage/library desktop: XianxiaWorldBackground owns atmosphere — skip AppAura
+  // entirely (second canvas + mist rectangles). AppAura only when world WebGL is off.
+  const worldOwnsAtmosphere = !isReaderChapter && webglEnabled;
+  const canUseWebgl = webglEnabled && !reduceMotion && !isReaderChapter && !worldOwnsAtmosphere;
   const webglReady = useDeferredWebglMount(canUseWebgl, 2400);
   const showWebgl = canUseWebgl && webglReady;
 
   // Compact chapter only: skip aura to cut compositor heat under opaque reader shell.
   // Desktop chapter keeps CSS aura (no WebGL) — matches pre-cooler desktop look.
   if (isReaderChapter && compact) return null;
+
+  if (worldOwnsAtmosphere) return null;
 
   return (
     <div

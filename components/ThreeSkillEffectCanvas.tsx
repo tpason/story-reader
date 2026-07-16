@@ -33,6 +33,20 @@ type BeanSoldierParade = {
   soldiers: BeanSoldierRig[];
 };
 
+type BeanFlyingCarrotRig = {
+  root: Group;
+  leafs: Group;
+  wingL: Mesh;
+  wingR: Mesh;
+  phase: number;
+  altitude: number;
+};
+
+type BeanFlyingCarrotFlock = {
+  group: Group;
+  carrots: BeanFlyingCarrotRig[];
+};
+
 type SwordFlightRig = {
   group: Group;
   blade: Mesh;
@@ -1202,6 +1216,81 @@ function createBeanSoldierParade(palette: SkillPalette): BeanSoldierParade {
   return { group, soldiers };
 }
 
+/** Lite carrot (no bunny pilot) — shared geo/mat, 3 clones for bean_soldiers. */
+function createBeanFlyingCarrotFlock(_palette: SkillPalette): BeanFlyingCarrotFlock {
+  const group = new Group();
+  const orange = new MeshStandardMaterial({
+    color: "#c45a2c",
+    emissive: "#f59e0b",
+    emissiveIntensity: 0.12,
+    roughness: 0.62,
+    flatShading: true
+  });
+  const green = new MeshStandardMaterial({
+    color: "#379351",
+    emissive: "#22c55e",
+    emissiveIntensity: 0.08,
+    roughness: 0.55,
+    flatShading: true
+  });
+  const brown = new MeshStandardMaterial({
+    color: "#5c2c22",
+    roughness: 0.7,
+    flatShading: true
+  });
+
+  const bodyGeo = new CylinderGeometry(0.11, 0.045, 0.52, 6);
+  const wingGeo = new BoxGeometry(0.16, 0.14, 0.02);
+  const leafGeo = new CylinderGeometry(0.035, 0.022, 0.12, 4);
+
+  const template = new Group();
+  const body = new Mesh(bodyGeo, orange);
+  body.rotation.z = Math.PI / 2;
+
+  const wingL = new Mesh(wingGeo, brown);
+  wingL.name = "carrotWingL";
+  wingL.position.set(0, 0.06, 0.12);
+  const wingR = wingL.clone();
+  wingR.name = "carrotWingR";
+  wingR.position.z = -0.12;
+
+  const leafs = new Group();
+  leafs.name = "carrotLeafs";
+  const leafA = new Mesh(leafGeo, green);
+  leafA.position.set(0.28, 0.08, 0);
+  const leafB = leafA.clone();
+  leafB.position.set(0.26, 0.02, 0.05);
+  leafB.rotation.z = 0.35;
+  const leafC = leafA.clone();
+  leafC.position.set(0.26, 0.02, -0.05);
+  leafC.rotation.z = -0.35;
+  leafs.add(leafA, leafB, leafC);
+
+  template.add(body, wingL, wingR, leafs);
+
+  const carrots: BeanFlyingCarrotRig[] = Array.from({ length: 3 }).map((_, index) => {
+    const root = index === 0 ? template : template.clone(true);
+    const scale = 0.85 + index * 0.08;
+    root.scale.setScalar(scale);
+    root.position.set(-5.2 - index * 1.35, 0.72 + index * 0.18, 0.85 - index * 0.22);
+    group.add(root);
+
+    const leafGroup = root.getObjectByName("carrotLeafs") as Group;
+    const left = root.getObjectByName("carrotWingL") as Mesh;
+    const right = root.getObjectByName("carrotWingR") as Mesh;
+    return {
+      root,
+      leafs: leafGroup,
+      wingL: left,
+      wingR: right,
+      phase: index * 1.7,
+      altitude: 0.72 + index * 0.18
+    };
+  });
+
+  return { group, carrots };
+}
+
 export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: ThreeSkillEffectCanvasProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
 
@@ -1245,6 +1334,7 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
     const beam = createSkillBeam(skillId, palette);
     const windBladeRig = skillId === "wind_blade" ? createWindBladeRig(palette) : null;
     const beanParade = skillId === "bean_soldiers" ? createBeanSoldierParade(palette) : null;
+    const beanCarrots = skillId === "bean_soldiers" ? createBeanFlyingCarrotFlock(palette) : null;
     const swordRig = skillId === "sword_flight" ? createSwordFlightRig(palette) : null;
     const rainRipple = isRainSkill(skillId) ? createRainRippleRig(palette, skillId === "celestial_rain") : null;
     const waterDragonRig = isRainSkill(skillId) ? createWaterDragonRig(palette, skillId === "celestial_rain") : null;
@@ -1264,6 +1354,7 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
     scene.add(particleField, beam, ambientLight, keyLight, glow, ...rings);
     if (windBladeRig) scene.add(windBladeRig.group);
     if (beanParade) scene.add(beanParade.group);
+    if (beanCarrots) scene.add(beanCarrots.group);
     if (swordRig) scene.add(swordRig.group);
     if (rainRipple) scene.add(rainRipple.plane, rainRipple.drops, ...rainRipple.veils, ...rainRipple.runes);
     if (waterDragonRig) scene.add(waterDragonRig.group);
@@ -1431,6 +1522,19 @@ export function ThreeSkillEffectCanvas({ skillId, durationMs, intensity = 1 }: T
           soldier.spear.rotation.z = -0.1 + Math.sin(stride + 0.4) * 0.1;
           soldier.banner.rotation.y = -0.25 + Math.sin(stride * 1.3) * 0.34;
           soldier.banner.scale.x = 0.9 + Math.sin(stride * 1.6) * 0.12;
+        });
+      }
+
+      if (beanCarrots) {
+        beanCarrots.carrots.forEach((carrot, carrotIndex) => {
+          const flap = time * 14 + carrot.phase;
+          carrot.root.position.x = -5.4 - carrotIndex * 1.35 + progress * 11.2;
+          carrot.root.position.y = carrot.altitude + Math.sin(time * 2.4 + carrot.phase) * 0.1;
+          carrot.root.position.z = 0.85 - carrotIndex * 0.22;
+          carrot.root.rotation.z = Math.sin(time * 1.8 + carrot.phase) * 0.08;
+          carrot.leafs.rotation.x = time * 10 + carrot.phase;
+          carrot.wingL.rotation.x = Math.sin(flap) * 0.45;
+          carrot.wingR.rotation.x = -Math.sin(flap) * 0.45;
         });
       }
 

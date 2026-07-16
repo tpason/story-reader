@@ -58,9 +58,18 @@ const LONER_Y      = 1.78;
 const LONER_Z      = -1.35;
 const LONER_SPEED  = 0.26;
 
-export function FlyingCranes() {
+type FlyingCranesProps = {
+  /** full = 8+loner; lite = 3 birds (mid GPU); off skipped by parent */
+  density?: "full" | "lite";
+};
+
+export function FlyingCranes({ density = "full" }: FlyingCranesProps) {
   const { scene } = useThree();
   const gltf = useGLTF(MODEL_URL);
+  const lite = density === "lite";
+  /** full was 8+loner (heavy skinned GLBs); cap to 5 + loner on full, 3 on mid */
+  const flockCount = lite ? 3 : 5;
+  const includeLoner = !lite;
 
   const mixersRef   = useRef<AnimationMixer[]>([]);
   const groupsRef   = useRef<Group[]>([]);
@@ -68,6 +77,7 @@ export function FlyingCranes() {
   const flockXRef   = useRef(1.5);
   const flockDirRef = useRef<1 | -1>(-1);
   const phasesRef   = useRef(OFFSETS.map(() => Math.random() * Math.PI * 2));
+  const frameSkipRef = useRef(0);
 
   const lonerRef       = useRef<Group | null>(null);
   const lonerMixerRef  = useRef<AnimationMixer | null>(null);
@@ -104,7 +114,7 @@ export function FlyingCranes() {
     const mixers: AnimationMixer[]         = [];
     const mats:   MeshStandardMaterial[]   = [];
 
-    OFFSETS.forEach(([ox, oy, oz], i) => {
+    OFFSETS.slice(0, flockCount).forEach(([ox, oy, oz], i) => {
       const [bodyHex, emitHex, emitInt, opacity] = BIRD_CONFIGS[i];
 
       const mat = new MeshStandardMaterial({
@@ -143,34 +153,36 @@ export function FlyingCranes() {
     mixersRef.current = mixers;
     matsRef.current   = mats;
 
-    // ── Loner ─────────────────────────────────────────────────────────────
-    const lonerMat = new MeshStandardMaterial({
-      color: new Color(0xEDE4D4),
-      emissive: new Color(0xE8C96A),
-      emissiveIntensity: 0.10,
-      roughness: 0.90, metalness: 0.01,
-      side: DoubleSide,
-      transparent: true, opacity: 0.55,
-    });
-    lonerMatRef.current = lonerMat;
+    // ── Loner (full density only) ─────────────────────────────────────────
+    if (includeLoner) {
+      const lonerMat = new MeshStandardMaterial({
+        color: new Color(0xEDE4D4),
+        emissive: new Color(0xE8C96A),
+        emissiveIntensity: 0.10,
+        roughness: 0.90, metalness: 0.01,
+        side: DoubleSide,
+        transparent: true, opacity: 0.55,
+      });
+      lonerMatRef.current = lonerMat;
 
-    const lonerCrown = new Mesh(crownGeo, crownMat);
-    lonerCrown.scale.setScalar(1 / LONER_SCALE);
-    lonerCrown.position.set(0, geoHeadY * CRANE_CROWN_HEAD_FACTOR, 0);
+      const lonerCrown = new Mesh(crownGeo, crownMat);
+      lonerCrown.scale.setScalar(1 / LONER_SCALE);
+      lonerCrown.position.set(0, geoHeadY * CRANE_CROWN_HEAD_FACTOR, 0);
 
-    const loner = gltf.scene.clone(true) as Group;
-    loner.scale.setScalar(LONER_SCALE);
-    loner.traverse(node => { if (node instanceof Mesh) node.material = lonerMat; });
-    loner.add(lonerCrown);
-    loner.position.set(lonerXRef.current, LONER_Y, LONER_Z);
-    loner.rotation.y = Math.PI / 2; // face right (+X)
-    loner.renderOrder = 12;
+      const loner = gltf.scene.clone(true) as Group;
+      loner.scale.setScalar(LONER_SCALE);
+      loner.traverse(node => { if (node instanceof Mesh) node.material = lonerMat; });
+      loner.add(lonerCrown);
+      loner.position.set(lonerXRef.current, LONER_Y, LONER_Z);
+      loner.rotation.y = Math.PI / 2; // face right (+X)
+      loner.renderOrder = 12;
 
-    const lonerMixer = new AnimationMixer(loner);
-    lonerMixer.clipAction(gltf.animations[0]).setDuration(1.10).play();
-    lonerMixerRef.current = lonerMixer;
-    lonerRef.current = loner;
-    scene.add(loner);
+      const lonerMixer = new AnimationMixer(loner);
+      lonerMixer.clipAction(gltf.animations[0]).setDuration(1.10).play();
+      lonerMixerRef.current = lonerMixer;
+      lonerRef.current = loner;
+      scene.add(loner);
+    }
 
     return () => {
       crownGeo.dispose();
@@ -183,7 +195,7 @@ export function FlyingCranes() {
         g.traverse(node => { if (node instanceof Mesh) node.geometry.dispose(); });
       });
 
-      lonerMat.dispose();
+      lonerMatRef.current?.dispose();
       if (lonerRef.current) {
         lonerMixerRef.current?.stopAllAction();
         scene.remove(lonerRef.current);
@@ -198,10 +210,14 @@ export function FlyingCranes() {
       lonerMixerRef.current = null;
       lonerMatRef.current   = null;
     };
-  }, [scene, gltf]);
+  }, [scene, gltf, flockCount, includeLoner]);
 
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
+    // Lite: update skinned anim every other frame to cut mixer CPU
+    frameSkipRef.current += 1;
+    const updateAnim = !lite || (frameSkipRef.current & 1) === 0;
+    const animDt = lite && updateAnim ? delta * 2 : delta;
 
     // ── Flock ────────────────────────────────────────────────────────────
     flockXRef.current += flockDirRef.current * FLOCK_SPEED * delta;
@@ -213,7 +229,7 @@ export function FlyingCranes() {
 
     groupsRef.current.forEach((bird, i) => {
       if (!mixersRef.current[i]) return;
-      mixersRef.current[i].update(delta);
+      if (updateAnim) mixersRef.current[i].update(animDt);
 
       const [ox, oy, oz] = OFFSETS[i];
       bird.position.x = flockXRef.current + ox;
@@ -225,7 +241,7 @@ export function FlyingCranes() {
     // ── Loner ────────────────────────────────────────────────────────────
     const loner = lonerRef.current;
     if (loner && lonerMixerRef.current) {
-      lonerMixerRef.current.update(delta);
+      if (updateAnim) lonerMixerRef.current.update(animDt);
       lonerXRef.current += lonerDirRef.current * LONER_SPEED * delta;
       if (lonerXRef.current >  BOUNDARY_X) lonerDirRef.current = -1;
       if (lonerXRef.current < -BOUNDARY_X) lonerDirRef.current =  1;
@@ -236,12 +252,12 @@ export function FlyingCranes() {
     }
   });
 
-  // Warm key lights — cool blue fills were washing ivory bodies into steel-grey.
-  // Image layers use MeshBasicMaterial so they stay unaffected.
+  // Warm key lights for MeshStandard fauna. Image layers stay MeshBasic (unaffected).
+  // Lite: slightly softer so mid GPUs pay less for lit materials across the scene.
   return (
     <>
-      <ambientLight intensity={1.55} color={0xf2ebe0} />
-      <directionalLight position={[1, 9, 3]} intensity={1.95} color={0xfff1dc} />
+      <ambientLight intensity={lite ? 1.25 : 1.55} color={0xf2ebe0} />
+      <directionalLight position={[1, 9, 3]} intensity={lite ? 1.45 : 1.95} color={0xfff1dc} />
     </>
   );
 }

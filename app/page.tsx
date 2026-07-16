@@ -143,13 +143,13 @@ export default async function Home({ searchParams }: HomeProps) {
         <section className="library-header">
           <svg aria-hidden="true" className="xi-cloud-filters" style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }}>
             <defs>
-              <filter id="xi-cloud-f" x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+              <filter id="xi-cloud-f" x="-12%" y="-12%" width="124%" height="124%" colorInterpolationFilters="sRGB">
                 <feTurbulence type="fractalNoise" baseFrequency="0.014 0.018" numOctaves="3" seed="12" result="n" />
-                <feDisplacementMap in="SourceGraphic" in2="n" scale="12" xChannelSelector="R" yChannelSelector="G" />
+                <feDisplacementMap in="SourceGraphic" in2="n" scale="8" xChannelSelector="R" yChannelSelector="G" />
               </filter>
-              <filter id="xi-cloud-f-alt" x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+              <filter id="xi-cloud-f-alt" x="-12%" y="-12%" width="124%" height="124%" colorInterpolationFilters="sRGB">
                 <feTurbulence type="fractalNoise" baseFrequency="0.016 0.020" numOctaves="3" seed="28" result="n" />
-                <feDisplacementMap in="SourceGraphic" in2="n" scale="10" xChannelSelector="R" yChannelSelector="G" />
+                <feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G" />
               </filter>
             </defs>
           </svg>

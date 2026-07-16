@@ -27,6 +27,10 @@ import { LingQiOrbs } from "./LingQiOrbs";
 import { FormationRing } from "./FormationRing";
 import { WaterSparkles } from "./WaterSparkles";
 import { CraneDanceOrbit } from "./CraneDanceOrbit";
+import { FallingWeather } from "./FallingWeather";
+import { Fireflies } from "./Fireflies";
+import { usePoeticWeather } from "@/hooks/usePoeticWeather";
+import { weatherParticleCount } from "@/lib/xianxia-weather";
 import {
   pngCloudOpacityMul,
   scenePresets,
@@ -48,31 +52,36 @@ type ScenePostEffectsProps = {
 };
 
 function ScenePostEffects({ showGodRays, sunMesh, bloom, isMid }: ScenePostEffectsProps) {
+  // Full: native composer res + light MSAA. Mid: mild downscale only (0.55 looked crunchy).
+  const composerProps = isMid
+    ? { multisampling: 0 as const, resolutionScale: 0.88 }
+    : { multisampling: 4 as const, resolutionScale: 1 };
+
   if (showGodRays && sunMesh) {
     return (
-      <EffectComposer>
-        <Bloom intensity={bloom} luminanceThreshold={0.62} luminanceSmoothing={0.42} />
+      <EffectComposer {...composerProps}>
+        <Bloom intensity={bloom * (isMid ? 0.9 : 1)} luminanceThreshold={0.62} luminanceSmoothing={0.42} />
         <GodRays
           sun={sunMesh}
           blendFunction={BlendFunction.SCREEN}
           samples={isMid ? 10 : 16}
           density={0.96}
           decay={0.91}
-          weight={isMid ? 0.20 : 0.28}
+          weight={isMid ? 0.2 : 0.28}
           exposure={isMid ? 0.42 : 0.55}
           clampMax={1}
-          kernelSize={KernelSize.VERY_SMALL}
+          kernelSize={KernelSize.SMALL}
           blur
         />
-        <Vignette offset={0.24} darkness={0.62} />
+        <Vignette offset={0.24} darkness={0.58} />
       </EffectComposer>
     );
   }
 
   return (
-    <EffectComposer>
-      <Bloom intensity={bloom} luminanceThreshold={0.62} luminanceSmoothing={0.42} />
-      <Vignette offset={0.24} darkness={0.62} />
+    <EffectComposer {...composerProps}>
+      <Bloom intensity={bloom * (isMid ? 0.85 : 1)} luminanceThreshold={0.62} luminanceSmoothing={0.42} />
+      <Vignette offset={0.24} darkness={0.58} />
     </EffectComposer>
   );
 }
@@ -83,6 +92,8 @@ export function XianxiaScene({ timeOfDay, qualityTier = "full" }: XianxiaScenePr
   const isMid = qualityTier === "mid";
   const isFull = qualityTier === "full";
   const pngMul = pngCloudOpacityMul(timeOfDay);
+  const weather = usePoeticWeather(timeOfDay, !isPhone);
+  const weatherTier = isFull ? "full" : "mid";
 
   const [sunMesh, setSunMesh] = useState<Mesh | null>(null);
 
@@ -149,6 +160,7 @@ export function XianxiaScene({ timeOfDay, qualityTier = "full" }: XianxiaScenePr
         <>
           <NightSky compact={isPhone || isMid} />
           <MoonlightBeam />
+          {!isPhone && <Fireflies count={isFull ? 32 : 18} />}
         </>
       )}
 
@@ -162,9 +174,11 @@ export function XianxiaScene({ timeOfDay, qualityTier = "full" }: XianxiaScenePr
 
       {isFull && <FormationRing />}
 
-      <FloatingClouds timeOfDay={timeOfDay} volumetric={isFull} />
+      {/* Procedural cloud planes only on full — PNG MovingLayer/DriftingCloudBank
+          already supply atmosphere; volumetric doubles as soft rectangles. */}
+      {isFull && <FloatingClouds timeOfDay={timeOfDay} volumetric={false} />}
 
-      {!isPhone && <CloudShadow timeOfDay={timeOfDay} />}
+      {!isPhone && isFull && <CloudShadow timeOfDay={timeOfDay} />}
 
       <ImageLayer
         src={sharedLayers.mountains.mid}
@@ -252,12 +266,18 @@ export function XianxiaScene({ timeOfDay, qualityTier = "full" }: XianxiaScenePr
         blendMode={AdditiveBlending}
       />
 
-      <FlyingCranes />
+      {!isPhone && <FlyingCranes density={isFull ? "full" : "lite"} />}
       {/* Mid+full desktop: butterflies / carrot / parrots. Phone keeps them off for heat. */}
       {!isPhone && <WildAnimals />}
       {!isPhone && timeOfDay !== "night" && <FlyingButterflies />}
       {!isPhone && timeOfDay !== "night" && <FlyingCarrot />}
-      <WindCurrentLines />
+      {!isPhone && weather !== "clear" && (
+        <FallingWeather
+          mode={weather}
+          count={weatherParticleCount(weather, weatherTier)}
+        />
+      )}
+      {!isPhone && <WindCurrentLines />}
 
       <WindLayer
         src={sharedLayers.foreground.pine}
@@ -297,7 +317,7 @@ export function XianxiaScene({ timeOfDay, qualityTier = "full" }: XianxiaScenePr
         />
       </mesh>
 
-      <SpiritParticles />
+      <SpiritParticles count={isFull ? 120 : isMid ? 72 : 36} />
 
       {preset.haze && (
         <ImageLayer

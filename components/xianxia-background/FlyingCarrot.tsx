@@ -3,10 +3,8 @@
 /**
  * Decorative “Flying Carrot” — lean port of Noel Delgado’s CodePen
  * https://codepen.io/noeldelgado/pen/PxwKPW (Codevember 2018)
- * Inspired by Jonathan Dahl / Karim Maaloul style.
  *
- * No GSAP: sine bob via useFrame. No floor/clouds/OrbitControls.
- * Modern Three.js BoxGeometry (no CubeGeometry / .vertices morph).
+ * Single flyer on purpose — one cute accent beats a flock.
  */
 
 import { useEffect, useMemo, useRef } from "react";
@@ -23,6 +21,8 @@ import {
 
 const SCALE = 0.014;
 const BOUNDARY_X = 6.8;
+const Y = 0.95;
+const Z = -1.5;
 
 const COLORS = {
   orange: 0xb7513c,
@@ -41,11 +41,6 @@ function makeMat(hex: number) {
     metalness: 0.04,
   });
 }
-
-type FlyingCarrotProps = {
-  y?: number;
-  z?: number;
-};
 
 type CarrotParts = {
   model: Group;
@@ -153,7 +148,6 @@ function buildCarrot(): CarrotParts {
   pilotRoot.add(torso);
   model.add(pilotRoot);
 
-  // CodePen base orientation
   model.rotateOnAxis(new Vector3(1, 0, 0), -Math.PI / 2);
   model.rotateOnAxis(new Vector3(0, 0, 1), Math.PI / 2);
   model.scale.setScalar(SCALE);
@@ -161,7 +155,7 @@ function buildCarrot(): CarrotParts {
   return { model, leafs, earL, earR, eyeL, eyeR, mats, geos };
 }
 
-export function FlyingCarrot({ y = 0.95, z = -1.5 }: FlyingCarrotProps) {
+export function FlyingCarrot() {
   const outerRef = useRef<Group>(null);
   const xRef = useRef(-4.5);
   const dirRef = useRef<1 | -1>(1);
@@ -185,9 +179,8 @@ export function FlyingCarrot({ y = 0.95, z = -1.5 }: FlyingCarrotProps) {
     if (xRef.current < -BOUNDARY_X) dirRef.current = 1;
 
     outer.position.x = xRef.current;
-    outer.position.y = y + Math.sin(t * 1.05) * 0.07;
-    outer.position.z = z + Math.sin(t * 0.4) * 0.04;
-    // Yaw so the carrot flies nose-first
+    outer.position.y = Y + Math.sin(t * 1.05) * 0.07;
+    outer.position.z = Z + Math.sin(t * 0.4) * 0.04;
     outer.rotation.y = dirRef.current < 0 ? Math.PI : 0;
     outer.rotation.z = Math.sin(t * 1.05) * 0.06;
 
@@ -209,4 +202,9 @@ export function FlyingCarrot({ y = 0.95, z = -1.5 }: FlyingCarrotProps) {
       <primitive object={parts.model} />
     </group>
   );
+}
+
+/** Alias kept so older imports still resolve to the single carrot. */
+export function FlyingCarrots() {
+  return <FlyingCarrot />;
 }
