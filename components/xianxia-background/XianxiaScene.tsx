@@ -9,6 +9,8 @@ import { ImageLayer } from "./ImageLayer";
 import { MovingLayer } from "./MovingLayer";
 import { FlyingCranes } from "./FlyingCranes";
 import { WildAnimals } from "./WildAnimals";
+import { FlyingButterflies } from "./FlyingButterflies";
+import { FlyingCarrot } from "./FlyingCarrot";
 import { SpiritParticles } from "./SpiritParticles";
 import { CameraBreath } from "./CameraBreath";
 import { WindLayer } from "./WindLayer";
@@ -252,6 +254,8 @@ export function XianxiaScene({ timeOfDay, qualityTier = "full" }: XianxiaScenePr
 
       <FlyingCranes />
       <WildAnimals />
+      {isFull && timeOfDay !== "night" && <FlyingButterflies />}
+      {isFull && timeOfDay !== "night" && <FlyingCarrot />}
       <WindCurrentLines />
 
       <WindLayer

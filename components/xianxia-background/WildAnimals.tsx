@@ -11,7 +11,8 @@ const STORK_CFG = [
   { startX:  3.8, y: 0.72, z: -1.22, speed: -0.36, dur: 0.92, phase: 0.4 },
   { startX: -3.5, y: 0.95, z: -1.28, speed:  0.28, dur: 1.04, phase: 2.1 },
 ];
-const STORK_SCALE = 0.012;
+// Keep z from 7940cc1 (in front of mountains); scale ÷ ~1.7 vs pre-visibility-fix size.
+const STORK_SCALE = 0.007;
 
 // ── Parrot (vẹt) ────────────────────────────────────────────────────────────
 // 3 parrots, faster wing-beat, closer to camera, original colors
@@ -20,7 +21,7 @@ const PARROT_CFG = [
   { startX: -1.8, y: 1.05, z: -0.98, speed:  0.68, dur: 0.52, phase: 2.3 },
   { startX:  5.2, y: 1.48, z: -0.88, speed: -0.73, dur: 0.49, phase: 1.2 },
 ];
-const PARROT_SCALE = 0.008;
+const PARROT_SCALE = 0.0047;
 
 // ── Horse (thiên mã) ────────────────────────────────────────────────────────
 // 3 horses galloping along far mountain ridges
@@ -29,7 +30,7 @@ const HORSE_CFG = [
   { startX:  1.5, y: -1.70, z: -4.05, speed:  0.48, dur: 1.02, phase: 0.7 },
   { startX: -0.5, y: -1.40, z: -3.75, speed:  0.62, dur: 0.88, phase: 1.5 },
 ];
-const HORSE_SCALE = 0.006;
+const HORSE_SCALE = 0.0036;
 
 const BOUNDARY_X = 7.5;
 

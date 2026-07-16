@@ -19561,3 +19561,38 @@ html:not([data-xi-theme="dark"]) .page-wrap .identity-copy strong {
     display: initial;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DESKTOP FIX 2026-07-16 — poetry cloud vs rectangular grid
+   Root: elliptical aura + feTurbulence erodes edges; cloud drifts while
+   text grid drift is killed (~13700) → words look like they poke out.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.library-header > .xi-poetry-col .xi-poetry-cloud-bg {
+  /* Wider horizontal inset so corner pillars stay inside the blob */
+  inset: -40px -80px -44px -80px !important;
+  /* Drop cloud-drift (text no longer drifts); keep morph + breathe */
+  animation:
+    xi-poetry-cloud-morph 13s ease-in-out infinite,
+    xi-cloud-breathe 11s ease-in-out infinite !important;
+}
+
+.library-header > .xi-poetry-col .xi-poetry-grid {
+  gap: 14px;
+}
+
+.library-header > .xi-poetry-col .xi-poetry-pillar {
+  gap: 10px;
+}
+
+@media (min-width: 1100px) {
+  .library-header > .xi-poetry-col {
+    padding: 28px 36px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-header > .xi-poetry-col .xi-poetry-cloud-bg {
+    animation: none !important;
+  }
+}

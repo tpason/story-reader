@@ -7434,3 +7434,52 @@ button.chapter-sidebar-heatmap-cell:focus-visible {
 }
 
 /* === end regression guards === */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Reader spirit companion — tiểu hồ linh (desktop margin, look-at gaze)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.reader-spirit-companion {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(72px, env(safe-area-inset-bottom));
+  width: min(168px, 18vw);
+  height: min(168px, 18vw);
+  z-index: 28;
+  pointer-events: none;
+  opacity: 0.92;
+}
+
+.reader-spirit-companion-webgl,
+.reader-spirit-companion-webgl canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: transparent;
+}
+
+.reader-shell-notes-open .reader-spirit-companion,
+.reader-shell-comments-split .reader-spirit-companion {
+  right: max(12px, calc(env(safe-area-inset-right) + 8px));
+  opacity: 0.55;
+}
+
+@media (max-width: 1099px) {
+  .reader-spirit-companion {
+    width: 132px;
+    height: 132px;
+    bottom: max(88px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 839px) {
+  .reader-spirit-companion {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-spirit-companion {
+    display: none !important;
+  }
+}

@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { prefersReducedMotion } from "@/lib/browser";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import { useDeferredWebglMount } from "@/hooks/useDeferredWebglMount";
+import { useCompactViewport } from "@/hooks/useCompactViewport";
 import type { AppAuraVariant } from "@/components/ThreeAppAura";
 
 const ThreeAppAura = dynamic(() => import("@/components/ThreeAppAura").then((mod) => mod.ThreeAppAura), { ssr: false });
@@ -32,6 +33,7 @@ function AuraCssLayers() {
 export function AppAuraLayer() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const compact = useCompactViewport();
   const variant = resolveAuraVariant(pathname, searchParams.get("tab"));
   const isReaderChapter = READER_CHAPTER_RE.test(pathname ?? "");
   const webglEnabled = useDecorativeWebglEnabled({
@@ -43,6 +45,10 @@ export function AppAuraLayer() {
   const canUseWebgl = webglEnabled && !reduceMotion && !isReaderChapter;
   const webglReady = useDeferredWebglMount(canUseWebgl, 2400);
   const showWebgl = canUseWebgl && webglReady;
+
+  // Compact chapter only: skip aura to cut compositor heat under opaque reader shell.
+  // Desktop chapter keeps CSS aura (no WebGL) — matches pre-cooler desktop look.
+  if (isReaderChapter && compact) return null;
 
   return (
     <div

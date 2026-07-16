@@ -33,14 +33,14 @@ export function CraneDanceOrbit({ center }: CraneDanceOrbitProps) {
 
     for (let i = 0; i < 2; i += 1) {
       const mat = new MeshStandardMaterial({
-        color: new Color(i === 0 ? 0xf2ebe0 : 0xd8e0ec),
-        emissive: new Color(i === 0 ? 0x9fe7d7 : 0x8e86a8),
-        emissiveIntensity: i === 0 ? 0.32 : 0.18,
-        roughness: 0.84,
-        metalness: 0.02,
+        color: new Color(i === 0 ? 0xf7f1e6 : 0xe4d8c6),
+        emissive: new Color(i === 0 ? 0xe8c96a : 0xc9a86a),
+        emissiveIntensity: i === 0 ? 0.12 : 0.06,
+        roughness: 0.90,
+        metalness: 0.01,
         side: DoubleSide,
         transparent: true,
-        opacity: i === 0 ? 0.88 : 0.72,
+        opacity: i === 0 ? 0.88 : 0.70,
       });
       mats.push(mat);
 

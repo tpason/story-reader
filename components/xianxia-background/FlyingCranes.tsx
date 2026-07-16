@@ -14,30 +14,30 @@ import {
 
 const MODEL_URL = CRANE_MODEL_URL;
 
-// V-formation trailing offsets: [deltaX_behind, deltaY, deltaZ_depth]
-// ox > 0 = trailing behind leader when flying left
+// V-formation trailing offsets — tightened so flock footprint matches smaller birds
 const OFFSETS: [number, number, number][] = [
   [0.00,  0.00, 0.00],
-  [0.85,  0.42, 0.18],
-  [0.85, -0.42, 0.18],
-  [1.70,  0.85, 0.38],
-  [1.70, -0.85, 0.38],
-  [2.40,  0.30, 0.52],
-  [2.55,  1.15, 0.62],
-  [2.55, -1.15, 0.62],
+  [0.48,  0.24, 0.12],
+  [0.48, -0.24, 0.12],
+  [0.95,  0.48, 0.22],
+  [0.95, -0.48, 0.22],
+  [1.35,  0.16, 0.30],
+  [1.45,  0.62, 0.36],
+  [1.45, -0.62, 0.36],
 ];
 
-// Bạch Hạc Linh Vân — antique muted tones
+// Bạch Hạc Tiên Phong — warm paper ivory → mountain-mist taupe (matches parchment UI).
+// Avoid cool steel/mint: those read as plastic blue against ink-wash gold/cream.
 // [body, emissive, emissiveIntensity, opacity]
 const BIRD_CONFIGS: [number, number, number, number][] = [
-  [0xF0EBE0, 0x9FE7D7, 0.38, 0.94],  // leader     — ngà cổ + linh khí ngọc
-  [0xE6E0D4, 0xB9C7D6, 0.20, 0.88],  // right-1    — ngà ấm + xám lam
-  [0xE6E0D4, 0xB9C7D6, 0.18, 0.88],  // left-1
-  [0xCBD3E0, 0x8E86A8, 0.14, 0.80],  // right-2    — lam nhạt + tím khói
-  [0xCBD3E0, 0x8E86A8, 0.12, 0.80],  // left-2
-  [0xB8C2D4, 0x7A7898, 0.09, 0.70],  // center-bk  — xám lam đục
-  [0xA1AEC4, 0x3D4F6E, 0.07, 0.58],  // right-bk   — lam hoàng hôn
-  [0x8A9BB4, 0x1B2740, 0.04, 0.46],  // left-bk    — nhòa vào lam đêm
+  [0xF7F1E6, 0xE8C96A, 0.14, 0.92],  // leader     — giấy bồi + linh khí kim
+  [0xF0E8DA, 0xD4B878, 0.09, 0.86],  // right-1    — ngà ấm
+  [0xF0E8DA, 0xD4B878, 0.08, 0.86],  // left-1
+  [0xE4D8C6, 0xC9A86A, 0.06, 0.78],  // right-2    — trà nhạt
+  [0xE4D8C6, 0xC9A86A, 0.05, 0.78],  // left-2
+  [0xD2C4B0, 0xA89070, 0.04, 0.64],  // center-bk  — sương núi ấm
+  [0xBBA892, 0x8A7860, 0.03, 0.50],  // right-bk
+  [0xA0907C, 0x6E5E4A, 0.02, 0.38],  // left-bk    — nhòa vào mây núi
 ];
 
 const BIRD_SCALE   = CRANE_FLOCK_SCALE;
@@ -47,12 +47,12 @@ const FLOCK_BASE_Z = -1.15;
 const FLOCK_SPEED  = 0.50;
 const BOUNDARY_X   = 7.5;
 
-// Đầu hạc: đỏ chu sa
-const CROWN_RADIUS = 0.022; // world units
-const CROWN_COLOR  = 0xB8473D;
-const CROWN_EMISSIVE = 0x601a12;
+// Đầu hạc: đỏ chu sa (cinnabar) — world radius scaled for smaller flock
+const CROWN_RADIUS = 0.012; // world units
+const CROWN_COLOR  = 0xC73A2E;
+const CROWN_EMISSIVE = 0x7A2018;
 
-// Con lạc đàn — tím khói, bay ngược chiều ở tầng cao
+// Con lạc đàn — ngà ấm mờ, bay ngược chiều ở tầng cao
 const LONER_SCALE  = CRANE_LONER_SCALE;
 const LONER_Y      = 1.78;
 const LONER_Z      = -1.35;
@@ -111,7 +111,7 @@ export function FlyingCranes() {
         color: new Color(bodyHex),
         emissive: new Color(emitHex),
         emissiveIntensity: emitInt,
-        roughness: 0.82, metalness: 0.02,
+        roughness: 0.90, metalness: 0.01,
         side: DoubleSide,
         transparent: true, opacity,
       });
@@ -145,12 +145,12 @@ export function FlyingCranes() {
 
     // ── Loner ─────────────────────────────────────────────────────────────
     const lonerMat = new MeshStandardMaterial({
-      color: new Color(0xC0BBCF),
-      emissive: new Color(0x9FE7D7),
-      emissiveIntensity: 0.18,
-      roughness: 0.85, metalness: 0.01,
+      color: new Color(0xEDE4D4),
+      emissive: new Color(0xE8C96A),
+      emissiveIntensity: 0.10,
+      roughness: 0.90, metalness: 0.01,
       side: DoubleSide,
-      transparent: true, opacity: 0.62,
+      transparent: true, opacity: 0.55,
     });
     lonerMatRef.current = lonerMat;
 
@@ -236,12 +236,12 @@ export function FlyingCranes() {
     }
   });
 
-  // Lights chỉ tác động MeshStandardMaterial — các layer ảnh dùng
-  // MeshBasicMaterial nên không bị ảnh hưởng.
+  // Warm key lights — cool blue fills were washing ivory bodies into steel-grey.
+  // Image layers use MeshBasicMaterial so they stay unaffected.
   return (
     <>
-      <ambientLight intensity={2.0} color={0xdde8f5} />
-      <directionalLight position={[1, 9, 3]} intensity={2.6} color={0xe5eeff} />
+      <ambientLight intensity={1.55} color={0xf2ebe0} />
+      <directionalLight position={[1, 9, 3]} intensity={1.95} color={0xfff1dc} />
     </>
   );
 }
