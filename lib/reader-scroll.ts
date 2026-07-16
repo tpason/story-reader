@@ -49,3 +49,78 @@ export function scrollPageTo(top: number) {
   doc.style.scrollBehavior = previousDocScrollBehavior;
   body.style.scrollBehavior = previousBodyScrollBehavior;
 }
+
+export type ScheduleUntilOptions = {
+  maxAttempts?: number;
+  intervalMs?: number;
+  /** Grow delay between attempts to cut timer/layout thrash (default true). */
+  backoff?: boolean;
+};
+
+/**
+ * Retry `attempt` until it returns true or maxAttempts is reached.
+ * Returns a cancel function.
+ */
+export function scheduleUntil(attempt: () => boolean, options: ScheduleUntilOptions = {}) {
+  const maxAttempts = options.maxAttempts ?? 16;
+  const intervalMs = options.intervalMs ?? 64;
+  const useBackoff = options.backoff !== false;
+  let attempts = 0;
+  let timer: number | null = null;
+  let cancelled = false;
+
+  const run = () => {
+    if (cancelled) return;
+    attempts += 1;
+    let done = false;
+    try {
+      done = attempt();
+    } catch {
+      done = attempts >= maxAttempts;
+    }
+    if (done || attempts >= maxAttempts) return;
+    const delay = useBackoff
+      ? Math.min(240, Math.round(intervalMs * 1.35 ** (attempts - 1)))
+      : intervalMs;
+    timer = window.setTimeout(() => {
+      timer = null;
+      window.requestAnimationFrame(run);
+    }, delay);
+  };
+
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(run);
+  });
+
+  return () => {
+    cancelled = true;
+    if (timer != null) {
+      window.clearTimeout(timer);
+      timer = null;
+    }
+  };
+}
+
+/**
+ * Restore document scroll after chapter content/layout may still be growing.
+ * Keeps trying while maxScrollTop is too short for the saved position.
+ */
+export function schedulePageScrollRestore(top: number, options: ScheduleUntilOptions = {}) {
+  const target = Math.max(0, Math.round(top));
+  if (target <= 0) {
+    scrollPageTo(0);
+    return () => undefined;
+  }
+
+  return scheduleUntil(() => {
+    const { maxScrollTop } = getPageScrollMetrics();
+    if (maxScrollTop + 2 < target) {
+      // Layout not tall enough yet — nudge and wait for content.
+      scrollPageTo(Math.min(target, Math.max(0, maxScrollTop)));
+      return false;
+    }
+    scrollPageTo(target);
+    const { scrollTop, maxScrollTop: latestMax } = getPageScrollMetrics();
+    return Math.abs(scrollTop - Math.min(target, latestMax)) <= 2;
+  }, options);
+}

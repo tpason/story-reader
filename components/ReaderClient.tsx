@@ -145,6 +145,7 @@ import { readReaderPageColumns, writeReaderPageColumns, type ReaderPageColumns }
 import type { StoryContentSearchHit } from "@/lib/reader-story-search";
 import {
   dismissResumeHint,
+  resolveReaderRestoreTarget,
   shouldOfferResumeHint,
   writeResumeNavigationTarget,
   type ReaderResumeHint
@@ -171,7 +172,7 @@ import {
   ReaderSelectionToolbar
 } from "@/components/ReaderEnhancements";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
-import { getPageScrollMetrics, scrollPageTo } from "@/lib/reader-scroll";
+import { getPageScrollMetrics, schedulePageScrollRestore, scheduleUntil, scrollPageTo } from "@/lib/reader-scroll";
 import { buildParagraphProgressWeights, paragraphIndexForAudioProgress } from "@/lib/reader-audio-sync";
 import { clampDimLevel, useReaderDim } from "@/hooks/useReaderDim";
 import { useWakeLock } from "@/hooks/useWakeLock";
@@ -214,8 +215,12 @@ const COMPACT_VIEWPORT_QUERY = "(max-width: 839px)";
 const READER_PARAGRAPH_POSITION_PREFIX = "reader:paragraph-position";
 const MOBILE_PROGRESS_COMMIT_INTERVAL_MS = 900;
 const DESKTOP_PROGRESS_COMMIT_INTERVAL_MS = 250;
-const MOBILE_LOCAL_PROGRESS_PERSIST_MS = 5000;
-const DESKTOP_LOCAL_PROGRESS_PERSIST_MS = 1500;
+/** Cheap localStorage-only memory for reload restore (no Redux/network). */
+const MOBILE_LOCAL_POSITION_PERSIST_MS = 2000;
+const DESKTOP_LOCAL_POSITION_PERSIST_MS = 1500;
+/** Redux history upsert — keep mobile cooler; unload flush still captures latest. */
+const MOBILE_HISTORY_PERSIST_MS = 5000;
+const DESKTOP_HISTORY_PERSIST_MS = 1500;
 const MOBILE_REMOTE_PROGRESS_PERSIST_MS = 20000;
 const DESKTOP_REMOTE_PROGRESS_PERSIST_MS = 5000;
 
@@ -477,7 +482,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const mobileSheetPanelRef = useRef<HTMLDivElement | null>(null);
   const mobileSheetScrollRef = useRef<HTMLDivElement | null>(null);
   const lastLocalPersistRef = useRef(0);
+  const lastHistoryPersistRef = useRef(0);
   const lastRemotePersistRef = useRef(0);
+  const lastSavedLocalPositionRef = useRef<{ scroll: number; paragraph: number; chapter: number } | null>(null);
   const progressRef = useRef(0);
   const contentTopRef = useRef(0);
   const contentHeightRef = useRef(1);
@@ -977,54 +984,141 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, [activePayload.nextChapter?.chapterNumber, activePayload.previousChapter?.chapterNumber, activePayload.story.id, queryClient]);
 
   useEffect(() => {
-    if (!historyHydrated || restoredScrollKeyRef.current === storageKey) return;
+    if (restoredScrollKeyRef.current === storageKey) return;
+
+    const forceTop = window.sessionStorage.getItem(forceTopKey) === "true";
+    const bookmarkScrollKey = `reader:bookmark-scroll:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
+    const bookmarkScrollRaw = window.sessionStorage.getItem(bookmarkScrollKey);
+    const bookmarkScroll = bookmarkScrollRaw != null ? Number(bookmarkScrollRaw) : null;
+    const localParagraphRaw = Number(window.localStorage.getItem(paragraphPositionKey));
+    const localScrollRaw = Number(window.localStorage.getItem(storageKey));
+    const hasLocalTarget =
+      forceTop ||
+      (bookmarkScroll != null && Number.isFinite(bookmarkScroll) && bookmarkScroll > 0) ||
+      (Number.isInteger(localParagraphRaw) && localParagraphRaw > 0) ||
+      (Number.isFinite(localScrollRaw) && localScrollRaw > 0);
+
+    // localStorage is enough for reload restore; wait for history only when we need Redux fallback.
+    if (!historyHydrated && !hasLocalTarget) return;
     restoredScrollKeyRef.current = storageKey;
 
-    if (window.sessionStorage.getItem(forceTopKey) === "true") {
-      window.sessionStorage.removeItem(forceTopKey);
-      window.scrollTo({ top: 0, behavior: "auto" });
-      return;
+    // Avoid browser scroll restoration fighting our explicit resume position (esp. on reload).
+    let previousScrollRestoration: ScrollRestoration | null = null;
+    try {
+      if ("scrollRestoration" in window.history) {
+        previousScrollRestoration = window.history.scrollRestoration;
+        window.history.scrollRestoration = "manual";
+      }
+    } catch {
+      previousScrollRestoration = null;
     }
 
-    const bookmarkScrollKey = `reader:bookmark-scroll:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
-    const bookmarkScroll = Number(window.sessionStorage.getItem(bookmarkScrollKey));
-    if (Number.isFinite(bookmarkScroll) && bookmarkScroll > 0) {
+    setShowResumeBanner(false);
+    setResumeHint(null);
+
+    if (forceTop) {
+      window.sessionStorage.removeItem(forceTopKey);
+    }
+
+    const cancelFns: Array<() => void> = [];
+    if (bookmarkScroll != null && Number.isFinite(bookmarkScroll) && bookmarkScroll > 0) {
       window.sessionStorage.removeItem(bookmarkScrollKey);
-      window.setTimeout(() => window.scrollTo({ top: bookmarkScroll, behavior: "auto" }), 80);
-      return;
     }
 
     const historyItem = store.getState().history.items.find((item) => item.storyId === activePayload.story.id);
     const sameChapter = historyItem?.chapterNumber === activePayload.chapter.chapterNumber;
     const progressPercent = sameChapter ? historyItem.progressPercent : 0;
-    const paragraphIndex = sameChapter ? (historyItem.paragraphIndex ?? null) : null;
+    const historyParagraph = sameChapter ? (historyItem.paragraphIndex ?? null) : null;
+
+    const restoreTarget = resolveReaderRestoreTarget({
+      forceTop,
+      bookmarkScroll,
+      localParagraph: Number.isInteger(localParagraphRaw) ? localParagraphRaw : null,
+      historyParagraph,
+      localScroll: Number.isFinite(localScrollRaw) ? localScrollRaw : null,
+      historyScroll: sameChapter ? historyItem?.scrollPosition ?? null : null,
+      sameChapter
+    });
+
+    if (restoreTarget.kind === "force-top") {
+      scrollPageTo(0);
+      return () => {
+        if (restoredScrollKeyRef.current === storageKey) restoredScrollKeyRef.current = null;
+        if (previousScrollRestoration != null) {
+          try {
+            window.history.scrollRestoration = previousScrollRestoration;
+          } catch {
+            // Ignore.
+          }
+        }
+      };
+    }
+
+    const restoreOpts = compactViewportRef.current
+      ? { maxAttempts: 14, intervalMs: 80, backoff: true }
+      : { maxAttempts: 16, intervalMs: 64, backoff: true };
+
+    let restoreLanded = false;
+
+    // Prefer paragraph restore (stable across font/layout/URL-bar changes on mobile).
+    if (restoreTarget.kind === "paragraph" && !isPageLayout) {
+      const paragraphIndex = restoreTarget.paragraphIndex;
+      cancelFns.push(
+        scheduleUntil(() => {
+          const ok = scrollToParagraph(paragraphIndex, "auto", activePayload.chapter.chapterNumber);
+          if (ok) restoreLanded = true;
+          return ok;
+        }, restoreOpts)
+      );
+    } else if (restoreTarget.kind === "scroll" && !isPageLayout) {
+      cancelFns.push(
+        schedulePageScrollRestore(restoreTarget.top, {
+          ...restoreOpts,
+          maxAttempts: compactViewportRef.current ? 18 : 16
+        })
+      );
+    }
+
+    // One quiet fonts nudge only if first restore path hasn't settled yet.
+    if (restoreTarget.kind === "paragraph" && !isPageLayout && typeof document !== "undefined" && document.fonts?.ready) {
+      void document.fonts.ready.then(() => {
+        if (restoreLanded || restoredScrollKeyRef.current !== storageKey) return;
+        scrollToParagraph(restoreTarget.paragraphIndex, "auto", activePayload.chapter.chapterNumber);
+      });
+    } else if (restoreTarget.kind === "scroll" && !isPageLayout && typeof document !== "undefined" && document.fonts?.ready) {
+      void document.fonts.ready.then(() => {
+        if (restoredScrollKeyRef.current !== storageKey) return;
+        const { scrollTop } = getPageScrollMetrics();
+        if (Math.abs(scrollTop - restoreTarget.top) > 48) scrollPageTo(restoreTarget.top);
+      });
+    }
 
     if (
+      historyHydrated &&
       sameChapter &&
-      shouldOfferResumeHint(activePayload.story.id, activePayload.chapter.chapterNumber, progressPercent, paragraphIndex)
+      shouldOfferResumeHint(activePayload.story.id, activePayload.chapter.chapterNumber, progressPercent, historyParagraph)
     ) {
-      setResumeHint({ paragraphIndex, progressPercent });
+      const bannerParagraph =
+        restoreTarget.kind === "paragraph"
+          ? restoreTarget.paragraphIndex
+          : historyParagraph;
+      setResumeHint({ paragraphIndex: bannerParagraph, progressPercent });
       setShowResumeBanner(true);
-      return;
     }
 
-    const localScroll = Number(window.localStorage.getItem(storageKey));
-    const savedScroll = Number.isFinite(localScroll) && localScroll > 0
-      ? localScroll
-      : sameChapter
-        ? historyItem.scrollPosition
-        : 0;
-
-    if (savedScroll > 0) {
-      window.setTimeout(() => window.scrollTo({ top: savedScroll, behavior: "auto" }), 80);
-      return;
-    }
-
-    const savedParagraph = Number(window.localStorage.getItem(paragraphPositionKey));
-    if (Number.isInteger(savedParagraph) && savedParagraph > 0) {
-      window.setTimeout(() => scrollToParagraph(savedParagraph, "auto"), 90);
-    }
-    // scrollToParagraph omitted — restore runs once per chapter/storage key, not on every scroll helper change
+    return () => {
+      cancelFns.forEach((cancel) => cancel());
+      // Allow Strict Mode remount / dep churn to retry restore after cancel.
+      if (restoredScrollKeyRef.current === storageKey) restoredScrollKeyRef.current = null;
+      if (previousScrollRestoration != null) {
+        try {
+          window.history.scrollRestoration = previousScrollRestoration;
+        } catch {
+          // Ignore.
+        }
+      }
+    };
+    // isPageLayout / scrollToParagraph omitted — restore runs once per chapter/storage key
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePayload.chapter.chapterNumber, activePayload.story.id, forceTopKey, historyHydrated, paragraphPositionKey, storageKey]);
 
@@ -1039,8 +1133,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setGlossaryDrawerOpen(false);
     setCachedPayload(null);
     setShowCompletionOverlay(false);
-    setShowResumeBanner(false);
-    setResumeHint(null);
     setParagraphNoteEditor(null);
     completionShownRef.current = false;
     continuousChapterTriggeredRef.current = false;
@@ -1680,6 +1772,34 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }
 
   useEffect(() => {
+    function persistLocalPosition(scrollY: number) {
+      const visible = visibleChapterRef.current;
+      const scroll = Math.round(scrollY);
+      const paragraph = visible.paragraphIndex;
+      const last = lastSavedLocalPositionRef.current;
+      if (
+        last &&
+        last.chapter === visible.chapterNumber &&
+        last.scroll === scroll &&
+        last.paragraph === paragraph
+      ) {
+        return;
+      }
+      window.localStorage.setItem(
+        readerScrollPositionKey(activePayload.story.id, visible.chapterNumber),
+        String(scroll)
+      );
+      window.localStorage.setItem(
+        readerParagraphPositionKey(activePayload.story.id, visible.chapterNumber),
+        String(paragraph)
+      );
+      lastSavedLocalPositionRef.current = {
+        scroll,
+        paragraph,
+        chapter: visible.chapterNumber
+      };
+    }
+
     function persistProgress(scrollY: number, currentProgress: number, syncRemote: boolean) {
       const visible = visibleChapterRef.current;
       const item = {
@@ -1697,9 +1817,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         lastReadAt: new Date().toISOString()
       };
 
+      persistLocalPosition(scrollY);
       dispatch(upsertHistoryItem(item));
       dispatch(recordDailyRead(new Date().toISOString().slice(0, 10))); // "YYYY-MM-DD"
-      window.localStorage.setItem(readerScrollPositionKey(activePayload.story.id, visible.chapterNumber), String(Math.round(scrollY)));
 
       if (syncRemote) {
         fetch("/api/reading-progress", {
@@ -1889,24 +2009,47 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         }
         lastScrollTopRef.current = Math.max(0, scrollTop);
 
-        const localPersistInterval = isCompactViewport ? MOBILE_LOCAL_PROGRESS_PERSIST_MS : DESKTOP_LOCAL_PROGRESS_PERSIST_MS;
+        const localPersistInterval = isCompactViewport ? MOBILE_LOCAL_POSITION_PERSIST_MS : DESKTOP_LOCAL_POSITION_PERSIST_MS;
         if (now - lastLocalPersistRef.current > localPersistInterval) {
+          persistLocalPosition(scrollTop);
+          lastLocalPersistRef.current = now;
+        }
+
+        const historyPersistInterval = isCompactViewport ? MOBILE_HISTORY_PERSIST_MS : DESKTOP_HISTORY_PERSIST_MS;
+        if (now - lastHistoryPersistRef.current > historyPersistInterval) {
           const remotePersistInterval = isCompactViewport ? MOBILE_REMOTE_PROGRESS_PERSIST_MS : DESKTOP_REMOTE_PROGRESS_PERSIST_MS;
           const shouldSyncRemote = now - lastRemotePersistRef.current > remotePersistInterval;
           persistProgress(scrollTop, current, shouldSyncRemote);
-          const visible = visibleChapterRef.current;
-          window.localStorage.setItem(
-            readerParagraphPositionKey(activePayload.story.id, visible.chapterNumber),
-            String(visible.paragraphIndex)
-          );
-          lastLocalPersistRef.current = now;
+          lastHistoryPersistRef.current = now;
           if (shouldSyncRemote) lastRemotePersistRef.current = now;
         }
       });
     };
 
+    function flushProgressForUnload() {
+      if (isPageLayout) return;
+      const scrollingElement = document.scrollingElement ?? document.documentElement;
+      const scrollTop = scrollingElement.scrollTop || window.scrollY || 0;
+      const now = Date.now();
+      // Always keep cheap local keys fresh for reload.
+      persistLocalPosition(scrollTop);
+      lastLocalPersistRef.current = now;
+      // Avoid Redux/network storms when iOS fires hide/show rapidly.
+      if (now - lastHistoryPersistRef.current < 800) return;
+      persistProgress(scrollTop, progressRef.current, true);
+      lastHistoryPersistRef.current = now;
+      lastRemotePersistRef.current = now;
+    }
+
+    const onVisibilityHidden = () => {
+      if (document.visibilityState === "hidden") flushProgressForUnload();
+    };
+
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
+    // Mobile hard-reload / tab switch often skips React cleanup — flush position here.
+    window.addEventListener("pagehide", flushProgressForUnload);
+    document.addEventListener("visibilitychange", onVisibilityHidden);
     return () => {
       if (scrollFrameRef.current) {
         window.cancelAnimationFrame(scrollFrameRef.current);
@@ -1916,8 +2059,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         window.clearTimeout(mobileProgressIdleTimerRef.current);
         mobileProgressIdleTimerRef.current = null;
       }
-      persistProgress(window.scrollY, progressRef.current, true);
+      flushProgressForUnload();
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("pagehide", flushProgressForUnload);
+      document.removeEventListener("visibilitychange", onVisibilityHidden);
     };
   }, [
     activePayload.chapter,
@@ -2158,20 +2303,22 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   function scrollToParagraph(paragraphIndex: number, behavior: ScrollBehavior = "smooth", chapterNumber = primaryChapterNumber) {
     if (shouldVirtualizeParagraphs && chapterNumber === primaryChapterNumber) {
+      if (paragraphs.length === 0 || paragraphIndex < 0 || paragraphIndex >= paragraphs.length) return false;
       paragraphVirtualizer.scrollToIndex(paragraphIndex, {
         align: "center",
         behavior: prefersReducedMotion() ? "auto" : behavior
       });
-      return;
+      return true;
     }
     const paragraph = paragraphContainerRef.current?.querySelector<HTMLElement>(
       `[data-chapter-number="${chapterNumber}"][data-paragraph-index="${paragraphIndex}"]`
     );
-    if (!paragraph) return;
+    if (!paragraph) return false;
     paragraph.scrollIntoView({
       block: "center",
       behavior: prefersReducedMotion() ? "auto" : behavior
     });
+    return true;
   }
 
   function restoreAdminEditScroll(top = adminRestoreScrollTopRef.current) {
@@ -2664,11 +2811,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         : historyItem?.chapterNumber === activePayload.chapter.chapterNumber
           ? historyItem.scrollPosition
           : 0;
+    const paragraphTarget =
+      resumeHint?.paragraphIndex != null && resumeHint.paragraphIndex > 0
+        ? resumeHint.paragraphIndex
+        : Number(window.localStorage.getItem(paragraphPositionKey));
 
-    if (savedScroll > 0) {
-      window.scrollTo({ top: savedScroll, behavior: "auto" });
-    } else if (resumeHint?.paragraphIndex != null && resumeHint.paragraphIndex > 0) {
-      scrollToParagraph(resumeHint.paragraphIndex, "auto");
+    if (Number.isInteger(paragraphTarget) && paragraphTarget > 0) {
+      scheduleUntil(() => scrollToParagraph(paragraphTarget, "auto"));
+    } else if (savedScroll > 0) {
+      schedulePageScrollRestore(savedScroll);
     }
 
     dismissResumeBanner();

@@ -49,3 +49,52 @@ export function writeResumeNavigationTarget(
     window.sessionStorage.setItem(`${BOOKMARK_SCROLL_PREFIX}:${storyId}:${chapterNumber}`, String(Math.round(target.scrollPosition)));
   }
 }
+
+export type ReaderRestoreTarget =
+  | { kind: "force-top" }
+  | { kind: "scroll"; top: number }
+  | { kind: "paragraph"; paragraphIndex: number }
+  | { kind: "none" };
+
+/**
+ * Resolve where the reader should land after open/reload.
+ * Priority: force-top → session bookmark scroll → paragraph → pixel scroll.
+ */
+export function resolveReaderRestoreTarget(input: {
+  forceTop?: boolean;
+  bookmarkScroll?: number | null;
+  localParagraph?: number | null;
+  historyParagraph?: number | null;
+  localScroll?: number | null;
+  historyScroll?: number | null;
+  sameChapter?: boolean;
+}): ReaderRestoreTarget {
+  if (input.forceTop) return { kind: "force-top" };
+
+  const bookmarkScroll = Number(input.bookmarkScroll);
+  if (Number.isFinite(bookmarkScroll) && bookmarkScroll > 0) {
+    return { kind: "scroll", top: Math.round(bookmarkScroll) };
+  }
+
+  const localParagraph = Number(input.localParagraph);
+  if (Number.isInteger(localParagraph) && localParagraph > 0) {
+    return { kind: "paragraph", paragraphIndex: localParagraph };
+  }
+
+  const historyParagraph = input.historyParagraph;
+  if (input.sameChapter && historyParagraph != null && historyParagraph > 0) {
+    return { kind: "paragraph", paragraphIndex: historyParagraph };
+  }
+
+  const localScroll = Number(input.localScroll);
+  if (Number.isFinite(localScroll) && localScroll > 0) {
+    return { kind: "scroll", top: Math.round(localScroll) };
+  }
+
+  const historyScroll = Number(input.historyScroll);
+  if (input.sameChapter && Number.isFinite(historyScroll) && historyScroll > 0) {
+    return { kind: "scroll", top: Math.round(historyScroll) };
+  }
+
+  return { kind: "none" };
+}
