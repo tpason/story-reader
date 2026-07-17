@@ -501,6 +501,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const contentTopRef = useRef(0);
   const contentHeightRef = useRef(1);
   const scrollFrameRef = useRef<number | null>(null);
+  const isScrollingRef = useRef(false);
+  const scrollMeasureIdleTimerRef = useRef<number | null>(null);
   const showScrollTopRef = useRef(false);
   const mobileProgressRef = useRef(0);
   const mobileProgressStateRef = useRef(0);
@@ -660,7 +662,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         paragraphSpacing,
         contentWidth
       }),
-    overscan: compactReader ? 3 : 10,
+    overscan: compactReader ? 12 : 10,
     scrollMargin: paragraphScrollMargin
   });
   const paragraphVirtualizerRef = useRef(paragraphVirtualizer);
@@ -1951,6 +1953,18 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       scrollFrameRef.current = window.requestAnimationFrame(() => {
         scrollFrameRef.current = null;
         if (isPageLayout) return;
+        isScrollingRef.current = true;
+        if (scrollMeasureIdleTimerRef.current) {
+          window.clearTimeout(scrollMeasureIdleTimerRef.current);
+        }
+        scrollMeasureIdleTimerRef.current = window.setTimeout(() => {
+          scrollMeasureIdleTimerRef.current = null;
+          isScrollingRef.current = false;
+          // Remeasure after scroll settles — avoids virtualizer size thrash while scrolling up.
+          if (shouldVirtualizeParagraphsRef.current) {
+            paragraphVirtualizerRef.current.measure();
+          }
+        }, compactViewportRef.current ? 180 : 120);
         const scrollingElement = document.scrollingElement ?? document.documentElement;
         const scrollTop = scrollingElement.scrollTop || window.scrollY;
         const scrollable = Math.max(1, scrollingElement.scrollHeight - window.innerHeight);
@@ -2119,8 +2133,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
         if (isCompactViewport) {
           const hasMobileOverlay = mobileMenuOpenRef.current || mobileSheetOpenRef.current;
-          const shouldHideChrome = !hasMobileOverlay && scrollTop > 150 && scrollingDown;
-          const shouldShowChrome = hasMobileOverlay || scrollTop < 80 || scrollingUp;
+          // Hide on scroll-down; reveal only near top / overlays — not on every scroll-up
+          // (scroll-up reveal caused continuous chrome flash while re-reading).
+          const shouldHideChrome = !hasMobileOverlay && scrollTop > 180 && scrollingDown;
+          const shouldShowChrome = hasMobileOverlay || scrollTop < 120;
           const nextHidden = shouldHideChrome ? true : shouldShowChrome ? false : readerChromeHiddenRef.current;
           if (readerChromeHiddenRef.current !== nextHidden) {
             readerChromeHiddenRef.current = nextHidden;
@@ -2182,6 +2198,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         window.clearTimeout(mobileProgressIdleTimerRef.current);
         mobileProgressIdleTimerRef.current = null;
       }
+      if (scrollMeasureIdleTimerRef.current) {
+        window.clearTimeout(scrollMeasureIdleTimerRef.current);
+        scrollMeasureIdleTimerRef.current = null;
+      }
+      isScrollingRef.current = false;
       flushProgressForUnload();
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("pagehide", flushProgressForUnload);

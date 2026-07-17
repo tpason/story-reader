@@ -17,8 +17,8 @@ const INLINE_CHAPTER_HEADING_PATTERN = new RegExp(
 const MAX_HEADING_ONLY_LENGTH = 140;
 const MAX_TITLE_STRIP_LINES = 4;
 
-/** v7: parenthetical glue only — do not merge intentional short narrative paragraphs. */
-export const READER_CONTENT_FORMAT_VERSION = 7;
+/** v8: glue incomplete soft-wraps + parentheticals; keep finished short paragraphs. */
+export const READER_CONTENT_FORMAT_VERSION = 8;
 
 export type FormatNovelContentOptions = {
   /** Keep blank-line boundaries; skip dialogue breaks and length splits (bilingual align). */
@@ -74,9 +74,9 @@ export function formatNovelContent(
     .filter(Boolean);
 
   const withQuotes = mergeDanglingQuoteParagraphs(paragraphs);
-  // Only repair broken parentheticals — keep blank-line breaks the author intended.
+  // Repair accidental soft-wrap / parenthetical splits — keep finished author paragraphs.
   if (preserveParagraphBoundaries) return withQuotes;
-  return mergeBrokenParentheticalParagraphs(withQuotes);
+  return mergeBrokenParagraphFragments(withQuotes);
 }
 
 function joinSoftWrappedLines(block: string) {
@@ -234,6 +234,13 @@ function isClosingQuoteOnly(value: string) {
   return value === "\"" || value === "'";
 }
 
+const SENTENCE_TERMINAL_PATTERN = /[.!?。！？…]["'」』”’]*$/u;
+const DIALOGUE_OPEN_PATTERN = /^["'「『“‘]/u;
+
+function isSentenceComplete(value: string) {
+  return SENTENCE_TERMINAL_PATTERN.test(value.trim());
+}
+
 function openParenDepth(value: string) {
   let depth = 0;
   for (const ch of value) {
@@ -246,26 +253,41 @@ function openParenDepth(value: string) {
 function shouldGlueParenthetical(prev: string, next: string) {
   if (/[(\[{]\s*$/u.test(prev)) return true;
   if (/^[)\]}]/u.test(next)) return true;
-  // Keep joining until the open paren from a blank-line split is closed.
   return openParenDepth(prev) > 0;
 }
 
+/** Soft-wrap fragments lack terminal punct; finished author beats stay separate. */
+function shouldGlueContinuation(prev: string, next: string) {
+  if (isSentenceComplete(prev)) return false;
+  if (DIALOGUE_OPEN_PATTERN.test(next.trim())) return false;
+  return true;
+}
+
+function shouldGlueParagraphFragment(prev: string, next: string) {
+  return shouldGlueParenthetical(prev, next) || shouldGlueContinuation(prev, next);
+}
+
 function glueParagraphFragments(prev: string, next: string) {
-  if (/[(\[{]\s*$/u.test(prev) || /^[,.!?;:，。！？；：)"'\]}]/u.test(next)) {
+  if (/[(\[{]\s*$/u.test(prev) || /^[,.!?;:，。！？；：)"'\]}」』]/u.test(next)) {
     return normalizePunctuationSpacing(`${prev}${next}`);
   }
   return normalizePunctuationSpacing(`${prev} ${next}`);
 }
 
-/** Rejoin annotations split across blank lines: `Tu sĩ (\n\nViệt Tu\n\n)`. */
-function mergeBrokenParentheticalParagraphs(paragraphs: string[]) {
+/**
+ * Rejoin accidental blank-line splits:
+ * - parentheticals: `Tu sĩ (\n\nViệt Tu\n\n)`
+ * - soft wraps: `Một con\n\nĐại Bằng\n\nbằng gió…`
+ * Keeps finished short paragraphs (`Không thể né.` / `Phải đứng!`).
+ */
+function mergeBrokenParagraphFragments(paragraphs: string[]) {
   if (paragraphs.length === 0) return paragraphs;
   const result: string[] = [paragraphs[0]];
 
   for (let index = 1; index < paragraphs.length; index += 1) {
     const paragraph = paragraphs[index];
     const prev = result[result.length - 1];
-    if (shouldGlueParenthetical(prev, paragraph)) {
+    if (shouldGlueParagraphFragment(prev, paragraph)) {
       result[result.length - 1] = glueParagraphFragments(prev, paragraph);
     } else {
       result.push(paragraph);

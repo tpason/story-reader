@@ -4,7 +4,7 @@ import { formatNovelContent, READER_CONTENT_FORMAT_VERSION } from "../lib/format
 
 describe("formatNovelContent", () => {
   it("exports bumped format version for reader cache invalidation", () => {
-    assert.equal(READER_CONTENT_FORMAT_VERSION, 7);
+    assert.equal(READER_CONTENT_FORMAT_VERSION, 8);
   });
 
   it("rejoins parenthetical annotations split by blank lines inside dialogue", () => {
@@ -30,9 +30,40 @@ Lục
     );
   });
 
-  it("preserves intentional blank-line paragraph breaks", () => {
-    const paragraphs = formatNovelContent("He opened his eyes.\n\nThe room was silent.");
-    assert.deepEqual(paragraphs, ["He opened his eyes.", "The room was silent."]);
+  it("rejoins soft-wrapped sentence fragments split by blank lines", () => {
+    const content = `Một con
+
+Đại Bằng
+
+bằng gió xé trời lao xuống.
+
+Uy lực pháp thuật ấy vượt xa hẳn thứ mà Thái tử
+
+Makli Hyun
+
+từng phô diễn!`;
+
+    const paragraphs = formatNovelContent(content);
+    assert.deepEqual(paragraphs, [
+      "Một con Đại Bằng bằng gió xé trời lao xuống.",
+      "Uy lực pháp thuật ấy vượt xa hẳn thứ mà Thái tử Makli Hyun từng phô diễn!",
+    ]);
+  });
+
+  it("preserves finished short paragraphs the author separated", () => {
+    const content = `Không thể né.
+
+Phải đứng!
+
+Két—!
+
+Tôi mỉm cười.`;
+    assert.deepEqual(formatNovelContent(content), [
+      "Không thể né.",
+      "Phải đứng!",
+      "Két—!",
+      "Tôi mỉm cười.",
+    ]);
   });
 
   it("keeps dialogue breaks as separate paragraphs", () => {
@@ -40,19 +71,5 @@ Lục
     assert.equal(paragraphs.length, 2);
     assert.equal(paragraphs[0], "Hắn mở mắt.");
     assert.equal(paragraphs[1], '"Ngươi đến rồi?"');
-  });
-
-  it("does not glue complete sentences just because they are short", () => {
-    const content = `Tất nhiên.
-
-Đó là tên của cuốn sách võ học mới.
-
-Tôi mỉm cười.`;
-    const paragraphs = formatNovelContent(content);
-    assert.deepEqual(paragraphs, [
-      "Tất nhiên.",
-      "Đó là tên của cuốn sách võ học mới.",
-      "Tôi mỉm cười.",
-    ]);
   });
 });
