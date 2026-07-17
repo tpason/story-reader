@@ -20070,10 +20070,3 @@ html[data-xi-perf="saver"] .xianxia-css-backdrop .xi-css-cranes {
     display: none;
   }
 }
-
-/* Home discovery: mirror rankings — hide summary chrome on desktop (always open via RankingsSubfilters). */
-@media (min-width: 840px) {
-  .home-discovery-panels > summary {
-    display: none;
-  }
-}
