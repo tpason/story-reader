@@ -19614,6 +19614,66 @@ html:not([data-xi-theme="dark"]) .page-wrap .identity-copy strong {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   MOBILE BATTERY v3 + data-xi-perf — audit 2026-07-15
+   Freeze leftover accents; drop blur on mist/cloud; honor battery_saver.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 839px) {
+  .xianxia-css-backdrop .xi-css-stars,
+  .xianxia-css-backdrop .xi-css-sun-halo,
+  .xianxia-css-backdrop .xi-css-jade-glow {
+    animation: none !important;
+  }
+
+  .xianxia-css-backdrop .xi-css-mist,
+  .xianxia-css-backdrop .xi-css-cloud {
+    filter: none !important;
+    animation: none !important;
+  }
+
+  /* Defense in depth: hide world sky + aura under chapter reader. */
+  body:has(.reader-shell) .xianxia-css-backdrop,
+  body:has(.reader-shell) .xianxia-world-fallback,
+  body:has(.reader-shell) .app-aura-layer {
+    display: none !important;
+  }
+}
+
+/* battery_saver → data-xi-perf="saver" (GlobalThemeProvider / writeReaderPerformanceMode) */
+html[data-xi-perf="saver"] .xianxia-css-backdrop .xi-css-stars,
+html[data-xi-perf="saver"] .xianxia-css-backdrop .xi-css-sun-halo,
+html[data-xi-perf="saver"] .xianxia-css-backdrop .xi-css-jade-glow,
+html[data-xi-perf="saver"] .xianxia-css-backdrop .xi-css-mist,
+html[data-xi-perf="saver"] .xianxia-css-backdrop .xi-css-cloud,
+html[data-xi-perf="saver"] .xianxia-css-backdrop .xi-css-moon,
+html[data-xi-perf="saver"] .app-aura-css-mist,
+html[data-xi-perf="saver"] .app-aura-css-light,
+html[data-xi-perf="saver"] .app-aura-css-qi,
+html[data-xi-perf="saver"] .chip-active,
+html[data-xi-perf="saver"] .auth-submit,
+html[data-xi-perf="saver"] .story-mobile-cta-primary,
+html[data-xi-perf="saver"] .cultivation-panel,
+html[data-xi-perf="saver"] .library-header .xi-cloud-aura--primary {
+  animation: none !important;
+}
+
+html[data-xi-perf="saver"] .xianxia-css-backdrop .xi-css-mist,
+html[data-xi-perf="saver"] .xianxia-css-backdrop .xi-css-cloud {
+  filter: none !important;
+}
+
+html[data-xi-perf="saver"] .app-aura-css-mist,
+html[data-xi-perf="saver"] .app-aura-css-light,
+html[data-xi-perf="saver"] .app-aura-css-qi {
+  opacity: 0.22;
+}
+
+html[data-xi-perf="saver"] .xianxia-css-backdrop .xi-css-spirit-dust,
+html[data-xi-perf="saver"] .xianxia-css-backdrop .xi-css-cranes {
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    DESKTOP FIX 2026-07-16 — poetry cloud vs rectangular grid
    Root: elliptical aura + feTurbulence erodes edges; cloud drifts while
    text grid drift is killed (~13700) → words look like they poke out.
