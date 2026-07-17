@@ -19463,18 +19463,21 @@ html:not([data-xi-theme="dark"]) .page-wrap .identity-copy strong {
 }
 
 .home-sort-details,
-.home-discovery-more {
+.home-discovery-more,
+.home-discovery-panels {
   margin: 0 0 18px;
 }
 
 .home-sort-details > summary,
-.home-discovery-more > summary {
+.home-discovery-more > summary,
+.home-discovery-panels > summary {
   cursor: pointer;
   list-style: none;
 }
 
 .home-sort-details > summary::-webkit-details-marker,
-.home-discovery-more > summary::-webkit-details-marker {
+.home-discovery-more > summary::-webkit-details-marker,
+.home-discovery-panels > summary::-webkit-details-marker {
   display: none;
 }
 
@@ -19502,6 +19505,57 @@ html:not([data-xi-theme="dark"]) .page-wrap .identity-copy strong {
 
 .home-discovery-more[open] > summary {
   margin-bottom: 8px;
+}
+
+.home-discovery-panels > summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 0;
+}
+
+.home-discovery-panels > summary strong {
+  font-size: 15px;
+  font-weight: 720;
+  color: var(--charcoal, var(--ink));
+}
+
+.home-discovery-panels[open] > summary {
+  margin-bottom: 10px;
+}
+
+.rankings-subfilters {
+  margin: 0 0 16px;
+}
+
+.rankings-subfilters > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 0 4px;
+}
+
+.rankings-subfilters > summary::-webkit-details-marker {
+  display: none;
+}
+
+.rankings-subfilters > summary strong {
+  font-size: 15px;
+  font-weight: 720;
+  color: var(--charcoal, var(--ink));
+}
+
+.rankings-subfilters[open] > summary {
+  margin-bottom: 8px;
+}
+
+/* Desktop rankings: expand secondary filters inline (no accordion chrome). */
+@media (min-width: 840px) {
+  .rankings-subfilters > summary {
+    display: none;
+  }
 }
 
 
@@ -19633,5 +19687,12 @@ html:not([data-xi-theme="dark"]) .page-wrap .identity-copy strong {
       inset 0 0 10px rgba(0, 0, 0, 0.20),
       0 0 12px 4px rgba(200, 150, 46, 0.12),
       0 0 22px 8px rgba(0, 0, 0, 0.16) !important;
+  }
+}
+
+/* Home discovery: mirror rankings — hide summary chrome on desktop (always open via RankingsSubfilters). */
+@media (min-width: 840px) {
+  .home-discovery-panels > summary {
+    display: none;
   }
 }

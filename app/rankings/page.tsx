@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Crown, Flame, Library, ScrollText, Sparkles, Trophy, Users } from "lucide-react";
 import { RankingsList } from "@/components/RankingsList";
 import { RankingsSectionShell } from "@/components/RankingsSectionShell";
+import { RankingsSubfilters } from "@/components/RankingsSubfilters";
 import { ReaderLeaderboard } from "@/components/ReaderLeaderboard";
 import { SiteHeader } from "@/components/SiteHeader";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
@@ -156,47 +157,60 @@ export default async function RankingsPage({ searchParams }: RankingsProps) {
           </div>
         </XiPageHeroStrip>
 
-        {tab === "trending" || tab === "readers" ? (
-          <div className="filters rankings-period-tabs" aria-label="Khoảng thời gian">
-            {PERIODS.map((p) => (
-              <Link
-                key={p}
-                className={`chip ${period === p ? "chip-active" : ""}`}
-                href={rankingsHref(tab, tab === "readers" ? { period: p, scope: readerScope } : { period: p })}
-              >
-                <Sparkles size={14} aria-hidden />
-                {PERIOD_LABELS[p]}
-              </Link>
-            ))}
-          </div>
-        ) : null}
+        {tab === "trending" || tab === "readers" || tab === "source" ? (
+          <RankingsSubfilters
+            labelEyebrow="Bộ lọc bảng"
+            labelStrong={
+              tab === "source"
+                ? "Chọn bảng nguồn"
+                : tab === "readers"
+                  ? "Kỳ hạn & phạm vi"
+                  : "Kỳ hạn Phong vân"
+            }
+          >
+            {tab === "trending" || tab === "readers" ? (
+              <div className="filters rankings-period-tabs" aria-label="Khoảng thời gian">
+                {PERIODS.map((p) => (
+                  <Link
+                    key={p}
+                    className={`chip ${period === p ? "chip-active" : ""}`}
+                    href={rankingsHref(tab, tab === "readers" ? { period: p, scope: readerScope } : { period: p })}
+                  >
+                    <Sparkles size={14} aria-hidden />
+                    {PERIOD_LABELS[p]}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
 
-        {tab === "readers" ? (
-          <div className="filters rankings-board-tabs" aria-label="Loại tu giả">
-            {READER_SCOPES.map((scope) => (
-              <Link
-                key={scope}
-                className={`chip ${readerScope === scope ? "chip-active" : ""}`}
-                href={rankingsHref("readers", { period, scope })}
-              >
-                {scope === "members" ? "Đạo hữu" : "Tán tu"}
-              </Link>
-            ))}
-          </div>
-        ) : null}
+            {tab === "readers" ? (
+              <div className="filters rankings-board-tabs" aria-label="Loại tu giả">
+                {READER_SCOPES.map((scope) => (
+                  <Link
+                    key={scope}
+                    className={`chip ${readerScope === scope ? "chip-active" : ""}`}
+                    href={rankingsHref("readers", { period, scope })}
+                  >
+                    {scope === "members" ? "Đạo hữu" : "Tán tu"}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
 
-        {tab === "source" && boards.length > 0 ? (
-          <div className="filters rankings-board-tabs" aria-label="Bảng nguồn">
-            {boards.map((board) => (
-              <Link
-                key={`${board.sourceCode}:${board.rankName}`}
-                className={`chip ${activeBoard && activeBoard.sourceCode === board.sourceCode && activeBoard.rankName === board.rankName ? "chip-active" : ""}`}
-                href={rankingsHref("source", { source: board.sourceCode, board: board.rankName })}
-              >
-                {formatRankBoardLabel(board.sourceCode, board.rankName, board.storyCount)}
-              </Link>
-            ))}
-          </div>
+            {tab === "source" && boards.length > 0 ? (
+              <div className="filters rankings-board-tabs" aria-label="Bảng nguồn">
+                {boards.map((board) => (
+                  <Link
+                    key={`${board.sourceCode}:${board.rankName}`}
+                    className={`chip ${activeBoard && activeBoard.sourceCode === board.sourceCode && activeBoard.rankName === board.rankName ? "chip-active" : ""}`}
+                    href={rankingsHref("source", { source: board.sourceCode, board: board.rankName })}
+                  >
+                    {formatRankBoardLabel(board.sourceCode, board.rankName, board.storyCount)}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+          </RankingsSubfilters>
         ) : null}
 
         <RankingsSectionShell

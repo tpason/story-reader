@@ -6,6 +6,7 @@ import nextDynamic from "next/dynamic";
 import { getCachedCategories, getCachedPolishedStories, getCachedTrendingStories, getCachedUpdatedStories, listStoriesCursor } from "@/lib/stories";
 import { buildHomeFilterLabels, isHomeSearchActive } from "@/lib/home-search";
 import { LibrarySortChips } from "@/components/LibrarySortChips";
+import { RankingsSubfilters } from "@/components/RankingsSubfilters";
 import { StoryLibrary } from "@/components/StoryLibrary";
 import { ReadingResumeBar } from "@/components/ReadingResumeBar";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -304,11 +305,18 @@ export default async function Home({ searchParams }: HomeProps) {
                 }
               />
             </details>
-            <FollowedStoriesPanel />
-            <Suspense fallback={<DiscoveryRailSkeleton />} key={`trending-${trendPeriod}`}>
-              <TrendingSection period={trendPeriod} linkParams={trendLinkParams} />
-            </Suspense>
-            <HomeRecommendationsPanel />
+            <RankingsSubfilters
+              className="home-discovery-panels"
+              summaryClassName=""
+              labelEyebrow="Khám phá"
+              labelStrong="Đang theo dõi · thịnh hành · gợi ý"
+            >
+              <FollowedStoriesPanel />
+              <Suspense fallback={<DiscoveryRailSkeleton />} key={`trending-${trendPeriod}`}>
+                <TrendingSection period={trendPeriod} linkParams={trendLinkParams} />
+              </Suspense>
+              <HomeRecommendationsPanel />
+            </RankingsSubfilters>
           </>
         )}
 
