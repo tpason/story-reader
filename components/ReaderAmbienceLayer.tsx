@@ -1,42 +1,31 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
-import { ReaderAmbienceCss } from "@/components/ReaderAmbienceCss";
 import { useDeferredWebglMount } from "@/hooks/useDeferredWebglMount";
+import { useCompactViewport } from "@/hooks/useCompactViewport";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
+import { ReaderAmbienceCss } from "@/components/ReaderAmbienceCss";
 
 const ThreeReaderAmbience = dynamic(
   () => import("@/components/ThreeReaderAmbience").then((mod) => mod.ThreeReaderAmbience),
   { ssr: false },
 );
 
-const COMPACT_QUERY = "(max-width: 839px)";
-
 type ReaderAmbienceLayerProps = {
   enabled?: boolean;
 };
 
 /**
- * Chapter reader foreground ambience.
- * Mobile ≤839px: off entirely (blur/filter layers heat phones even with animation:none).
+ * Mobile ≤839px: off entirely.
  * Desktop: deferred WebGL, CSS fallback when WebGL gated off.
  */
 export function ReaderAmbienceLayer({ enabled = true }: ReaderAmbienceLayerProps) {
-  const [isCompact, setIsCompact] = useState(false);
+  const isCompact = useCompactViewport();
   const webglEnabled = useDecorativeWebglEnabled({
     tier: "reader",
     compactMaxWidth: 839,
   });
-  const webglReady = useDeferredWebglMount(webglEnabled, 2000);
-
-  useEffect(() => {
-    const query = window.matchMedia(COMPACT_QUERY);
-    const sync = () => setIsCompact(query.matches);
-    sync();
-    query.addEventListener("change", sync);
-    return () => query.removeEventListener("change", sync);
-  }, []);
+  const webglReady = useDeferredWebglMount(webglEnabled && !isCompact, 2000);
 
   if (!enabled || isCompact) return null;
 

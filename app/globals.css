@@ -19709,44 +19709,365 @@ html[data-xi-perf="saver"] .xianxia-css-backdrop .xi-css-cranes {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   POETRY CLOUD CONTAINMENT — keep cloud aura inside page-wrap / body
-   Negative insets + 120px halos + overflow:visible were painting past the
-   frosted panel onto the full viewport (felt “outside body”).
+   HERO READABILITY + DESKTOP CLOUD CONTAINMENT (mobile-safe)
+   - Eyebrow ink: all viewports (CSS only, no GPU)
+   - Poetry/page-wrap/hero-cloud chrome: desktop ≥840px only
+   - Mobile ≤839px keeps CSS backdrop + no world WebGL (decorative-webgl)
    ═══════════════════════════════════════════════════════════════════════ */
-.page-wrap {
-  overflow-x: clip;
+.library-header > .library-hero-shell .library-hero-content .eyebrow.library-hero-eyebrow,
+.library-header > .library-hero-shell .library-hero-content p.eyebrow {
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #1a1209 !important;
+  color: #1a1209 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  font-weight: 800 !important;
+  font-size: 0.8rem !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+}
+
+[data-xi-theme="dark"] .library-header > .library-hero-shell .library-hero-content .eyebrow.library-hero-eyebrow,
+[data-xi-theme="dark"] .library-header > .library-hero-shell .library-hero-content p.eyebrow {
+  -webkit-text-fill-color: #f0d06a !important;
+  color: #f0d06a !important;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.8),
+    0 0 10px rgba(200, 150, 46, 0.28) !important;
+}
+
+/* Hero shell never becomes a parchment rectangle (cheap; all viewports) */
+.library-header > .library-hero-shell {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 @media (min-width: 840px) {
+  .page-wrap {
+    overflow-x: visible;
+  }
+
   .library-header {
-    overflow: hidden;
-    isolation: isolate;
+    overflow: visible !important;
   }
 
   .library-header > .xi-poetry-col {
-    right: clamp(8px, 3.5%, 28px) !important;
-    top: 18% !important;
-    max-width: min(260px, 34%) !important;
-    padding: 22px 26px !important;
-    /* Clip filter/box-shadow bleed to the column box inside the header */
-    overflow: hidden !important;
+    right: clamp(28px, 5.5%, 56px) !important;
+    top: 16% !important;
+    max-width: min(248px, 32%) !important;
+    padding: 22px 24px !important;
+    overflow: visible !important;
   }
 
   .library-header > .xi-poetry-col .xi-poetry-cloud-bg,
   .library-header > .xi-poetry-col .xi-cloud-aura--secondary {
     inset: -10px -12px !important;
     box-shadow:
-      inset 0 0 18px rgba(200, 150, 46, 0.10),
-      0 0 10px 3px rgba(200, 150, 46, 0.16),
-      0 0 24px 8px rgba(200, 150, 46, 0.08) !important;
+      inset 0 0 14px rgba(200, 150, 46, 0.10),
+      0 0 6px 2px rgba(200, 150, 46, 0.14) !important;
+    filter: none !important;
   }
 
   html[data-xi-time="night"] .library-header > .xi-poetry-col .xi-cloud-aura--secondary {
     box-shadow:
-      inset 0 0 16px rgba(200, 150, 46, 0.10),
-      inset 0 0 10px rgba(0, 0, 0, 0.20),
-      0 0 12px 4px rgba(200, 150, 46, 0.12),
-      0 0 22px 8px rgba(0, 0, 0, 0.16) !important;
+      inset 0 0 14px rgba(200, 150, 46, 0.10),
+      inset 0 0 8px rgba(0, 0, 0, 0.18),
+      0 0 8px 2px rgba(200, 150, 46, 0.12) !important;
+  }
+
+  .library-header > .library-hero-shell .xi-cloud-aura--primary,
+  .library-header > .library-hero-shell .xi-hero-cloud-bg {
+    background:
+      radial-gradient(
+        ellipse 86% 84% at 46% 50%,
+        rgba(255, 253, 245, 0.92) 0%,
+        rgba(255, 250, 236, 0.78) 34%,
+        rgba(255, 248, 230, 0.42) 62%,
+        transparent 100%
+      ) !important;
+  }
+}
+
+/* --- Reader transactional email UI --- */
+.auth-success {
+  color: #1a6b5a;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.auth-portal-stage--compact {
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.account-email-panel {
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  margin-top: 1.25rem;
+  padding: 1rem 1.1rem;
+}
+
+.account-email-banner,
+.account-email-verified {
+  align-items: center;
+  display: flex;
+  font-size: 0.92rem;
+  gap: 0.45rem;
+  line-height: 1.45;
+  margin: 0 0 0.75rem;
+}
+
+.account-email-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.account-email-prefs {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.account-toggle-row {
+  align-items: center;
+  display: flex;
+  font-size: 0.92rem;
+  gap: 0.55rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Text-fill inheritance audit (2026-07-17)
+   .brand > span:last-child and .eyebrow use -webkit-text-fill-color:
+   transparent + background-clip:text. Nested pills / <small> / icons
+   inherit transparent fill and sink when they have their own background.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Leaf wordmarks only — wrappers with nested UI must not clip */
+.brand > span:last-child:has(*),
+.auth-brand > span:last-child:has(*) {
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: inherit !important;
+  color: inherit;
+}
+
+/* Auth portal: restore gold on brand line; keep subtitle readable */
+.brand.auth-portal-brand > span.auth-portal-brand-text {
+  background: linear-gradient(
+    105deg,
+    #b07818 0%,
+    #e8b840 36%,
+    #f5d86a 50%,
+    #d09828 70%,
+    #9a6018 100%
+  ) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+}
+
+.brand.auth-portal-brand > span.auth-portal-brand-text small {
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: rgba(244, 239, 230, 0.72) !important;
+  color: rgba(244, 239, 230, 0.72) !important;
+}
+
+/* Eyebrows with nested links/icons: solid ink, no calligraphy clip */
+.eyebrow:has(> :not(br)) {
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: color-mix(in srgb, var(--xi-gold, #c8962e) 78%, var(--charcoal) 22%) !important;
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 78%, var(--charcoal) 22%) !important;
+}
+
+[data-xi-theme="dark"] .eyebrow:has(> :not(br)) {
+  -webkit-text-fill-color: var(--xi-gold-light, #f0d06a) !important;
+  color: var(--xi-gold-light, #f0d06a) !important;
+}
+
+.eyebrow:has(> :not(br)) a,
+.eyebrow:has(> :not(br)) svg {
+  -webkit-text-fill-color: currentColor !important;
+  color: inherit;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Skeleton layout fixes — no overlap (desktop + mobile) 2026-07-17
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.xi-skel {
+  display: block;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  min-height: 8px;
+  max-width: 100%;
+}
+
+/* Story detail hero skeleton: cover must fit grid column (was 160px in 112px col) */
+.story-detail-hero-skel {
+  align-items: start;
+  grid-template-columns: 112px minmax(0, 1fr);
+}
+
+.story-detail-hero-skel .story-skel-cover,
+.story-skel-cover {
+  width: 112px;
+  height: 168px;
+  max-width: 100%;
+  aspect-ratio: auto;
+  border-radius: 10px;
+}
+
+.story-skel-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.story-skel-chapter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.story-skel-chapter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 12px 16px;
+}
+
+.story-skel-chapter-row > .xi-skel {
+  flex: 0 1 auto;
+}
+
+@media (max-width: 839px) {
+  .story-detail-hero-skel {
+    grid-template-columns: 86px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .story-detail-hero-skel .story-skel-cover,
+  .story-skel-cover {
+    width: 86px;
+    height: 129px;
+  }
+}
+
+@media (max-width: 380px) {
+  .story-detail-hero-skel {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .story-detail-hero-skel .story-skel-cover,
+  .story-skel-cover {
+    width: 72px;
+    height: 108px;
+  }
+}
+
+/* Story detail chapter list cards while paging */
+.story-chapter-card-skeleton {
+  pointer-events: none;
+  min-height: 52px;
+  align-content: center;
+}
+
+.story-chapter-skeleton-title {
+  display: block;
+  width: 78%;
+  height: 14px;
+  border-radius: 6px;
+}
+
+.story-chapter-skeleton-badges {
+  display: block;
+  width: 42%;
+  height: 12px;
+  border-radius: 6px;
+}
+
+/* Isolate legacy reader-skel from live .reader-topbar fixed chrome */
+.reader-skel-shell.reader-shell {
+  padding-top: 0;
+}
+
+.reader-skel-shell .reader-skel-topbar,
+.reader-skel-topbar {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  z-index: 1;
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  margin: 0;
+  transform: none !important;
+  will-change: auto !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.reader-skel-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.reader-skel-para {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.reader-skel-para > .xi-skel {
+  position: relative;
+}
+
+/* Rec / discovery skeleton cards stay in-flow */
+.xi-skel-card {
+  min-width: 0;
+}
+
+.story-rec-row .xi-skel-card,
+.discovery-row .xi-skel-card {
+  align-self: stretch;
+}
+
+@media (max-width: 839px) {
+  .story-chapter-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Home discovery: mirror rankings — hide summary chrome on desktop (always open via RankingsSubfilters). */
+@media (min-width: 840px) {
+  .home-discovery-panels > summary {
+    display: none;
   }
 }
 

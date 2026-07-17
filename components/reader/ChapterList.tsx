@@ -64,8 +64,8 @@ const ChapterCard = memo(function ChapterCard({
 function ChapterCardSkeleton() {
   return (
     <div className="story-chapter-card story-chapter-card-skeleton" aria-hidden="true">
-      <span className="story-chapter-skeleton-title" />
-      <span className="story-chapter-skeleton-badges" />
+      <span className="xi-skel story-chapter-skeleton-title" />
+      <span className="xi-skel story-chapter-skeleton-badges" />
     </div>
   );
 }
