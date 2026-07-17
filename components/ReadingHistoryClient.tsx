@@ -60,14 +60,14 @@ function ReadingStats({ items }: { items: ReadingHistoryItem[] }) {
         <span>truyện hoàn thành</span>
       </div>
       <div className={`reading-stat-card reading-stat-streak ${streak >= 3 ? "reading-stat-streak-hot" : ""}`}>
-        <Flame size={18} className={`reading-stat-icon ${streak >= 3 ? "reading-stat-icon-fire" : ""}`} />
+        <ScrollText size={18} className="reading-stat-icon" />
         <strong>{streak}</strong>
         <span>
           {streak === 0
             ? "chưa đọc hôm nay"
             : streak === 1
             ? "ngày liên tiếp"
-            : `ngày liên tiếp${readToday ? " 🔥" : ""}`}
+            : `ngày liên tiếp${readToday ? " · hôm nay đã tu" : ""}`}
         </span>
       </div>
     </div>
