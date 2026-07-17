@@ -19,8 +19,13 @@ export function estimateParagraphHeight(
   options: { fontSize: number; lineHeight: number; paragraphSpacing: number; contentWidth: number }
 ) {
   const { fontSize, lineHeight, paragraphSpacing, contentWidth } = options;
-  const charsPerLine = Math.max(20, Math.floor(contentWidth / Math.max(8, fontSize * 0.48)));
+  // Bookmark gutter (~38px) + article padding — text column is narrower than contentWidth.
+  const textWidth = Math.max(140, contentWidth - 56);
+  // Vietnamese glyphs read wider than Latin; 0.58 under-counts lines less often (avoids overlap).
+  const charsPerLine = Math.max(14, Math.floor(textWidth / Math.max(8, fontSize * 0.58)));
   const lines = Math.max(1, Math.ceil(text.length / charsPerLine));
   const lineBlock = fontSize * lineHeight;
-  return Math.round(lines * lineBlock + paragraphSpacing * fontSize + 34);
+  // Spacing lives as padding on the virtual row (not collapsed margin).
+  const spacing = paragraphSpacing * fontSize;
+  return Math.round(lines * lineBlock + spacing + 10);
 }

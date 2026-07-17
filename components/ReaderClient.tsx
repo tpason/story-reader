@@ -5190,6 +5190,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                         <div
                           key={virtualRow.key}
                           data-index={index}
+                          className="reader-virtual-row"
                           ref={paragraphVirtualizer.measureElement}
                           style={{
                             position: "absolute",

@@ -24,6 +24,17 @@ describe("reader-navigation", () => {
     assert.ok(long > short);
   });
 
+  it("does not pad short paragraphs with a huge fixed chrome height", () => {
+    const short = estimateParagraphHeight("Ngắn.", {
+      fontSize: 18,
+      lineHeight: 1.8,
+      paragraphSpacing: 1.1,
+      contentWidth: 360
+    });
+    // One line + spacing(~20) + small chrome — should stay under ~3 lines of body.
+    assert.ok(short < 18 * 1.8 * 3 + 40);
+  });
+
   it("exposes virtualize threshold", () => {
     assert.equal(PARAGRAPH_VIRTUALIZE_THRESHOLD, 80);
   });
