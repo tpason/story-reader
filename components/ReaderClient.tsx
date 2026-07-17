@@ -185,6 +185,7 @@ import { useReaderChapterList } from "@/hooks/useReaderChapterList";
 import { useReadingSessionMinutes } from "@/hooks/useReadingSessionMinutes";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import { useWebGLRuntimeWatchdog } from "@/hooks/useWebGLRuntimeWatchdog";
+import { useCompactViewport } from "@/hooks/useCompactViewport";
 
 const ThreeReaderProgress = dynamic(() => import("@/components/ThreeReaderProgress").then((mod) => mod.ThreeReaderProgress), {
   ssr: false
@@ -217,7 +218,7 @@ const READER_PARAGRAPH_POSITION_PREFIX = "reader:paragraph-position";
 const MOBILE_PROGRESS_COMMIT_INTERVAL_MS = 1800;
 const DESKTOP_PROGRESS_COMMIT_INTERVAL_MS = 250;
 /** Cheap localStorage-only memory for reload restore (no Redux/network). */
-const MOBILE_LOCAL_POSITION_PERSIST_MS = 2500;
+const MOBILE_LOCAL_POSITION_PERSIST_MS = 4500;
 const DESKTOP_LOCAL_POSITION_PERSIST_MS = 1500;
 /** Redux history upsert — keep mobile cooler; unload flush still captures latest. */
 const MOBILE_HISTORY_PERSIST_MS = 12000;
@@ -350,7 +351,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [freshChapterHint, setFreshChapterHint] = useState<ReaderChapterFreshHintState | null>(null);
   const [shellFreshPulse, setShellFreshPulse] = useState(false);
   const freshHintTimerRef = useRef<number | null>(null);
-  const [compactReader, setCompactReader] = useState(false);
+  const compactReader = useCompactViewport(COMPACT_VIEWPORT_QUERY);
   useWebGLRuntimeWatchdog({ enabled: decorativeWebglEnabled && !focusModeEnabled && !compactReader });
   const [paragraphScrollMargin, setParagraphScrollMargin] = useState(0);
   const [pageIndex, setPageIndex] = useState(0);
@@ -883,17 +884,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     };
   }, [activePayload.chapter.chapterNumber, activePayload.chapter.id, activePayload.story.id, currentUser]);
 
-  useEffect(() => {
-    const compactQuery = window.matchMedia(COMPACT_VIEWPORT_QUERY);
-    const update = () => {
-      compactViewportRef.current = compactQuery.matches;
-      setCompactReader(compactQuery.matches);
-    };
-
-    update();
-    compactQuery.addEventListener("change", update);
-    return () => compactQuery.removeEventListener("change", update);
-  }, []);
+  // Keep imperative ref in sync for scroll handlers (no setState — avoids reload flip jank).
+  compactViewportRef.current = compactReader;
 
   useEffect(() => {
     if (!isPageLayout) return;
@@ -2035,12 +2027,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               lastMobileProgressCommitRef.current = Date.now();
             }
             // Sync React consumers only after scroll settles — never during active scroll.
+            // Identical values short-circuit so React does not wake the reader tree.
             readerShellRef.current?.style.setProperty("--reader-dock-progress", String(latestProgress));
-            setMobileProgress(latestProgress);
-            setShowScrollTop(showScrollTopRef.current);
-            setShowContinuePrompt(showContinuePromptRef.current);
-            setHighlightContinuePrompt(highlightContinuePromptRef.current);
-          }, isCompactViewport ? 520 : 480);
+            setMobileProgress((current) => (current === latestProgress ? current : latestProgress));
+            setShowScrollTop((current) => (current === showScrollTopRef.current ? current : showScrollTopRef.current));
+            setShowContinuePrompt((current) => (current === showContinuePromptRef.current ? current : showContinuePromptRef.current));
+            setHighlightContinuePrompt((current) =>
+              current === highlightContinuePromptRef.current ? current : highlightContinuePromptRef.current
+            );
+          }, isCompactViewport ? 720 : 480);
         }
 
         const continueStateChanged = showContinuePromptRef.current !== shouldShowContinue || highlightContinuePromptRef.current !== shouldHighlightContinue;
@@ -3585,7 +3580,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       {focusModeEnabled ? null : <ReaderAmbienceLayer />}
       {focusModeEnabled ? null : <ReaderSpiritCompanion enabled={!focusModeEnabled} />}
       <div className="reader-progress" aria-hidden="true">
-        {decorativeWebglEnabled && !focusModeEnabled ? (
+        {decorativeWebglEnabled && !focusModeEnabled && !compactReader ? (
           <ThreeReaderProgress progress={mobileProgress} progressRef={mobileProgressRef} />
         ) : null}
         <div className="reader-progress-bar" ref={progressBarRef} />

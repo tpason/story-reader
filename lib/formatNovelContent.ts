@@ -1,6 +1,8 @@
 const DEFAULT_MAX_PARAGRAPH_LENGTH = 520;
+const MIN_NARRATIVE_MERGE_LENGTH = 180;
 const OPENING_QUOTE_PATTERN = "[\"'“‘]";
 const SENTENCE_PATTERN = /[^.!?。！？…]+(?:[.!?。！？…]+[”"'’]*)?/g;
+const SOUND_ONLY_PATTERN = /^(?:Keng|Đinh|Tinh|Ting|Ầm|Rầm|Vù|Xoẹt|Két|Bốp|Chát)!$/iu;
 const CHAPTER_NUMBER_PATTERN = String.raw`(?:\d+|[ivxlcdm]+)`;
 const LEADING_CHAPTER_NUMBER_PATTERN = new RegExp(
   String.raw`^(?:(?:chương|chapter)\s*)?${CHAPTER_NUMBER_PATTERN}(?:\s*(?:[-–—:：.．]|::)\s*)?`,
@@ -17,7 +19,7 @@ const INLINE_CHAPTER_HEADING_PATTERN = new RegExp(
 const MAX_HEADING_ONLY_LENGTH = 140;
 const MAX_TITLE_STRIP_LINES = 4;
 
-export const READER_CONTENT_FORMAT_VERSION = 5;
+export const READER_CONTENT_FORMAT_VERSION = 6;
 
 export type FormatNovelContentOptions = {
   /** Keep blank-line boundaries; skip dialogue breaks and length splits (bilingual align). */
@@ -72,7 +74,9 @@ export function formatNovelContent(
     .map((paragraph) => normalizePunctuationSpacing(paragraph.replace(/\n+/g, " ").trim()))
     .filter(Boolean);
 
-  return mergeDanglingQuoteParagraphs(paragraphs);
+  const withQuotes = mergeDanglingQuoteParagraphs(paragraphs);
+  if (preserveParagraphBoundaries) return withQuotes;
+  return mergeShortNarrativeParagraphs(mergeBrokenParentheticalParagraphs(withQuotes));
 }
 
 function joinSoftWrappedLines(block: string) {
@@ -83,7 +87,7 @@ function joinSoftWrappedLines(block: string) {
     .reduce((current, line) => {
       if (!current) return line;
       if (/[.!?。！？…]["']?$/u.test(current) && /^["'][^\s"']/u.test(line)) return `${current}\n\n${line}`;
-      if (/^[,.!?;:，。！？；：)"'\]}]/u.test(line)) return `${current}${line}`;
+      if (/[(\[{]\s*$/u.test(current) || /^[,.!?;:，。！？；：)"'\]}]/u.test(line)) return `${current}${line}`;
       return `${current} ${line}`;
     }, "");
 }
@@ -228,4 +232,83 @@ function mergeDanglingQuoteParagraphs(paragraphs: string[]) {
 
 function isClosingQuoteOnly(value: string) {
   return value === "\"" || value === "'";
+}
+
+function openParenDepth(value: string) {
+  let depth = 0;
+  for (const ch of value) {
+    if (ch === "(" || ch === "[" || ch === "{") depth += 1;
+    else if (ch === ")" || ch === "]" || ch === "}") depth = Math.max(0, depth - 1);
+  }
+  return depth;
+}
+
+function shouldGlueParenthetical(prev: string, next: string) {
+  if (/[(\[{]\s*$/u.test(prev)) return true;
+  if (/^[)\]}]/u.test(next)) return true;
+  // Keep joining until the open paren from a blank-line split is closed.
+  return openParenDepth(prev) > 0;
+}
+
+function glueParagraphFragments(prev: string, next: string) {
+  if (/[(\[{]\s*$/u.test(prev) || /^[,.!?;:，。！？；：)"'\]}]/u.test(next)) {
+    return normalizePunctuationSpacing(`${prev}${next}`);
+  }
+  return normalizePunctuationSpacing(`${prev} ${next}`);
+}
+
+/** Rejoin annotations split across blank lines: `Tu sĩ (\n\nViệt Tu\n\n)`. */
+function mergeBrokenParentheticalParagraphs(paragraphs: string[]) {
+  if (paragraphs.length === 0) return paragraphs;
+  const result: string[] = [paragraphs[0]];
+
+  for (let index = 1; index < paragraphs.length; index += 1) {
+    const paragraph = paragraphs[index];
+    const prev = result[result.length - 1];
+    if (shouldGlueParenthetical(prev, paragraph)) {
+      result[result.length - 1] = glueParagraphFragments(prev, paragraph);
+    } else {
+      result.push(paragraph);
+    }
+  }
+
+  return result;
+}
+
+function canMergeNarrativeParagraph(value: string) {
+  if (value.length >= DEFAULT_MAX_PARAGRAPH_LENGTH) return false;
+  if (/^["']/u.test(value)) return false;
+  if (/["']$/u.test(value) && /["']/u.test(value.slice(0, -1))) return false;
+  return !SOUND_ONLY_PATTERN.test(value);
+}
+
+function mergeShortNarrativeParagraphs(paragraphs: string[]) {
+  const result: string[] = [];
+  let buffer = "";
+
+  const flush = () => {
+    if (buffer) {
+      result.push(buffer);
+      buffer = "";
+    }
+  };
+
+  for (const paragraph of paragraphs) {
+    if (!canMergeNarrativeParagraph(paragraph)) {
+      flush();
+      result.push(paragraph);
+      continue;
+    }
+
+    const candidate = buffer ? normalizePunctuationSpacing(`${buffer} ${paragraph}`) : paragraph;
+    if (buffer && (candidate.length > DEFAULT_MAX_PARAGRAPH_LENGTH || paragraph.length >= MIN_NARRATIVE_MERGE_LENGTH)) {
+      flush();
+      buffer = paragraph;
+    } else {
+      buffer = candidate;
+    }
+  }
+
+  flush();
+  return result;
 }

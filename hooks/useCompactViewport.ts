@@ -1,22 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 const DEFAULT_COMPACT_QUERY = "(max-width: 839px)";
 
-/** Client-only compact viewport flag (SSR → false, then sync). */
+function getServerSnapshot() {
+  return false;
+}
+
+/**
+ * Compact viewport flag — sync on first client paint (no false→true flip after mount).
+ * SSR / getServerSnapshot stay false to avoid hydration mismatches.
+ */
 export function useCompactViewport(query = DEFAULT_COMPACT_QUERY) {
-  const [compact, setCompact] = useState(false);
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      const mq = window.matchMedia(query);
+      mq.addEventListener("change", onStoreChange);
+      return () => mq.removeEventListener("change", onStoreChange);
+    },
+    [query],
+  );
 
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    function sync() {
-      setCompact(mq.matches);
-    }
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, [query]);
+  const getSnapshot = useCallback(() => window.matchMedia(query).matches, [query]);
 
-  return compact;
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
