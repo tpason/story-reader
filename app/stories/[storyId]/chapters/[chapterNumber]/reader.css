@@ -7549,7 +7549,11 @@ html[data-xi-perf="saver"] .reader-shell[data-theme="ink-night"] {
 
 @media (max-width: 839px) {
   .reader-spirit-companion {
-    display: none !important;
+    width: 104px;
+    height: 104px;
+    bottom: max(108px, calc(env(safe-area-inset-bottom) + 72px));
+    right: max(8px, env(safe-area-inset-right));
+    opacity: 0.85;
   }
 }
 
@@ -7557,6 +7561,10 @@ html[data-xi-perf="saver"] .reader-shell[data-theme="ink-night"] {
   .reader-spirit-companion {
     display: none !important;
   }
+}
+
+html[data-xi-perf="saver"] .reader-spirit-companion {
+  display: none !important;
 }
 
 
@@ -7764,4 +7772,108 @@ html[data-xi-perf="saver"] .reader-shell[data-theme="ink-night"] {
   .reader-shell--compact .reader-engagement-prompt-glow {
     display: none;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Reader spirit companion lite — CSS/SVG mobile cutie (no WebGL)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.reader-spirit-companion-lite,
+.reader-spirit-companion-lite-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.reader-spirit-companion-lite {
+  --pupil-x: 0px;
+  --pupil-y: 0px;
+  filter: drop-shadow(0 5px 8px rgba(26, 18, 9, 0.16));
+  /* Contain paint; cheap for compositor */
+  contain: layout paint;
+}
+
+.reader-spirit-companion-lite.is-paused .spirit-lite-head,
+.reader-spirit-companion-lite.is-paused .spirit-lite-sway,
+.reader-spirit-companion-lite.is-paused .spirit-lite-lid {
+  animation-play-state: paused !important;
+}
+
+.spirit-lite-head {
+  transform-origin: 78px 46px;
+  animation: spirit-lite-sway 4.2s ease-in-out infinite;
+}
+
+.spirit-lite-sway {
+  transform-origin: center;
+  animation: spirit-lite-bob 3.4s ease-in-out infinite;
+}
+
+.spirit-lite-pupil {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: translate(var(--pupil-x), var(--pupil-y));
+  transition: transform 0.18s ease-out;
+  will-change: transform;
+}
+
+.spirit-lite-lid {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: spirit-lite-blink 5.6s ease-in-out infinite;
+}
+
+.spirit-lite-lid + .spirit-lite-lid {
+  animation-delay: 0.05s;
+}
+
+@keyframes spirit-lite-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes spirit-lite-sway {
+  0%,
+  100% {
+    transform: rotate(-2.5deg);
+  }
+  50% {
+    transform: rotate(3.5deg);
+  }
+}
+
+@keyframes spirit-lite-blink {
+  0%,
+  90%,
+  97%,
+  100% {
+    transform: scaleY(0.04);
+    opacity: 0;
+  }
+  92%,
+  95% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spirit-lite-head,
+  .spirit-lite-sway,
+  .spirit-lite-lid,
+  .spirit-lite-pupil {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Mobile cooler: slower motion, no will-change when saver */
+html[data-xi-perf="saver"] .reader-spirit-companion-lite,
+html[data-xi-perf="saver"] .reader-spirit-companion {
+  display: none !important;
 }

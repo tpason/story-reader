@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { resolveXianxiaTimeOfDay } from "@/lib/xianxia-time-of-day";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 import { normalizeGlobalTheme, setGlobalTheme } from "@/lib/store";
+import { applyReaderPerformanceModeAttr } from "@/lib/reader-performance-mode";
 
 const SKY_SYNC_MS = 60_000;
 
@@ -30,6 +31,16 @@ export function GlobalThemeProvider() {
     const skyTimer = window.setInterval(apply, SKY_SYNC_MS);
     return () => window.clearInterval(skyTimer);
   }, [theme]);
+
+  // Honor battery_saver / full_effects in CSS via data-xi-perf (boot + preference changes).
+  useEffect(() => {
+    function syncPerfAttr() {
+      applyReaderPerformanceModeAttr();
+    }
+    syncPerfAttr();
+    window.addEventListener("reader:performance-mode", syncPerfAttr);
+    return () => window.removeEventListener("reader:performance-mode", syncPerfAttr);
+  }, []);
 
   return null;
 }
