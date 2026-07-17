@@ -43,7 +43,7 @@ export default async function CategoryPage({
 
   const [category, stories] = await Promise.all([
     getCategoryBySlug(slug),
-    listStoriesCursor({ limit: 24, category: slug, sort: validSort }),
+    listStoriesCursor({ limit: 24, category: slug, sort: validSort, minChapters: 1 }),
   ]);
 
   if (!category) notFound();

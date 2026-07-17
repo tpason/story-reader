@@ -109,7 +109,8 @@ export default async function Home({ searchParams }: HomeProps) {
       hot: params.hot === "true",
       completed: params.completed === "true" ? true : undefined,
       category: params.category,
-      minChapters: Number(params.minChapters) > 0 ? Number(params.minChapters) : undefined,
+      // Match /api/stories default: hide catalog-only / empty stories on first paint
+      minChapters: Number(params.minChapters) > 0 ? Number(params.minChapters) : 1,
       maxChapters: Number(params.maxChapters) > 0 ? Number(params.maxChapters) : undefined,
       hasPolished: params.hasPolished === "true",
       hasAudio: params.hasAudio === "true",

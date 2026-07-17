@@ -32,7 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const [categories, storiesPage] = await Promise.all([
     listCategories(100),
-    listStoriesCursor({ limit: 500, sort: "updated" }),
+    listStoriesCursor({ limit: 500, sort: "updated", minChapters: 1 }),
   ]);
 
   const categoryEntries: MetadataRoute.Sitemap = categories.map((category) => ({

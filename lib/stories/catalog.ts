@@ -4,6 +4,7 @@ import { query } from "@/lib/db";
 import type { CategorySummary, CursorPage, Paginated, StorySummary } from "@/lib/types";
 import {
   DEFAULT_PAGE_SIZE,
+  STORY_HAS_DB_CHAPTERS_SQL,
   decodeCursor,
   encodeCursor,
   limitParams,
@@ -28,7 +29,7 @@ export async function listStories(options: {
   sort?: "updated" | "chapters" | "hot" | "title" | "trending" | "reader_rank";
 } = {}): Promise<Paginated<StorySummary>> {
   const { page, pageSize, offset } = pageParams(options.page, options.pageSize);
-  const where = ["s.is_active = TRUE"];
+  const where = ["s.is_active = TRUE", STORY_HAS_DB_CHAPTERS_SQL];
   const values: unknown[] = [];
   let searchParamRef: number | null = null;
 
@@ -179,7 +180,7 @@ export async function listStoriesCursor(options: {
 } = {}): Promise<CursorPage<StorySummary>> {
   const limit = limitParams(options.limit, DEFAULT_PAGE_SIZE);
   const offset = decodeCursor(options.cursor);
-  const where = ["s.is_active = TRUE"];
+  const where = ["s.is_active = TRUE", STORY_HAS_DB_CHAPTERS_SQL];
   const values: unknown[] = [];
   let searchParamRef: number | null = null;
 
@@ -327,7 +328,9 @@ export async function listCategories(limit = 16): Promise<CategorySummary[]> {
       SELECT cat.id, cat.slug, cat.name, COUNT(s.id)::text AS story_count
       FROM categories cat
       LEFT JOIN story_categories sc ON sc.category_id = cat.id
-      LEFT JOIN stories s ON s.id = sc.story_id AND s.is_active = TRUE
+      LEFT JOIN stories s ON s.id = sc.story_id
+        AND s.is_active = TRUE
+        AND ${STORY_HAS_DB_CHAPTERS_SQL}
       WHERE cat.is_excluded = FALSE
       GROUP BY cat.id
       HAVING COUNT(s.id) > 0
@@ -351,7 +354,9 @@ export async function getCategoryBySlug(slug: string): Promise<CategorySummary |
       SELECT cat.id, cat.slug, cat.name, COUNT(s.id)::text AS story_count
       FROM categories cat
       LEFT JOIN story_categories sc ON sc.category_id = cat.id
-      LEFT JOIN stories s ON s.id = sc.story_id AND s.is_active = TRUE
+      LEFT JOIN stories s ON s.id = sc.story_id
+        AND s.is_active = TRUE
+        AND ${STORY_HAS_DB_CHAPTERS_SQL}
       WHERE cat.is_excluded = FALSE
         AND (cat.slug = $1 OR cat.normalized_name = $1)
       GROUP BY cat.id
@@ -416,6 +421,7 @@ export async function listRecommendedStories(storyId: string, limit = 6): Promis
       LEFT JOIN categories cat ON cat.id = s.primary_category_id
       WHERE s.is_active = TRUE
         AND s.id <> $1
+        AND ${STORY_HAS_DB_CHAPTERS_SQL}
         AND (
           (cs.author IS NOT NULL AND s.author = cs.author)
           OR (cs.primary_category_id IS NOT NULL AND s.primary_category_id = cs.primary_category_id)

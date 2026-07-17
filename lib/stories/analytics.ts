@@ -3,6 +3,7 @@ import { cultivationFromTotalXp, effectiveCultivationLevel, maxCultivationProfil
 import { query } from "@/lib/db";
 import type { ReaderLeaderboardItem, ReaderLeaderboardScope, StoryTrendingItem, TrendingPeriod } from "@/lib/types";
 import {
+  STORY_HAS_DB_CHAPTERS_SQL,
   limitParams,
   mapStory,
   type StoryRow
@@ -124,6 +125,7 @@ export async function listTrendingStories(
       JOIN sources src ON src.id = s.source_id
       LEFT JOIN categories cat ON cat.id = s.primary_category_id
       WHERE s.is_active = TRUE
+        AND ${STORY_HAS_DB_CHAPTERS_SQL}
       ORDER BY m.trend_score DESC, m.unique_readers::int DESC, s.reader_score DESC NULLS LAST, s.id ASC
       LIMIT $2
     `,
@@ -151,6 +153,7 @@ export async function listBetterBoxRankings(limit = 50, offset = 0): Promise<Sto
       JOIN sources src ON src.id = s.source_id
       LEFT JOIN categories cat ON cat.id = s.primary_category_id
       WHERE s.is_active = TRUE
+        AND ${STORY_HAS_DB_CHAPTERS_SQL}
         AND s.reader_rank IS NOT NULL
       ORDER BY s.reader_rank ASC, s.reader_score DESC, s.id ASC
       LIMIT $1 OFFSET $2
@@ -174,6 +177,7 @@ export async function listSourceRankBoards(limit = 12): Promise<SourceRankBoard[
       FROM stories s
       JOIN sources src ON src.id = s.source_id
       WHERE s.is_active = TRUE
+        AND ${STORY_HAS_DB_CHAPTERS_SQL}
         AND s.rank_position IS NOT NULL
       GROUP BY src.code, COALESCE(s.rank_name, 'general')
       ORDER BY COUNT(*) DESC, src.code ASC, rank_name ASC
@@ -195,7 +199,7 @@ export async function listSourceRankedStories(options: {
   limit?: number;
 } = {}): Promise<StoryTrendingItem[]> {
   const safeLimit = limitParams(options.limit, 30);
-  const where: string[] = ["s.is_active = TRUE", "s.rank_position IS NOT NULL"];
+  const where: string[] = ["s.is_active = TRUE", STORY_HAS_DB_CHAPTERS_SQL, "s.rank_position IS NOT NULL"];
   const values: unknown[] = [];
 
   if (options.sourceCode) {

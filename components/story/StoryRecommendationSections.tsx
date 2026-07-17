@@ -82,7 +82,7 @@ export async function SameAuthorStoriesSection({
   author: string;
   excludeStoryId: string;
 }) {
-  const page = await listStoriesCursor({ author, limit: 9 });
+  const page = await listStoriesCursor({ author, limit: 9, minChapters: 1 });
   const others = page.items.filter((s) => s.id !== excludeStoryId).slice(0, 8);
   if (others.length === 0) return null;
 

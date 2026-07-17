@@ -13,6 +13,10 @@ export const MAX_PAGE_SIZE = 80;
 export const READER_CHAPTER_PAGE_SIZE = 80;
 export const PROJECT_ROOT_CANDIDATES = Array.from(new Set([process.cwd(), resolve(process.cwd(), "..")]));
 
+/** Hide catalog-only stories: require at least one row in `chapters` (not `stories.total_chapters`). */
+export const STORY_HAS_DB_CHAPTERS_SQL =
+  "EXISTS (SELECT 1 FROM chapters c_has WHERE c_has.story_id = s.id)";
+
 export type StoryRow = {
   id: string;
   title: string;
