@@ -10592,15 +10592,12 @@ button:focus-visible .bookmark-jade-icon {
        expands the hit area to 44×44px (WCAG 2.5.5) without affecting the
        visual 26×26 circle. Low opacity when unbookmarked (tap to bookmark),
        full opacity for bookmarked paragraphs.
-     - content-visibility: auto skips off-screen paragraph layout/paint.
-       contain-intrinsic-size (auto 3em) caches real height after first render
-       to prevent scrollbar jumps. */
+     Do NOT use content-visibility here — placeholder heights (e.g. 3em)
+     make multi-line Vietnamese paragraphs overlap / clump while scrolling. */
   .reader-paragraph {
     position: relative;
     grid-template-columns: minmax(0, 1fr);
     padding-left: 30px;
-    content-visibility: auto;
-    contain-intrinsic-size: auto 3em;
   }
   .paragraph-bookmark-button {
     position: absolute;

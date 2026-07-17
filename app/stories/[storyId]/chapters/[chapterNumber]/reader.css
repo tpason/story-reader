@@ -8951,3 +8951,23 @@ html[data-xi-perf="saver"] .reader-spirit-companion {
 .reader-content-virtual .reader-content p {
   margin-bottom: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SCROLL STABILITY — never skip paragraph layout (2026-07-17)
+   content-visibility:auto + contain-intrinsic-size:3em made multi-line
+   paragraphs overlap/clump on every scroll up/down. Force visible layout.
+   ═══════════════════════════════════════════════════════════════════════ */
+.reader-shell .reader-paragraph,
+.reader-shell .reader-inline-paragraph {
+  content-visibility: visible !important;
+  contain-intrinsic-size: none !important;
+}
+
+@media (max-width: 839px) {
+  .reader-shell .reader-content {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--reader-panel-solid, var(--reader-bg)) !important;
+    isolation: isolate;
+  }
+}
