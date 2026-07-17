@@ -7,7 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Drawer } from "vaul";
-import { useVirtualizer, useWindowVirtualizer } from "@tanstack/react-virtual";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useQueryClient } from "@tanstack/react-query";
 import { autoUpdate, flip, FloatingPortal, offset, shift, useDismiss, useFloating, useInteractions } from "@floating-ui/react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -136,10 +136,6 @@ import {
   type ReaderVisibleChapter
 } from "@/lib/reader-visible-chapter";
 import { buildParagraphPages, buildParagraphPagesFromHeights, pageIndexForParagraph } from "@/lib/reader-pagination";
-import {
-  estimateParagraphHeight,
-  PARAGRAPH_VIRTUALIZE_THRESHOLD
-} from "@/lib/reader-navigation";
 import { buildGlossaryIndex, lookupGlossarySelection, type GlossaryCharacter, type GlossaryIndex } from "@/lib/reader-glossary";
 import { useStoryContentSearch } from "@/hooks/useStoryContentSearch";
 import { readReaderPageColumns, writeReaderPageColumns, type ReaderPageColumns } from "@/lib/reader-page-columns";
@@ -353,7 +349,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const freshHintTimerRef = useRef<number | null>(null);
   const compactReader = useCompactViewport(COMPACT_VIEWPORT_QUERY);
   useWebGLRuntimeWatchdog({ enabled: decorativeWebglEnabled && !focusModeEnabled && !compactReader });
-  const [paragraphScrollMargin, setParagraphScrollMargin] = useState(0);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageViewportHeight, setPageViewportHeight] = useState(640);
   const [measuredParagraphHeights, setMeasuredParagraphHeights] = useState<number[] | null>(null);
@@ -399,7 +394,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     paragraphIndex: number;
     progressBucket: number;
   } | null>(null);
-  const lastVirtualVisibleParagraphRef = useRef<number | null>(null);
   const lastMobileVisibleChapterSyncRef = useRef(0);
   const [pageColumns, setPageColumns] = useState<ReaderPageColumns>(() => readReaderPageColumns());
   const panelScrollAnchorRef = useRef<{ scrollY: number; paragraphIndex: number } | null>(null);
@@ -501,8 +495,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const contentTopRef = useRef(0);
   const contentHeightRef = useRef(1);
   const scrollFrameRef = useRef<number | null>(null);
-  const isScrollingRef = useRef(false);
-  const scrollMeasureIdleTimerRef = useRef<number | null>(null);
   const showScrollTopRef = useRef(false);
   const mobileProgressRef = useRef(0);
   const mobileProgressStateRef = useRef(0);
@@ -652,23 +644,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     () => estimateReadingMinutes(countReadableWords(activePayload.chapter.content)),
     [activePayload.chapter.content]
   );
-  const shouldVirtualizeParagraphs = layoutMode === "scroll" && paragraphs.length >= PARAGRAPH_VIRTUALIZE_THRESHOLD;
-  const paragraphVirtualizer = useWindowVirtualizer({
-    count: shouldVirtualizeParagraphs ? paragraphs.length : 0,
-    estimateSize: (index) =>
-      estimateParagraphHeight(paragraphs[index] ?? "", {
-        fontSize,
-        lineHeight,
-        paragraphSpacing,
-        contentWidth
-      }),
-    overscan: compactReader ? 12 : 10,
-    scrollMargin: paragraphScrollMargin
-  });
-  const paragraphVirtualizerRef = useRef(paragraphVirtualizer);
-  paragraphVirtualizerRef.current = paragraphVirtualizer;
-  const shouldVirtualizeParagraphsRef = useRef(shouldVirtualizeParagraphs);
-  shouldVirtualizeParagraphsRef.current = shouldVirtualizeParagraphs;
+  // Document-flow paragraphs only — window virtualization needs height estimates and
+  // caused overlapping / gappy Vietnamese text when estimates were wrong.
   const isPageLayout = layoutMode === "page";
   const {
     enabled: autoScrollEnabled,
@@ -1206,7 +1183,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     };
     syncedReaderUrlChapterRef.current = activePayload.chapter.chapterNumber;
     setCommentsChapterId(activePayload.chapter.id);
-    lastVirtualVisibleParagraphRef.current = null;
     lastPersistedHistoryRef.current = null;
     lastMobileVisibleChapterSyncRef.current = 0;
   }, [activePayload.chapter.id, activePayload.chapter.chapterNumber, activePayload.chapter.title]);
@@ -1480,8 +1456,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       const rect = contentNode.getBoundingClientRect();
       contentTopRef.current = rect.top + window.scrollY;
       contentHeightRef.current = Math.max(1, contentNode.offsetHeight);
-      const nextMargin = contentNode.offsetTop;
-      setParagraphScrollMargin((current) => (current === nextMargin ? current : nextMargin));
     };
 
     updateContentMetrics();
@@ -1497,7 +1471,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       resizeObserver?.disconnect();
       window.removeEventListener("resize", updateContentMetrics);
     };
-  }, [paragraphs.length, fontSize, lineHeight, paragraphSpacing, contentWidth, shouldVirtualizeParagraphs]);
+  }, [paragraphs.length, fontSize, lineHeight, paragraphSpacing, contentWidth]);
 
   useEffect(() => {
     return () => {
@@ -1845,31 +1819,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const applyVisibleChapterRef = useRef(applyVisibleChapter);
   applyVisibleChapterRef.current = applyVisibleChapter;
 
-  const syncVisibleChapterFromVirtualizer = useCallback(() => {
-    const virtualizer = paragraphVirtualizerRef.current;
-    const payload = activePayloadRef.current;
-    if (!virtualizer) return;
-
-    const items = virtualizer.getVirtualItems();
-    if (items.length === 0) return;
-
-    // First visible virtual row ≈ paragraph at top of reading zone.
-    const best = items[Math.min(1, items.length - 1)] ?? items[0];
-
-    if (lastVirtualVisibleParagraphRef.current === best.index) return;
-    lastVirtualVisibleParagraphRef.current = best.index;
-
-    applyVisibleChapterRef.current({
-      chapterId: payload.chapter.id,
-      chapterNumber: payload.chapter.chapterNumber,
-      chapterTitle: payload.chapter.title,
-      paragraphIndex: best.index
-    });
-  }, []);
-
-  const syncVisibleChapterFromVirtualizerRef = useRef(syncVisibleChapterFromVirtualizer);
-  syncVisibleChapterFromVirtualizerRef.current = syncVisibleChapterFromVirtualizer;
-
   useEffect(() => {
     function persistLocalPosition(scrollY: number) {
       const visible = visibleChapterRef.current;
@@ -1953,18 +1902,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       scrollFrameRef.current = window.requestAnimationFrame(() => {
         scrollFrameRef.current = null;
         if (isPageLayout) return;
-        isScrollingRef.current = true;
-        if (scrollMeasureIdleTimerRef.current) {
-          window.clearTimeout(scrollMeasureIdleTimerRef.current);
-        }
-        scrollMeasureIdleTimerRef.current = window.setTimeout(() => {
-          scrollMeasureIdleTimerRef.current = null;
-          isScrollingRef.current = false;
-          // Remeasure after scroll settles — avoids virtualizer size thrash while scrolling up.
-          if (shouldVirtualizeParagraphsRef.current) {
-            paragraphVirtualizerRef.current.measure();
-          }
-        }, compactViewportRef.current ? 180 : 120);
         const scrollingElement = document.scrollingElement ?? document.documentElement;
         const scrollTop = scrollingElement.scrollTop || window.scrollY;
         const scrollable = Math.max(1, scrollingElement.scrollHeight - window.innerHeight);
@@ -1982,7 +1919,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         const isCompactViewport = compactViewportRef.current;
         const lastScrollTop = lastScrollTopRef.current;
         const scrollingDown = scrollTop > lastScrollTop + 10;
-        const scrollingUp = scrollTop < lastScrollTop - 10;
 
         progressRef.current = current;
         if (progressBarRef.current) {
@@ -2067,10 +2003,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           if (navCard) {
             navCard.classList.toggle("nav-card-next-active", shouldHighlightContinue);
           }
-        }
-
-        if (shouldVirtualizeParagraphsRef.current) {
-          syncVisibleChapterFromVirtualizerRef.current();
         }
 
         if (
@@ -2198,11 +2130,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         window.clearTimeout(mobileProgressIdleTimerRef.current);
         mobileProgressIdleTimerRef.current = null;
       }
-      if (scrollMeasureIdleTimerRef.current) {
-        window.clearTimeout(scrollMeasureIdleTimerRef.current);
-        scrollMeasureIdleTimerRef.current = null;
-      }
-      isScrollingRef.current = false;
       flushProgressForUnload();
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("pagehide", flushProgressForUnload);
@@ -2324,9 +2251,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, [bilingualScrollHighlight]);
 
   useEffect(() => {
-    // Virtualized chapters track visible paragraph via scroll + virtualizer (see onScroll).
-    if (shouldVirtualizeParagraphs) return;
-
     const article = document.querySelector(".reader-article");
     if (!article) return;
 
@@ -2354,7 +2278,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
     return () => observer.disconnect();
   }, [
-    shouldVirtualizeParagraphs,
     activePayload.chapter.chapterNumber,
     activePayload.chapter.id,
     activePayload.chapter.title,
@@ -2418,14 +2341,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }
 
   function scrollToParagraph(paragraphIndex: number, behavior: ScrollBehavior = "smooth", chapterNumber = primaryChapterNumber) {
-    if (shouldVirtualizeParagraphs && chapterNumber === primaryChapterNumber) {
-      if (paragraphs.length === 0 || paragraphIndex < 0 || paragraphIndex >= paragraphs.length) return false;
-      paragraphVirtualizer.scrollToIndex(paragraphIndex, {
-        align: "center",
-        behavior: prefersReducedMotion() ? "auto" : behavior
-      });
-      return true;
-    }
     const paragraph = paragraphContainerRef.current?.querySelector<HTMLElement>(
       `[data-chapter-number="${chapterNumber}"][data-paragraph-index="${paragraphIndex}"]`
     );
@@ -5175,50 +5090,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                         <ChevronRight size={16} />
                       </button>
                     </div>
-                  </div>
-                ) : shouldVirtualizeParagraphs ? (
-                  <div
-                    className="reader-content-virtual"
-                    style={{ height: paragraphVirtualizer.getTotalSize(), width: "100%", position: "relative" }}
-                  >
-                    {paragraphVirtualizer.getVirtualItems().map((virtualRow) => {
-                      const index = virtualRow.index;
-                      const paragraph = paragraphs[index] ?? "";
-                      const bookmarked = bookmarkedParagraphIndexes.has(index);
-                      const hasNote = currentChapterParagraphBookmarks.some((item) => item.paragraphIndex === index && item.note);
-                      return (
-                        <div
-                          key={virtualRow.key}
-                          data-index={index}
-                          className="reader-virtual-row"
-                          ref={paragraphVirtualizer.measureElement}
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            transform: `translateY(${virtualRow.start - paragraphVirtualizer.options.scrollMargin}px)`
-                          }}
-                        >
-                          <p
-                            className={paragraphClassName(index, bookmarked, hasNote)}
-                            data-paragraph-index={index}
-                            {...primaryChapterParagraphAttrs}
-                            onDoubleClick={(event) => {
-                              const target = event.target instanceof Element ? event.target : null;
-                              if (target?.closest("button")) return;
-                              event.preventDefault();
-                              suppressSelectionActionUntilRef.current = Date.now() + 450;
-                              window.getSelection()?.removeAllRanges();
-                              startContentAdminEdit({ paragraphIndex: index, caretOffset: contentCaretOffsetFromPoint(event, index) });
-                            }}
-                          >
-                            {renderParagraphTools(index, paragraph, bookmarked)}
-                            {renderParagraphBody(index, paragraph)}
-                          </p>
-                        </div>
-                      );
-                    })}
                   </div>
                 ) : (
                 paragraphs.map((paragraph, index) => {

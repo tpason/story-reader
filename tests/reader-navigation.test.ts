@@ -35,8 +35,8 @@ describe("reader-navigation", () => {
     assert.ok(short < 18 * 1.8 * 3 + 40);
   });
 
-  it("exposes virtualize threshold", () => {
-    assert.equal(PARAGRAPH_VIRTUALIZE_THRESHOLD, 80);
+  it("disables content paragraph window-virtualization", () => {
+    assert.equal(PARAGRAPH_VIRTUALIZE_THRESHOLD, Number.POSITIVE_INFINITY);
   });
 
   it("defaults tap edge to compact viewport", () => {

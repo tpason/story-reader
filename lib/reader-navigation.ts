@@ -1,5 +1,10 @@
 export const READER_TAP_EDGE_KEY = "reader:tap-edge-enabled";
-export const PARAGRAPH_VIRTUALIZE_THRESHOLD = 80;
+/**
+ * Legacy threshold for content-window virtualization.
+ * Reader body paragraphs are always document-flow now — absolute virtual rows
+ * required height estimates and caused overlapping / gappy text.
+ */
+export const PARAGRAPH_VIRTUALIZE_THRESHOLD = Number.POSITIVE_INFINITY;
 
 export function readReaderTapEdgeEnabled(compactViewport = false) {
   if (typeof window === "undefined") return compactViewport;
