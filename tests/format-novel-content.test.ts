@@ -4,7 +4,7 @@ import { formatNovelContent, READER_CONTENT_FORMAT_VERSION } from "../lib/format
 
 describe("formatNovelContent", () => {
   it("exports bumped format version for reader cache invalidation", () => {
-    assert.equal(READER_CONTENT_FORMAT_VERSION, 6);
+    assert.equal(READER_CONTENT_FORMAT_VERSION, 7);
   });
 
   it("rejoins parenthetical annotations split by blank lines inside dialogue", () => {
@@ -30,10 +30,9 @@ Lục
     );
   });
 
-  it("merges short narrative paragraphs across blank lines", () => {
+  it("preserves intentional blank-line paragraph breaks", () => {
     const paragraphs = formatNovelContent("He opened his eyes.\n\nThe room was silent.");
-    assert.equal(paragraphs.length, 1);
-    assert.equal(paragraphs[0], "He opened his eyes. The room was silent.");
+    assert.deepEqual(paragraphs, ["He opened his eyes.", "The room was silent."]);
   });
 
   it("keeps dialogue breaks as separate paragraphs", () => {
@@ -41,5 +40,19 @@ Lục
     assert.equal(paragraphs.length, 2);
     assert.equal(paragraphs[0], "Hắn mở mắt.");
     assert.equal(paragraphs[1], '"Ngươi đến rồi?"');
+  });
+
+  it("does not glue complete sentences just because they are short", () => {
+    const content = `Tất nhiên.
+
+Đó là tên của cuốn sách võ học mới.
+
+Tôi mỉm cười.`;
+    const paragraphs = formatNovelContent(content);
+    assert.deepEqual(paragraphs, [
+      "Tất nhiên.",
+      "Đó là tên của cuốn sách võ học mới.",
+      "Tôi mỉm cười.",
+    ]);
   });
 });

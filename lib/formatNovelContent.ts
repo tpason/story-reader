@@ -1,8 +1,6 @@
 const DEFAULT_MAX_PARAGRAPH_LENGTH = 520;
-const MIN_NARRATIVE_MERGE_LENGTH = 180;
 const OPENING_QUOTE_PATTERN = "[\"'“‘]";
 const SENTENCE_PATTERN = /[^.!?。！？…]+(?:[.!?。！？…]+[”"'’]*)?/g;
-const SOUND_ONLY_PATTERN = /^(?:Keng|Đinh|Tinh|Ting|Ầm|Rầm|Vù|Xoẹt|Két|Bốp|Chát)!$/iu;
 const CHAPTER_NUMBER_PATTERN = String.raw`(?:\d+|[ivxlcdm]+)`;
 const LEADING_CHAPTER_NUMBER_PATTERN = new RegExp(
   String.raw`^(?:(?:chương|chapter)\s*)?${CHAPTER_NUMBER_PATTERN}(?:\s*(?:[-–—:：.．]|::)\s*)?`,
@@ -19,7 +17,8 @@ const INLINE_CHAPTER_HEADING_PATTERN = new RegExp(
 const MAX_HEADING_ONLY_LENGTH = 140;
 const MAX_TITLE_STRIP_LINES = 4;
 
-export const READER_CONTENT_FORMAT_VERSION = 6;
+/** v7: parenthetical glue only — do not merge intentional short narrative paragraphs. */
+export const READER_CONTENT_FORMAT_VERSION = 7;
 
 export type FormatNovelContentOptions = {
   /** Keep blank-line boundaries; skip dialogue breaks and length splits (bilingual align). */
@@ -75,8 +74,9 @@ export function formatNovelContent(
     .filter(Boolean);
 
   const withQuotes = mergeDanglingQuoteParagraphs(paragraphs);
+  // Only repair broken parentheticals — keep blank-line breaks the author intended.
   if (preserveParagraphBoundaries) return withQuotes;
-  return mergeShortNarrativeParagraphs(mergeBrokenParentheticalParagraphs(withQuotes));
+  return mergeBrokenParentheticalParagraphs(withQuotes);
 }
 
 function joinSoftWrappedLines(block: string) {
@@ -272,43 +272,5 @@ function mergeBrokenParentheticalParagraphs(paragraphs: string[]) {
     }
   }
 
-  return result;
-}
-
-function canMergeNarrativeParagraph(value: string) {
-  if (value.length >= DEFAULT_MAX_PARAGRAPH_LENGTH) return false;
-  if (/^["']/u.test(value)) return false;
-  if (/["']$/u.test(value) && /["']/u.test(value.slice(0, -1))) return false;
-  return !SOUND_ONLY_PATTERN.test(value);
-}
-
-function mergeShortNarrativeParagraphs(paragraphs: string[]) {
-  const result: string[] = [];
-  let buffer = "";
-
-  const flush = () => {
-    if (buffer) {
-      result.push(buffer);
-      buffer = "";
-    }
-  };
-
-  for (const paragraph of paragraphs) {
-    if (!canMergeNarrativeParagraph(paragraph)) {
-      flush();
-      result.push(paragraph);
-      continue;
-    }
-
-    const candidate = buffer ? normalizePunctuationSpacing(`${buffer} ${paragraph}`) : paragraph;
-    if (buffer && (candidate.length > DEFAULT_MAX_PARAGRAPH_LENGTH || paragraph.length >= MIN_NARRATIVE_MERGE_LENGTH)) {
-      flush();
-      buffer = paragraph;
-    } else {
-      buffer = candidate;
-    }
-  }
-
-  flush();
   return result;
 }
