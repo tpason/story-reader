@@ -20486,3 +20486,61 @@ html[data-theme="dark"] .pwa-install-dismiss {
     animation: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CHAPTER DESKTOP — freeze world-backdrop mist/cloud motion (2026-07-21)
+   Mountains stay painted; continuous mist/cloud/crane/spirit anims under
+   the reader body cause compositor flash while scrolling (and idle jolts).
+   Mobile already skips chapter backdrop via compact gate.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 840px) {
+  body:has(.reader-shell) .xianxia-css-backdrop .xi-css-mist,
+  body:has(.reader-shell) .xianxia-css-backdrop .xi-css-mist-a,
+  body:has(.reader-shell) .xianxia-css-backdrop .xi-css-mist-b,
+  body:has(.reader-shell) .xianxia-css-backdrop .xi-css-cloud,
+  body:has(.reader-shell) .xianxia-css-backdrop .xi-css-cloud-a,
+  body:has(.reader-shell) .xianxia-css-backdrop .xi-css-cloud-b,
+  body:has(.reader-shell) .xianxia-css-backdrop .xi-css-cloud-c,
+  body:has(.reader-shell) .xianxia-css-backdrop .xi-css-haze,
+  body:has(.reader-shell) .xianxia-css-backdrop .xi-css-spirit-dust,
+  body:has(.reader-shell) .xianxia-css-backdrop .xi-css-stars,
+  body:has(.reader-shell) .xianxia-css-backdrop .xi-css-sun-halo,
+  body:has(.reader-shell) .xianxia-css-backdrop .xi-css-jade-glow,
+  body:has(.reader-shell) .xianxia-css-backdrop .xi-css-moon,
+  body:has(.reader-shell) .xianxia-css-backdrop .xi-css-cranes,
+  body:has(.reader-shell) .xianxia-css-backdrop [class*="xi-css-crane"] {
+    animation: none !important;
+    filter: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   GO-LIVE — mobile chrome hide without ghost dock (2026-07-21)
+   Opacity 0.34 left a blurred dock compositing while "hidden" → flicker.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 839px) {
+  .reader-shell-chrome-hidden .reader-mobile-dock {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: translateX(50%) translateY(12px) translateZ(0) !important;
+    box-shadow: none !important;
+  }
+
+  .reader-shell-chrome-hidden .reader-mobile-dock:focus-within {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: translateX(50%) translateZ(0) !important;
+  }
+
+  .reader-shell .reader-mobile-dock {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--reader-panel-solid, var(--reader-bg, #fffefa)) !important;
+  }
+
+  .reader-shell-chrome-hidden .reader-topbar {
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+}

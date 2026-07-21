@@ -9029,24 +9029,9 @@ html[data-theme="dark"] .reader-shell[data-reader-perf="saver"] .reader-content:
   animation: none !important;
 }
 
-/* Soft xianxia vibe restore — opacity/transform only, no blur (2026-07-21)
-   Keeps mountain/mist presence without continuous expensive filter paints. */
-@media (min-width: 840px) {
-  .reader-ambience-layer .reader-xi-mist-a {
-    animation: readerXiMistDriftA 28s ease-in-out infinite !important;
-    opacity: 0.48;
-  }
-
-  .reader-ambience-layer .reader-xi-mist-b {
-    animation: readerXiMistDriftB 34s ease-in-out infinite reverse !important;
-    opacity: 0.4;
-  }
-
-  .reader-ambience-layer .reader-xi-rays {
-    animation: readerXiRaysDrift 32s ease-in-out infinite !important;
-    opacity: 0.38;
-  }
-}
+/* Soft vibe restore REMOVED (go-live 2026-07-21).
+   Re-enabling mist/rays infinite anim here caused desktop body flash.
+   Static ambience + mountain paint only — see BODY FLASH + GO-LIVE HARDEN below. */
 
 /* ═══════════════════════════════════════════════════════════════════════
    DESKTOP READER OVERLAYS + VIBE (2026-07-21 corrected)
@@ -9130,4 +9115,204 @@ html[data-theme="dark"] .reader-shell[data-reader-perf="saver"] .reader-content:
 .reader-shell .reader-resume-banner {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   NEXT/PREV FLASH FIX (2026-07-21)
+   Root: .reader-continue-fab-active + .nav-card-next-active run
+   readerContinueRing (conic-gradient @property --reader-ring-angle) +
+   sweep/float every frame. FAB is portaled over mountain bg → looks like
+   continuous flash in the next/prev zone. Mobile already killed the ring;
+   desktop still had it. Use static gold chrome; no continuous paint.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.reader-continue-fab,
+.reader-continue-fab-near-end,
+.reader-continue-fab-active {
+  animation: none !important;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 52%, var(--reader-line) 48%) !important;
+  background: var(--reader-panel-solid, var(--reader-bg, #fffefa)) !important;
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 72%, var(--reader-ink) 28%) !important;
+  box-shadow: 0 14px 34px rgba(18, 16, 13, 0.18) !important;
+  overflow: visible;
+}
+
+.reader-continue-fab::before,
+.reader-continue-fab::after,
+.reader-continue-fab-active::before,
+.reader-continue-fab-active::after,
+.reader-continue-fab-near-end::before,
+.reader-continue-fab-near-end::after {
+  content: none !important;
+  animation: none !important;
+  display: none !important;
+}
+
+.nav-card-next-active {
+  animation: none !important;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 48%, var(--reader-line) 52%) !important;
+  background: color-mix(in srgb, var(--reader-panel-solid, var(--reader-bg)) 96%, white 4%) !important;
+  box-shadow: 0 12px 28px rgba(18, 16, 13, 0.1) !important;
+}
+
+.nav-card-next-active::before {
+  animation: none !important;
+  transform: none !important;
+  background: none !important;
+  content: none !important;
+}
+
+/* Visibility toggle: opacity only — avoid transform fighting old float keyframes */
+.reader-continue-fab:not(.reader-continue-fab-visible) {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: none !important;
+}
+
+.reader-continue-fab-visible {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: none !important;
+  transition: opacity 180ms ease !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BODY FLASH — freeze continuous paints (2026-07-21)
+   Verified causes (not mountains themselves):
+   1. Soft-vibe block (~9032) re-enabled mist/rays infinite anim with !important
+      after a kill block — continuous layer invalidation under/around body.
+   2. .reader-heading::before xiSigilPulse — opacity pulse every 4s (“lâu lâu giật”).
+   3. .comment-body commentAura — background-size spin on luận đạo cards.
+   4. Remaining reader-xi light/qi/wind/petals/dust infinite anims.
+   Keep: CSS mountain backdrop (static). Keep: solid reading column.
+   Kill: continuous animation/filter paints on chapter desktop.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 840px) {
+  /* Override soft-vibe restore — static ambience only. */
+  .reader-ambience-layer .reader-xi-light,
+  .reader-ambience-layer .reader-xi-rays,
+  .reader-ambience-layer .reader-xi-mist,
+  .reader-ambience-layer .reader-xi-mist-a,
+  .reader-ambience-layer .reader-xi-mist-b,
+  .reader-ambience-layer .reader-xi-qi,
+  .reader-ambience-layer .reader-xi-wind,
+  .reader-ambience-layer .reader-xi-wind-a,
+  .reader-ambience-layer .reader-xi-wind-b,
+  .reader-ambience-layer .reader-xi-sway,
+  .reader-ambience-layer .reader-xi-sway-left,
+  .reader-ambience-layer .reader-xi-sway-right,
+  .reader-ambience-layer .reader-xi-dust,
+  .reader-ambience-layer .reader-xi-mote,
+  .reader-ambience-layer .reader-xi-petals,
+  .reader-ambience-layer .reader-xi-petal {
+    animation: none !important;
+    filter: none !important;
+    will-change: auto !important;
+  }
+
+  .reader-ambience-layer .reader-xi-mist,
+  .reader-ambience-layer .reader-xi-mist-a,
+  .reader-ambience-layer .reader-xi-mist-b {
+    opacity: 0.32;
+  }
+
+  .reader-ambience-layer .reader-xi-rays,
+  .reader-ambience-layer .reader-xi-light,
+  .reader-ambience-layer .reader-xi-qi {
+    opacity: 0.28;
+  }
+
+  .reader-heading::before {
+    animation: none !important;
+  }
+
+  .comment-body,
+  .comment-editor-shell,
+  .chapter-comments::before {
+    animation: none !important;
+  }
+
+  /* Belt-and-suspenders: never spin content border. */
+  .reader-content::before,
+  .reader-content::after {
+    animation: none !important;
+    display: none !important;
+  }
+
+  .reader-shell--desktop .reader-content,
+  .reader-shell--desktop .reader-heading {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--reader-panel-solid, var(--reader-bg)) !important;
+    isolation: isolate;
+    transform: translateZ(0);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   GO-LIVE HARDEN — desktop + mobile chapter (2026-07-21)
+   Audit: soft-vibe restore deleted; BODY FLASH covers desktop continuous paints.
+   Mobile gaps closed: commentAura without --compact gate, dock/sheet blur,
+   audio rings if UI re-enabled. Viewport-only (not SSR --desktop class).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 839px) {
+  .reader-shell .comment-body,
+  .reader-shell .comment-editor-shell,
+  .reader-shell .chapter-comments::before,
+  .reader-shell .comment-item[data-prestige="grandmaster"]::before {
+    animation: none !important;
+  }
+
+  .reader-shell .reader-mobile-dock,
+  .reader-shell .reader-mobile-sheet-backdrop,
+  .reader-shell .reader-mobile-sheet-panel,
+  .reader-shell .format-controls,
+  .reader-shell .reader-quick-settings,
+  .reader-shell .audio-panel,
+  .reader-shell .chapter-sidebar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .reader-shell .reader-mobile-dock {
+    background: var(--reader-panel-solid, var(--reader-bg)) !important;
+  }
+
+  .reader-shell .audio-panel,
+  .reader-shell .audio-panel::before,
+  .reader-shell .chapter-audio-aura,
+  .reader-shell .chapter-audio-orbit,
+  .reader-shell .chapter-audio-wave,
+  .reader-shell .background-audio-pulse {
+    animation: none !important;
+    filter: none !important;
+  }
+
+  .reader-shell .reader-content::before,
+  .reader-shell .reader-content::after {
+    animation: none !important;
+    display: none !important;
+  }
+
+  .reader-shell .reader-heading::before {
+    animation: none !important;
+  }
+}
+
+/* Desktop: freeze audio spectacle paints if chapter audio UI returns. */
+@media (min-width: 840px) {
+  .reader-shell .audio-panel,
+  .reader-shell .audio-panel::before,
+  .reader-shell .chapter-audio-aura,
+  .reader-shell .chapter-audio-orbit,
+  .reader-shell .chapter-audio-wave,
+  .reader-shell .background-audio-pulse {
+    animation: none !important;
+  }
+
+  .reader-shell .chapter-audio-aura {
+    filter: none !important;
+  }
 }

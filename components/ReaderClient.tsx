@@ -1926,7 +1926,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           100,
           Math.max(0, ((scrollTop + window.innerHeight * 0.78 - contentTopRef.current) / contentHeightRef.current) * 100)
         );
-        const nearPageEnd = scrollable - scrollTop <= window.innerHeight * 2.5;
+        const nearPageEnd = scrollable - scrollTop <= Math.max(160, window.innerHeight * 0.9);
         const shouldShowScrollTop = scrollTop > Math.min(720, window.innerHeight * 0.8);
         const tailNextChapter = resolveTailNextChapter(inlineChaptersRef.current, activePayload.nextChapter);
         const shouldShowContinue = Boolean(tailNextChapter) && (current >= 92 || contentProgress >= 92 || nearPageEnd);
@@ -2081,11 +2081,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
         if (isCompactViewport) {
           const hasMobileOverlay = mobileMenuOpenRef.current || mobileSheetOpenRef.current;
-          // Hide on scroll-down; reveal near top, overlays, or sustained scroll-up (hysteresis).
+          // Hide on scroll-down; reveal near top, overlays, or sustained scroll-up (wider hysteresis → less flicker).
           const upwardDelta = lastScrollTopRef.current - scrollTop;
-          const shouldHideChrome = !hasMobileOverlay && scrollTop > 180 && scrollingDown;
+          const shouldHideChrome = !hasMobileOverlay && scrollTop > 220 && scrollingDown;
           const shouldShowChrome =
-            hasMobileOverlay || scrollTop < 120 || (!scrollingDown && upwardDelta >= 56);
+            hasMobileOverlay || scrollTop < 96 || (!scrollingDown && upwardDelta >= 72);
           const nextHidden = shouldHideChrome ? true : shouldShowChrome ? false : readerChromeHiddenRef.current;
           if (readerChromeHiddenRef.current !== nextHidden) {
             readerChromeHiddenRef.current = nextHidden;
@@ -3515,7 +3515,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           {tailNextChapter ? (
             <button
               ref={continueButtonRef}
-              className={`reader-continue-fab reader-continue-fab-active ${showContinuePrompt ? "reader-continue-fab-visible" : ""} ${highlightContinuePrompt ? "reader-continue-fab-near-end" : ""}`}
+              className={`reader-continue-fab${showContinuePrompt ? " reader-continue-fab-visible" : ""}${highlightContinuePrompt ? " reader-continue-fab-near-end" : ""}`}
               type="button"
               aria-hidden={!showContinuePrompt}
               tabIndex={showContinuePrompt ? 0 : -1}
