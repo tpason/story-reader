@@ -20327,3 +20327,22 @@ body:has(.reader-shell) .xianxia-world-background,
 body:has(.reader-shell) .app-aura-layer {
   display: none !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DESKTOP PAGE-WRAP WIDEN (2026-07-21 audit)
+   Library/homepage/story-detail use .page-wrap at min(1220px, …) — skinny on
+   ultrawide. Modest bump ≥1400px viewport only. Reader uses .reader-shell /
+   --reader-content-width (620–860), not .page-wrap — leave chapter column alone.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 1400px) {
+  .page-wrap {
+    width: min(1400px, calc(100vw - 48px));
+  }
+}
+
+@media (min-width: 1680px) {
+  .page-wrap {
+    width: min(1440px, calc(100vw - 64px));
+  }
+}
