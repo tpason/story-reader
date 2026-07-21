@@ -32,16 +32,16 @@ export function ReaderBilingualSettings({ story, availableLayers, onChange }: Re
   }
 
   return (
-    <section className="reader-bilingual-settings" aria-label="Song ngữ Anh – Việt">
+    <section id="reader-bilingual-settings" className="reader-bilingual-settings" aria-label="Song ngữ Anh – Việt">
       <div className="reader-bilingual-settings-card">
         <div className="reader-bilingual-settings-heading">
           <p className="reader-bilingual-eyebrow">
             <Languages size={13} aria-hidden />
-            Ngoại điển · Song hành
+            Song ngữ EN–VI
           </p>
-          <h3>Song ngữ linh quyển</h3>
+          <h3>Bật bản Anh + Việt</h3>
           <p className="reader-bilingual-settings-note">
-            Đọc EN gốc, nhìn VI polish khi cần — luyện đọc hiểu. Bôi đen cụm từ rồi <strong>Lưu câu</strong>. Audio vẫn theo bản Việt.
+            EN gốc xen kẽ VI polish. Bôi đen cụm từ rồi <strong>Lưu câu</strong>. Audio vẫn theo bản Việt.
           </p>
         </div>
 
@@ -104,7 +104,7 @@ export function ReaderBilingualSettings({ story, availableLayers, onChange }: Re
               </select>
             </label>
 
-            <label className="reader-bilingual-field">
+            <label className="reader-bilingual-field reader-bilingual-field-desktop-only">
               <span>Bố cục desktop</span>
               <select
                 value={prefs.layoutStyle}
@@ -121,7 +121,7 @@ export function ReaderBilingualSettings({ story, availableLayers, onChange }: Re
                 checked={prefs.scrollHighlight}
                 onChange={(event) => update({ scrollHighlight: event.target.checked })}
               />
-              <span>Linh quang khi cuộn, sáng đoạn đang đọc</span>
+              <span>Làm nổi đoạn đang đọc khi cuộn</span>
             </label>
           </div>
         ) : null}

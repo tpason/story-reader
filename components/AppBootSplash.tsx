@@ -27,10 +27,10 @@ export function AppBootSplash() {
       setVisible(false);
     };
 
-    const maxWait = window.setTimeout(dismiss, 1600);
+    const maxWait = window.setTimeout(dismiss, 900);
     const onReady = () => {
       window.clearTimeout(maxWait);
-      window.setTimeout(dismiss, 420);
+      window.setTimeout(dismiss, 280);
     };
 
     if (document.readyState === "complete") onReady();

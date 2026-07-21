@@ -1,15 +1,55 @@
+import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_DESCRIPTION } from "./brand.ts";
 import { formatChapterLabel } from "./chapter-title.ts";
 import type { ChapterSummary, StorySummary } from "./types.ts";
-import { absoluteSiteUrl } from "./seo-text.ts";
+import { absoluteSiteUrl, getSiteUrl } from "./seo-text.ts";
 import { storyDisplayDescription } from "./story-description.ts";
 import { storyHref } from "./urls.ts";
-
-const SITE_NAME = "Linh Quyển Các";
 
 function storyImage(story: Pick<StorySummary, "coverImageUrl">) {
   const url = story.coverImageUrl?.trim();
   if (!url) return undefined;
   return url.startsWith("http") ? url : absoluteSiteUrl(url.startsWith("/") ? url : `/${url}`);
+}
+
+export function buildOrganizationJsonLd() {
+  const url = getSiteUrl();
+  return {
+    "@type": "Organization",
+    "@id": `${url}/#organization`,
+    name: SITE_NAME,
+    url,
+    logo: absoluteSiteUrl("/icons/icon-512.png"),
+    description: SITE_DESCRIPTION,
+  };
+}
+
+export function buildWebSiteJsonLd() {
+  const url = getSiteUrl();
+  return {
+    "@type": "WebSite",
+    "@id": `${url}/#website`,
+    name: SITE_NAME,
+    url,
+    description: SITE_OG_DESCRIPTION,
+    inLanguage: "vi",
+    publisher: { "@id": `${url}/#organization` },
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${url}/?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+}
+
+/** Homepage graph: Organization + WebSite (SearchAction). */
+export function buildHomeJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [buildOrganizationJsonLd(), buildWebSiteJsonLd()],
+  };
 }
 
 export function buildStoryBookJsonLd(story: StorySummary) {

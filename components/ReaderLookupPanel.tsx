@@ -3,6 +3,7 @@
 import { BookMarked, LoaderCircle, Volume2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { speakEnglishText, type ReaderLookupResult } from "@/lib/reader-lookup";
 
 export type ReaderLookupRequest = {
@@ -83,14 +84,13 @@ export function ReaderLookupPanel({ request, onClose, onSavePhrase }: ReaderLook
 
   useEffect(() => {
     if (!request) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockBodyScroll();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unlock();
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [request, onClose]);

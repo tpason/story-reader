@@ -83,11 +83,13 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
     isSearchingChapters,
     hasPreviousChapterPage,
     hasNextChapterPage,
+    isExpandedList,
     chapterRangeLabel,
     currentChapterPage,
     totalChapterPages,
     setChapterSearch,
     loadChapterPage,
+    appendNextChapterPage,
     searchChapterList,
     clearChapterSearch
   } = useStoryChapterPagination({ storyId: currentStory.id, initialChapters: chapters, totalChapters });
@@ -366,10 +368,12 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
             hasPrevPage={hasPreviousChapterPage}
             hasNextPage={hasNextChapterPage}
             chapterRangeLabel={chapterRangeLabel}
+            isExpandedList={isExpandedList}
             onChapterSearchChange={setChapterSearch}
             onSearch={searchChapterList}
             onClearSearch={clearChapterSearch}
             onLoadPage={loadChapterPage}
+            onAppendNext={appendNextChapterPage}
             freshChapterNumber={freshChapterNumber}
           />
         </section>

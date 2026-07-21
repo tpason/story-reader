@@ -1,9 +1,11 @@
 "use client";
 
 import { useWebGLPerformanceTier } from "@/hooks/useWebGLPerformanceTier";
+import { siteDecorativeWebglAllowed } from "@/lib/app-features";
 import { readReaderPerformanceMode } from "@/lib/reader-performance-mode";
 import { prefersReducedMotion } from "@/lib/browser";
 import { canUseWebGL, isWeakWebGLRenderer } from "@/lib/webgl-capability";
+import { useAppSelector } from "@/lib/store-hooks";
 import { useEffect, useState } from "react";
 
 type BatteryManager = EventTarget & {
@@ -56,10 +58,17 @@ function perfAllowsWebGL(
 
 export function useDecorativeWebglEnabled(options: DecorativeWebglOptions = {}) {
   const { allowCompact = false, compactMaxWidth = 839, tier = "global" } = options;
+  const isAdmin = useAppSelector((state) => Boolean(state.identity.user?.isAdmin));
+  const adminAllowsWebgl = siteDecorativeWebglAllowed(isAdmin);
   const perfTier = useWebGLPerformanceTier();
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
+    if (!adminAllowsWebgl) {
+      setEnabled(false);
+      return;
+    }
+
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const compactQuery = window.matchMedia(`(max-width: ${compactMaxWidth}px)`);
     let battery: BatteryManager | null = null;
@@ -115,7 +124,7 @@ export function useDecorativeWebglEnabled(options: DecorativeWebglOptions = {}) 
         battery.removeEventListener("chargingchange", update);
       }
     };
-  }, [allowCompact, compactMaxWidth, perfTier, tier]);
+  }, [adminAllowsWebgl, allowCompact, compactMaxWidth, perfTier, tier]);
 
-  return enabled && !prefersReducedMotion() && canUseWebGL();
+  return adminAllowsWebgl && enabled && !prefersReducedMotion() && canUseWebGL();
 }

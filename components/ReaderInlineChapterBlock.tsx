@@ -1,6 +1,7 @@
 "use client";
 
 import { BookMarked, Highlighter, StickyNote } from "lucide-react";
+import { memo } from "react";
 import { ReaderGlossaryInlineText } from "@/components/ReaderGlossaryInlineText";
 import { renderParagraphSearchText } from "@/components/ReaderChapterExtras";
 import type { ChapterSearchMatch } from "@/lib/reader-in-chapter-search";
@@ -22,7 +23,7 @@ type ReaderInlineChapterBlockProps = {
   onOpenNote?: (paragraphIndex: number) => void;
 };
 
-export function ReaderInlineChapterBlock({
+export const ReaderInlineChapterBlock = memo(function ReaderInlineChapterBlock({
   chapterId,
   chapterNumber,
   title,
@@ -110,4 +111,4 @@ export function ReaderInlineChapterBlock({
       })}
     </section>
   );
-}
+});

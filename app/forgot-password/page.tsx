@@ -1,7 +1,13 @@
-import { AuthForm } from "@/components/AuthForm";
+import type { Metadata } from "next";
 import { ForgotPasswordForm } from "@/components/ForgotPasswordForm";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Quên mật khẩu",
+  description: "Đặt lại mật khẩu động phủ Linh Quyển Các.",
+  robots: { index: false, follow: false },
+};
 
 export default function ForgotPasswordPage() {
   return (

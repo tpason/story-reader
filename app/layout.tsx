@@ -13,6 +13,12 @@ import { QueryProvider } from "@/components/QueryProvider";
 import { StoreProvider } from "@/components/StoreProvider";
 import { XianxiaWorldBackgroundClient } from "@/components/XianxiaWorldBackgroundClient";
 import { AppAuraLayer } from "@/components/AppAuraLayer";
+import {
+  SITE_DESCRIPTION,
+  SITE_KEYWORDS,
+  SITE_NAME,
+  SITE_OG_DESCRIPTION,
+} from "@/lib/brand";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -31,27 +37,50 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "Linh Quyển Các",
-  description: "Đọc truyện chữ, tích lũy tu vi và theo dõi hành trình tàng thư.",
-  manifest: "/manifest.webmanifest",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  title: {
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: [...SITE_KEYWORDS],
+  authors: [{ name: SITE_NAME, url: "/" }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  category: "entertainment",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", sizes: "64x64", type: "image/png" },
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     type: "website",
     locale: "vi_VN",
-    siteName: "Linh Quyển Các",
-    title: "Linh Quyển Các",
-    description: "Tu tiên từng chương. Đọc truyện tiên hiệp, theo dõi chương mới và tích lũy tu vi.",
+    url: "/",
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: SITE_OG_DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Linh Quyển Các",
-    description: "Tu tiên từng chương. Đọc truyện tiên hiệp, theo dõi chương mới và tích lũy tu vi.",
+    title: SITE_NAME,
+    description: SITE_OG_DESCRIPTION,
   },
   appleWebApp: {
     capable: true,
-    title: "Linh Quyển Các",
-    statusBarStyle: "default"
-  }
+    title: SITE_NAME,
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export const viewport: Viewport = {
@@ -66,7 +95,14 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi" className={`${literata.variable} ${sora.variable}`}>
+    <html lang="vi" className={`${literata.variable} ${sora.variable}`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var raw=localStorage.getItem("persist:story-reader");var theme="light";if(raw){var p=JSON.parse(raw);var g=p&&p.globalTheme;if(typeof g==="string"){try{g=JSON.parse(g);}catch(e){}}if(g==="dark"||g==="light")theme=g;}if(theme!=="dark"&&theme!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches)theme="dark";var h=document.documentElement;h.setAttribute("data-xi-theme",theme);h.style.colorScheme=theme;var hour=(new Date()).getHours();var tod=hour>=5&&hour<9?"dawn":hour>=9&&hour<16?"day":hour>=16&&hour<19?"dusk":"night";h.setAttribute("data-xi-time",tod);}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body>
         <StoreProvider>
           <GlobalThemeProvider />

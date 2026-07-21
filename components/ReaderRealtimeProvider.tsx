@@ -25,6 +25,7 @@ export function ReaderRealtimeProvider({ children }: { children: React.ReactNode
   const live = useReaderRealtime({
     userId,
     storyIds,
+    enabled: Boolean(userId) || storyIds.length > 0,
     onEvent: () => undefined
   });
 

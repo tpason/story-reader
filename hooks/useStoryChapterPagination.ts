@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { CHAPTER_PAGE_SIZE } from "@/components/reader/ChapterList";
 import type { ChapterSummary, CursorPage } from "@/lib/types";
 
@@ -17,6 +17,8 @@ export function useStoryChapterPagination({ storyId, initialChapters, totalChapt
   const [chapterLoadError, setChapterLoadError] = useState<string | null>(null);
   const [chapterSearch, setChapterSearch] = useState("");
   const [activeChapterSearch, setActiveChapterSearch] = useState("");
+  const appendInFlightRef = useRef(false);
+  const [appendExhausted, setAppendExhausted] = useState(false);
 
   useEffect(() => {
     setChapterPage(initialChapters);
@@ -25,13 +27,20 @@ export function useStoryChapterPagination({ storyId, initialChapters, totalChapt
     setChapterLoadError(null);
     setChapterSearch("");
     setActiveChapterSearch("");
+    setAppendExhausted(false);
+    appendInFlightRef.current = false;
   }, [initialChapters, storyId]);
 
   const pageFirstChapter = chapterPage[0]?.chapterNumber ?? 0;
   const pageLastChapter = chapterPage.at(-1)?.chapterNumber ?? 0;
   const isSearchingChapters = Boolean(activeChapterSearch);
   const hasPreviousChapterPage = pageFirstChapter > 1;
-  const hasNextChapterPage = !isSearchingChapters && pageLastChapter > 0 && pageLastChapter < totalChapters;
+  const hasNextChapterPage =
+    !isSearchingChapters &&
+    !appendExhausted &&
+    pageLastChapter > 0 &&
+    pageLastChapter < totalChapters;
+  const isExpandedList = !isSearchingChapters && chapterPage.length > CHAPTER_PAGE_SIZE;
   const chapterRangeLabel = isSearchingChapters
     ? `${chapterPage.length} kết quả`
     : chapterPage.length > 0
@@ -68,6 +77,39 @@ export function useStoryChapterPagination({ storyId, initialChapters, totalChapt
       setIsLoadingChapters(false);
     }
   }, [scrollToChapterList, storyId, totalChapters]);
+
+  const appendNextChapterPage = useCallback(async () => {
+    if (isSearchingChapters || !hasNextChapterPage || isLoadingChapters || appendInFlightRef.current) return;
+    appendInFlightRef.current = true;
+    setIsLoadingChapters(true);
+    setChapterLoadError(null);
+    try {
+      const params = new URLSearchParams({
+        chapterNumber: String(pageLastChapter + 1),
+        limit: String(CHAPTER_PAGE_SIZE)
+      });
+      const response = await fetch(`/api/stories/${storyId}/chapters?${params.toString()}`);
+      if (!response.ok) throw new Error("Không thể tải danh sách chương.");
+      const data = (await response.json()) as CursorPage<ChapterSummary>;
+
+      let added = 0;
+      setChapterPage((current) => {
+        const existing = new Set(current.map((chapter) => chapter.id));
+        const next = data.items.filter((chapter) => !existing.has(chapter.id));
+        added = next.length;
+        return next.length === 0 ? current : [...current, ...next];
+      });
+
+      if (!data.items.length || data.nextCursor == null || added === 0) {
+        setAppendExhausted(true);
+      }
+    } catch (error) {
+      setChapterLoadError(error instanceof Error ? error.message : "Không thể tải danh sách chương.");
+    } finally {
+      appendInFlightRef.current = false;
+      setIsLoadingChapters(false);
+    }
+  }, [hasNextChapterPage, isLoadingChapters, isSearchingChapters, pageLastChapter, storyId]);
 
   const searchChapterList = useCallback(async (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
@@ -123,11 +165,13 @@ export function useStoryChapterPagination({ storyId, initialChapters, totalChapt
     isSearchingChapters,
     hasPreviousChapterPage,
     hasNextChapterPage,
+    isExpandedList,
     chapterRangeLabel,
     currentChapterPage,
     totalChapterPages,
     setChapterSearch,
     loadChapterPage,
+    appendNextChapterPage,
     searchChapterList,
     clearChapterSearch
   };

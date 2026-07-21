@@ -2,7 +2,7 @@
 
 import type { GlossaryCharacter, GlossaryIndex } from "@/lib/reader-glossary";
 import { buildGlossaryTextSpans } from "@/lib/reader-glossary-inline";
-import type { MouseEvent } from "react";
+import { memo, type MouseEvent } from "react";
 
 type ReaderGlossaryInlineTextProps = {
   text: string;
@@ -11,7 +11,12 @@ type ReaderGlossaryInlineTextProps = {
   onTermClick: (character: GlossaryCharacter, event: MouseEvent<HTMLButtonElement>) => void;
 };
 
-export function ReaderGlossaryInlineText({ text, glossaryIndex, searchActive, onTermClick }: ReaderGlossaryInlineTextProps) {
+export const ReaderGlossaryInlineText = memo(function ReaderGlossaryInlineText({
+  text,
+  glossaryIndex,
+  searchActive,
+  onTermClick,
+}: ReaderGlossaryInlineTextProps) {
   if (searchActive || glossaryIndex.size === 0) {
     return text;
   }
@@ -41,4 +46,4 @@ export function ReaderGlossaryInlineText({ text, glossaryIndex, searchActive, on
       )}
     </>
   );
-}
+});

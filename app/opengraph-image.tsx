@@ -7,11 +7,10 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function Image() {
-  const svg = await readFile(
-    path.join(process.cwd(), "public/brand/linh-quyen-mark.svg"),
-    "utf8"
+  const png = await readFile(
+    path.join(process.cwd(), "public/brand/linh-quyen-mark-256.png"),
   );
-  const markSrc = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+  const markSrc = `data:image/png;base64,${png.toString("base64")}`;
 
   return new ImageResponse(
     (
@@ -34,17 +33,17 @@ export default async function Image() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 196,
-            height: 196,
+            width: 220,
+            height: 220,
             borderRadius: "50%",
             border: "3px solid rgba(200,150,46,0.55)",
-            background:
-              "radial-gradient(circle at 44% 38%, rgba(232,200,96,0.22), transparent 48%), linear-gradient(148deg, #1e3e30, #0e2419)",
+            background: "#f8f4ea",
             boxShadow: "0 0 48px rgba(200,150,46,0.22)",
             marginBottom: 36,
+            overflow: "hidden",
           }}
         >
-          <img src={markSrc} width={148} height={148} alt="" />
+          <img src={markSrc} width={210} height={210} alt="" />
         </div>
         <div style={{ fontSize: 68, fontWeight: 700, letterSpacing: 2, color: "#f0d878" }}>
           Linh Quyển Các

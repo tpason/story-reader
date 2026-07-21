@@ -7,22 +7,39 @@ export type { WebGLPerfTier } from "@/lib/webgl-performance-classify";
 export { classifyFrameSamples } from "@/lib/webgl-performance-classify";
 
 export const WEBGL_PERF_SESSION_KEY = "reader:webgl-perf-tier";
+/** Survives tab close so returning readers skip the first-load GPU probe spike. */
+export const WEBGL_PERF_LOCAL_KEY = "reader:webgl-perf-tier-v1";
 export const WEBGL_PERF_EVENT = "reader:webgl-perf-probed";
 
 const PROBE_DURATION_MS = 720;
 
 let probePromise: Promise<WebGLPerfTier> | null = null;
 
+function parsePerfTier(raw: string | null): Exclude<WebGLPerfTier, "pending"> | null {
+  if (raw === "strong" || raw === "weak") return raw;
+  return null;
+}
+
 export function readCachedWebGLPerfTier(): WebGLPerfTier | null {
   if (typeof window === "undefined") return null;
-  const raw = window.sessionStorage.getItem(WEBGL_PERF_SESSION_KEY);
-  if (raw === "strong" || raw === "weak") return raw;
+  const session = parsePerfTier(window.sessionStorage.getItem(WEBGL_PERF_SESSION_KEY));
+  if (session) return session;
+  const local = parsePerfTier(window.localStorage.getItem(WEBGL_PERF_LOCAL_KEY));
+  if (local) {
+    window.sessionStorage.setItem(WEBGL_PERF_SESSION_KEY, local);
+    return local;
+  }
   return null;
 }
 
 export function writeCachedWebGLPerfTier(tier: Exclude<WebGLPerfTier, "pending">) {
   if (typeof window === "undefined") return;
   window.sessionStorage.setItem(WEBGL_PERF_SESSION_KEY, tier);
+  try {
+    window.localStorage.setItem(WEBGL_PERF_LOCAL_KEY, tier);
+  } catch {
+    // private mode / quota — session cache still works
+  }
   window.dispatchEvent(new Event(WEBGL_PERF_EVENT));
 }
 

@@ -13,8 +13,9 @@ const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) =>
 export const revalidate = 120;
 
 export const metadata = {
-  title: "Khám phá nhanh | Linh Quyển Các",
+  title: "Khám phá nhanh",
   description: "Truyện vừa polish và chương mới cập nhật trên Linh Quyển Các.",
+  alternates: { canonical: "/discover" },
 };
 
 type DiscoverProps = {

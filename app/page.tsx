@@ -1,4 +1,5 @@
 import type { Route } from "next";
+import type { Metadata } from "next";
 import { CheckCircle2, Flame, Headphones, Layers3, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -14,6 +15,9 @@ import { StoryDiscoveryRail } from "@/components/StoryDiscoveryRail";
 import { DiscoveryRailSkeleton } from "@/components/DiscoveryRailSkeleton";
 import { TrendingStoriesPanel } from "@/components/TrendingStoriesPanel";
 import { XianxiaPoetryColumn } from "@/components/XianxiaPoetryColumn";
+import { JsonLdScript } from "@/components/JsonLdScript";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_DESCRIPTION } from "@/lib/brand";
+import { buildHomeJsonLd } from "@/lib/json-ld";
 import { parseTrendingPeriod } from "@/lib/trending-period";
 import type { TrendingPeriod } from "@/lib/types";
 
@@ -27,6 +31,17 @@ const HomeRecommendationsPanel = nextDynamic(
 );
 
 export const revalidate = 60;
+
+export const metadata: Metadata = {
+  title: { absolute: SITE_NAME },
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: SITE_NAME,
+    description: SITE_OG_DESCRIPTION,
+    url: "/",
+  },
+};
 
 type HomeProps = {
   searchParams: Promise<{
@@ -137,6 +152,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   return (
     <main className="app-shell">
+      <JsonLdScript data={buildHomeJsonLd()} />
       <MotionFX variant="library" />
       <SiteHeader />
 

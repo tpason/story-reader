@@ -13,23 +13,25 @@ const ThreeReaderAmbience = dynamic(
 
 type ReaderAmbienceLayerProps = {
   enabled?: boolean;
+  /** When false, keep CSS vibe only — skip deferred WebGL (faster first paint). */
+  allowWebgl?: boolean;
 };
 
 /**
  * Mobile ≤839px: off entirely.
- * Desktop: deferred WebGL, CSS fallback when WebGL gated off.
+ * Desktop: CSS ambience by default; optional deferred WebGL when allowWebgl.
  */
-export function ReaderAmbienceLayer({ enabled = true }: ReaderAmbienceLayerProps) {
+export function ReaderAmbienceLayer({ enabled = true, allowWebgl = true }: ReaderAmbienceLayerProps) {
   const isCompact = useCompactViewport();
   const webglEnabled = useDecorativeWebglEnabled({
     tier: "reader",
     compactMaxWidth: 839,
   });
-  const webglReady = useDeferredWebglMount(webglEnabled && !isCompact, 2000);
+  const webglReady = useDeferredWebglMount(allowWebgl && webglEnabled && !isCompact, 2000);
 
   if (!enabled || isCompact) return null;
 
-  const showWebgl = webglEnabled && webglReady;
+  const showWebgl = allowWebgl && webglEnabled && webglReady;
 
   return (
     <div

@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
+import { SITE_NAME } from "@/lib/brand";
 import { formatChapterLabel } from "@/lib/chapter-title";
 import type { ChapterSummary, StorySummary } from "@/lib/types";
 import { absoluteSiteUrl, truncateMetaDescription } from "@/lib/seo-text";
 import { storyDisplayDescription } from "@/lib/story-description";
 import { storyHref, storyKey } from "@/lib/urls";
 
-const SITE_NAME = "Linh Quyển Các";
-
 export { getSiteUrl } from "@/lib/seo-text";
+export { SITE_NAME } from "@/lib/brand";
 
 function storyCoverImage(story: Pick<StorySummary, "coverImageUrl">) {
   const url = story.coverImageUrl?.trim();
@@ -18,11 +18,10 @@ function storyCoverImage(story: Pick<StorySummary, "coverImageUrl">) {
 export function buildStoryMetadata(story: StorySummary): Metadata {
   const description = truncateMetaDescription(storyDisplayDescription(story));
   const path = storyHref(story);
-  const title = `${story.title} | ${SITE_NAME}`;
   const image = storyCoverImage(story);
 
   return {
-    title,
+    title: story.title,
     description,
     alternates: { canonical: path },
     openGraph: {
@@ -84,7 +83,7 @@ export function buildCategoryMetadata(name: string, storyCount: number, slug: st
   const path = `/categories/${slug}`;
 
   return {
-    title: `${name} | Thể loại | ${SITE_NAME}`,
+    title: `${name} · thể loại`,
     description,
     alternates: { canonical: path },
     openGraph: {

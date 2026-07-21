@@ -5,6 +5,7 @@ import type { animate as AnimateType } from "animejs";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { prefersReducedMotion } from "@/lib/browser";
+import { forceUnlockBodyScroll } from "@/lib/body-scroll-lock";
 
 export function GlobalScrollTop() {
   const pathname = usePathname();
@@ -13,6 +14,14 @@ export function GlobalScrollTop() {
   const isVisibleRef = useRef(false);
   const frameRef = useRef<number | null>(null);
   const isReaderChapter = /\/stories\/[^/]+\/chapters\/[^/]+/.test(pathname ?? "");
+
+  // Safety net when leaving the reader: nested locks must not leave body stuck.
+  // Skip while still on a chapter route so page-layout lock is not wiped mid-read.
+  useEffect(() => {
+    if (!isReaderChapter) {
+      forceUnlockBodyScroll();
+    }
+  }, [pathname, isReaderChapter]);
 
   useEffect(() => {
     if (prefersReducedMotion()) return;

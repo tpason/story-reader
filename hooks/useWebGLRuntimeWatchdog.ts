@@ -6,8 +6,8 @@ import { classifyFrameSamples } from "@/lib/webgl-performance-classify";
 import { writeCachedWebGLPerfTier } from "@/lib/webgl-performance-probe";
 
 const WATCHDOG_SESSION_KEY = "reader:webgl-watchdog-ran";
-const WATCHDOG_DELAY_MS = 520;
-const WATCHDOG_DURATION_MS = 2000;
+const WATCHDOG_DELAY_MS = 1800;
+const WATCHDOG_DURATION_MS = 1600;
 
 type UseWebGLRuntimeWatchdogOptions = {
   enabled: boolean;

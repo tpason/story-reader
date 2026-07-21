@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { ReaderLogo } from "@/components/ReaderLogo";
+import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 
 const ThreeXianxiaLoader = dynamic(
   () => import("@/components/ThreeXianxiaLoader").then((m) => m.ThreeXianxiaLoader),
@@ -11,6 +12,7 @@ const ThreeXianxiaLoader = dynamic(
 
 export function XianxiaLoader() {
   const [mounted, setMounted] = useState(false);
+  const decorativeWebglEnabled = useDecorativeWebglEnabled({ tier: "global", allowCompact: true });
 
   useEffect(() => {
     setMounted(true);
@@ -19,7 +21,7 @@ export function XianxiaLoader() {
   return (
     <div className="xi-loader-overlay" role="status" aria-label="Đang tải...">
       <div className="xi-loader-canvas" aria-hidden="true">
-        {mounted ? <ThreeXianxiaLoader /> : null}
+        {mounted && decorativeWebglEnabled ? <ThreeXianxiaLoader /> : null}
       </div>
 
       <div className="xi-loader-css-rings" aria-hidden="true">

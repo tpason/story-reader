@@ -166,6 +166,11 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const queryKey = useMemo(() => JSON.stringify({ userId, history: history.map((item) => [item.storyId, item.maxReadChapterNumber]), follows: storyIds }), [history, storyIds, userId]);
 
   const refresh = useCallback(() => {
+    if (!userId && follows.length === 0 && history.length === 0) {
+      setPayload(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     fetch(buildNotificationUrl(history, follows))
       .then((response) => {
@@ -175,7 +180,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
       .then(setPayload)
       .catch(() => undefined)
       .finally(() => setLoading(false));
-  }, [follows, history]);
+  }, [follows, history, userId]);
 
   const handleRealtimeEvent = useCallback(
     (event: ReaderRealtimeEvent) => {
@@ -197,6 +202,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   }, [refresh, queryKey]);
 
   useEffect(() => {
+    if (!userId && follows.length === 0 && history.length === 0) return;
     const pollMs = live ? 120_000 : typeof window !== "undefined" && window.matchMedia("(max-width: 839px)").matches ? 120_000 : 30_000;
     const timer = window.setInterval(refresh, pollMs);
     const onVisibilityChange = () => {
@@ -207,7 +213,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [live, refresh]);
+  }, [follows.length, history.length, live, refresh, userId]);
 
   useEffect(() => {
     if (!open || prefersReducedMotion() || !panelRef.current) return;

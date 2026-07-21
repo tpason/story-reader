@@ -24,8 +24,9 @@ const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) =>
 export const revalidate = 120;
 
 export const metadata = {
-  title: "Bảng xếp hạng | Linh Quyển Các",
-  description: "Top truyện, đạo hữu tu đọc, xếp hạng BetterBox và bảng nguồn crawl trên Linh Quyển Các."
+  title: "Bảng xếp hạng",
+  description: "Top truyện, đạo hữu tu đọc, xếp hạng BetterBox và bảng nguồn crawl trên Linh Quyển Các.",
+  alternates: { canonical: "/rankings" },
 };
 
 type RankingsProps = {

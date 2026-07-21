@@ -1,8 +1,16 @@
-const CACHE_VERSION = "linh-quyen-v2";
+const CACHE_VERSION = "linh-quyen-v3";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const API_CACHE = `${CACHE_VERSION}-api`;
-const STATIC_ASSETS = ["/", "/offline.html", "/manifest.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
+const STATIC_ASSETS = [
+  "/",
+  "/offline.html",
+  "/manifest.webmanifest",
+  "/favicon.ico",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/icons/apple-touch-icon.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -70,8 +78,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || "Linh Quyển Các", {
       body: data.body || "Có chương mới từ truyện đang theo dõi.",
-      icon: data.icon || "/icons/icon-192.svg",
-      badge: data.badge || "/icons/icon-192.svg",
+      icon: data.icon || "/icons/icon-192.png",
+      badge: data.badge || "/icons/icon-192.png",
       tag: `story-${data.storyId}-${data.chapterNumber}`,
       renotify: false,
       data: { url: data.url || "/" },

@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildChapterArticleJsonLd, buildStoryBookJsonLd } from "../lib/json-ld.ts";
+import {
+  buildChapterArticleJsonLd,
+  buildHomeJsonLd,
+  buildStoryBookJsonLd,
+} from "../lib/json-ld.ts";
 
 describe("json-ld", () => {
   const story = {
@@ -27,6 +31,20 @@ describe("json-ld", () => {
     primaryCategorySlug: null,
     updatedAt: "2026-06-19T00:00:00.000Z"
   };
+
+  it("builds homepage Organization + WebSite graph", () => {
+    const json = buildHomeJsonLd();
+    assert.equal(json["@context"], "https://schema.org");
+    const graph = json["@graph"] as Array<Record<string, unknown>>;
+    assert.equal(graph.length, 2);
+    assert.equal(graph[0]["@type"], "Organization");
+    assert.equal(graph[0].name, "Linh Quyển Các");
+    assert.equal(graph[1]["@type"], "WebSite");
+    assert.equal(
+      (graph[1].potentialAction as { "@type"?: string })["@type"],
+      "SearchAction",
+    );
+  });
 
   it("builds Book schema for story", () => {
     const json = buildStoryBookJsonLd(story);

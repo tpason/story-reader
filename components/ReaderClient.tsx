@@ -30,6 +30,13 @@ import { RealtimeFxPreference } from "@/components/RealtimeFxPreference";
 import { FloatingTooltip } from "@/components/FloatingTooltip";
 import { formatNovelContent } from "@/lib/formatNovelContent";
 import { isMobile, prefersReducedMotion, shouldReduceReaderBackgroundWork } from "@/lib/browser";
+import { lockBodyScroll } from "@/lib/body-scroll-lock";
+import {
+  READER_BACKGROUND_AUDIO_UI_ENABLED,
+  READER_CHAPTER_AUDIO_UI_ENABLED,
+  READER_SPIRIT_COMPANION_UI_ENABLED,
+  readerAdminExtrasEnabled
+} from "@/lib/reader-features";
 import { countReadableWords, estimateReadingMinutes } from "@/lib/reading-estimate";
 import { isTodayLocal } from "@/lib/date";
 import type { OfflineChapterRecord } from "@/lib/offline-chapters";
@@ -37,7 +44,6 @@ import { estimateOfflineCacheBytes, formatOfflineCacheSize, OFFLINE_DOWNLOAD_PRE
 import { useReaderOfflineCache } from "@/components/reader/ReaderOfflineCacheProvider";
 import { ReaderChapterFreshHint, type ReaderChapterFreshHintState } from "@/components/ReaderChapterFreshHint";
 import { ReaderAmbienceLayer } from "@/components/ReaderAmbienceLayer";
-import { ReaderSpiritCompanion } from "@/components/ReaderSpiritCompanion";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { ReaderThemeSegmented } from "@/components/ReaderThemeSegmented";
 import { fetchReaderChapter, readerQueryKeys } from "@/lib/reader-query";
@@ -183,16 +189,16 @@ import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import { useWebGLRuntimeWatchdog } from "@/hooks/useWebGLRuntimeWatchdog";
 import { useCompactViewport } from "@/hooks/useCompactViewport";
 
-const ThreeReaderProgress = dynamic(() => import("@/components/ThreeReaderProgress").then((mod) => mod.ThreeReaderProgress), {
-  ssr: false
-});
-
 const CultivationPanel = dynamic(() => import("@/components/CultivationPanel").then((mod) => mod.CultivationPanel));
 const ChapterComments = dynamic(() => import("@/components/ChapterComments").then((mod) => mod.ChapterComments));
 const ChapterAudioPlayer = dynamic(() => import("@/components/ChapterAudioPlayer").then((mod) => mod.ChapterAudioPlayer));
 const SkillEffectLayer = dynamic(() => import("@/components/SkillEffectLayer").then((mod) => mod.SkillEffectLayer), { ssr: false });
 const BackgroundAudioPlayer = dynamic(() => import("@/components/BackgroundAudioPlayer").then((mod) => mod.BackgroundAudioPlayer), { ssr: false });
 const AmbientSoundPlayer = dynamic(() => import("@/components/AmbientSoundPlayer").then((mod) => mod.AmbientSoundPlayer), { ssr: false });
+const ReaderSpiritCompanion = dynamic(
+  () => import("@/components/ReaderSpiritCompanion").then((mod) => mod.ReaderSpiritCompanion),
+  { ssr: false }
+);
 const ReaderOnboardingCoach = dynamic(() => import("@/components/ReaderOnboardingCoach").then((mod) => mod.ReaderOnboardingCoach), { ssr: false });
 const ReaderEngagementPrompt = dynamic(() => import("@/components/ReaderEngagementPrompt").then((mod) => mod.ReaderEngagementPrompt), { ssr: false });
 const ReaderNotesSidebar = dynamic(() => import("@/components/ReaderNotesSidebar").then((mod) => mod.ReaderNotesSidebar));
@@ -294,6 +300,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const historyHydrated = useAppSelector((state) => state.history.hydrated);
   const currentBookmark = useAppSelector(useMemo(() => selectCurrentBookmark(payload.story.id, payload.chapter.chapterNumber), [payload.story.id, payload.chapter.chapterNumber]));
   const currentUser = useAppSelector((state) => state.identity.user);
+  const isAdmin = Boolean(currentUser?.isAdmin);
+  const showAdminExtras = readerAdminExtrasEnabled(isAdmin);
   const maxReadChapter = useAppSelector(useMemo(() => selectMaxReadChapter(payload.story.id), [payload.story.id]));
   const [showScrollTop, setShowScrollTop] = useState(false);
   const {
@@ -348,7 +356,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [shellFreshPulse, setShellFreshPulse] = useState(false);
   const freshHintTimerRef = useRef<number | null>(null);
   const compactReader = useCompactViewport(COMPACT_VIEWPORT_QUERY);
-  useWebGLRuntimeWatchdog({ enabled: decorativeWebglEnabled && !focusModeEnabled && !compactReader });
+  useWebGLRuntimeWatchdog({
+    enabled: showAdminExtras && decorativeWebglEnabled && !focusModeEnabled && !compactReader
+  });
   const [pageIndex, setPageIndex] = useState(0);
   const [pageViewportHeight, setPageViewportHeight] = useState(640);
   const [measuredParagraphHeights, setMeasuredParagraphHeights] = useState<number[] | null>(null);
@@ -437,7 +447,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   );
   const bilingualSecondaryVisible = bilingualActive && bilingualPrefs.secondaryVisible;
   const bilingualScrollHighlight = bilingualActive && bilingualPrefs.scrollHighlight && !prefersReducedMotion();
-  const bilingualColumnsLayout = bilingualActive && bilingualPrefs.layoutStyle === "columns";
+  // Columns are desktop-only; compact always stacks so EN/VI stay readable.
+  const bilingualColumnsLayout =
+    bilingualActive && bilingualPrefs.layoutStyle === "columns" && !compactReader;
   const [scrollFocusParagraphIndex, setScrollFocusParagraphIndex] = useState<number | null>(null);
   const [bilingualRevealedIndexes, setBilingualRevealedIndexes] = useState<Set<number>>(() => new Set());
   const [phraseNotes, setPhraseNotes] = useState<ReaderPhraseNote[]>([]);
@@ -655,9 +667,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     toggle: toggleAutoScroll,
   } = useAutoScroll({
     blocked: mobileMenuOpen || mobileSheetOpen,
-    disabled: isPageLayout,
+    disabled: isPageLayout || !showAdminExtras,
     onStart: () => setMobileSheetOpen(false),
   });
+
+  useEffect(() => {
+    if (!showAdminExtras) stopAutoScroll();
+  }, [showAdminExtras, stopAutoScroll]);
+
   const pageHeadingReserve = compactReader ? 148 : 168;
   const paragraphPages = useMemo(() => {
     const pageOptions = {
@@ -879,11 +896,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   useEffect(() => {
     if (!isPageLayout) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
+    return lockBodyScroll();
   }, [isPageLayout]);
 
   useEffect(() => {
@@ -1240,13 +1253,17 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
+    const unlock = lockBodyScroll();
     function handleOutsidePointerDown(event: PointerEvent) {
       const sidebar = chapterSidebarRef.current;
       if (!sidebar || sidebar.contains(event.target as Node)) return;
       setMobileMenuOpen(false);
     }
     document.addEventListener("pointerdown", handleOutsidePointerDown);
-    return () => document.removeEventListener("pointerdown", handleOutsidePointerDown);
+    return () => {
+      unlock();
+      document.removeEventListener("pointerdown", handleOutsidePointerDown);
+    };
   }, [mobileMenuOpen, setMobileMenuOpen]);
 
   useEffect(() => {
@@ -1483,14 +1500,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   useEffect(() => {
     if (!mobileSheetOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockBodyScroll();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setMobileSheetOpen(false);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unlock();
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [mobileSheetOpen, setMobileSheetOpen]);
@@ -2065,10 +2081,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
         if (isCompactViewport) {
           const hasMobileOverlay = mobileMenuOpenRef.current || mobileSheetOpenRef.current;
-          // Hide on scroll-down; reveal only near top / overlays — not on every scroll-up
-          // (scroll-up reveal caused continuous chrome flash while re-reading).
+          // Hide on scroll-down; reveal near top, overlays, or sustained scroll-up (hysteresis).
+          const upwardDelta = lastScrollTopRef.current - scrollTop;
           const shouldHideChrome = !hasMobileOverlay && scrollTop > 180 && scrollingDown;
-          const shouldShowChrome = hasMobileOverlay || scrollTop < 120;
+          const shouldShowChrome =
+            hasMobileOverlay || scrollTop < 120 || (!scrollingDown && upwardDelta >= 56);
           const nextHidden = shouldHideChrome ? true : shouldShowChrome ? false : readerChromeHiddenRef.current;
           if (readerChromeHiddenRef.current !== nextHidden) {
             readerChromeHiddenRef.current = nextHidden;
@@ -2306,6 +2323,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }
 
   function scrollToAudioPanel() {
+    if (!READER_CHAPTER_AUDIO_UI_ENABLED) return;
     setAudioPanelOpen(true);
     setAudioAutoStartToken((value) => value + 1);
     setMobileSheetOpen(false);
@@ -2991,10 +3009,21 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     writeReaderBilingualPrefs(next);
   }, []);
 
+  const scrollToBilingualSettingsRef = useRef(false);
   const openBilingualSettingsSheet = useCallback(() => {
+    scrollToBilingualSettingsRef.current = true;
     setMobileSheetTab("settings");
     setMobileSheetOpen(true);
   }, [setMobileSheetOpen, setMobileSheetTab]);
+
+  useEffect(() => {
+    if (!mobileSheetOpen || mobileSheetTab !== "settings" || !scrollToBilingualSettingsRef.current) return;
+    scrollToBilingualSettingsRef.current = false;
+    const timer = window.setTimeout(() => {
+      document.getElementById("reader-bilingual-settings")?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [mobileSheetOpen, mobileSheetTab]);
 
   const toggleBilingualQuick = useCallback(() => {
     if (!supportsBilingual) return;
@@ -3323,7 +3352,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           {isNew ? <span className="chapter-status chapter-status-new">New</span> : null}
           {addedToday ? <span className="chapter-status chapter-status-today">Hôm nay</span> : null}
           {chapter.textSource === "polished" ? <span className="chapter-status chapter-status-polished">Polish</span> : null}
-          {chapter.hasAudio ? <span className="chapter-status chapter-status-audio">Audio</span> : null}
+          {READER_CHAPTER_AUDIO_UI_ENABLED && chapter.hasAudio ? (
+            <span className="chapter-status chapter-status-audio">Audio</span>
+          ) : null}
           {cachedChapterNumbers.has(chapter.chapterNumber) ? <span className="chapter-status chapter-status-offline">Đã tải</span> : null}
           <ChapterTimestamp chapter={chapter} />
         </span>
@@ -3508,17 +3539,22 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       data-font={fontFamily}
       style={readerShellStyle}
     >
-      {focusModeEnabled || !skillEffectsEnabled ? null : (
+      {showAdminExtras && !focusModeEnabled && skillEffectsEnabled ? (
         <SkillEffectLayer storyId={activePayload.story.id} chapterId={activePayload.chapter.id} />
-      )}
+      ) : null}
       {/* Compact: FAB competes with dock — inline player lives in sheet “Tiện ích thêm”. */}
-      {focusModeEnabled || compactReader ? null : <BackgroundAudioPlayer />}
-      {focusModeEnabled ? null : <ReaderAmbienceLayer />}
-      {focusModeEnabled ? null : <ReaderSpiritCompanion enabled={!focusModeEnabled} />}
+      {showAdminExtras && READER_BACKGROUND_AUDIO_UI_ENABLED && !focusModeEnabled && !compactReader ? (
+        <BackgroundAudioPlayer />
+      ) : null}
+      {/* CSS ambience for all (xianxia vibe); WebGL ambience only for admin extras. */}
+      {focusModeEnabled ? null : (
+        <ReaderAmbienceLayer allowWebgl={showAdminExtras} />
+      )}
+      {showAdminExtras && READER_SPIRIT_COMPANION_UI_ENABLED && !focusModeEnabled ? (
+        <ReaderSpiritCompanion enabled={!focusModeEnabled} />
+      ) : null}
       <div className="reader-progress" aria-hidden="true">
-        {decorativeWebglEnabled && !focusModeEnabled && !compactReader ? (
-          <ThreeReaderProgress progress={mobileProgress} progressRef={mobileProgressRef} />
-        ) : null}
+        {/* Progress WebGL removed: CSS progress bar is enough; dual WebGL + ambience caused desktop flash/heat. */}
         <div className="reader-progress-bar" ref={progressBarRef} />
       </div>
       <div className={`reader-dim-overlay ${readerDimEnabled ? "reader-dim-overlay-active" : ""}`} aria-hidden="true" />
@@ -3902,14 +3938,16 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                     {bilingualPrefs.enabled ? "Song ngữ (bật)" : "Song ngữ Anh – Việt"}
                   </button>
                 ) : null}
-                <button
-                  className={`reader-overflow-item ${audioPanelOpen ? "reader-overflow-item-active" : ""}`}
-                  type="button"
-                  onClick={() => { scrollToAudioPanel(); setReaderOverflowOpen(false); }}
-                >
-                  <Headphones size={15} />
-                  {activePayload.chapter.audioUrl ? "Nghe audio chương" : "Tạo audio chương"}
-                </button>
+                {READER_CHAPTER_AUDIO_UI_ENABLED ? (
+                  <button
+                    className={`reader-overflow-item ${audioPanelOpen ? "reader-overflow-item-active" : ""}`}
+                    type="button"
+                    onClick={() => { scrollToAudioPanel(); setReaderOverflowOpen(false); }}
+                  >
+                    <Headphones size={15} />
+                    {activePayload.chapter.audioUrl ? "Nghe audio chương" : "Tạo audio chương"}
+                  </button>
+                ) : null}
                 <button
                   className={`reader-overflow-item reader-offline-button ${offlineReady ? "reader-overflow-item-active" : ""}`}
                   type="button"
@@ -3919,7 +3957,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   {offlineLoading ? <LoaderCircle size={15} className="spin" /> : <WifiOff size={15} />}
                   {offlineReady ? `Đã tải ${cachedChapters.length} chương offline` : "Tải offline"}
                 </button>
-                {!isPageLayout ? (
+                {showAdminExtras && !isPageLayout ? (
                   <button
                     className={`reader-overflow-item ${autoScrollEnabled ? "reader-overflow-item-active" : ""}`}
                     type="button"
@@ -3948,15 +3986,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   Tới luận đạo
                 </button>
 
-                <p className="reader-overflow-group-label">Nâng cao</p>
-                <button
-                  className={`reader-overflow-item ${skillEffectsEnabled ? "reader-overflow-item-active" : ""}`}
-                  type="button"
-                  onClick={() => { toggleReaderSkillEffects(); setReaderOverflowOpen(false); }}
-                >
-                  <Highlighter size={15} />
-                  {skillEffectsEnabled ? "Tắt hiệu ứng tu luyện" : "Bật hiệu ứng tu luyện"}
-                </button>
+                <p className="reader-overflow-group-label">Tiện ích</p>
                 <button
                   className={`reader-overflow-item ${tapEdgeEnabled ? "reader-overflow-item-active" : ""}`}
                   type="button"
@@ -3993,17 +4023,31 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   {wakeLockActive ? <Eye size={15} /> : <EyeOff size={15} />}
                   {wakeLockActive ? "Đang giữ sáng" : "Giữ màn hình sáng"}
                 </button>
+                {showAdminExtras ? (
+                  <button
+                    className={`reader-overflow-item ${skillEffectsEnabled ? "reader-overflow-item-active" : ""}`}
+                    type="button"
+                    onClick={() => { toggleReaderSkillEffects(); setReaderOverflowOpen(false); }}
+                  >
+                    <Highlighter size={15} />
+                    {skillEffectsEnabled ? "Tắt hiệu ứng tu luyện" : "Bật hiệu ứng tu luyện"}
+                  </button>
+                ) : null}
 
-                <div className="reader-overflow-sep" />
-                <div className="reader-overflow-shortcuts">
-                  <p className="reader-overflow-shortcuts-title">Phím tắt</p>
-                  <div className="reader-shortcut-row"><kbd>←</kbd><kbd>→</kbd><span>{isPageLayout ? "Trang / chương" : "Chương trước / sau"}</span></div>
-                  <div className="reader-shortcut-row"><kbd>B</kbd><span>Đánh dấu chương</span></div>
-                  <div className="reader-shortcut-row"><kbd>F</kbd><span>Focus mode</span></div>
-                  <div className="reader-shortcut-row"><kbd>G</kbd><span>Nhân vật & thuật ngữ</span></div>
-                  <div className="reader-shortcut-row"><kbd>Ctrl/⌘</kbd><kbd>F</kbd><span>Tìm trong chương</span></div>
-                  <div className="reader-shortcut-row"><kbd>T</kbd><span>Mục lục</span></div>
-                </div>
+                {showAdminExtras ? (
+                  <>
+                    <div className="reader-overflow-sep" />
+                    <div className="reader-overflow-shortcuts">
+                      <p className="reader-overflow-shortcuts-title">Phím tắt</p>
+                      <div className="reader-shortcut-row"><kbd>←</kbd><kbd>→</kbd><span>{isPageLayout ? "Trang / chương" : "Chương trước / sau"}</span></div>
+                      <div className="reader-shortcut-row"><kbd>B</kbd><span>Đánh dấu chương</span></div>
+                      <div className="reader-shortcut-row"><kbd>F</kbd><span>Focus mode</span></div>
+                      <div className="reader-shortcut-row"><kbd>G</kbd><span>Nhân vật & thuật ngữ</span></div>
+                      <div className="reader-shortcut-row"><kbd>Ctrl/⌘</kbd><kbd>F</kbd><span>Tìm trong chương</span></div>
+                      <div className="reader-shortcut-row"><kbd>T</kbd><span>Mục lục</span></div>
+                    </div>
+                  </>
+                ) : null}
               </div>
             ) : null}
             {!compactReader ? (
@@ -4215,10 +4259,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 <span>Offline</span>
                 <strong>{cachedChapters.length > 0 ? `${cachedChapters.length} chương` : "Chưa tải"}</strong>
               </div>
-              <div>
-                <span>Audio</span>
-                <strong>{activePayload.chapter.audioUrl ? "Có sẵn" : "Chưa có"}</strong>
-              </div>
+              {READER_CHAPTER_AUDIO_UI_ENABLED ? (
+                <div>
+                  <span>Audio</span>
+                  <strong>{activePayload.chapter.audioUrl ? "Có sẵn" : "Chưa có"}</strong>
+                </div>
+              ) : null}
             </div>
 
             <div className="reader-sheet-grid reader-sheet-grid-primary">
@@ -4240,27 +4286,31 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 <Image src="/icons/bookmark-jade.svg" className="bookmark-jade-icon" alt="" aria-hidden="true" width={18} height={18} />
                 {currentBookmark ? "Bỏ dấu" : "Đánh dấu"}
               </button>
-              <button
-                className={`reader-sheet-action ${autoScrollEnabled ? "reader-sheet-action-active" : ""}`}
-                type="button"
-                aria-pressed={autoScrollEnabled}
-                onClick={toggleAutoScroll}
-              >
-                {autoScrollEnabled ? <Pause size={16} /> : <Play size={16} />}
-                {autoScrollEnabled ? "Dừng cuộn" : "Tự cuộn"}
-              </button>
-              <button
-                className="reader-sheet-action"
-                type="button"
-                disabled={!activePayload.chapter.audioUrl}
-                onClick={() => {
-                  setMobileSheetOpen(false);
-                  scrollToAudioPanel();
-                }}
-              >
-                <Headphones size={16} />
-                {activePayload.chapter.audioUrl ? "Nghe audio" : "Chưa có audio"}
-              </button>
+              {showAdminExtras ? (
+                <button
+                  className={`reader-sheet-action ${autoScrollEnabled ? "reader-sheet-action-active" : ""}`}
+                  type="button"
+                  aria-pressed={autoScrollEnabled}
+                  onClick={toggleAutoScroll}
+                >
+                  {autoScrollEnabled ? <Pause size={16} /> : <Play size={16} />}
+                  {autoScrollEnabled ? "Dừng cuộn" : "Tự cuộn"}
+                </button>
+              ) : null}
+              {READER_CHAPTER_AUDIO_UI_ENABLED ? (
+                <button
+                  className="reader-sheet-action"
+                  type="button"
+                  disabled={!activePayload.chapter.audioUrl}
+                  onClick={() => {
+                    setMobileSheetOpen(false);
+                    scrollToAudioPanel();
+                  }}
+                >
+                  <Headphones size={16} />
+                  {activePayload.chapter.audioUrl ? "Nghe audio" : "Chưa có audio"}
+                </button>
+              ) : null}
               <button className="reader-sheet-action" type="button" onClick={scrollToComments}>
                 <BookOpen size={16} />
                 Luận đạo
@@ -4370,7 +4420,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               </div>
             ) : null}
 
-            {autoScrollEnabled ? (
+            {showAdminExtras && autoScrollEnabled ? (
               <div className="reader-sheet-section">
                 <span>Tốc độ tự cuộn</span>
                 <div className="reader-sheet-section-body">
@@ -4489,7 +4539,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
             <details className="reader-sheet-collapsible">
               <summary>
-                <span>Preset & hiệu năng</span>
+                <span>Preset đọc</span>
                 <ChevronRight size={16} aria-hidden="true" />
               </summary>
               <div className="reader-sheet-section-body">
@@ -4504,30 +4554,38 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                     );
                   })}
                 </div>
-                <div className="segmented reader-sheet-segmented reader-performance-mode" aria-label="Hiệu năng reader">
-                  {(["balanced", "battery_saver", "full_effects"] as ReaderPerformanceMode[]).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      aria-pressed={performanceMode === mode}
-                      onClick={() => setReaderPerformanceMode(mode)}
-                    >
-                      {readerPerformanceModeLabel(mode)}
-                    </button>
-                  ))}
-                </div>
-                <RealtimeFxPreference compact />
+                {showAdminExtras ? (
+                  <>
+                    <div className="segmented reader-sheet-segmented reader-performance-mode" aria-label="Hiệu năng reader">
+                      {(["balanced", "battery_saver", "full_effects"] as ReaderPerformanceMode[]).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          aria-pressed={performanceMode === mode}
+                          onClick={() => setReaderPerformanceMode(mode)}
+                        >
+                          {readerPerformanceModeLabel(mode)}
+                        </button>
+                      ))}
+                    </div>
+                    <RealtimeFxPreference compact />
+                  </>
+                ) : null}
               </div>
             </details>
 
             <details className="reader-sheet-collapsible">
               <summary>
-                <span>Tiện ích thêm</span>
+                <span>Tiện ích</span>
                 <ChevronRight size={16} aria-hidden="true" />
               </summary>
               <div className="reader-sheet-grid reader-sheet-section-body">
-                <BackgroundAudioPlayer mode="inline" />
-                <AmbientSoundPlayer />
+                {showAdminExtras && READER_BACKGROUND_AUDIO_UI_ENABLED ? (
+                  <>
+                    <BackgroundAudioPlayer mode="inline" />
+                    <AmbientSoundPlayer />
+                  </>
+                ) : null}
                 <button className="reader-sheet-action" type="button" onClick={() => setChapterSearchOpen(true)}>
                   <Search size={16} />
                   Tìm trong chương
@@ -4556,15 +4614,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 >
                   {readerDimEnabled ? <Eye size={16} /> : <EyeOff size={16} />}
                   {readerDimEnabled ? "Dịu mắt" : "Lọc sáng"}
-                </button>
-                <button
-                  className={`reader-sheet-action ${skillEffectsEnabled ? "reader-sheet-action-active" : ""}`}
-                  type="button"
-                  aria-pressed={skillEffectsEnabled}
-                  onClick={toggleReaderSkillEffects}
-                >
-                  <Highlighter size={16} />
-                  {skillEffectsEnabled ? "Tắt hiệu ứng" : "Hiệu ứng tu luyện"}
                 </button>
                 <button
                   className={`reader-sheet-action ${tapEdgeEnabled ? "reader-sheet-action-active" : ""}`}
@@ -4596,6 +4645,17 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   {focusModeEnabled ? <Eye size={16} /> : <EyeOff size={16} />}
                   {focusModeEnabled ? "Đang focus" : "Focus"}
                 </button>
+                {showAdminExtras ? (
+                  <button
+                    className={`reader-sheet-action ${skillEffectsEnabled ? "reader-sheet-action-active" : ""}`}
+                    type="button"
+                    aria-pressed={skillEffectsEnabled}
+                    onClick={toggleReaderSkillEffects}
+                  >
+                    <Highlighter size={16} />
+                    {skillEffectsEnabled ? "Tắt hiệu ứng" : "Hiệu ứng tu luyện"}
+                  </button>
+                ) : null}
               </div>
             </details>
 
@@ -4999,7 +5059,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               />
             ) : null}
 
-            {audioPanelOpen ? (
+            {READER_CHAPTER_AUDIO_UI_ENABLED && audioPanelOpen ? (
               <section className="audio-panel" aria-label="Chapter audio" ref={audioPanelRef}>
                 <ChapterAudioPlayer
                   chapterId={activePayload.chapter.id}

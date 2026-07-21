@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import { ErrorView } from "@/components/ErrorView";
+
+export const metadata: Metadata = {
+  title: "Trang lỗi",
+  robots: { index: false, follow: false },
+};
 
 export default async function ErrorPage({
   searchParams

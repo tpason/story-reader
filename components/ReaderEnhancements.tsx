@@ -3,6 +3,7 @@
 import { BookOpen, BookmarkPlus, BookOpenCheck, Share2, StickyNote, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import type { GlossaryCharacter } from "@/lib/reader-glossary";
 import type { ChapterSummary } from "@/lib/types";
 
@@ -160,14 +161,13 @@ export function ReaderParagraphNoteEditor({
   }, []);
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockBodyScroll();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unlock();
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [onClose]);

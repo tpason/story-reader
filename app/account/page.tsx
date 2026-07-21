@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import nextDynamic from "next/dynamic";
 import { AccountEmailPanel } from "@/components/AccountEmailPanel";
 import { MotionFX } from "@/components/MotionFX";
@@ -24,10 +25,16 @@ const CultivationPanel = nextDynamic(() => import("@/components/CultivationPanel
 
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = {
+  title: "Động phủ",
+  description: "Quản lý định danh đạo hữu, tu vi và tùy chọn đọc trên Linh Quyển Các.",
+  robots: { index: false, follow: true },
+};
+
 export default function AccountPage() {
   return (
     <main className="app-shell account-shell">
-      <MotionFX variant="error" />
+      <MotionFX variant="library" />
       <SiteHeader />
 
       <div className="page-wrap account-page-wrap">

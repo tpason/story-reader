@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ResetPasswordForm } from "@/components/ResetPasswordForm";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Đặt lại mật khẩu",
+  description: "Chọn mật khẩu mới cho động phủ Linh Quyển Các.",
+  robots: { index: false, follow: false },
+};
 
 export default function ResetPasswordPage() {
   return (

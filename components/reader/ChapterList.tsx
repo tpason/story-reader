@@ -2,10 +2,11 @@
 
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2, Search, X } from "lucide-react";
 import Link from "next/link";
-import { memo, useMemo, useState, type FormEvent } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { ChapterTimestamp } from "@/components/ChapterTimestamp";
 import { isTodayLocal } from "@/lib/date";
 import { formatChapterCardTitle } from "@/lib/chapter-title";
+import { READER_CHAPTER_AUDIO_UI_ENABLED } from "@/lib/reader-features";
 import type { ChapterSummary, StorySummary } from "@/lib/types";
 import { storyHref } from "@/lib/urls";
 
@@ -54,7 +55,9 @@ const ChapterCard = memo(function ChapterCard({
         {chapter.textSource === "polished" ? (
           <span className="chapter-status chapter-status-polished">Polish</span>
         ) : null}
-        {chapter.hasAudio ? <span className="chapter-status chapter-status-audio">Audio</span> : null}
+        {READER_CHAPTER_AUDIO_UI_ENABLED && chapter.hasAudio ? (
+          <span className="chapter-status chapter-status-audio">Audio</span>
+        ) : null}
         <ChapterTimestamp chapter={chapter} />
       </span>
     </Link>
@@ -66,6 +69,98 @@ function ChapterCardSkeleton() {
     <div className="story-chapter-card story-chapter-card-skeleton" aria-hidden="true">
       <span className="xi-skel story-chapter-skeleton-title" />
       <span className="xi-skel story-chapter-skeleton-badges" />
+    </div>
+  );
+}
+
+type PagerProps = {
+  isSearching: boolean;
+  isExpandedList: boolean;
+  currentChapterPage: number;
+  totalChapterPages: number;
+  activeChapterSearch: string;
+  chapterRangeLabel: string;
+  hasPrevPage: boolean;
+  hasNextPage: boolean;
+  isLoading: boolean;
+  chapterPageStart: number;
+  pageLastChapter: number;
+  totalChapters: number;
+  onLoadPage: (targetChapter: number) => void;
+  onAppendNext?: () => void;
+  preferAppend?: boolean;
+  ariaLabel: string;
+};
+
+function ChapterPager({
+  isSearching,
+  isExpandedList,
+  currentChapterPage,
+  totalChapterPages,
+  activeChapterSearch,
+  chapterRangeLabel,
+  hasPrevPage,
+  hasNextPage,
+  isLoading,
+  chapterPageStart,
+  pageLastChapter,
+  totalChapters,
+  onLoadPage,
+  onAppendNext,
+  preferAppend = false,
+  ariaLabel,
+}: PagerProps) {
+  const nextAppends = Boolean(preferAppend && onAppendNext && !isSearching);
+  return (
+    <div className="story-chapter-toolbar" aria-label={ariaLabel}>
+      <div className="story-chapter-page-label">
+        <span>
+          {isSearching
+            ? "Đang lọc mục lục"
+            : isExpandedList
+              ? "Đã tải liên tục"
+              : `Trang ${currentChapterPage}/${totalChapterPages}`}
+        </span>
+        <strong>
+          {isSearching ? `Kết quả cho "${activeChapterSearch}"` : `Chương ${chapterRangeLabel}`}
+        </strong>
+      </div>
+      <div className="story-chapter-pager">
+        <button
+          type="button"
+          onClick={() => onLoadPage(1)}
+          disabled={isSearching || !hasPrevPage || isLoading}
+          aria-label="Về chương đầu"
+        >
+          <ChevronsLeft size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onLoadPage(Math.max(1, chapterPageStart - CHAPTER_PAGE_SIZE))}
+          disabled={isSearching || !hasPrevPage || isLoading}
+          aria-label="Trang chương trước"
+        >
+          <ChevronLeft size={16} />
+          <span>Trước</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => (nextAppends ? onAppendNext?.() : onLoadPage(pageLastChapter + 1))}
+          disabled={!hasNextPage || isLoading}
+          aria-label={nextAppends ? "Tải thêm chương" : "Trang chương sau"}
+        >
+          <span>{nextAppends ? "Tải thêm" : "Sau"}</span>
+          <ChevronRight size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onLoadPage(totalChapters)}
+          disabled={isSearching || !hasNextPage || isLoading}
+          aria-label="Đến chương cuối"
+        >
+          <ChevronsRight size={16} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -89,10 +184,12 @@ export type ChapterListProps = {
   hasPrevPage: boolean;
   hasNextPage: boolean;
   chapterRangeLabel: string;
+  isExpandedList?: boolean;
   onChapterSearchChange: (value: string) => void;
   onSearch: (event?: FormEvent<HTMLFormElement>) => void;
   onClearSearch: () => void;
   onLoadPage: (targetChapter: number) => void;
+  onAppendNext?: () => void;
   freshChapterNumber?: number | null;
 };
 
@@ -106,7 +203,7 @@ export const ChapterList = memo(function ChapterList({
   error,
   chapterSearch,
   activeChapterSearch,
-  pageFirstChapter,
+  pageFirstChapter: _pageFirstChapter,
   pageLastChapter,
   chapterPageStart,
   currentChapterPage,
@@ -115,13 +212,22 @@ export const ChapterList = memo(function ChapterList({
   hasPrevPage,
   hasNextPage,
   chapterRangeLabel,
+  isExpandedList = false,
   onChapterSearchChange,
   onSearch,
   onClearSearch,
   onLoadPage,
+  onAppendNext,
   freshChapterNumber = null,
 }: ChapterListProps) {
   const [chapterFilter, setChapterFilter] = useState<ChapterListFilter>("all");
+  const nextSentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!READER_CHAPTER_AUDIO_UI_ENABLED && chapterFilter === "audio") {
+      setChapterFilter("all");
+    }
+  }, [chapterFilter]);
   const visibleChapters = useMemo(() => {
     if (chapterFilter === "unread") {
       return chapters.filter((chapter) => chapter.chapterNumber > maxReadChapter);
@@ -132,10 +238,83 @@ export const ChapterList = memo(function ChapterList({
     return chapters;
   }, [chapterFilter, chapters, maxReadChapter]);
 
+  useEffect(() => {
+    if (!onAppendNext || isSearching || !hasNextPage || chapterFilter !== "all" || isLoading) return;
+    const sentinel = nextSentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          onAppendNext();
+        }
+      },
+      { root: null, rootMargin: "240px 0px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [onAppendNext, isSearching, hasNextPage, chapters.length, chapterFilter, isLoading]);
+
   if (totalChapters === 0) {
     return (
       <div className="empty-state">
         <p>Truyện này chưa có chapter trong database.</p>
+      </div>
+    );
+  }
+
+  const pagerShared = {
+    isSearching,
+    isExpandedList,
+    currentChapterPage,
+    totalChapterPages,
+    activeChapterSearch,
+    chapterRangeLabel,
+    hasPrevPage,
+    hasNextPage,
+    isLoading,
+    chapterPageStart,
+    pageLastChapter,
+    totalChapters,
+    onLoadPage,
+    onAppendNext,
+  };
+
+  const showSkeletonReplace = isLoading && chapters.length === 0;
+  let listBody: ReactNode;
+  if (showSkeletonReplace) {
+    listBody = (
+      <div className="story-chapter-list" aria-busy="true" aria-label="Đang tải chương">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <ChapterCardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  } else if (visibleChapters.length > 0) {
+    listBody = (
+      <div className="story-chapter-list">
+        {visibleChapters.map((chapter) => (
+          <ChapterCard
+            key={chapter.id}
+            chapter={chapter}
+            maxReadChapter={maxReadChapter}
+            currentStory={currentStory}
+            currentChapterNumber={currentChapterNumber}
+            fresh={freshChapterNumber === chapter.chapterNumber}
+          />
+        ))}
+      </div>
+    );
+  } else {
+    listBody = (
+      <div className="empty-state">
+        <p>
+          {chapterFilter !== "all"
+            ? "Không có chương phù hợp bộ lọc."
+            : isSearching
+              ? "Không tìm thấy chương phù hợp."
+              : "Không có chương trong trang này."}
+        </p>
       </div>
     );
   }
@@ -184,10 +363,12 @@ export const ChapterList = memo(function ChapterList({
       <div className="story-chapter-filters" role="group" aria-label="Lọc chương">
         {(
           [
-            { id: "all", label: "Tất cả" },
-            { id: "unread", label: "Chưa đọc" },
-            { id: "audio", label: "Có audio" }
-          ] as const
+            { id: "all" as const, label: "Tất cả" },
+            { id: "unread" as const, label: "Chưa đọc" },
+            ...(READER_CHAPTER_AUDIO_UI_ENABLED
+              ? [{ id: "audio" as const, label: "Có audio" }]
+              : [])
+          ] satisfies Array<{ id: ChapterListFilter; label: string }>
         ).map((option) => (
           <button
             key={option.id}
@@ -201,90 +382,24 @@ export const ChapterList = memo(function ChapterList({
         ))}
       </div>
 
-      <div className="story-chapter-toolbar" aria-label="Chapter pagination">
-        <div className="story-chapter-page-label">
-          <span>{isSearching ? "Đang lọc mục lục" : `Trang ${currentChapterPage}/${totalChapterPages}`}</span>
-          <strong>
-            {isSearching ? `Kết quả cho "${activeChapterSearch}"` : `Chương ${chapterRangeLabel}`}
-          </strong>
-        </div>
-        <div className="story-chapter-pager">
-          <button
-            type="button"
-            onClick={() => onLoadPage(1)}
-            disabled={isSearching || !hasPrevPage || isLoading}
-            aria-label="Về chương đầu"
-          >
-            <ChevronsLeft size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={() => onLoadPage(Math.max(1, chapterPageStart - CHAPTER_PAGE_SIZE))}
-            disabled={isSearching || !hasPrevPage || isLoading}
-            aria-label="Trang chương trước"
-          >
-            <ChevronLeft size={16} />
-            <span>Trước</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onLoadPage(pageLastChapter + 1)}
-            disabled={!hasNextPage || isLoading}
-            aria-label="Trang chương sau"
-          >
-            <span>Sau</span>
-            <ChevronRight size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={() => onLoadPage(totalChapters)}
-            disabled={isSearching || !hasNextPage || isLoading}
-            aria-label="Đến chương cuối"
-          >
-            <ChevronsRight size={16} />
-          </button>
-        </div>
-      </div>
+      <ChapterPager {...pagerShared} preferAppend={false} ariaLabel="Chapter pagination top" />
 
       {error ? <p className="story-chapter-error">{error}</p> : null}
 
-      {isLoading ? (
-        <div className="story-chapter-list" aria-busy="true" aria-label="Đang tải chương">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <ChapterCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : visibleChapters.length > 0 ? (
-        <div className="story-chapter-list">
-          {visibleChapters.map((chapter) => (
-            <ChapterCard
-              key={chapter.id}
-              chapter={chapter}
-              maxReadChapter={maxReadChapter}
-              currentStory={currentStory}
-              currentChapterNumber={currentChapterNumber}
-              fresh={freshChapterNumber === chapter.chapterNumber}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="empty-state">
-          <p>
-            {chapterFilter !== "all"
-              ? "Không có chương phù hợp bộ lọc."
-              : isSearching
-                ? "Không tìm thấy chương phù hợp."
-                : "Không có chương trong trang này."}
-          </p>
-        </div>
-      )}
+      {listBody}
 
-      {isLoading ? (
+      {!isSearching && hasNextPage && chapterFilter === "all" ? (
+        <div ref={nextSentinelRef} className="story-chapter-next-sentinel" aria-hidden="true" />
+      ) : null}
+
+      {isLoading && chapters.length > 0 ? (
         <div className="story-chapter-loading" role="status" aria-live="polite">
           <Loader2 size={16} />
           Đang tải chương
         </div>
       ) : null}
+
+      <ChapterPager {...pagerShared} preferAppend ariaLabel="Chapter pagination bottom" />
     </>
   );
 });

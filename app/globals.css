@@ -20070,3 +20070,85 @@ html[data-xi-perf="saver"] .xianxia-css-backdrop .xi-css-cranes {
     display: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Story chapter list — infinite-scroll sentinel (2026-07-21)
+   Append-only: do not move mid-file. Desktop + mobile.
+   ═══════════════════════════════════════════════════════════════════════ */
+.story-chapter-next-sentinel {
+  width: 100%;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Brand mark — circular PNG logo (scholar / scroll)
+   Append-only: 2026-07-21
+   ═══════════════════════════════════════════════════════════════════════ */
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 1.5px solid rgba(200, 150, 46, 0.55);
+  background: #f8f4ea;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 0 0 3px rgba(200, 150, 46, 0.12),
+    0 6px 16px rgba(8, 20, 14, 0.28);
+  color: transparent;
+}
+
+.brand-mark::before {
+  display: none;
+}
+
+.brand-mark-img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.brand:hover .brand-mark {
+  transform: scale(1.04);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 0 0 3px rgba(200, 150, 46, 0.2),
+    0 0 20px rgba(200, 150, 46, 0.2),
+    0 6px 16px rgba(8, 20, 14, 0.3);
+}
+
+[data-xi-theme="dark"] .brand-mark {
+  border-color: rgba(232, 200, 96, 0.45);
+  background: transparent;
+  box-shadow:
+    0 0 0 3px rgba(232, 200, 96, 0.1),
+    0 6px 16px rgba(0, 0, 0, 0.45);
+}
+
+[data-xi-theme="dark"] .brand-mark-img {
+  /* Soft invert-adjacent: keep ink mark readable on dark chrome */
+  filter: none;
+  background: #f5f0e4;
+}
+
+@media (max-width: 620px) {
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+.xi-boot-splash-mark.brand-mark,
+.xi-loader-brand-mark.brand-mark {
+  width: 72px;
+  height: 72px;
+  border-width: 2px;
+}

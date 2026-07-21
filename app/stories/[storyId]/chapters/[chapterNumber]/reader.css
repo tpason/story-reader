@@ -8971,3 +8971,79 @@ html[data-xi-perf="saver"] .reader-spirit-companion {
     isolation: isolate;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Reader perf + bilingual mobile clarity (2026-07-21)
+   Append-only. Respects dark/light via --reader-* vars.
+   Desktop: kill expensive always-on paints that flash/heat GPU.
+   Compact: keep bilingual stacked + hide desktop-only layout control.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Static border instead of full-height conic spin (major desktop flash source). */
+@media (min-width: 840px) {
+  .reader-content::before {
+    animation: none !important;
+    opacity: 0.42;
+    background:
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--link) 55%, transparent),
+        color-mix(in srgb, #f5d75e 48%, transparent),
+        color-mix(in srgb, #2a9d99 42%, transparent)
+      ) !important;
+  }
+
+  .reader-ambience-layer .reader-xi-rays,
+  .reader-ambience-layer .reader-xi-mist,
+  .reader-ambience-layer .reader-xi-mist-a,
+  .reader-ambience-layer .reader-xi-mist-b {
+    animation: none !important;
+    filter: none !important;
+    opacity: 0.35;
+  }
+}
+
+@media (max-width: 839px) {
+  .reader-bilingual-field-desktop-only {
+    display: none !important;
+  }
+
+  .reader-paragraph-bilingual-lang {
+    display: inline-block;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 70%, var(--reader-ink) 30%);
+    margin-right: 0.35em;
+  }
+
+  .reader-sheet-action-bilingual {
+    grid-column: 1 / -1;
+    min-height: 44px;
+    font-weight: 650;
+  }
+}
+
+html[data-xi-perf="saver"] .reader-content::before,
+html[data-theme="dark"] .reader-shell[data-reader-perf="saver"] .reader-content::before {
+  animation: none !important;
+}
+
+/* Soft xianxia vibe restore — opacity/transform only, no blur (2026-07-21)
+   Keeps mountain/mist presence without continuous expensive filter paints. */
+@media (min-width: 840px) {
+  .reader-ambience-layer .reader-xi-mist-a {
+    animation: readerXiMistDriftA 28s ease-in-out infinite !important;
+    opacity: 0.48;
+  }
+
+  .reader-ambience-layer .reader-xi-mist-b {
+    animation: readerXiMistDriftB 34s ease-in-out infinite reverse !important;
+    opacity: 0.4;
+  }
+
+  .reader-ambience-layer .reader-xi-rays {
+    animation: readerXiRaysDrift 32s ease-in-out infinite !important;
+    opacity: 0.38;
+  }
+}

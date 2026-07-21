@@ -31,7 +31,9 @@ import {
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   return (
     <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
+      {/* Never block SSR/FCP with loading={null} — paint page HTML immediately;
+          redux-persist + StoreHydrator patch client state after mount. */}
+      <PersistGate loading={children} persistor={persistor}>
         <StoreHydrator>{children}</StoreHydrator>
       </PersistGate>
     </Provider>

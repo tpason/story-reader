@@ -10,6 +10,7 @@ import { SiteHeaderSearch } from "@/components/SiteHeaderSearch";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationBell } from "@/components/NotificationBell";
 import { UserIdentity } from "@/components/UserIdentity";
+import { lockBodyScroll } from "@/lib/body-scroll-lock";
 
 type NavItem = {
   href: Route;
@@ -181,8 +182,7 @@ export function SiteHeader({ className, showSearch = true }: SiteHeaderProps) {
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockBodyScroll();
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") setMobileMenuOpen(false);
@@ -190,7 +190,7 @@ export function SiteHeader({ className, showSearch = true }: SiteHeaderProps) {
 
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unlock();
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [mobileMenuOpen]);

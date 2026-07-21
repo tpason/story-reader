@@ -5,6 +5,7 @@ import { BookOpenCheck, ChevronRight, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { prefersReducedMotion } from "@/lib/browser";
+import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import type { StorySummary } from "@/lib/types";
 
 type Props = {
@@ -20,11 +21,8 @@ export function StoryCompletionOverlay({ story, chaptersRead, onDismiss }: Props
   const sealRef    = useRef<HTMLDivElement>(null);
   const titleRef   = useRef<HTMLHeadingElement>(null);
 
-  // Lock body scroll while visible
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
+    return lockBodyScroll();
   }, []);
 
   // Keyboard dismiss

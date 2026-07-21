@@ -11,8 +11,9 @@ const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) =>
 export const revalidate = 600;
 
 export const metadata: Metadata = {
-  title: "Thể loại | Linh Quyển Các",
+  title: "Thể loại",
   description: "Duyệt thể loại truyện tiên hiệp, kiếm hiệp, đô thị và nhiều thể loại khác trên Linh Quyển Các.",
+  alternates: { canonical: "/categories" },
 };
 
 export default async function CategoriesIndexPage() {

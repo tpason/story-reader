@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { CultivationAvatar } from "@/components/CultivationAvatar";
 import { fetchCurrentUser } from "@/lib/api-client";
 import { getCultivationState } from "@/lib/cultivation";
+import { lockBodyScroll } from "@/lib/body-scroll-lock";
 import { clearCurrentUser, storeCurrentUser, type StoredReaderUser } from "@/lib/identity";
 import { persistor, setCurrentUser } from "@/lib/store";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
@@ -65,8 +66,7 @@ export function UserIdentity({ compact = false, panel = false, className = "" }:
   useEffect(() => {
     if (!modalOpen) return;
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockBodyScroll();
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setModalOpen(false);
@@ -74,7 +74,7 @@ export function UserIdentity({ compact = false, panel = false, className = "" }:
 
     window.addEventListener("keydown", onKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unlock();
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [modalOpen]);
