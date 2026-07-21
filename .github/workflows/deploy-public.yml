@@ -49,13 +49,19 @@ jobs:
             --exclude .claude --exclude .agent --exclude .agents \
             --exclude test-results --exclude e2e-report --exclude .cache \
             ./ "${HOST}:${PATH_REMOTE}/story_reader/"
+          # Never `docker rm` the running reader on build failure — that caused production 502s.
+          # Name-conflict orphans only (old compose rename leftovers).
           ssh -o BatchMode=yes "$HOST" \
             "cd $(printf %q "$PATH_REMOTE") && \
-             docker compose -f docker-compose.public.yml --env-file .env.public up -d --build story-reader || {
-               docker rm -f linhquyen-public-story-reader-1 2>/dev/null || true;
-               docker ps -aq --filter name=story-reader | xargs -r docker rm -f;
-               docker compose -f docker-compose.public.yml --env-file .env.public up -d --build story-reader;
-             }"
-          # Wait for Next to accept traffic after recreate
+             if ! docker compose -f docker-compose.public.yml --env-file .env.public up -d --build story-reader; then
+               echo '[deploy] build/up failed — leaving existing reader container intact' >&2;
+               orphans=\$(docker ps -aq --filter name='_linhquyen-public-story-reader');
+               if [ -n \"\$orphans\" ]; then
+                 docker rm -f \$orphans || true;
+                 docker compose -f docker-compose.public.yml --env-file .env.public up -d --build story-reader;
+               else
+                 exit 1;
+               fi;
+             fi"
           ssh -o BatchMode=yes "$HOST" \
             'for i in 1 2 3 4 5 6 7 8 9 10; do curl -sf http://127.0.0.1:3000/api/health && exit 0; sleep 3; done; exit 1'
