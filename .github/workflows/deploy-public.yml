@@ -1,0 +1,54 @@
+# Deploy Linh Quyển reader to VPS on push/merge to main.
+#
+# Required GitHub Actions secret (story-reader repo):
+#   VPS_SSH_KEY  — private key for SSH to VPS
+# Optional:
+#   VPS_HOST     — default root@167.233.211.214
+#   VPS_PATH     — default /opt/linhquyen
+name: Deploy public reader
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-public-reader
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Trust VPS host key
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          HOST_SPEC="${VPS_HOST:-root@167.233.211.214}"
+          HOST="${HOST_SPEC#*@}"
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts
+
+      - name: Rsync story_reader + rebuild
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PATH: ${{ secrets.VPS_PATH }}
+        run: |
+          set -euo pipefail
+          HOST="${VPS_HOST:-root@167.233.211.214}"
+          PATH_REMOTE="${VPS_PATH:-/opt/linhquyen}"
+          rsync -az --delete \
+            --exclude node_modules --exclude .next --exclude .git \
+            --exclude .claude --exclude .agent --exclude .agents \
+            --exclude test-results --exclude e2e-report --exclude .cache \
+            ./ "${HOST}:${PATH_REMOTE}/story_reader/"
+          ssh -o BatchMode=yes "$HOST" \
+            "cd $(printf %q "$PATH_REMOTE") && docker compose -f docker-compose.public.yml --env-file .env.public up -d --build story-reader"
+          ssh -o BatchMode=yes "$HOST" 'curl -sf http://127.0.0.1:3000/api/health | head -c 200; echo'
