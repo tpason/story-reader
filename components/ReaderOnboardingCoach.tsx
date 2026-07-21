@@ -19,12 +19,13 @@ export function ReaderOnboardingCoach({ compact }: ReaderOnboardingCoachProps) {
   const [stepIndex, setStepIndex] = useState(0);
 
   useEffect(() => {
-    if (!compact && shouldShowReaderOnboarding()) {
+    // Swipe / dock tips are mobile-only — desktop was showing a sunken coach over the page.
+    if (compact && shouldShowReaderOnboarding()) {
       setOpen(true);
     }
   }, [compact]);
 
-  if (!open) return null;
+  if (!open || !compact) return null;
 
   const step = READER_ONBOARDING_STEPS[stepIndex];
   const StepIcon = STEP_ICONS[stepIndex] ?? BookOpen;

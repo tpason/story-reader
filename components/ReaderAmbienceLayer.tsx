@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import { useDeferredWebglMount } from "@/hooks/useDeferredWebglMount";
 import { useCompactViewport } from "@/hooks/useCompactViewport";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
-import { ReaderAmbienceCss } from "@/components/ReaderAmbienceCss";
 
 const ThreeReaderAmbience = dynamic(
   () => import("@/components/ThreeReaderAmbience").then((mod) => mod.ThreeReaderAmbience),
@@ -13,13 +12,14 @@ const ThreeReaderAmbience = dynamic(
 
 type ReaderAmbienceLayerProps = {
   enabled?: boolean;
-  /** When false, keep CSS vibe only — skip deferred WebGL (faster first paint). */
+  /** Admin-only WebGL ambience. When false, mount nothing (CSS mist flashed on scroll). */
   allowWebgl?: boolean;
 };
 
 /**
  * Mobile ≤839px: off entirely.
- * Desktop: CSS ambience by default; optional deferred WebGL when allowWebgl.
+ * Public desktop: off (opaque shell; CSS ambience caused compositor flash).
+ * Admin desktop: deferred WebGL only when allowWebgl.
  */
 export function ReaderAmbienceLayer({ enabled = true, allowWebgl = true }: ReaderAmbienceLayerProps) {
   const isCompact = useCompactViewport();
@@ -29,16 +29,14 @@ export function ReaderAmbienceLayer({ enabled = true, allowWebgl = true }: Reade
   });
   const webglReady = useDeferredWebglMount(allowWebgl && webglEnabled && !isCompact, 2000);
 
-  if (!enabled || isCompact) return null;
+  if (!enabled || isCompact || !allowWebgl) return null;
 
-  const showWebgl = allowWebgl && webglEnabled && webglReady;
+  const showWebgl = webglEnabled && webglReady;
+  if (!showWebgl) return null;
 
   return (
-    <div
-      className={`reader-ambience-layer${showWebgl ? " reader-ambience-layer--webgl" : ""}`}
-      aria-hidden="true"
-    >
-      {showWebgl ? <ThreeReaderAmbience /> : <ReaderAmbienceCss />}
+    <div className="reader-ambience-layer reader-ambience-layer--webgl" aria-hidden="true">
+      <ThreeReaderAmbience />
     </div>
   );
 }

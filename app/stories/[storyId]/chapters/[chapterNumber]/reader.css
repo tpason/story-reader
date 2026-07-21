@@ -9047,3 +9047,104 @@ html[data-theme="dark"] .reader-shell[data-reader-perf="saver"] .reader-content:
     opacity: 0.38;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DESKTOP READER FLASH FIX (2026-07-21)
+   Transparent .reader-shell over body #0f1714 + CSS ambience mist/rays
+   → compositor flash on scroll; glass toasts sink into mountain.
+   Opaque shell; kill CSS ambience animations; solid onboarding coach.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 840px) {
+  .reader-shell,
+  .reader-shell--desktop {
+    background: var(--reader-panel-solid, #fffefa);
+  }
+
+  .reader-shell[data-theme="light"] {
+    background: var(--reader-panel-solid, #fffefa);
+  }
+
+  .reader-shell[data-theme="sepia"],
+  .reader-shell[data-theme="parchment"],
+  .reader-shell[data-theme="bamboo"] {
+    background: var(--reader-panel-solid, #f3ead8);
+  }
+
+  .reader-shell[data-theme="dark"],
+  .reader-shell[data-theme="ink-night"] {
+    background: var(--reader-panel-solid, #10100f);
+  }
+
+  .reader-shell[data-theme="oled"] {
+    background: var(--reader-panel-solid, #000000);
+  }
+
+  /* Public path mounts no ambience; neutralize leftover CSS mist/ray paints. */
+  .reader-ambience-css,
+  .reader-ambience-layer:not(.reader-ambience-layer--webgl) {
+    display: none !important;
+  }
+
+  .reader-ambience-layer .reader-xi-mist,
+  .reader-ambience-layer .reader-xi-mist-a,
+  .reader-ambience-layer .reader-xi-mist-b,
+  .reader-ambience-layer .reader-xi-rays,
+  .reader-ambience-layer .reader-xi-qi,
+  .reader-ambience-layer .reader-xi-light,
+  .reader-ambience-layer .reader-xi-wind,
+  .reader-ambience-layer .reader-xi-wind-a,
+  .reader-ambience-layer .reader-xi-wind-b,
+  .reader-ambience-layer .reader-xi-sway,
+  .reader-ambience-layer .reader-xi-dust,
+  .reader-ambience-layer .reader-xi-petals {
+    animation: none !important;
+    filter: none !important;
+    will-change: auto !important;
+  }
+}
+
+/* Onboarding coach: --panel is unset on reader → sunken glass. Use solid ink panel. */
+.reader-shell .reader-onboarding-coach-card {
+  background: var(--reader-panel-solid, var(--reader-bg, #fffefa)) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: color-mix(in srgb, var(--reader-line) 72%, var(--reader-ink) 28%);
+  color: var(--reader-ink);
+  box-shadow: 0 20px 50px rgba(18, 16, 13, 0.28);
+}
+
+.reader-shell .reader-onboarding-coach-card h2 {
+  color: var(--reader-ink);
+}
+
+.reader-shell .reader-onboarding-coach-card p,
+.reader-shell .reader-onboarding-coach-eyebrow,
+.reader-shell .reader-onboarding-coach-secondary {
+  color: var(--reader-muted);
+}
+
+.reader-shell .reader-onboarding-coach-dismiss {
+  color: var(--reader-muted);
+}
+
+.reader-shell .reader-onboarding-coach-icon {
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 16%, var(--reader-panel-solid, var(--reader-bg)));
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 70%, var(--reader-ink) 30%);
+}
+
+.reader-shell .reader-onboarding-coach-primary {
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 18%, var(--reader-panel-solid, var(--reader-bg)));
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 42%, var(--reader-line));
+  color: var(--reader-ink);
+}
+
+/* Keep fixed hints opaque (coach joins engagement / swipe / fresh / resume). */
+.reader-shell .reader-onboarding-coach-card,
+.reader-shell .reader-engagement-prompt,
+.reader-shell .reader-chapter-fresh-hint,
+.reader-shell .reader-swipe-notice,
+.reader-shell .reader-resume-banner {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
