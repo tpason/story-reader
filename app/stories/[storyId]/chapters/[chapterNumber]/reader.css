@@ -9049,58 +9049,41 @@ html[data-theme="dark"] .reader-shell[data-reader-perf="saver"] .reader-content:
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   DESKTOP READER FLASH FIX (2026-07-21)
-   Transparent .reader-shell over body #0f1714 + CSS ambience mist/rays
-   → compositor flash on scroll; glass toasts sink into mountain.
-   Opaque shell; kill CSS ambience animations; solid onboarding coach.
+   DESKTOP READER OVERLAYS + VIBE (2026-07-21 corrected)
+   Flash root cause (documented 2026-07-16): backdrop-filter on scrolling
+   .reader-content repainting against animated mountain/ambience — fixed by
+   solid reading column + isolation (see block ~7632), NOT by deleting vibe.
+   Scroll re-renders reduced in a0c9a31 (imperative DOM + idle setState).
+   Keep: opaque fixed hints/coach. Keep: transparent shell gutters + ambience.
    ═══════════════════════════════════════════════════════════════════════ */
 
 @media (min-width: 840px) {
   .reader-shell,
-  .reader-shell--desktop {
-    background: var(--reader-panel-solid, #fffefa);
-  }
-
-  .reader-shell[data-theme="light"] {
-    background: var(--reader-panel-solid, #fffefa);
-  }
-
+  .reader-shell--desktop,
+  .reader-shell[data-theme="light"],
   .reader-shell[data-theme="sepia"],
   .reader-shell[data-theme="parchment"],
-  .reader-shell[data-theme="bamboo"] {
-    background: var(--reader-panel-solid, #f3ead8);
-  }
-
+  .reader-shell[data-theme="bamboo"],
   .reader-shell[data-theme="dark"],
-  .reader-shell[data-theme="ink-night"] {
-    background: var(--reader-panel-solid, #10100f);
-  }
-
+  .reader-shell[data-theme="ink-night"],
   .reader-shell[data-theme="oled"] {
-    background: var(--reader-panel-solid, #000000);
+    background: transparent;
   }
 
-  /* Public path mounts no ambience; neutralize leftover CSS mist/ray paints. */
-  .reader-ambience-css,
-  .reader-ambience-layer:not(.reader-ambience-layer--webgl) {
-    display: none !important;
-  }
-
+  /* Compositor calm without killing motion: no layer promotion on mist. */
   .reader-ambience-layer .reader-xi-mist,
   .reader-ambience-layer .reader-xi-mist-a,
-  .reader-ambience-layer .reader-xi-mist-b,
-  .reader-ambience-layer .reader-xi-rays,
-  .reader-ambience-layer .reader-xi-qi,
-  .reader-ambience-layer .reader-xi-light,
-  .reader-ambience-layer .reader-xi-wind,
-  .reader-ambience-layer .reader-xi-wind-a,
-  .reader-ambience-layer .reader-xi-wind-b,
-  .reader-ambience-layer .reader-xi-sway,
-  .reader-ambience-layer .reader-xi-dust,
-  .reader-ambience-layer .reader-xi-petals {
-    animation: none !important;
-    filter: none !important;
-    will-change: auto !important;
+  .reader-ambience-layer .reader-xi-mist-b {
+    will-change: auto;
+  }
+
+  /* Re-assert reading-column isolation (actual flash fix). */
+  .reader-shell--desktop .reader-content,
+  .reader-shell--desktop .reader-heading {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--reader-panel-solid, var(--reader-bg));
+    isolation: isolate;
   }
 }
 
