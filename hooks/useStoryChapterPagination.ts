@@ -91,17 +91,14 @@ export function useStoryChapterPagination({ storyId, initialChapters, totalChapt
       const response = await fetch(`/api/stories/${storyId}/chapters?${params.toString()}`);
       if (!response.ok) throw new Error("Không thể tải danh sách chương.");
       const data = (await response.json()) as CursorPage<ChapterSummary>;
+      const existing = new Set(chapterPage.map((chapter) => chapter.id));
+      const next = data.items.filter((chapter) => !existing.has(chapter.id));
 
-      let added = 0;
-      setChapterPage((current) => {
-        const existing = new Set(current.map((chapter) => chapter.id));
-        const next = data.items.filter((chapter) => !existing.has(chapter.id));
-        added = next.length;
-        return next.length === 0 ? current : [...current, ...next];
-      });
-
-      if (!data.items.length || data.nextCursor == null || added === 0) {
+      if (!data.items.length || data.nextCursor == null || next.length === 0) {
         setAppendExhausted(true);
+      }
+      if (next.length > 0) {
+        setChapterPage((current) => [...current, ...next]);
       }
     } catch (error) {
       setChapterLoadError(error instanceof Error ? error.message : "Không thể tải danh sách chương.");
@@ -109,7 +106,7 @@ export function useStoryChapterPagination({ storyId, initialChapters, totalChapt
       appendInFlightRef.current = false;
       setIsLoadingChapters(false);
     }
-  }, [hasNextChapterPage, isLoadingChapters, isSearchingChapters, pageLastChapter, storyId]);
+  }, [chapterPage, hasNextChapterPage, isLoadingChapters, isSearchingChapters, pageLastChapter, storyId]);
 
   const searchChapterList = useCallback(async (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
