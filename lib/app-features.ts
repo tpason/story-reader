@@ -1,10 +1,11 @@
 /**
- * Site-wide product flags — keep xianxia CSS vibe for everyone,
- * park heavy decorative WebGL / extras behind admin until UX is leaner.
+ * Site-wide product flags — keep xianxia CSS vibe for everyone.
+ * Decorative WebGL is public again on non-chapter pages; chapter routes
+ * still skip world backdrop (see XianxiaWorldBackgroundClient).
  */
 
 /** When true, Three.js decorative layers require admin (CSS backdrop stays). */
-export const SITE_DECORATIVE_WEBGL_ADMIN_ONLY = true;
+export const SITE_DECORATIVE_WEBGL_ADMIN_ONLY = false;
 
 export function siteAdminExtrasEnabled(isAdmin: boolean | null | undefined): boolean {
   return Boolean(isAdmin);

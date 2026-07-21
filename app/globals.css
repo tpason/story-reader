@@ -20320,14 +20320,6 @@ html[data-theme="dark"] .pwa-install-dismiss {
   color: #a9a49d;
 }
 
-/* Defense in depth: chapter pages never need world sky/aura under the shell. */
-body:has(.reader-shell) .xianxia-css-backdrop,
-body:has(.reader-shell) .xianxia-world-fallback,
-body:has(.reader-shell) .xianxia-world-background,
-body:has(.reader-shell) .app-aura-layer {
-  display: none !important;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════
    DESKTOP PAGE-WRAP WIDEN (2026-07-21 audit)
    Library/homepage/story-detail use .page-wrap at min(1220px, …) — skinny on
@@ -20344,5 +20336,153 @@ body:has(.reader-shell) .app-aura-layer {
 @media (min-width: 1680px) {
   .page-wrap {
     width: min(1440px, calc(100vw - 64px));
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   VIBE RESTORE 2026-07-21 — page-wrap breath + poetry contain (final)
+   - Soften parchment wash so CSS/WebGL mountains show through center
+   - One definitive hero|poetry grid; kill absolute spill + -80px insets
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 840px) {
+  body:has(.xianxia-css-backdrop) .page-wrap {
+    background: color-mix(in srgb, var(--xi-paper) 48%, transparent);
+  }
+
+  [data-xi-theme="dark"] body:has(.xianxia-css-backdrop) .page-wrap {
+    background: color-mix(in srgb, var(--xi-ink-antique) 32%, transparent);
+  }
+
+  /* Clip horizontal spill from poetry cloud without clipping hero text */
+  body:has(.xianxia-css-backdrop) .page-wrap {
+    overflow-x: clip;
+  }
+
+  .library-header {
+    overflow-x: clip;
+  }
+}
+
+@media (min-width: 1100px) {
+  .library-header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 260px) !important;
+    column-gap: clamp(16px, 2vw, 32px) !important;
+    align-items: center !important;
+  }
+
+  .library-header > .library-hero-shell {
+    grid-column: 1 !important;
+    grid-row: 1;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .library-header > form.library-search {
+    grid-column: 1 !important;
+    grid-row: 2;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .library-header > .xi-poetry-col,
+  .library-header > div.xi-poetry-col {
+    position: relative !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    grid-column: 2 !important;
+    grid-row: 1 / span 2 !important;
+    align-self: center !important;
+    justify-self: center !important;
+    width: 100% !important;
+    max-width: 260px !important;
+    margin: 0 !important;
+    padding: clamp(28px, 2.4vw, 40px) clamp(16px, 1.4vw, 24px) !important;
+    overflow: hidden !important;
+    z-index: 2;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-cloud-bg,
+  .library-header > .xi-poetry-col .xi-cloud-aura--secondary {
+    inset: -12px -14px !important;
+    border-radius: 55% 45% 52% 48% / 48% 52% 46% 54% !important;
+    background:
+      radial-gradient(
+        ellipse 86% 84% at 46% 50%,
+        rgba(255, 253, 245, 0.94) 0%,
+        rgba(255, 252, 241, 0.88) 28%,
+        rgba(255, 250, 236, 0.70) 52%,
+        rgba(255, 248, 230, 0.34) 72%,
+        transparent 100%
+      ) !important;
+    filter: url(#xi-cloud-f-alt) !important;
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.72),
+      inset 0 -2px 8px rgba(212, 188, 144, 0.12),
+      0 4px 18px rgba(196, 168, 112, 0.12),
+      0 0 44px rgba(255, 248, 220, 0.22) !important;
+    animation:
+      xi-poetry-cloud-morph 13s ease-in-out infinite,
+      xi-cloud-breathe 11s ease-in-out infinite !important;
+  }
+
+  html[data-xi-time="night"] .library-header > .xi-poetry-col .xi-cloud-aura--secondary,
+  [data-xi-theme="dark"] .library-header > .xi-poetry-col .xi-poetry-cloud-bg,
+  [data-xi-theme="dark"] .library-header > .xi-poetry-col .xi-cloud-aura--secondary {
+    background:
+      radial-gradient(
+        ellipse 86% 84% at 46% 50%,
+        rgba(18, 22, 28, 0.86) 0%,
+        rgba(12, 14, 18, 0.72) 42%,
+        rgba(10, 12, 16, 0.30) 72%,
+        transparent 100%
+      ) !important;
+    box-shadow:
+      inset 0 0 28px rgba(0, 0, 0, 0.48),
+      inset 0 0 12px rgba(200, 150, 46, 0.12),
+      0 0 22px rgba(200, 150, 46, 0.12),
+      0 0 48px rgba(0, 0, 0, 0.28) !important;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-grid {
+    position: relative;
+    z-index: 1;
+    gap: 11px !important;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-pillar {
+    gap: 8px !important;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-line {
+    font-size: clamp(14px, 1.05vw, 16px) !important;
+  }
+}
+
+@media (min-width: 840px) and (max-width: 1099px) {
+  .library-header > .xi-poetry-col {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-header > .xi-poetry-col .xi-poetry-cloud-bg,
+  .library-header > .xi-poetry-col .xi-cloud-aura--secondary {
+    animation: none !important;
   }
 }
