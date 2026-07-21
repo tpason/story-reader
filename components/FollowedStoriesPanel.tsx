@@ -11,9 +11,16 @@ import { useAppSelector } from "@/lib/store-hooks";
 export function FollowedStoriesPanel() {
   const follows = useAppSelector((state) => state.follows.items);
   const history = useAppSelector((state) => state.history.items);
+  const hydrated = useAppSelector((state) => state.follows.hydrated);
   const { isFresh } = useFreshStoryRealtime();
 
   const historyByStory = new Map(history.map((item) => [item.storyId, item]));
+
+  if (!hydrated && follows.length === 0) {
+    return (
+      <section className="followed-section followed-section--slot" aria-hidden="true" />
+    );
+  }
 
   if (follows.length === 0) {
     return (

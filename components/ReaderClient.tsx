@@ -332,7 +332,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [offlineDownloadProgress, setOfflineDownloadProgress] = useState<{ done: number; total: number } | null>(null);
   const [sheetProgress, setSheetProgress] = useState(0);
   const [mobileProgress, setMobileProgress] = useState(0);
-  const [focusModeEnabled, setFocusModeEnabled] = useState(false);
+  const [focusModeEnabled, setFocusModeEnabled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return readReaderFocusModeDefault();
+  });
   const readerOverflowRef = useRef<HTMLDivElement>(null);
   const [floatingActionsMounted, setFloatingActionsMounted] = useState(false);
   const [showContinuePrompt, setShowContinuePrompt] = useState(false);
@@ -379,6 +382,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [continuousChapterEnabled, setContinuousChapterEnabled] = useState(() => readReaderContinuousChapter());
   const continuousChapterTriggeredRef = useRef(false);
   const continuousChapterEnabledRef = useRef(continuousChapterEnabled);
+  const continuousAppendHandleRef = useRef<{ kind: "idle" | "timeout"; id: number } | null>(null);
+  const isPageLayoutRef = useRef(false);
   const openNextChapterFastRef = useRef<() => void>(() => undefined);
   const appendInlineNextChapterRef = useRef<() => void>(() => undefined);
   const promoteHeadInlineRef = useRef<() => Promise<boolean>>(async () => false);
@@ -597,7 +602,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, [activePayload.chapter, activePayload.story, buildCurrentBookmark, currentBookmark, dispatch]);
 
   useEffect(() => {
-    setFloatingActionsMounted(true);
+    const mount = () => setFloatingActionsMounted(true);
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(mount, { timeout: 1200 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = window.setTimeout(mount, 400);
+    return () => window.clearTimeout(timer);
   }, []);
   const paragraphs = useMemo(() => {
     if (bilingualActive && bilingualPairs.length > 0) {
@@ -1059,8 +1070,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
 
     const restoreOpts = compactViewportRef.current
-      ? { maxAttempts: 14, intervalMs: 80, backoff: true }
-      : { maxAttempts: 16, intervalMs: 64, backoff: true };
+      ? { maxAttempts: 8, intervalMs: 72, backoff: true }
+      : { maxAttempts: 8, intervalMs: 56, backoff: true };
 
     let restoreLanded = false;
 
@@ -1078,7 +1089,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       cancelFns.push(
         schedulePageScrollRestore(restoreTarget.top, {
           ...restoreOpts,
-          maxAttempts: compactViewportRef.current ? 18 : 16
+          maxAttempts: 8
         })
       );
     }
@@ -1139,6 +1150,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setShowCompletionOverlay(false);
     setParagraphNoteEditor(null);
     completionShownRef.current = false;
+    if (continuousAppendHandleRef.current) {
+      const pending = continuousAppendHandleRef.current;
+      continuousAppendHandleRef.current = null;
+      if (pending.kind === "idle" && typeof window !== "undefined" && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(pending.id);
+      } else if (typeof window !== "undefined") {
+        window.clearTimeout(pending.id);
+      }
+    }
     continuousChapterTriggeredRef.current = false;
     setJumpBackTarget(null);
     setInlineChapters([]);
@@ -1226,7 +1246,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   useEffect(() => {
     if (focusDefaultBootstrappedRef.current) return;
     focusDefaultBootstrappedRef.current = true;
-    if (readReaderFocusModeDefault()) setFocusModeEnabled(true);
+    // focusModeEnabled already seeded from storage; only sync audio read-along here.
     setReadAlongEnabled(readReaderAudioReadAlong());
   }, []);
 
@@ -2030,7 +2050,37 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           tailNextChapter
         ) {
           continuousChapterTriggeredRef.current = true;
-          appendInlineNextChapterRef.current();
+          const scheduledChapter = tailNextChapter.chapterNumber;
+          const append = () => {
+            continuousAppendHandleRef.current = null;
+            // Re-validate at fire time — scroll-away / mode toggle / nav must not append.
+            if (!continuousChapterEnabledRef.current || isPageLayoutRef.current) {
+              continuousChapterTriggeredRef.current = false;
+              return;
+            }
+            const stillTail = resolveTailNextChapter(inlineChaptersRef.current, activePayload.nextChapter);
+            if (!stillTail || stillTail.chapterNumber !== scheduledChapter || progressRef.current < 90) {
+              continuousChapterTriggeredRef.current = false;
+              return;
+            }
+            appendInlineNextChapterRef.current();
+          };
+          if (continuousAppendHandleRef.current) {
+            const prev = continuousAppendHandleRef.current;
+            continuousAppendHandleRef.current = null;
+            if (prev.kind === "idle" && "cancelIdleCallback" in window) {
+              window.cancelIdleCallback(prev.id);
+            } else {
+              window.clearTimeout(prev.id);
+            }
+          }
+          if ("requestIdleCallback" in window) {
+            const id = window.requestIdleCallback(append, { timeout: 900 });
+            continuousAppendHandleRef.current = { kind: "idle", id };
+          } else {
+            const id = window.setTimeout(append, 280);
+            continuousAppendHandleRef.current = { kind: "timeout", id };
+          }
         }
 
         // Story completion overlay — only on last chapter of a completed story
@@ -2147,6 +2197,16 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         window.clearTimeout(mobileProgressIdleTimerRef.current);
         mobileProgressIdleTimerRef.current = null;
       }
+      if (continuousAppendHandleRef.current) {
+        const pending = continuousAppendHandleRef.current;
+        continuousAppendHandleRef.current = null;
+        if (pending.kind === "idle" && "cancelIdleCallback" in window) {
+          window.cancelIdleCallback(pending.id);
+        } else {
+          window.clearTimeout(pending.id);
+        }
+        continuousChapterTriggeredRef.current = false;
+      }
       flushProgressForUnload();
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("pagehide", flushProgressForUnload);
@@ -2230,19 +2290,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   useEffect(() => {
     const button = scrollTopButtonRef.current;
-    if (!button || compactReader || prefersReducedMotion() || !animeRef.current) return;
-
-    const animation = animeRef.current(button, {
-      scale: showScrollTop ? [0.84, 1] : [1, 0.9],
-      rotate: showScrollTop ? [-8, 0] : [0, 4],
-      opacity: showScrollTop ? [0, 1] : [1, 0],
-      duration: showScrollTop ? 420 : 180,
-      ease: showScrollTop ? "outBack" : "inQuad"
-    });
-
-    return () => {
-      animation.revert();
-    };
+    if (!button) return;
+    // ClassList opacity already handles visibility — skip animejs (idle hitch after scroll).
+    button.style.opacity = showScrollTop ? "1" : "0";
   }, [showScrollTop]);
 
   useEffect(() => {
@@ -2922,7 +2972,21 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   useEffect(() => {
     continuousChapterEnabledRef.current = continuousChapterEnabled;
+    if (!continuousChapterEnabled && continuousAppendHandleRef.current) {
+      const pending = continuousAppendHandleRef.current;
+      continuousAppendHandleRef.current = null;
+      if (pending.kind === "idle" && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(pending.id);
+      } else {
+        window.clearTimeout(pending.id);
+      }
+      continuousChapterTriggeredRef.current = false;
+    }
   }, [continuousChapterEnabled]);
+
+  useEffect(() => {
+    isPageLayoutRef.current = isPageLayout;
+  }, [isPageLayout]);
 
   useEffect(() => {
     setStorySearchHitIndex(0);
@@ -3398,16 +3462,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const pageTitle = displayChapterTitle;
   const minutesLeft = Math.max(0, Math.ceil(totalReadingMinutes * (1 - progressRef.current / 100)));
 
-  useEffect(() => {
+  // Bake mobile comfort before paint (like focus seed) — idle-late apply flashed style.
+  useLayoutEffect(() => {
     if (!compactReader) return;
     if (wasMobilePresetBootstrapped()) return;
-
     const current = store.getState().readerStyle.config;
     if (!isDefaultReaderStyleConfig(current)) {
       markMobilePresetBootstrapped();
       return;
     }
-
     dispatch(
       setReaderStyle(
         sanitizeReaderStyleConfig({

@@ -2,15 +2,16 @@
 
 import dynamic from "next/dynamic";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useLayoutEffect, useState } from "react";
 import { prefersReducedMotion } from "@/lib/browser";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import { useDeferredWebglMount } from "@/hooks/useDeferredWebglMount";
-import { useCompactViewport } from "@/hooks/useCompactViewport";
 import type { AppAuraVariant } from "@/components/ThreeAppAura";
 
 const ThreeAppAura = dynamic(() => import("@/components/ThreeAppAura").then((mod) => mod.ThreeAppAura), { ssr: false });
 
 const READER_CHAPTER_RE = /^\/stories\/[^/]+\/chapters\/\d+/;
+const DESKTOP_MIN_WIDTH = 840;
 
 function resolveAuraVariant(pathname: string | null, tab: string | null): AppAuraVariant {
   if (pathname?.startsWith("/rankings")) {
@@ -33,31 +34,36 @@ function AuraCssLayers() {
 export function AppAuraLayer() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const compact = useCompactViewport();
   const variant = resolveAuraVariant(pathname, searchParams.get("tab"));
   const isReaderChapter = READER_CHAPTER_RE.test(pathname ?? "");
+  // null until layoutEffect — avoid SSR/desktop mist paint that tears down when WebGL gate flips.
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
   const webglEnabled = useDecorativeWebglEnabled({
     tier: isReaderChapter ? "reader" : "global",
     allowCompact: false,
     compactMaxWidth: 839,
   });
   const reduceMotion = prefersReducedMotion();
-  // Homepage/library desktop: XianxiaWorldBackground owns atmosphere — skip AppAura
-  // entirely (second canvas + mist rectangles). AppAura only when world WebGL is off.
-  const worldOwnsAtmosphere = !isReaderChapter && webglEnabled;
-  const canUseWebgl = webglEnabled && !reduceMotion && !isReaderChapter && !worldOwnsAtmosphere;
+  // Mobile-only aura path — desktop always skips (world CSS/WebGL owns sky).
+  const allowAura = !isReaderChapter && isDesktop === false;
+  const canUseWebgl = allowAura && webglEnabled && !reduceMotion;
   const webglReady = useDeferredWebglMount(canUseWebgl, 2400);
   const showWebgl = canUseWebgl && webglReady;
 
-  // Compact chapter only: skip aura to cut compositor heat under opaque reader shell.
-  // Desktop chapter keeps CSS aura (no WebGL) — matches pre-cooler desktop look.
-  if (isReaderChapter && compact) return null;
+  useLayoutEffect(() => {
+    const query = window.matchMedia(`(min-width: ${DESKTOP_MIN_WIDTH}px)`);
+    const sync = () => setIsDesktop(query.matches);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
 
-  if (worldOwnsAtmosphere) return null;
+  // Chapter / desktop / unresolved viewport: no AppAura (CSS±WebGL world owns atmosphere).
+  if (!allowAura) return null;
 
   return (
     <div
-      className={`app-aura-layer app-aura-layer--${variant}${isReaderChapter ? " app-aura-layer--reader" : ""}${showWebgl ? " app-aura-layer--webgl" : ""}`}
+      className={`app-aura-layer app-aura-layer--${variant}${showWebgl ? " app-aura-layer--webgl" : ""}`}
       aria-hidden
     >
       {showWebgl ? <ThreeAppAura variant={variant} /> : <AuraCssLayers />}

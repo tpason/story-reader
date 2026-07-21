@@ -91,7 +91,7 @@ export const READER_ONBOARDING_STEPS = [
   {
     id: "chrome",
     title: "Ẩn giao diện",
-    body: "Chạm vùng giữa nội dung để ẩn thanh công cụ. Đọc tập trung hơn."
+    body: "Cuộn xuống để ẩn thanh công cụ. Cuộn lên hoặc chạm gần đầu trang để hiện lại. Chạm đôi vùng giữa để bật chế độ tập trung."
   },
   {
     id: "sheet",

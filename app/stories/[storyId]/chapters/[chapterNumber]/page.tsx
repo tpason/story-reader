@@ -4,14 +4,12 @@ import { notFound } from "next/navigation";
 import { buildChapterMetadata } from "@/lib/metadata";
 import { buildChapterArticleJsonLd } from "@/lib/json-ld";
 import { JsonLdScript } from "@/components/JsonLdScript";
-import { ReaderChapterShellSkeleton } from "@/components/ReaderChapterShellSkeleton";
 import { ReaderOfflineCacheProvider } from "@/components/reader/ReaderOfflineCacheProvider";
 import { getCachedChapterHead, getCachedStory, getReaderPayload } from "@/lib/stories";
 import { isStoryUuid, storyKeyToId } from "@/lib/urls";
 
-const ReaderClient = dynamic(() => import("@/components/ReaderClient").then((mod) => mod.ReaderClient), {
-  loading: () => <ReaderChapterShellSkeleton />,
-});
+/** Route `loading.tsx` covers RSC wait — no second skeleton while the client chunk loads. */
+const ReaderClient = dynamic(() => import("@/components/ReaderClient").then((mod) => mod.ReaderClient));
 
 export const revalidate = 300;
 

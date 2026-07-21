@@ -99,7 +99,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var raw=localStorage.getItem("persist:story-reader");var theme="light";if(raw){var p=JSON.parse(raw);var g=p&&p.globalTheme;if(typeof g==="string"){try{g=JSON.parse(g);}catch(e){}}if(g==="dark"||g==="light")theme=g;}if(theme!=="dark"&&theme!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches)theme="dark";var h=document.documentElement;h.setAttribute("data-xi-theme",theme);h.style.colorScheme=theme;var hour=(new Date()).getHours();var tod=hour>=5&&hour<9?"dawn":hour>=9&&hour<16?"day":hour>=16&&hour<19?"dusk":"night";h.setAttribute("data-xi-time",tod);}catch(e){}})();`,
+            __html: `(function(){try{var raw=localStorage.getItem("persist:story-reader");var theme="light";if(raw){var p=JSON.parse(raw);var g=p&&p.globalTheme;if(typeof g==="string"){try{g=JSON.parse(g);}catch(e){}}if(g==="dark"||g==="light")theme=g;}if(theme!=="dark"&&theme!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches)theme="dark";var h=document.documentElement;h.setAttribute("data-xi-theme",theme);h.style.colorScheme=theme;var hour=(new Date()).getHours();var tod=hour>=5&&hour<9?"dawn":hour>=9&&hour<16?"day":hour>=16&&hour<19?"dusk":"night";h.setAttribute("data-xi-time",tod);var perf=localStorage.getItem("reader:performance-mode");h.setAttribute("data-xi-perf",perf==="battery_saver"?"saver":perf==="full_effects"?"full":"balanced");h.setAttribute("data-xi-compact",window.matchMedia("(max-width:839px)").matches?"1":"0");}catch(e){}})();`,
           }}
         />
       </head>

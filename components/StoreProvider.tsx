@@ -94,10 +94,22 @@ function StoreHydrator({ children }: { children: React.ReactNode }) {
       fetchRemoteReaderPreferences()
         .then((preferences) => {
           if (!preferences) return;
-          store.dispatch(setReaderStyle(preferences.readerStyle));
-          writeReaderPerformanceMode(preferences.performanceMode);
-          writeReaderFocusModeDefault(preferences.focusModeDefault);
-          window.dispatchEvent(new Event("reader:performance-mode"));
+          const apply = () => {
+            store.dispatch(setReaderStyle(preferences.readerStyle));
+            writeReaderPerformanceMode(preferences.performanceMode);
+            writeReaderFocusModeDefault(preferences.focusModeDefault);
+            window.dispatchEvent(new Event("reader:performance-mode"));
+          };
+          // Chapter first paint: local persist already seeded style — defer remote
+          // overwrite so font/theme don't snap mid-read.
+          const onChapter = /^\/stories\/[^/]+\/chapters\/\d+/.test(window.location.pathname);
+          if (onChapter && typeof window.requestIdleCallback === "function") {
+            window.requestIdleCallback(apply, { timeout: 2200 });
+          } else if (onChapter) {
+            window.setTimeout(apply, 800);
+          } else {
+            apply();
+          }
         })
         .catch(() => {
           remotePreferencesSyncedUserRef.current = null;

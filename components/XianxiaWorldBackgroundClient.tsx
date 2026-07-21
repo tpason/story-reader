@@ -2,9 +2,9 @@
 
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { XianxiaCssBackdrop } from "@/components/XianxiaCssBackdrop";
 import { useDeferredWebglMount } from "@/hooks/useDeferredWebglMount";
-import { useCompactViewport } from "@/hooks/useCompactViewport";
 import { useXianxiaTimeOfDay } from "@/hooks/useXianxiaTimeOfDay";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 
@@ -17,22 +17,28 @@ const READER_CHAPTER_RE = /^\/stories\/[^/]+\/chapters\/\d+/;
 
 export function XianxiaWorldBackgroundClient() {
   const pathname = usePathname();
-  const compact = useCompactViewport();
   const isReaderChapter = READER_CHAPTER_RE.test(pathname ?? "");
   // Desktop only: CSS hides `.xianxia-world-background` ≤839px — must not mark CSS as underWebgl on mobile.
   const webglLayerVisible = useDecorativeWebglEnabled({ tier: "global", allowCompact: false, compactMaxWidth: 839 });
-  // Chapter pages never mount world WebGL (sky CSS only on desktop chapter).
+  // Chapter pages: CSS sky only (same mountains as home). No world WebGL remount per chapter.
   const wantWebgl = webglLayerVisible && !isReaderChapter;
   const webglReady = useDeferredWebglMount(wantWebgl, 1200);
   const timeOfDay = useXianxiaTimeOfDay();
+  // Dim CSS only after WebGL fade-in has started — avoids hard A→B snap when class flips with mount.
+  const [underWebgl, setUnderWebgl] = useState(false);
 
-  // Compact chapter: skip backdrop (opaque shell + cooler phone).
-  // Desktop chapter keeps CSS sky; WebGL stays off on chapter routes.
-  if (isReaderChapter && compact) return null;
+  useEffect(() => {
+    if (!wantWebgl || !webglReady) {
+      setUnderWebgl(false);
+      return;
+    }
+    const id = window.setTimeout(() => setUnderWebgl(true), 420);
+    return () => window.clearTimeout(id);
+  }, [wantWebgl, webglReady]);
 
   return (
     <>
-      <XianxiaCssBackdrop timeOfDay={timeOfDay} underWebgl={wantWebgl && webglReady} />
+      <XianxiaCssBackdrop timeOfDay={timeOfDay} underWebgl={underWebgl} />
       {wantWebgl && webglReady ? <ThreeXianxiaWorldBackground timeOfDay={timeOfDay} /> : null}
     </>
   );

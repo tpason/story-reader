@@ -24,11 +24,15 @@ function scheduleIdle(task: () => void): () => void {
 
 export function MotionFX({ variant }: MotionFXProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const entranceRanRef = useRef(false);
   const reduceMotion = prefersReducedMotion();
   const decorativeWebglEnabled = useDecorativeWebglEnabled({ tier: "global" });
 
+  // Entrance once per mount — do NOT re-run when decorativeWebglEnabled flips
+  // (gate false→true was reverting anime transforms and re-staggering the library = flash).
   useEffect(() => {
-    if (reduceMotion) return;
+    if (reduceMotion || entranceRanRef.current) return;
+    entranceRanRef.current = true;
 
     let cancelled = false;
     const animations: Array<{ revert: () => void }> = [];
@@ -38,38 +42,23 @@ export function MotionFX({ variant }: MotionFXProps) {
         const { animate, stagger } = await import("animejs");
         if (cancelled) return;
 
-        if (decorativeWebglEnabled) {
-          animations.push(
-            animate(".motion-line", {
-              x: ["-18vw", "118vw"],
-              opacity: [0, 0.55, 0],
-              duration: 4800,
-              delay: stagger(820),
-              loop: true,
-              ease: "inOutSine"
-            })
-          );
-        }
-
         if (variant === "library") {
+          // Transform-only on painted SSR cards — opacity:[0,1] blanked first paint.
           animations.push(
             animate(".library-header > *, .category-row, .discover-tabs", {
               y: [18, 0],
-              opacity: [0, 1],
               duration: 700,
               delay: stagger(90),
               ease: "outExpo"
             }),
             animate(".cultivation-panel, .continue-card, .discovery-panel, .story-card, .discover-list-card", {
               y: [26, 0],
-              opacity: [0, 1],
               duration: 760,
               delay: stagger(36),
               ease: "outExpo"
             }),
             animate(".chip, .discovery-more", {
               scale: [0.96, 1],
-              opacity: [0, 1],
               duration: 560,
               delay: stagger(24),
               ease: "outExpo"
@@ -122,7 +111,38 @@ export function MotionFX({ variant }: MotionFXProps) {
       cancelIdle();
       animations.forEach((animation) => animation.revert());
     };
-  }, [decorativeWebglEnabled, reduceMotion, variant]);
+  }, [reduceMotion, variant]);
+
+  // Motion lines only when decorative WebGL is on — separate from entrance so gate flips don't jolt cards.
+  useEffect(() => {
+    if (reduceMotion || !decorativeWebglEnabled) return;
+
+    let cancelled = false;
+    const animations: Array<{ revert: () => void }> = [];
+
+    const cancelIdle = scheduleIdle(() => {
+      void (async () => {
+        const { animate, stagger } = await import("animejs");
+        if (cancelled) return;
+        animations.push(
+          animate(".motion-line", {
+            x: ["-18vw", "118vw"],
+            opacity: [0, 0.55, 0],
+            duration: 4800,
+            delay: stagger(820),
+            loop: true,
+            ease: "inOutSine"
+          })
+        );
+      })();
+    });
+
+    return () => {
+      cancelled = true;
+      cancelIdle();
+      animations.forEach((animation) => animation.revert());
+    };
+  }, [decorativeWebglEnabled, reduceMotion]);
 
   return (
     <div className={`motion-fx motion-fx-${variant}${decorativeWebglEnabled ? "" : " motion-fx-css"}`} ref={rootRef} aria-hidden="true">

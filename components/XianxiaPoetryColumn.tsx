@@ -25,17 +25,18 @@ export function XianxiaPoetryColumn() {
   return (
     <XiDisplayFontScope className="xi-poetry-col" role="presentation" aria-hidden="true">
       <div className="xi-poetry-cloud-bg xi-cloud-aura xi-cloud-aura--secondary" />
+      {/* Landscape plaque: 6 pillars × 4 words — companion to left hero, not a tall strip */}
       <div
-        className="xi-poetry-grid"
+        className="xi-poetry-grid xi-poetry-grid--plaque"
         style={{ opacity: columns ? 1 : 0 }}
       >
         {display.map((col, ci) => (
           <div key={`${col.join("-")}-${ci}`} className="xi-poetry-pillar">
-            {col.map((word, ri) => (
+            {col.map((word, wi) => (
               <span
-                key={`${word}-${ri}`}
+                key={`${word}-${wi}`}
                 className="xi-poetry-line"
-                style={{ "--col-i": ci, "--row-i": ri } as React.CSSProperties}
+                style={{ "--col-i": ci, "--row-i": wi } as React.CSSProperties}
               >
                 {word}
               </span>

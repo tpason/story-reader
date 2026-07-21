@@ -20,6 +20,7 @@ import type { ChapterSummary, StorySummary } from "@/lib/types";
 import { storyHref } from "@/lib/urls";
 import { useAppSelector } from "@/lib/store-hooks";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
+import { useDeferredWebglMount } from "@/hooks/useDeferredWebglMount";
 import { ChapterList } from "@/components/reader/ChapterList";
 import { ChapterSidebarHeatmap } from "@/components/ChapterSidebarHeatmap";
 import { ReadingResumeBar } from "@/components/ReadingResumeBar";
@@ -52,6 +53,9 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
   const router = useRouter();
   const queryClient = useQueryClient();
   const decorativeWebglEnabled = useDecorativeWebglEnabled({ compactMaxWidth: 839 });
+  // Soft-mount stage after idle — CSS aura stays painted; no hard aura↔WebGL cut.
+  const stageReady = useDeferredWebglMount(decorativeWebglEnabled, 900);
+  const [stageVisible, setStageVisible] = useState(false);
   const currentUser = useAppSelector((state) => state.identity.user);
   const [descExpanded, setDescExpanded] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -124,6 +128,26 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
     setDescExpanded(false);
   }, [story.id]);
 
+  // Prefetch ReaderClient chunk so chapter nav does not wait on the dynamic import.
+  useEffect(() => {
+    void import("@/components/ReaderClient");
+  }, []);
+
+  // Warm the continue/start chapter route while the user is on story detail.
+  useEffect(() => {
+    if (!heroCtaChapter) return;
+    router.prefetch(storyHref(currentStory, heroCtaChapter));
+  }, [router, currentStory, heroCtaChapter]);
+
+  useEffect(() => {
+    if (!decorativeWebglEnabled || !stageReady) {
+      setStageVisible(false);
+      return;
+    }
+    const id = window.setTimeout(() => setStageVisible(true), 48);
+    return () => window.clearTimeout(id);
+  }, [decorativeWebglEnabled, stageReady]);
+
   useEffect(() => {
     if (!freshChapterNumber) return;
     const onPage = chapterPage.some((chapter) => chapter.chapterNumber === freshChapterNumber);
@@ -165,15 +189,22 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
           </div>
         ) : null}
         <section className={`story-detail-hero story-detail-hero-modern ${isFresh(currentStory.id) ? "story-detail-hero-fresh" : ""}`.trim()}>
-          {decorativeWebglEnabled ? (
-            <ThreeStoryStage
-              coverImageUrl={currentStory.coverImageUrl}
-              title={currentStory.title}
-              progressPercent={totalChapters > 0 ? Math.min(100, (maxReadChapter / totalChapters) * 100) : 0}
-            />
-          ) : (
-            <div className="story-detail-hero-aura" aria-hidden="true" />
-          )}
+          <div
+            className={`story-detail-hero-aura${stageVisible ? " story-detail-hero-aura--under-stage" : ""}`}
+            aria-hidden="true"
+          />
+          {decorativeWebglEnabled && stageReady ? (
+            <div
+              className={`story-detail-stage-host${stageVisible ? " story-detail-stage-host--visible" : ""}`}
+              aria-hidden="true"
+            >
+              <ThreeStoryStage
+                coverImageUrl={currentStory.coverImageUrl}
+                title={currentStory.title}
+                progressPercent={totalChapters > 0 ? Math.min(100, (maxReadChapter / totalChapters) * 100) : 0}
+              />
+            </div>
+          ) : null}
           <StoryCover src={currentStory.coverImageUrl} title={currentStory.title} />
           <div className="story-detail-copy">
             <p className="eyebrow">

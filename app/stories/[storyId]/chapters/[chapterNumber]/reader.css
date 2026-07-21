@@ -9316,3 +9316,69 @@ html[data-theme="dark"] .reader-shell[data-reader-perf="saver"] .reader-content:
     filter: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CHAPTER-FIRST P0 — solid column via viewport @media (2026-07-21)
+   Reinforce: critical solids must not depend only on --compact class
+   (SSR first frame can still be --desktop on phone).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 839px) {
+  .reader-shell .reader-content,
+  .reader-shell .reader-heading {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--reader-panel-solid, var(--reader-bg, #fffefa)) !important;
+    isolation: isolate;
+  }
+
+  .reader-shell-chrome-hidden .reader-mobile-dock {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--reader-panel-solid, var(--reader-bg, #fffefa)) !important;
+    box-shadow: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   GO-LIVE ANTI-FLASH P0 — compact first paint without --desktop flip
+   (2026-07-21) data-xi-compact + @media cover SSR --desktop frame.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+html[data-xi-compact="1"] .reader-shell .reader-content,
+html[data-xi-compact="1"] .reader-shell .reader-heading,
+html[data-xi-compact="1"] .reader-shell .reader-topbar,
+html[data-xi-compact="1"] .reader-shell .reader-topbar-modern {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--reader-panel-solid, var(--reader-bg, #fffefa));
+}
+
+html[data-xi-compact="1"] .reader-shell .reader-content {
+  isolation: isolate;
+}
+
+html[data-xi-compact="1"] .reader-topbar-modern .reader-controls-desktop {
+  display: none !important;
+}
+
+html[data-xi-compact="0"] .reader-topbar-modern .reader-controls-mobile {
+  display: none !important;
+}
+
+html[data-xi-compact="0"] .reader-mobile-dock {
+  display: none !important;
+}
+
+/* Even if boot attr missed, viewport media still solidifies chrome. */
+@media (max-width: 839px) {
+  .reader-shell--desktop .reader-content,
+  .reader-shell--desktop .reader-heading,
+  .reader-shell.reader-shell--desktop .reader-topbar-modern {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--reader-panel-solid, var(--reader-bg, #fffefa)) !important;
+  }
+}

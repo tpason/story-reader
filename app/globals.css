@@ -19631,9 +19631,7 @@ html:not([data-xi-theme="dark"]) .page-wrap .identity-copy strong {
     animation: none !important;
   }
 
-  /* Defense in depth: hide world sky + aura under chapter reader. */
-  body:has(.reader-shell) .xianxia-css-backdrop,
-  body:has(.reader-shell) .xianxia-world-fallback,
+  /* Chapter mobile: keep CSS mountains visible (static). Aura still hidden — AppAura skips chapters in JS. */
   body:has(.reader-shell) .app-aura-layer {
     display: none !important;
   }
@@ -20488,10 +20486,11 @@ html[data-theme="dark"] .pwa-install-dismiss {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   CHAPTER DESKTOP — freeze world-backdrop mist/cloud motion (2026-07-21)
-   Mountains stay painted; continuous mist/cloud/crane/spirit anims under
-   the reader body cause compositor flash while scrolling (and idle jolts).
-   Mobile already skips chapter backdrop via compact gate.
+   CHAPTER — freeze world-backdrop mist/cloud motion (2026-07-21)
+   Mountains stay painted (CSS backdrop ON chapter desktop+mobile; WebGL off).
+   Continuous mist/cloud/crane/spirit anims under the reader body cause
+   compositor flash while scrolling (and idle jolts). Mobile ≤839 already
+   freezes PNG mountain parallax globally; chapter path re-asserts freeze.
    ═══════════════════════════════════════════════════════════════════════ */
 
 @media (min-width: 840px) {
@@ -20542,5 +20541,498 @@ html[data-theme="dark"] .pwa-install-dismiss {
 
   .reader-shell-chrome-hidden .reader-topbar {
     transition: opacity 180ms ease, transform 180ms ease;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CHAPTER-FIRST UX P0+P1 (2026-07-21) — append-only
+   P0: freeze PNG mountain parallax under reader; scroll-behavior auto;
+        dock chrome-hidden solid; under-webgl soft crossfade.
+   P1: poetry open like left hero card; resume/follows hydrate slots.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* P0 — no smooth-scroll jank while reading (html defaults to smooth) */
+html:has(.reader-shell),
+html:has(body:has(.reader-shell)),
+body:has(.reader-shell) {
+  scroll-behavior: auto !important;
+}
+
+/* P0 — freeze PNG mountain parallax under any chapter shell (desktop+mobile) */
+body:has(.reader-shell) .xianxia-css-backdrop .xi-css-mountains-far,
+body:has(.reader-shell) .xianxia-css-backdrop .xi-css-mountains-mid,
+body:has(.reader-shell) .xianxia-css-backdrop .xi-css-mountains-near,
+body:has(.reader-shell) .xianxia-world-fallback .xi-css-mountains-far,
+body:has(.reader-shell) .xianxia-world-fallback .xi-css-mountains-mid,
+body:has(.reader-shell) .xianxia-world-fallback .xi-css-mountains-near {
+  animation: none !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+/* P0 — chrome-hidden dock: fully invisible + solid (no ghost blur) */
+@media (max-width: 839px) {
+  .reader-shell-chrome-hidden .reader-mobile-dock {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--reader-panel-solid, var(--reader-bg, #fffefa)) !important;
+    box-shadow: none !important;
+  }
+}
+
+/* P1 — CSS→WebGL under-webgl: soft opacity crossfade (not hard snap) */
+.xianxia-css-backdrop .xi-css-sky,
+.xianxia-css-backdrop .xi-css-cloud,
+.xianxia-css-backdrop .xi-css-mist,
+.xianxia-css-backdrop .xi-css-spirit-dust,
+.xianxia-css-backdrop .xi-css-stars,
+.xianxia-css-backdrop .xi-css-sun-halo,
+.xianxia-css-backdrop .xi-css-jade-glow,
+.xianxia-css-backdrop .xi-css-moon,
+.xianxia-css-backdrop .xi-css-ink-wash,
+.xianxia-css-backdrop .xi-css-mountains-far,
+.xianxia-css-backdrop .xi-css-mountains-mid,
+.xianxia-css-backdrop .xi-css-mountains-near,
+.xianxia-css-backdrop .xi-css-mountains,
+.xianxia-css-backdrop .xi-css-haze,
+.xianxia-css-backdrop .xi-css-cranes,
+.xianxia-css-backdrop .xi-css-vignette {
+  transition: opacity 0.85s ease;
+}
+
+.xianxia-world-background {
+  opacity: 0;
+  animation: xi-world-webgl-fade-in 0.9s ease forwards;
+}
+
+@keyframes xi-world-webgl-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xianxia-css-backdrop .xi-css-sky,
+  .xianxia-css-backdrop .xi-css-cloud,
+  .xianxia-css-backdrop .xi-css-mist,
+  .xianxia-css-backdrop .xi-css-spirit-dust,
+  .xianxia-css-backdrop .xi-css-stars,
+  .xianxia-css-backdrop .xi-css-sun-halo,
+  .xianxia-css-backdrop .xi-css-jade-glow,
+  .xianxia-css-backdrop .xi-css-moon,
+  .xianxia-css-backdrop .xi-css-ink-wash,
+  .xianxia-css-backdrop .xi-css-mountains-far,
+  .xianxia-css-backdrop .xi-css-mountains-mid,
+  .xianxia-css-backdrop .xi-css-mountains-near,
+  .xianxia-css-backdrop .xi-css-mountains,
+  .xianxia-css-backdrop .xi-css-haze,
+  .xianxia-css-backdrop .xi-css-cranes,
+  .xianxia-css-backdrop .xi-css-vignette {
+    transition: none !important;
+  }
+
+  .xianxia-world-background {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* P1 — poetry: open landscape like left library-hero text card (not 260px square) */
+@media (min-width: 1100px) {
+  .library-header {
+    grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr) !important;
+    column-gap: clamp(20px, 2.4vw, 40px) !important;
+    align-items: start !important;
+  }
+
+  .library-header > .xi-poetry-col,
+  .library-header > div.xi-poetry-col {
+    position: relative !important;
+    inset: auto !important;
+    width: auto !important;
+    max-width: min(480px, 100%) !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: clamp(28px, 3vw, 44px) clamp(28px, 3.2vw, 48px) !important;
+    overflow: visible !important;
+    align-self: center !important;
+    justify-self: stretch !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-cloud-bg,
+  .library-header > .xi-poetry-col .xi-cloud-aura--secondary {
+    /* Match left hero cloud inset openness */
+    inset: -32px -40px -36px -40px !important;
+    border-radius: 55% 45% 52% 48% / 48% 52% 46% 54% !important;
+    filter: url(#xi-cloud-f) !important;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-grid {
+    width: auto !important;
+    max-width: 100%;
+    gap: clamp(14px, 1.6vw, 22px) !important;
+    justify-content: flex-start !important;
+    flex-wrap: nowrap;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-pillar {
+    gap: clamp(10px, 1.1vw, 14px) !important;
+    flex: 0 0 auto;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-line {
+    font-size: clamp(15px, 1.15vw, 18px) !important;
+    letter-spacing: 0.04em;
+  }
+}
+
+/* P1 — hydrate slots: reserve space so resume/follows don't jump */
+.resume-mini-bar--slot {
+  display: block;
+  min-height: 52px;
+  visibility: hidden;
+  pointer-events: none;
+  margin: 0 0 12px;
+}
+
+.followed-section--slot {
+  min-height: 168px;
+}
+
+@media (max-width: 839px) {
+  .resume-mini-bar--slot {
+    min-height: 48px;
+  }
+
+  .followed-section--slot {
+    min-height: 140px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   HOMEPAGE P1b (2026-07-21) — poetry gap + flash harden
+   - Poetry: no left-cloud overlap; open 3+3 verse (not 6×4 stamp on hero)
+   - Desktop: hide AppAura via CSS even if DOM briefly mounts (SSR)
+   - under-webgl: ensure mountains/haze also transition (cascade reinforcement)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Desktop non-chapter: world CSS±WebGL owns sky — never show AppAura mist */
+@media (min-width: 840px) {
+  body:not(:has(.reader-shell)) .app-aura-layer {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+}
+
+/* Soften under-webgl dim so class flip isn't a hard snap (with delayed JS flag) */
+.xianxia-css-backdrop-under-webgl .xi-css-sky,
+.xianxia-css-backdrop-under-webgl .xi-css-cloud,
+.xianxia-css-backdrop-under-webgl .xi-css-mist,
+.xianxia-css-backdrop-under-webgl .xi-css-spirit-dust,
+.xianxia-css-backdrop-under-webgl .xi-css-stars,
+.xianxia-css-backdrop-under-webgl .xi-css-sun-halo,
+.xianxia-css-backdrop-under-webgl .xi-css-jade-glow,
+.xianxia-css-backdrop-under-webgl .xi-css-moon,
+.xianxia-css-backdrop-under-webgl .xi-css-ink-wash,
+.xianxia-css-backdrop-under-webgl .xi-css-mountains-far,
+.xianxia-css-backdrop-under-webgl .xi-css-mountains-mid,
+.xianxia-css-backdrop-under-webgl .xi-css-mountains-near,
+.xianxia-css-backdrop-under-webgl .xi-css-mountains,
+.xianxia-css-backdrop-under-webgl .xi-css-haze,
+.xianxia-css-backdrop-under-webgl .xi-css-cranes,
+.xianxia-css-backdrop-under-webgl .xi-css-vignette {
+  transition: opacity 0.9s ease;
+}
+
+@media (min-width: 1100px) {
+  /* Hero owns left; poetry sits in a narrower right track with clear gap */
+  .library-header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.45fr) minmax(200px, 0.52fr) !important;
+    column-gap: clamp(32px, 4vw, 64px) !important;
+    align-items: start !important;
+  }
+
+  .library-header > .library-hero-shell {
+    position: relative !important;
+    z-index: 3 !important;
+    grid-column: 1 !important;
+  }
+
+  .library-header > .xi-poetry-col,
+  .library-header > div.xi-poetry-col {
+    position: relative !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    grid-column: 2 !important;
+    grid-row: 1 / span 2 !important;
+    z-index: 1 !important;
+    justify-self: end !important;
+    align-self: center !important;
+    width: 100% !important;
+    max-width: min(300px, 100%) !important;
+    margin: 0 !important;
+    /* Match left hero card padding openness — not a cramped square */
+    padding: clamp(28px, 2.8vw, 44px) clamp(22px, 2.2vw, 36px) !important;
+    overflow: hidden !important; /* contain cloud bleed so it can't cover hero */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-cloud-bg,
+  .library-header > .xi-poetry-col .xi-cloud-aura--secondary {
+    /* Equal inset only — no leftward spill into hero column */
+    inset: -18px -20px !important;
+    border-radius: 52% 48% 50% 50% / 48% 52% 48% 52% !important;
+    filter: url(#xi-cloud-f-alt) !important;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-grid--verse,
+  .library-header > .xi-poetry-col .xi-poetry-grid {
+    position: relative;
+    z-index: 1;
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: clamp(14px, 1.6vw, 22px) !important;
+    width: auto !important;
+    max-width: 100% !important;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-verse-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: clamp(14px, 1.5vw, 22px);
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-pillar {
+    gap: clamp(8px, 1vw, 12px) !important;
+    flex: 0 0 auto;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-line {
+    font-size: clamp(14px, 1.05vw, 17px) !important;
+    letter-spacing: 0.05em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xianxia-css-backdrop-under-webgl .xi-css-sky,
+  .xianxia-css-backdrop-under-webgl .xi-css-cloud,
+  .xianxia-css-backdrop-under-webgl .xi-css-mist,
+  .xianxia-css-backdrop-under-webgl .xi-css-spirit-dust,
+  .xianxia-css-backdrop-under-webgl .xi-css-stars,
+  .xianxia-css-backdrop-under-webgl .xi-css-sun-halo,
+  .xianxia-css-backdrop-under-webgl .xi-css-jade-glow,
+  .xianxia-css-backdrop-under-webgl .xi-css-moon,
+  .xianxia-css-backdrop-under-webgl .xi-css-ink-wash,
+  .xianxia-css-backdrop-under-webgl .xi-css-mountains-far,
+  .xianxia-css-backdrop-under-webgl .xi-css-mountains-mid,
+  .xianxia-css-backdrop-under-webgl .xi-css-mountains-near,
+  .xianxia-css-backdrop-under-webgl .xi-css-mountains,
+  .xianxia-css-backdrop-under-webgl .xi-css-haze,
+  .xianxia-css-backdrop-under-webgl .xi-css-cranes,
+  .xianxia-css-backdrop-under-webgl .xi-css-vignette {
+    transition: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   HOMEPAGE P1c (2026-07-21) — poetry plaque beside hero (not skyscraper)
+   Root cause (P1b over-correct):
+   - Right track narrowed to ~0.52fr / max 300px
+   - grid-row: 1 / span 2 stretched the cell over hero+search (~viewport tall)
+   - 3+3 verse stacked as flex-column inside that skinny cell
+   → tall dark capsule with words in a long vertical strip
+   Fix: landscape 6-pillar plaque, height:fit-content, row 1 only, clear gap
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 1100px) {
+  .library-header {
+    display: grid !important;
+    /* Hero leads; poetry is a companion plaque — wide enough for 6 pillars */
+    grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.78fr) !important;
+    column-gap: clamp(28px, 3.2vw, 52px) !important;
+    align-items: start !important;
+    row-gap: 14px;
+  }
+
+  .library-header > .library-hero-shell {
+    position: relative !important;
+    z-index: 3 !important;
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  .library-header > form.library-search {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+  }
+
+  .library-header > .xi-poetry-col,
+  .library-header > div.xi-poetry-col {
+    position: relative !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+
+    grid-column: 2 !important;
+    /* Sit beside hero only — do NOT span search row (was the height bomb) */
+    grid-row: 1 !important;
+    z-index: 1 !important;
+
+    justify-self: end !important;
+    align-self: center !important;
+    width: auto !important;
+    max-width: min(420px, 100%) !important;
+    min-width: 0 !important;
+    height: fit-content !important;
+    max-height: min(320px, 52vh) !important;
+    margin: 0 !important;
+    /* Open padding like left hero cloud — not a cramped square */
+    padding: clamp(26px, 2.6vw, 40px) clamp(24px, 2.4vw, 40px) !important;
+    overflow: visible !important;
+
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-cloud-bg,
+  .library-header > .xi-poetry-col .xi-cloud-aura--secondary {
+    /* Equal modest inset — companion aura, no left bleed over hero */
+    inset: -22px -26px !important;
+    border-radius: 52% 48% 50% 50% / 48% 52% 48% 52% !important;
+    filter: url(#xi-cloud-f-alt) !important;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-grid--plaque,
+  .library-header > .xi-poetry-col .xi-poetry-grid {
+    position: relative;
+    z-index: 1;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: clamp(12px, 1.3vw, 20px) !important;
+    width: auto !important;
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-pillar {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: clamp(8px, 0.9vw, 12px) !important;
+    flex: 0 0 auto !important;
+    writing-mode: horizontal-tb !important;
+  }
+
+  .library-header > .xi-poetry-col .xi-poetry-line {
+    writing-mode: horizontal-tb !important;
+    font-size: clamp(14px, 1.05vw, 17px) !important;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 840px) and (max-width: 1099px) {
+  .library-header > .xi-poetry-col {
+    display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   GO-LIVE ANTI-FLASH P0 — story detail stage soft swap + compact boot
+   (2026-07-21) Keep CSS aura until WebGL opacity ready; no blank frame.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.story-detail-hero {
+  position: relative;
+}
+
+.story-detail-stage-host {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+
+.story-detail-stage-host--visible {
+  opacity: 1;
+}
+
+.story-detail-hero-aura {
+  transition: opacity 0.7s ease;
+}
+
+.story-detail-hero-aura--under-stage {
+  opacity: 0.28;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-detail-stage-host,
+  .story-detail-hero-aura {
+    transition: none;
+  }
+
+  .story-detail-stage-host--visible {
+    opacity: 1;
+  }
+}
+
+/* Boot data-xi-compact: reinforce mobile chrome before React class flip. */
+html[data-xi-compact="1"] .reader-controls-desktop {
+  display: none !important;
+}
+
+html[data-xi-compact="0"] .reader-controls-mobile {
+  display: none !important;
+}
+
+html[data-xi-compact="0"] .reader-mobile-dock {
+  display: none !important;
+}
+
+@media (max-width: 1099px) {
+  .story-detail-stage-host {
+    display: none !important;
+  }
+
+  .story-detail-hero-aura--under-stage {
+    opacity: 0.92;
   }
 }

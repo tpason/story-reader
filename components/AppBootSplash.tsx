@@ -1,22 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { ReaderLogo } from "@/components/ReaderLogo";
 
 const SESSION_KEY = "lq-boot-splash-seen";
 
+function readShouldShowBootSplash(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return !sessionStorage.getItem(SESSION_KEY);
+  } catch {
+    return false;
+  }
+}
+
 /** One short branded splash per tab session — before route loading UI. */
 export function AppBootSplash() {
-  const [visible, setVisible] = useState(false);
+  // Sync sessionStorage in initializer (client remounts) + layoutEffect (SSR hydrate)
+  // so splash can cover content before paint — not useState(false) then effect show.
+  const [visible, setVisible] = useState(readShouldShowBootSplash);
+
+  useLayoutEffect(() => {
+    if (visible) return;
+    if (!readShouldShowBootSplash()) return;
+    setVisible(true);
+  }, [visible]);
 
   useEffect(() => {
-    try {
-      if (sessionStorage.getItem(SESSION_KEY)) return;
-    } catch {
-      return;
-    }
-
-    setVisible(true);
+    if (!visible) return;
 
     const dismiss = () => {
       try {
@@ -37,7 +48,7 @@ export function AppBootSplash() {
     else window.addEventListener("load", onReady, { once: true });
 
     return () => window.clearTimeout(maxWait);
-  }, []);
+  }, [visible]);
 
   if (!visible) return null;
 
