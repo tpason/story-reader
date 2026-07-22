@@ -17,7 +17,7 @@ type RouteCase = {
 
 const APP_ROUTES: RouteCase[] = [
   { path: "/", heading: /Tu tiên từng chương/i, shell: ".page-wrap" },
-  { path: "/discover", heading: /Truyện vừa được polish|Truyện vừa cập nhật/i, shell: ".page-wrap" },
+  { path: "/discover", heading: /Truyện mới tinh luyện|Truyện vừa cập nhật/i, shell: ".page-wrap" },
   { path: "/categories", heading: /Chọn môn phái truyện/i, shell: ".page-wrap" },
   { path: "/rankings?tab=betterbox", heading: /Thiên Bảng/i, shell: ".rankings-page" },
   { path: "/following", heading: /Linh quyển đang theo dõi/i, shell: ".page-wrap" },

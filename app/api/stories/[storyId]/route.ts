@@ -13,7 +13,11 @@ export async function GET(_: Request, { params }: { params: Promise<{ storyId: s
     }
 
     const story = await getCachedStory(storyId);
-    return NextResponse.json(story);
+    return NextResponse.json(story, {
+      headers: {
+        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600"
+      }
+    });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to load story", detail: error instanceof Error ? error.message : "Unknown error" },

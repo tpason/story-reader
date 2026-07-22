@@ -1,4 +1,4 @@
-const CACHE_VERSION = "linh-quyen-v3";
+const CACHE_VERSION = "linh-quyen-v4";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -30,6 +30,22 @@ self.addEventListener("activate", (event) => {
 
 function isChapterPayload(url) {
   return url.pathname.startsWith("/api/stories/") && /\/chapters\/\d+$/.test(url.pathname);
+}
+
+/** Default polished chapter JSON only — bilingual/query variants stay network-first. */
+function isDefaultChapterPayload(url) {
+  if (!isChapterPayload(url)) return false;
+  if (!url.search || url.search === "?") return true;
+  const params = url.searchParams;
+  const primary = params.get("primary");
+  const secondary = params.get("secondary");
+  const mode = params.get("mode");
+  const primaryDefault = !primary || primary === "polished";
+  const secondaryDefault = !secondary;
+  const modeDefault = !mode || mode === "single";
+  return primaryDefault && secondaryDefault && modeDefault && [...params.keys()].every((key) =>
+    key === "primary" || key === "secondary" || key === "mode"
+  );
 }
 
 function isStaticAsset(request, url) {
@@ -112,6 +128,11 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(networkFirst(request, PAGE_CACHE, "/offline.html"));
+    return;
+  }
+
+  if (isDefaultChapterPayload(url)) {
+    event.respondWith(staleWhileRevalidate(request, API_CACHE));
     return;
   }
 

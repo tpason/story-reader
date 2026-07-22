@@ -1,6 +1,7 @@
 import type { Route } from "next";
 import Link from "next/link";
-import { ScrollText, Sparkles, Trophy } from "lucide-react";
+import { Sparkles, Trophy } from "lucide-react";
+import { CoverRailSlide } from "@/components/CoverRailSlide";
 import { TrendingPeriodChips } from "@/components/TrendingPeriodChips";
 import { TRENDING_PERIOD_BANG_LABELS } from "@/lib/trending-period";
 import type { StoryTrendingItem, TrendingPeriod } from "@/lib/types";
@@ -12,16 +13,30 @@ type TrendingStoriesPanelProps = {
   items: StoryTrendingItem[];
   period?: TrendingPeriod;
   hrefForPeriod?: (period: TrendingPeriod) => Route;
+  /** Home bookstore: larger covers, quieter meta. */
+  density?: "default" | "bookstore";
 };
 
 const RANK_TIER = ["gold", "silver", "bronze"] as const;
 
-export function TrendingStoriesPanel({ items, period = "week", hrefForPeriod }: TrendingStoriesPanelProps) {
+export function TrendingStoriesPanel({
+  items,
+  period = "week",
+  hrefForPeriod,
+  density = "default",
+}: TrendingStoriesPanelProps) {
   const periodLabel = TRENDING_PERIOD_BANG_LABELS[period];
+  const isBookstore = density === "bookstore";
+  const sectionClass = [
+    "trending-section",
+    isBookstore ? "trending-section--bookstore" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   if (!items.length) {
     return (
-      <section className="trending-section trending-section-empty" aria-label="Truyện thịnh hành">
+      <section className={`${sectionClass} trending-section-empty`} aria-label="Truyện thịnh hành">
         {hrefForPeriod ? <TrendingPeriodChips period={period} hrefForPeriod={hrefForPeriod} /> : null}
         <div className="section-heading-row">
           <div>
@@ -43,7 +58,7 @@ export function TrendingStoriesPanel({ items, period = "week", hrefForPeriod }: 
   }
 
   return (
-    <section className="trending-section" aria-label="Truyện thịnh hành">
+    <section className={sectionClass} aria-label="Truyện thịnh hành">
       <div className="section-heading-row">
         <div>
           <h2>Phong vân {periodLabel} · đạo hữu tu đọc nhiều nhất</h2>
@@ -56,42 +71,39 @@ export function TrendingStoriesPanel({ items, period = "week", hrefForPeriod }: 
 
       {hrefForPeriod ? <TrendingPeriodChips period={period} hrefForPeriod={hrefForPeriod} /> : null}
 
-      <div className="trending-scroll-shell">
-        <div className="trending-row">
-          {items.slice(0, 8).map((story, index) => {
-            const tier = RANK_TIER[index] ?? "jade";
-            const rank = index + 1;
-            return (
-              <Link key={story.id} className={`trending-card trending-card-${tier}`} href={storyHref(story)}>
-                {rank <= 3 ? (
-                  <span aria-hidden>
-                    <RankCalligraphySeal rank={rank} size="trending" />
-                  </span>
-                ) : (
-                  <span className="trending-rank" aria-hidden>
-                    <span className="trending-rank-glow" />
-                    {rank}
-                  </span>
-                )}
-                <StoryCover src={story.coverImageUrl} title={story.title} />
-                <div className="trending-card-body">
-                  <h3>{story.title}</h3>
-                  <small>
-                    <Sparkles size={12} aria-hidden />
-                    {story.uniqueMembers} đạo hữu
-                    {story.uniqueGuests > 0 ? ` · ${story.uniqueGuests} tán tu` : ""}
-                  </small>
+      <CoverRailSlide
+        label={`Phong vân ${periodLabel}`}
+        className="trending-cover-rail-slide"
+      >
+        {items.slice(0, 8).map((story, index) => {
+          const tier = RANK_TIER[index] ?? "jade";
+          const rank = index + 1;
+          return (
+            <Link
+              key={story.id}
+              className={`trending-card trending-card-${tier}`}
+              href={storyHref(story)}
+              role="listitem"
+            >
+              <span aria-hidden>
+                <RankCalligraphySeal rank={rank} size="trending" />
+              </span>
+              <StoryCover src={story.coverImageUrl} title={story.title} />
+              <div className="trending-card-body">
+                <h3>{story.title}</h3>
+                <small>
+                  <Sparkles size={12} aria-hidden />
+                  {story.uniqueMembers} đạo hữu
+                  {story.uniqueGuests > 0 ? ` · ${story.uniqueGuests} tán tu` : ""}
+                </small>
+                {!isBookstore ? (
                   <span className="trending-card-sessions">{story.sessionCount} phiên tu đọc</span>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-        <p className="trending-scroll-hint" aria-hidden>
-          <ScrollText size={12} />
-          Vuốt ngang để xem thêm hạng
-        </p>
-      </div>
+                ) : null}
+              </div>
+            </Link>
+          );
+        })}
+      </CoverRailSlide>
     </section>
   );
 }

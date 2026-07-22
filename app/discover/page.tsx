@@ -6,6 +6,14 @@ import { DiscoverListClient } from "@/components/DiscoverListClient";
 import { SiteHeader } from "@/components/SiteHeader";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
+import {
+  DISCOVERY_POLISHED_HERO,
+  DISCOVERY_POLISHED_SECTION,
+  DISCOVERY_POLISHED_TAB,
+  DISCOVERY_UPDATED_HERO,
+  DISCOVERY_UPDATED_SECTION,
+  DISCOVERY_UPDATED_TAB
+} from "@/lib/discovery-labels";
 import { listRecentlyPolishedStoriesPage, listRecentlyUpdatedStoriesPage } from "@/lib/stories";
 
 const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX));
@@ -14,7 +22,7 @@ export const revalidate = 120;
 
 export const metadata = {
   title: "Khám phá nhanh",
-  description: "Truyện vừa polish và chương mới cập nhật trên Linh Quyển Các.",
+  description: "Truyện mới tinh luyện và chương vừa cập nhật trên Linh Quyển Các.",
   alternates: { canonical: "/discover" },
 };
 
@@ -50,9 +58,10 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
       ? await listRecentlyPolishedStoriesPage({ page: currentPage, pageSize, today, completed })
       : await listRecentlyUpdatedStoriesPage({ page: currentPage, pageSize, today, completed });
   const Icon = kind === "polished" ? WandSparkles : Clock3;
+  const sectionLabel = kind === "polished" ? DISCOVERY_POLISHED_TAB : DISCOVERY_UPDATED_TAB;
 
   return (
-    <main className="app-shell">
+    <main className="app-shell discover-shell">
       <MotionFX variant="library" />
       <SiteHeader />
 
@@ -65,17 +74,17 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
               Khám phá nhanh
             </>
           }
-          title={kind === "polished" ? "Truyện vừa được polish" : "Truyện vừa cập nhật"}
+          title={kind === "polished" ? DISCOVERY_POLISHED_HERO : DISCOVERY_UPDATED_HERO}
           subtitle="Theo dõi linh quyển có bản đọc mượt hơn hoặc chương mới vừa khắc vào Thiên Thư."
         >
           <div className="filters discover-tabs">
             <Link className={`chip ${kind === "polished" ? "chip-active" : ""}`} href={discoverHref("polished", 1, today, completed)}>
               <WandSparkles size={15} />
-              Vừa polish
+              {DISCOVERY_POLISHED_TAB}
             </Link>
             <Link className={`chip ${kind === "updated" ? "chip-active" : ""}`} href={discoverHref("updated", 1, today, completed)}>
               <Clock3 size={15} />
-              Vừa cập nhật
+              {DISCOVERY_UPDATED_TAB}
             </Link>
             <Link className={`chip ${today ? "chip-active" : ""}`} href={discoverHref(kind, 1, !today, completed)}>
               <Sparkles size={15} />
@@ -97,11 +106,11 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
           </div>
         </XiPageHeroStrip>
 
-        <section className="library-list-section" aria-label={kind === "polished" ? "Vừa polish" : "Vừa cập nhật"}>
+        <section className="library-list-section discover-section" aria-label={sectionLabel}>
           <div className="section-heading-row story-list-heading">
             <div>
               <h2>
-                {kind === "polished" ? "Bản đọc vừa polish" : "Chương vừa cập nhật"}
+                {kind === "polished" ? DISCOVERY_POLISHED_SECTION : DISCOVERY_UPDATED_SECTION}
                 {" · "}
                 {today ? "hôm nay" : "mới nhất"}
                 {completed === true ? " · hoàn thành" : completed === false ? " · đang viết" : ""}
@@ -118,7 +127,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
           ) : (
             <XianxiaEmptyState
               title="Thiên hạ yên tĩnh. Chưa có linh quyển phù hợp bộ lọc."
-              hint="Thử bỏ lọc Hôm nay hoặc đổi tab Vừa polish / Vừa cập nhật."
+              hint={`Thử bỏ lọc Hôm nay hoặc đổi tab ${DISCOVERY_POLISHED_TAB} / ${DISCOVERY_UPDATED_TAB}.`}
             >
               <div className="xianxia-empty-actions">
                 <Link className="chip" href="/">

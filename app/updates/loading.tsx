@@ -1,6 +1,6 @@
 export default function UpdatesLoading() {
   return (
-    <main className="app-shell">
+    <main className="app-shell xi-route-loading" aria-busy="true" aria-label="Đang tải">
       <header className="topbar topbar-skel" aria-hidden="true">
         <div className="brand">
           <div className="xi-skel" style={{ width: 28, height: 28, borderRadius: "50%" }} />

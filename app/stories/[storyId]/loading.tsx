@@ -1,6 +1,6 @@
 export default function StoryDetailLoading() {
   return (
-    <main className="app-shell story-detail-shell">
+    <main className="app-shell story-detail-shell xi-route-loading" aria-busy="true" aria-label="Đang tải">
       <header className="topbar topbar-skel topbar-modern" aria-hidden="true">
         <div className="brand">
           <div className="xi-skel" style={{ width: 28, height: 28, borderRadius: "50%" }} />

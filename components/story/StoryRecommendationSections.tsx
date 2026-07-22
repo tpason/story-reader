@@ -1,6 +1,7 @@
 import { Sparkles, User } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
+import { CoverRailSlide } from "@/components/CoverRailSlide";
 import { StoryCover } from "@/components/StoryCover";
 import { getCachedRecommendedStories, listStoriesCursor } from "@/lib/stories";
 import type { StorySummary } from "@/lib/types";
@@ -15,9 +16,9 @@ export function RecommendationsSkeleton() {
           <div className="xi-skel" style={{ height: 20, width: 160 }} />
         </div>
       </div>
-      <div className="story-rec-row">
+      <div className="story-rec-row story-rec-row--cover-rail">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="story-rec-card xi-skel-card">
+          <div key={i} className="story-rec-card story-rec-card--cover xi-skel-card">
             <div className="xi-skel xi-skel-cover" />
             <div className="story-rec-body">
               <div className="xi-skel xi-skel-line" />
@@ -60,9 +61,9 @@ export function SameAuthorSkeleton() {
           <div className="xi-skel" style={{ height: 20, width: 200 }} />
         </div>
       </div>
-      <div className="story-rec-row">
+      <div className="story-rec-row story-rec-row--cover-rail">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="story-rec-card xi-skel-card">
+          <div key={i} className="story-rec-card story-rec-card--cover xi-skel-card">
             <div className="xi-skel xi-skel-cover" />
             <div className="story-rec-body">
               <div className="xi-skel xi-skel-line" />
@@ -112,21 +113,19 @@ export async function SameAuthorStoriesSection({
 
 function StoryRecommendationRow({ items }: { items: StorySummary[] }) {
   return (
-    <div className="story-rec-row">
+    <CoverRailSlide label="Linh quyển gợi ý" className="story-rec-cover-rail-slide">
       {items.map((item) => (
-        <Link className="story-rec-card" href={storyHref(item)} key={item.id}>
+        <Link className="story-rec-card story-rec-card--cover" href={storyHref(item)} key={item.id} role="listitem">
           <StoryCover src={item.coverImageUrl} title={item.title} />
           <div className="story-rec-body">
             <h3>{item.title}</h3>
-            <div className="discovery-meta story-rec-meta">
-              {item.author ? <span>{item.author}</span> : null}
-              <span>{item.totalChapters} chương</span>
-              {item.primaryCategoryName ? <span>{item.primaryCategoryName}</span> : null}
-              {item.isCompleted ? <span>Hoàn thành</span> : null}
-            </div>
+            <small className="story-rec-meta-line">
+              {item.totalChapters} chương
+              {item.isCompleted ? " · Hoàn thành" : ""}
+            </small>
           </div>
         </Link>
       ))}
-    </div>
+    </CoverRailSlide>
   );
 }

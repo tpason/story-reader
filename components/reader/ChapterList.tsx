@@ -2,11 +2,13 @@
 
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2, Search, X } from "lucide-react";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { memo, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { ChapterTimestamp } from "@/components/ChapterTimestamp";
 import { isTodayLocal } from "@/lib/date";
 import { formatChapterCardTitle } from "@/lib/chapter-title";
 import { READER_CHAPTER_AUDIO_UI_ENABLED } from "@/lib/reader-features";
+import { prefetchReaderChapterQuery } from "@/lib/reader-query";
 import type { ChapterSummary, StorySummary } from "@/lib/types";
 import { storyHref } from "@/lib/urls";
 
@@ -29,15 +31,23 @@ const ChapterCard = memo(function ChapterCard({
   currentChapterNumber,
   fresh = false,
 }: ChapterCardProps) {
+  const queryClient = useQueryClient();
   const isRead = chapter.chapterNumber <= maxReadChapter;
   const isNew = maxReadChapter > 0 && chapter.chapterNumber > maxReadChapter;
   const addedToday = isTodayLocal(chapter.updatedAt);
   const isCurrent = currentChapterNumber === chapter.chapterNumber;
 
+  function warmChapter() {
+    if (isCurrent) return;
+    void prefetchReaderChapterQuery(queryClient, currentStory.id, chapter.chapterNumber);
+  }
+
   return (
     <Link
       className={`story-chapter-card ${isRead ? "story-chapter-read" : ""} ${isCurrent ? "story-chapter-current" : ""} ${fresh ? "story-chapter-card-fresh" : ""}`.trim()}
       href={storyHref(currentStory, chapter.chapterNumber)}
+      onMouseEnter={warmChapter}
+      onFocus={warmChapter}
     >
       {isCurrent && <span className="story-chapter-current-bar" aria-hidden="true" />}
       <span className="story-chapter-title">
@@ -373,7 +383,14 @@ export const ChapterList = memo(function ChapterList({
           <button
             key={option.id}
             type="button"
-            className={`chip ${chapterFilter === option.id ? "chip-active" : ""}`}
+            className={[
+              "chip",
+              chapterFilter === option.id ? "chip-active" : "",
+              option.id === "audio" ? "story-chapter-filter-audio" : "",
+              option.id === "unread" ? "story-chapter-filter-unread" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             aria-pressed={chapterFilter === option.id}
             onClick={() => setChapterFilter(option.id)}
           >

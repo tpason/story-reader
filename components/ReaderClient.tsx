@@ -23,6 +23,7 @@ import { selectCurrentBookmark, selectMaxReadChapter, selectStoryBookmarks } fro
 import { UserIdentity } from "@/components/UserIdentity";
 import { FollowButton } from "@/components/FollowButton";
 import { NotificationBell } from "@/components/NotificationBell";
+import { StoryCover } from "@/components/StoryCover";
 import { ReaderGlossaryInlineText } from "@/components/ReaderGlossaryInlineText";
 import { ReaderGlossaryTapPopover } from "@/components/ReaderGlossaryTapPopover";
 import { ReaderInlineChapterBlock } from "@/components/ReaderInlineChapterBlock";
@@ -47,7 +48,7 @@ import { ReaderAmbienceLayer } from "@/components/ReaderAmbienceLayer";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { ReaderQuickSettings } from "@/components/ReaderQuickSettings";
 import { ReaderThemeSegmented } from "@/components/ReaderThemeSegmented";
-import { fetchReaderChapter, readerQueryKeys } from "@/lib/reader-query";
+import { fetchReaderChapter, prefetchReaderChapterQuery, readerQueryKeys, READER_CHAPTER_STALE_MS } from "@/lib/reader-query";
 import {
   bilingualFetchOptions,
   learnEnglishPreset,
@@ -988,11 +989,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
     const prefetch = () => {
       chaptersToPrefetch.forEach((chapterNumber) => {
-        queryClient.prefetchQuery({
-          queryKey: readerQueryKeys.chapter(activePayload.story.id, chapterNumber),
-          queryFn: () => fetchReaderChapter(activePayload.story.id, chapterNumber),
-          staleTime: 1000 * 60 * 8
-        });
+        void prefetchReaderChapterQuery(queryClient, activePayload.story.id, chapterNumber);
       });
     };
 
@@ -2114,7 +2111,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               .fetchQuery({
                 queryKey: readerQueryKeys.chapter(activePayload.story.id, nextChapterToWarm.chapterNumber),
                 queryFn: () => fetchReaderChapter(activePayload.story.id, nextChapterToWarm.chapterNumber),
-                staleTime: 1000 * 60 * 8
+                staleTime: READER_CHAPTER_STALE_MS
               })
               .then((nextPayload) => {
                 if (nextPayload.chapter.audioHlsUrl) {
@@ -3062,7 +3059,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       .fetchQuery({
         queryKey: readerQueryKeys.chapter(activePayload.story.id, chapterNumber, bilingualQueryOptions),
         queryFn: () => fetchReaderChapter(activePayload.story.id, chapterNumber, bilingualQueryOptions),
-        staleTime: 1000 * 60 * 8
+        staleTime: READER_CHAPTER_STALE_MS
       })
       .catch(() => null);
   }
@@ -3334,6 +3331,22 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       return;
     }
 
+    // Prefer RQ / Dexie / fetch into local state — avoids full RSC roundtrip when warm.
+    const nextPayload = await resolveChapterPayload(targetChapter.chapterNumber);
+    if (nextPayload) {
+      setCachedPayload(nextPayload);
+      setInlineChapters([]);
+      setMobileSheetOpen(false);
+      setMobileMenuOpen(false);
+      queryClient.setQueryData(
+        readerQueryKeys.chapter(nextPayload.story.id, nextPayload.chapter.chapterNumber),
+        nextPayload
+      );
+      window.history.replaceState(null, "", storyHref(nextPayload.story, targetChapter.chapterNumber));
+      window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+      return;
+    }
+
     router.push(storyHref(activePayload.story, targetChapter.chapterNumber));
   }
 
@@ -3415,12 +3428,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         key={chapter.id}
         style={virtualStyle}
         onMouseEnter={() => {
-          if (isActive || !navigator.onLine) return;
-          queryClient.prefetchQuery({
-            queryKey: readerQueryKeys.chapter(activePayload.story.id, chapter.chapterNumber),
-            queryFn: () => fetchReaderChapter(activePayload.story.id, chapter.chapterNumber),
-            staleTime: 1000 * 60 * 8
-          });
+          if (isActive) return;
+          void prefetchReaderChapterQuery(queryClient, activePayload.story.id, chapter.chapterNumber);
         }}
         onClick={(event) => {
           markChapterListNavigation(chapter.chapterNumber);
@@ -5317,15 +5326,16 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
             <ReaderChapterFooter storyId={activePayload.story.id} excludeStoryId={activePayload.story.id} />
 
-            <nav className="chapter-nav" aria-label="Previous and next chapter">
+            <nav className="chapter-nav chapter-nav--bookstore" aria-label="Previous and next chapter">
               <Link
-                className="nav-card"
+                className="nav-card nav-card--prev"
                 aria-disabled={!activePayload.previousChapter}
                 href={activePayload.previousChapter ? storyHref(activePayload.story, activePayload.previousChapter.chapterNumber) : "#"}
                 onClick={(event) => maybeOpenCachedChapter(event, activePayload.previousChapter?.chapterNumber)}
               >
                 <ChevronLeft size={18} />
                 <span>
+                  <small>Chương trước</small>
                   {activePayload.previousChapter
                     ? formatChapterLabel(activePayload.previousChapter.chapterNumber, activePayload.previousChapter.title)
                     : "Không có chương trước"}
@@ -5333,18 +5343,23 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               </Link>
               <Link
                 ref={navCardNextRef}
-                className="nav-card"
+                className="nav-card nav-card--next"
                 aria-disabled={!tailNextChapter}
                 href={tailNextChapter ? storyHref(activePayload.story, tailNextChapter.chapterNumber) : "#"}
                 onClick={(event) => maybeOpenCachedChapter(event, tailNextChapter?.chapterNumber)}
               >
-                <span>
-                  <small>{tailNextChapter ? "Đọc tiếp" : "Sau"}</small>
+                <StoryCover
+                  src={activePayload.story.coverImageUrl}
+                  title={activePayload.story.title}
+                  className="nav-card-cover"
+                />
+                <span className="nav-card-next-copy">
+                  <small>Chương tiếp</small>
                   {tailNextChapter
                     ? formatChapterLabel(tailNextChapter.chapterNumber, tailNextChapter.title)
                     : "Không có chương sau"}
                 </span>
-                <ChevronRight size={18} />
+                <ChevronRight size={18} aria-hidden />
               </Link>
             </nav>
           </div>

@@ -6,13 +6,17 @@ const VI_DATE_FORMATTER = new Intl.DateTimeFormat("vi-VN", {
   year: "numeric"
 });
 
-/** SQL fragment: display timestamp by active content layer (raw → created, else pipeline update). */
+/**
+ * SQL fragment: display timestamp by active content layer (raw → created, else pipeline update).
+ * Non-empty text via NULLIF(BTRIM(...), '') — same semantics as pre-perf path; list queries still
+ * omit returning TEXT blobs to Node.
+ */
 export const CHAPTER_DISPLAY_AT_SQL = `
   CASE
-    WHEN COALESCE(NULLIF(TRIM(c.polished_text_content), ''), NULLIF(TRIM(c.polished_text_path), '')) IS NOT NULL
+    WHEN COALESCE(NULLIF(BTRIM(c.polished_text_content), ''), NULLIF(BTRIM(c.polished_text_path), '')) IS NOT NULL
       OR c.is_polished THEN
       COALESCE(c.polished_at, c.updated_at)
-    WHEN COALESCE(NULLIF(TRIM(c.translated_text_content), ''), NULLIF(TRIM(c.translated_text_path), '')) IS NOT NULL
+    WHEN COALESCE(NULLIF(BTRIM(c.translated_text_content), ''), NULLIF(BTRIM(c.translated_text_path), '')) IS NOT NULL
       OR c.is_translated THEN
       COALESCE(c.translated_at, c.updated_at)
     ELSE

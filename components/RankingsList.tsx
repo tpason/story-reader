@@ -203,7 +203,7 @@ export function RankingsList({ items, variant = "trending", period = "week", emp
             Khám phá thư viện
           </Link>
           <Link className="chip chip-inverted" href={"/discover?kind=polished" as Route}>
-            Truyện vừa polish
+            Truyện mới tinh luyện
           </Link>
         </div>
       </XianxiaEmptyState>

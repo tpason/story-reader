@@ -100,6 +100,8 @@ export function ChapterAudioPlayer({
   const generationRunRef = useRef(0);
   const [readyHlsUrl, setReadyHlsUrl] = useState<string | null>(null);
   const [segmentAudioUrl, setSegmentAudioUrl] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [panelExpanded, setPanelExpanded] = useState(false);
 
   // Segment mode is handled imperatively — segmentAudioUrl is not in primaryUrl.
   // The main useEffect only manages audioUrl / HLS paths.
@@ -663,8 +665,20 @@ export function ChapterAudioPlayer({
                     ? "Chưa có audio"
                     : "Đang tải";
 
+  const miniMode = isPlaying && !panelExpanded;
+
   return (
-    <div className="chapter-audio-player">
+    <div
+      className={[
+        "chapter-audio-player",
+        miniMode ? "chapter-audio-player--mini" : "",
+        panelExpanded ? "chapter-audio-player--expanded" : "",
+        isPlaying ? "chapter-audio-player--playing" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      data-audio-mini={miniMode ? "true" : undefined}
+    >
       <span className="chapter-audio-aura" aria-hidden="true" />
       <span className="chapter-audio-orbit chapter-audio-orbit-one" aria-hidden="true" />
       <span className="chapter-audio-orbit chapter-audio-orbit-two" aria-hidden="true" />
@@ -673,7 +687,19 @@ export function ChapterAudioPlayer({
           <p className="eyebrow">Audio chương</p>
           <strong>{title}</strong>
         </div>
-        <span className={`chapter-audio-badge chapter-audio-badge-${status}`}>{statusLabel}</span>
+        <div className="chapter-audio-header-actions">
+          {isPlaying ? (
+            <button
+              type="button"
+              className="chapter-audio-expand-toggle"
+              aria-expanded={panelExpanded}
+              onClick={() => setPanelExpanded((open) => !open)}
+            >
+              {panelExpanded ? "Thu gọn" : "Mở rộng"}
+            </button>
+          ) : null}
+          <span className={`chapter-audio-badge chapter-audio-badge-${status}`}>{statusLabel}</span>
+        </div>
       </div>
 
       {!audioUrl && !segmentAudioUrl ? (
@@ -793,19 +819,26 @@ export function ChapterAudioPlayer({
             if (segmentQueueActive) warmNextSegment();
           }}
           onPlay={() => {
+            setIsPlaying(true);
+            setPanelExpanded(false);
             if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
           }}
           onPause={() => {
+            setIsPlaying(false);
             if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
           }}
           onEnded={() => {
             if (segmentQueueActive) {
               const played = playNextReadySegment();
-              if (!played && autoNextEnabled && onAutoNextChapter && segmentStatus?.complete) {
-                onAutoNextChapter();
+              if (!played) {
+                setIsPlaying(false);
+                if (autoNextEnabled && onAutoNextChapter && segmentStatus?.complete) {
+                  onAutoNextChapter();
+                }
               }
               return;
             }
+            setIsPlaying(false);
             if (autoNextEnabled && autoNextChapterUrl && onAutoNextChapter) {
               onAutoNextChapter();
             }

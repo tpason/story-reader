@@ -1,6 +1,6 @@
 export default function AccountLoading() {
   return (
-    <main className="app-shell account-shell">
+    <main className="app-shell account-shell xi-route-loading" aria-busy="true" aria-label="Đang tải">
       <header className="topbar topbar-modern topbar-skel" aria-hidden="true">
         <div className="topbar-modern-inner">
           <div className="brand topbar-modern-brand">

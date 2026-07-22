@@ -3,7 +3,8 @@
 import { BookOpenCheck, ChevronRight, Sparkles } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { memo, useMemo, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { CursorPage, StorySummary } from "@/lib/types";
 import { StoryCover } from "@/components/StoryCover";
@@ -12,6 +13,7 @@ import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { storyHref } from "@/lib/urls";
 import { storyDisplayDescription, storyCategoryLabel } from "@/lib/story-description";
 import { formatRelativeActivity, formatStoryUpdatedLabel } from "@/lib/content-timestamps";
+import { prefetchStorySummaryQuery } from "@/lib/reader-query";
 import { useAppSelector } from "@/lib/store-hooks";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
 import { useStoryLibraryAdminEdit, type AdminStoryListEditField, type AdminStoryListEditState } from "@/hooks/useStoryLibraryAdminEdit";
@@ -88,6 +90,8 @@ type StoryCardProps = {
 };
 
 const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminEditForCard, highlight, fresh, priority, onStartEdit, onSetAdminEdit }: StoryCardProps) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const tiltHandlers = useCardTiltHandlers();
   const newChapterCount = storyHistory ? Math.max(0, story.totalChapters - storyHistory.maxReadChapterNumber) : 0;
   const statusLabel = storyHistory
@@ -99,11 +103,19 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
     ? Math.min(100, Math.round((storyHistory.maxReadChapterNumber / story.totalChapters) * 100))
     : 0;
   const updatedLabel = formatRelativeActivity(story.updatedAt) ?? formatStoryUpdatedLabel(story.updatedAt);
+  const href = storyHistory ? storyHref(story, storyHistory.chapterNumber) : storyHref(story);
+
+  function warmStoryNav() {
+    router.prefetch(href);
+    void prefetchStorySummaryQuery(queryClient, story.id);
+  }
 
   return (
     <Link
       className={`story-card ${fresh ? "story-card-fresh" : ""}`.trim()}
-      href={storyHistory ? storyHref(story, storyHistory.chapterNumber) : storyHref(story)}
+      href={href}
+      onMouseEnter={warmStoryNav}
+      onFocus={warmStoryNav}
       {...tiltHandlers}
     >
       <StoryCover src={story.coverImageUrl} title={story.title} priority={priority} />
@@ -255,6 +267,32 @@ export function StoryLibrary({
   const historyByStory = useMemo(() => new Map(history.map((item) => [item.storyId, item])), [history]);
   const recentItems = useMemo(() => history.slice(0, 6), [history]);
   const renderContinue = showContinueSection && !hideHomeExtras && recentItems.length > 0;
+  const scrollHostRef = useRef<HTMLDivElement | null>(null);
+  // Only after the load-more sentinel enters the scroll host while feed is exhausted.
+  const [endReached, setEndReached] = useState(false);
+
+  useEffect(() => {
+    setEndReached(false);
+  }, [initialPage, query.q, query.author, query.hot, query.completed, query.category, query.minChapters, query.maxChapters, query.hasPolished, query.hasAudio, query.sort]);
+
+  useEffect(() => {
+    if (nextCursor || loading) {
+      if (nextCursor) setEndReached(false);
+      return;
+    }
+    const sentinel = sentinelRef.current;
+    const host = scrollHostRef.current;
+    if (!sentinel || !host) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setEndReached(true);
+      },
+      { root: host, rootMargin: "0px", threshold: 0.01 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [nextCursor, loading, items.length, sentinelRef]);
 
   if (items.length === 0) {
     return (
@@ -320,7 +358,12 @@ export function StoryLibrary({
         </div>
 
         {/* Inner scroll host (sticky panel on homepage owns viewport height). */}
-        <div className="story-library-scroll" tabIndex={0} aria-label="Danh sách linh quyển — cuộn trong khung này">
+        <div
+          className="story-library-scroll"
+          tabIndex={0}
+          aria-label="Danh sách linh quyển — cuộn trong khung này"
+          ref={scrollHostRef}
+        >
           <div className="story-grid">
             {items.map((story, index) => (
               <StoryCard
@@ -349,9 +392,11 @@ export function StoryLibrary({
               error
             ) : nextCursor ? (
               "Cuộn để tải thêm"
-            ) : (
+            ) : loading ? (
+              "Đang tải…"
+            ) : endReached ? (
               "Đã xem hết Linh Quyển Đại Thư"
-            )}
+            ) : null}
           </div>
         </div>
       </section>
