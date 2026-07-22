@@ -141,6 +141,8 @@ type ReaderParagraphNoteEditorProps = {
   title?: string;
   placeholder?: string;
   ariaLabel?: string;
+  /** Reader theme — required when portaled outside `.reader-shell`. */
+  theme?: string;
 };
 
 export function ReaderParagraphNoteEditor({
@@ -152,7 +154,8 @@ export function ReaderParagraphNoteEditor({
   onClose,
   title = "Ghi chú đoạn",
   placeholder = "Ghi nhớ manh mối, nhân vật, suy nghĩ…",
-  ariaLabel
+  ariaLabel,
+  theme
 }: ReaderParagraphNoteEditorProps) {
   const [portalReady, setPortalReady] = useState(false);
 
@@ -175,7 +178,13 @@ export function ReaderParagraphNoteEditor({
   if (!portalReady) return null;
 
   return createPortal(
-    <div className="reader-note-modal" role="dialog" aria-modal="true" aria-label={ariaLabel ?? title}>
+    <div
+      className="reader-note-modal reader-theme-portal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={ariaLabel ?? title}
+      data-theme={theme}
+    >
       <button className="reader-note-modal-backdrop" type="button" aria-label="Đóng ghi chú" onClick={onClose} />
       <div className="reader-paragraph-note-editor reader-note-modal-panel">
         <div className="reader-paragraph-note-editor-header">

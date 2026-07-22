@@ -47,6 +47,7 @@ export function ReaderThemeSegmented({
               key={item.id}
               type="button"
               className={`reader-quick-theme${active ? " reader-quick-theme-active" : ""}`}
+              data-theme-id={item.id}
               aria-pressed={active}
               title={item.title}
               onClick={() => dispatch(setReaderTheme(item.id))}
@@ -61,6 +62,7 @@ export function ReaderThemeSegmented({
           <button
             key={item.id}
             type="button"
+            data-theme-id={item.id}
             title={item.title}
             aria-pressed={active}
             onClick={() => dispatch(setReaderTheme(item.id))}

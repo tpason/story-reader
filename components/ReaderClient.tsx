@@ -45,6 +45,7 @@ import { useReaderOfflineCache } from "@/components/reader/ReaderOfflineCachePro
 import { ReaderChapterFreshHint, type ReaderChapterFreshHintState } from "@/components/ReaderChapterFreshHint";
 import { ReaderAmbienceLayer } from "@/components/ReaderAmbienceLayer";
 import { ReaderLogo } from "@/components/ReaderLogo";
+import { ReaderQuickSettings } from "@/components/ReaderQuickSettings";
 import { ReaderThemeSegmented } from "@/components/ReaderThemeSegmented";
 import { fetchReaderChapter, readerQueryKeys } from "@/lib/reader-query";
 import {
@@ -428,7 +429,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     middleware: [offset(10), flip(), shift({ padding: 12 })],
     whileElementsMounted: autoUpdate
   });
-  const formatDismiss = useDismiss(formatFloatingContext);
+  // outsidePress uses mouseup by default — same click that opens from overflow
+  // would dismiss immediately. Use mousedown + defer open from overflow item.
+  const formatDismiss = useDismiss(formatFloatingContext, {
+    outsidePressEvent: "mousedown",
+    ancestorScroll: false
+  });
   const { getFloatingProps: getFormatFloatingProps, getReferenceProps: getFormatReferenceProps } = useInteractions([formatDismiss]);
   const activePayload = cachedPayload ?? payload;
   const activePayloadRef = useRef(activePayload);
@@ -3831,10 +3837,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             <button
               className="reader-mobile-dock-primary reader-mobile-dock-primary-progress"
               type="button"
-              aria-label="Mở công cụ đọc"
-              title="Công cụ đọc"
+              aria-label="Mở cài đặt và công cụ đọc"
+              title="Cài đặt & công cụ đọc"
               onClick={() => {
-                setMobileSheetTab("read");
+                // Gear affordance → settings first (theme/font); Đọc/Offline still one tap away
+                setMobileSheetTab("settings");
                 setMobileSheetOpen(true);
               }}
             >
@@ -3890,27 +3897,30 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           </div>
           <div className="reader-control-group reader-action-group" ref={readerOverflowRef}>
             {!compactReader ? (
-              <FloatingTooltip label="Tuỳ chọn đọc">
-                <button
-                  className={`icon-button reader-tools-trigger ${readerOverflowOpen || currentBookmark || focusModeEnabled || audioPanelOpen || offlineReady || commentsSplitOpen || notesSidebarOpen || chapterSearchOpen || mobileFormatOpen ? "icon-button-active" : ""}`}
-                  type="button"
-                  title="Tuỳ chọn đọc"
-                  aria-expanded={readerOverflowOpen}
-                  aria-controls="reader-overflow-panel"
-                  ref={(node) => {
-                    formatTriggerRef.current = node;
-                    formatFloatingRefs.setReference(node);
-                  }}
-                  {...getFormatReferenceProps({
-                    onClick: () => {
-                      setReaderOverflowOpen((v) => !v);
-                      if (mobileFormatOpen) setMobileFormatOpen(false);
-                    }
-                  })}
-                >
-                  <Settings2 size={16} />
-                </button>
-              </FloatingTooltip>
+              <>
+                <ReaderQuickSettings className="reader-aa-desktop" />
+                <FloatingTooltip label="Tuỳ chọn đọc">
+                  <button
+                    className={`icon-button reader-tools-trigger ${readerOverflowOpen || currentBookmark || focusModeEnabled || audioPanelOpen || offlineReady || commentsSplitOpen || notesSidebarOpen || chapterSearchOpen || mobileFormatOpen ? "icon-button-active" : ""}`}
+                    type="button"
+                    title="Tuỳ chọn đọc"
+                    aria-expanded={readerOverflowOpen}
+                    aria-controls="reader-overflow-panel"
+                    ref={(node) => {
+                      formatTriggerRef.current = node;
+                      formatFloatingRefs.setReference(node);
+                    }}
+                    {...getFormatReferenceProps({
+                      onClick: () => {
+                        setReaderOverflowOpen((v) => !v);
+                        if (mobileFormatOpen) setMobileFormatOpen(false);
+                      }
+                    })}
+                  >
+                    <Settings2 size={16} />
+                  </button>
+                </FloatingTooltip>
+              </>
             ) : null}
             {!compactReader && readerOverflowOpen ? (
               <div className="reader-overflow-panel" id="reader-overflow-panel">
@@ -3927,7 +3937,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   type="button"
                   onClick={() => {
                     setReaderOverflowOpen(false);
-                    setMobileFormatOpen(true);
+                    // Defer past this click so useDismiss does not close the panel instantly
+                    window.setTimeout(() => setMobileFormatOpen(true), 0);
                   }}
                 >
                   <Type size={15} />
@@ -4153,8 +4164,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           {mobileFormatOpen && !compactReader ? (
             <FloatingPortal>
               <div
-                className="format-controls format-controls-open format-controls-portal"
+                className="format-controls format-controls-open format-controls-portal reader-theme-portal"
                 id="format-controls"
+                data-theme={theme}
                 ref={(node) => {
                   formatPanelRef.current = node;
                   formatFloatingRefs.setFloating(node);
@@ -4272,8 +4284,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
       <Drawer.Root open={mobileSheetOpen} onOpenChange={setMobileSheetOpen} shouldScaleBackground={false}>
         <Drawer.Portal>
-          <Drawer.Overlay className="reader-mobile-sheet-backdrop" />
-          <Drawer.Content className="reader-mobile-sheet-panel" id="reader-mobile-sheet" ref={mobileSheetPanelRef} aria-label="Reader tools">
+          <Drawer.Overlay className="reader-mobile-sheet-backdrop reader-theme-portal" data-theme={theme} />
+          <Drawer.Content
+            className="reader-mobile-sheet-panel reader-theme-portal"
+            id="reader-mobile-sheet"
+            ref={mobileSheetPanelRef}
+            aria-label="Reader tools"
+            data-theme={theme}
+          >
             <div className="reader-mobile-sheet-sticky-top">
               <span className="reader-mobile-sheet-grip" aria-hidden="true" />
               <div className="reader-mobile-sheet-header">
@@ -5087,6 +5105,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             {paragraphNoteEditor && floatingActionsMounted
               ? createPortal(
                   <ReaderParagraphNoteEditor
+                    theme={theme}
                     excerpt={
                       paragraphBookmarksForChapter(paragraphNoteEditor.chapterNumber).find(
                         (item) => item.paragraphIndex === paragraphNoteEditor.paragraphIndex
@@ -5115,6 +5134,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             {phraseNoteEditor && floatingActionsMounted
               ? createPortal(
                   <ReaderParagraphNoteEditor
+                    theme={theme}
                     title="Ghi chú cụm từ"
                     excerpt={phraseNoteEditor.phrase}
                     pairedExcerpt={phraseNoteEditor.pairedText}
@@ -5131,6 +5151,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
             {lookupRequest && floatingActionsMounted ? (
               <ReaderLookupPanel
+                theme={theme}
                 request={lookupRequest}
                 onClose={() => setLookupRequest(null)}
                 onSavePhrase={savePhraseFromLookup}

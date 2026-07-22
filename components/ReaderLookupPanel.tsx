@@ -21,6 +21,8 @@ type ReaderLookupPanelProps = {
   request: ReaderLookupRequest | null;
   onClose: () => void;
   onSavePhrase?: (payload: { phrase: string; pairedText: string | null }) => void;
+  /** Reader theme — required when portaled outside `.reader-shell`. */
+  theme?: string;
 };
 
 type LookupTab = "quick" | "dictionary";
@@ -34,7 +36,7 @@ async function fetchLookup(query: string): Promise<ReaderLookupResult> {
   return (await response.json()) as ReaderLookupResult;
 }
 
-export function ReaderLookupPanel({ request, onClose, onSavePhrase }: ReaderLookupPanelProps) {
+export function ReaderLookupPanel({ request, onClose, onSavePhrase, theme }: ReaderLookupPanelProps) {
   const [portalReady, setPortalReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -141,7 +143,13 @@ export function ReaderLookupPanel({ request, onClose, onSavePhrase }: ReaderLook
   const senseCount = result?.meanings.reduce((sum, meaning) => sum + meaning.senses.length, 0) ?? 0;
 
   return createPortal(
-    <div className="reader-lookup-modal" role="dialog" aria-modal="true" aria-label="Tra từ tiếng Anh">
+    <div
+      className="reader-lookup-modal reader-theme-portal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Tra từ tiếng Anh"
+      data-theme={theme}
+    >
       <button className="reader-lookup-modal-backdrop" type="button" aria-label="Đóng tra từ" onClick={onClose} />
       <div className="reader-lookup-panel">
         <header className="reader-lookup-header">

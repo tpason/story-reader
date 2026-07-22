@@ -9516,3 +9516,271 @@ html[data-xi-compact="0"] .reader-mobile-dock {
   --link: color-mix(in srgb, var(--xi-gold-light, #f0d06a) 55%, #9ec9ff 45%);
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════
+   Reader calm over day sky (2026-07-22) — denser light parchment.
+   ═══════════════════════════════════════════════════════════════════ */
+
+html[data-xi-time="day"] .reader-shell[data-theme="light"] {
+  --reader-bg: rgba(248, 244, 234, 0.94);
+}
+
+html[data-xi-time="day"] .reader-shell[data-theme="bamboo"],
+html[data-xi-time="day"] .reader-shell[data-theme="sepia"] {
+  --reader-bg: rgba(236, 224, 200, 0.94);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   Reader UX — portal theme + mobile/desktop parity (2026-07-22)
+   Any UI portaled to document.body MUST use .reader-theme-portal +
+   data-theme={readerTheme} or CSS vars are undefined (blank/invisible).
+   Covers: Aa/format, mobile Drawer sheet, note/lookup modals.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.reader-theme-portal {
+  --reader-bg: #fffefa;
+  --reader-ink: #1d1d1f;
+  --reader-muted: #6e6e73;
+  --reader-line: #e7e2da;
+  --reader-panel-solid: #fffefa;
+  --xi-gold: #c8962e;
+  --xi-jade: #1a6b5a;
+  color: var(--reader-ink);
+}
+
+.reader-theme-portal[data-theme="light"] {
+  --reader-bg: #fffefa;
+  --reader-ink: #1d1d1f;
+  --reader-muted: #5c5852;
+  --reader-line: #e7e2da;
+  --reader-panel-solid: #fffefa;
+}
+
+.reader-theme-portal[data-theme="parchment"],
+.reader-theme-portal[data-theme="sepia"] {
+  --reader-bg: #f5f0e8;
+  --reader-ink: #2a2218;
+  --reader-muted: #5f5346;
+  --reader-line: rgba(200, 150, 46, 0.28);
+  --reader-panel-solid: #f5f0e8;
+}
+
+.reader-theme-portal[data-theme="bamboo"] {
+  --reader-bg: #ece4cc;
+  --reader-ink: #2c2418;
+  --reader-muted: #4f5a45;
+  --reader-line: rgba(90, 110, 72, 0.28);
+  --reader-panel-solid: #ece4cc;
+}
+
+.reader-theme-portal[data-theme="dark"],
+.reader-theme-portal[data-theme="ink-night"] {
+  --reader-bg: #10100f;
+  --reader-ink: #f5f0e6;
+  --reader-muted: #a9a49d;
+  --reader-line: #34312d;
+  --reader-panel-solid: #10100f;
+}
+
+.reader-theme-portal[data-theme="oled"] {
+  --reader-bg: #000000;
+  --reader-ink: #f2f2f2;
+  --reader-muted: #8e8e93;
+  --reader-line: #1c1c1e;
+  --reader-panel-solid: #000000;
+}
+
+.format-controls-portal,
+.reader-quick-settings-portal {
+  background: var(--reader-panel-solid, var(--reader-bg)) !important;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 28%, var(--reader-line) 72%) !important;
+  box-shadow: 0 18px 48px rgba(18, 16, 13, 0.22) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Mobile sheet + note/lookup — inherit portal tokens (Drawer/modal on body) */
+.reader-mobile-sheet-panel.reader-theme-portal {
+  background: var(--reader-panel-solid, var(--reader-bg)) !important;
+  border-color: var(--reader-line) !important;
+  color: var(--reader-ink) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.reader-mobile-sheet-panel.reader-theme-portal .reader-mobile-sheet-sticky-top,
+.reader-mobile-sheet-panel.reader-theme-portal .reader-mobile-sheet-scroll {
+  background: var(--reader-panel-solid, var(--reader-bg));
+  color: var(--reader-ink);
+}
+
+.reader-mobile-sheet-backdrop.reader-theme-portal {
+  background: color-mix(in srgb, var(--reader-ink) 34%, transparent) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.reader-note-modal.reader-theme-portal .reader-note-modal-panel,
+.reader-lookup-modal.reader-theme-portal .reader-lookup-panel {
+  background: var(--reader-panel-solid, var(--reader-bg)) !important;
+  color: var(--reader-ink) !important;
+  border: 1px solid var(--reader-line);
+}
+
+/* Theme chips: swatch colors so mobile never looks like blank squares */
+.reader-quick-theme[data-theme-id="light"],
+.reader-theme-mode button[data-theme-id="light"] {
+  background: #fffefa !important;
+  color: #1d1d1f !important;
+}
+
+.reader-quick-theme[data-theme-id="parchment"],
+.reader-theme-mode button[data-theme-id="parchment"] {
+  background: #f3ead8 !important;
+  color: #2a2218 !important;
+}
+
+.reader-quick-theme[data-theme-id="bamboo"],
+.reader-theme-mode button[data-theme-id="bamboo"] {
+  background: #e8e0cc !important;
+  color: #2c2418 !important;
+}
+
+.reader-quick-theme[data-theme-id="ink-night"],
+.reader-theme-mode button[data-theme-id="ink-night"] {
+  background: #0e1412 !important;
+  color: #ebe4d6 !important;
+}
+
+.reader-quick-theme[data-theme-id="dark"],
+.reader-theme-mode button[data-theme-id="dark"] {
+  background: #10100f !important;
+  color: #f5f5f7 !important;
+}
+
+.reader-quick-theme[data-theme-id="oled"],
+.reader-theme-mode button[data-theme-id="oled"] {
+  background: #000 !important;
+  color: #f2f2f2 !important;
+}
+
+.reader-quick-theme-active,
+.reader-theme-mode button[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--xi-gold, #c8962e) 70%, transparent);
+}
+
+/* TOC status chips must keep their own colors (muted audit was overriding) */
+.reader-shell .sidebar-link .chapter-status-row,
+.reader-shell .sidebar-link .chapter-status,
+.reader-shell .sidebar-link .chapter-timestamp {
+  color: unset !important;
+}
+
+.reader-shell .sidebar-link .chapter-status {
+  color: var(--reader-muted) !important;
+}
+
+.reader-shell .sidebar-link .chapter-status-read {
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 78%, var(--reader-ink) 22%) !important;
+}
+
+.reader-shell .sidebar-link .chapter-status-new,
+.reader-shell .sidebar-link .chapter-status-today {
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 72%, var(--reader-ink) 28%) !important;
+}
+
+.reader-shell .sidebar-link .chapter-status-offline {
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 62%, var(--reader-muted) 38%) !important;
+}
+
+.reader-shell .sidebar-link .chapter-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 4px;
+  align-items: center;
+}
+
+.reader-shell .sidebar-link-title {
+  color: var(--reader-ink) !important;
+  line-height: 1.35;
+}
+
+/* Resume bar: inset so it doesn’t feel flush/narrow against column edges */
+.reader-shell .reader-resume-banner {
+  margin: 6px 16px 18px !important;
+  padding: 12px 16px !important;
+  gap: 12px;
+  border-radius: 14px !important;
+  border: 1px solid color-mix(in srgb, var(--xi-jade, #1a6b5a) 26%, var(--reader-line) 74%) !important;
+  background: color-mix(in srgb, var(--xi-jade, #1a6b5a) 7%, var(--reader-panel-solid, var(--reader-bg)) 93%) !important;
+}
+
+@media (max-width: 839px) {
+  .reader-shell .reader-resume-banner {
+    margin: 4px 10px 14px !important;
+    padding: 10px 12px !important;
+  }
+}
+
+/* Heatmap = tiến độ đọc (not mystery squares) */
+.chapter-sidebar-heatmap-block {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
+.chapter-sidebar-heatmap-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  color: var(--reader-muted);
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.chapter-sidebar-heatmap-label span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: color-mix(in srgb, var(--reader-ink) 62%, var(--reader-muted) 38%);
+}
+
+.chapter-sidebar-heatmap-grid {
+  grid-template-columns: repeat(auto-fill, minmax(22px, 1fr)) !important;
+  gap: 4px !important;
+  margin: 0 !important;
+}
+
+.chapter-sidebar-heatmap-cell {
+  display: grid !important;
+  place-items: center;
+  min-height: 22px;
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--reader-line) 80%, var(--reader-ink) 20%) !important;
+  border-radius: 5px !important;
+  background: color-mix(in srgb, var(--reader-bg) 88%, var(--reader-ink) 12%) !important;
+  color: var(--reader-muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.chapter-sidebar-heatmap-cell-read {
+  background: color-mix(in srgb, var(--xi-jade, #1a6b5a) 22%, var(--reader-bg) 78%) !important;
+  border-color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 42%, var(--reader-line) 58%) !important;
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 70%, var(--reader-ink) 30%);
+}
+
+.chapter-sidebar-heatmap-cell-active {
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--xi-gold, #c8962e) 70%, transparent) !important;
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 55%, var(--reader-line) 45%) !important;
+  color: var(--reader-ink);
+  font-weight: 800;
+}
+

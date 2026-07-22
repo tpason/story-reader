@@ -29,15 +29,16 @@ type ReaderQuickSettingsProps = {
 export function ReaderQuickSettings({ className }: ReaderQuickSettingsProps) {
   const [open, setOpen] = useState(false);
   const dispatch = useAppDispatch();
-  const { fontSize, contentWidth } = useAppSelector((state) => state.readerStyle.config);
+  const { fontSize, contentWidth, theme } = useAppSelector((state) => state.readerStyle.config);
   const { refs, floatingStyles, context } = useFloating({
     open,
     onOpenChange: setOpen,
     placement: "bottom-end",
+    strategy: "fixed",
     middleware: [offset(8), flip(), shift({ padding: 8 })],
     whileElementsMounted: autoUpdate
   });
-  const dismiss = useDismiss(context);
+  const dismiss = useDismiss(context, { outsidePressEvent: "mousedown", ancestorScroll: false });
   const { getReferenceProps, getFloatingProps } = useInteractions([dismiss]);
 
   return (
@@ -48,7 +49,7 @@ export function ReaderQuickSettings({ className }: ReaderQuickSettingsProps) {
         className={`icon-button reader-aa-trigger ${open ? "icon-button-active" : ""} ${className ?? ""}`.trim()}
         aria-expanded={open}
         aria-controls="reader-quick-settings"
-        title="Aa — tuỳ chọn nhanh"
+        title="Aa — tuỳ chọn đọc nhanh"
         {...getReferenceProps({ onClick: () => setOpen((value) => !value) })}
       >
         <Type size={16} />
@@ -58,7 +59,8 @@ export function ReaderQuickSettings({ className }: ReaderQuickSettingsProps) {
           <div
             ref={refs.setFloating}
             id="reader-quick-settings"
-            className="reader-quick-settings"
+            className="reader-quick-settings reader-quick-settings-portal reader-theme-portal"
+            data-theme={theme}
             style={floatingStyles}
             {...getFloatingProps()}
           >
