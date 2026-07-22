@@ -6,15 +6,33 @@ import { useMemo } from "react";
 import { writeResumeNavigationTarget } from "@/lib/reader-resume";
 import { storyHref } from "@/lib/urls";
 import { useAppSelector } from "@/lib/store-hooks";
+import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 
-export function ReadingResumeBar({ storyId }: { storyId?: string }) {
+type ReadingResumeBarProps = {
+  storyId?: string;
+  /** Homepage: show compact recent-history chips under the singular CTA. */
+  showRecentRail?: boolean;
+};
+
+export function ReadingResumeBar({ storyId, showRecentRail = false }: ReadingResumeBarProps) {
   const items = useAppSelector((state) => state.history.items);
   const hydrated = useAppSelector((state) => state.history.hydrated);
+  const { isFresh } = useFreshStoryRealtime();
+
+  const sorted = useMemo(
+    () => [...items].sort((a, b) => Date.parse(b.lastReadAt) - Date.parse(a.lastReadAt)),
+    [items],
+  );
+
   const latest = useMemo(() => {
-    const sorted = [...items].sort((a, b) => Date.parse(b.lastReadAt) - Date.parse(a.lastReadAt));
     if (storyId) return sorted.find((item) => item.storyId === storyId) ?? null;
     return sorted[0] ?? null;
-  }, [items, storyId]);
+  }, [sorted, storyId]);
+
+  const recentOthers = useMemo(() => {
+    if (!showRecentRail || !latest) return [];
+    return sorted.filter((item) => item.storyId !== latest.storyId).slice(0, 5);
+  }, [showRecentRail, latest, sorted]);
 
   if (!latest) {
     // Reserve height until Redux hydrate — avoid homepage jump (no StoryLibrary skeleton).
@@ -28,7 +46,7 @@ export function ReadingResumeBar({ storyId }: { storyId?: string }) {
       ? ` · đoạn ${latest.paragraphIndex + 1}`
       : "";
 
-  return (
+  const primary = (
     <Link
       className="resume-mini-bar"
       href={href}
@@ -49,5 +67,36 @@ export function ReadingResumeBar({ storyId }: { storyId?: string }) {
       </span>
       <ChevronRight size={16} />
     </Link>
+  );
+
+  if (!showRecentRail) return primary;
+
+  return (
+    <div className="home-personal-strip home-personal-strip--with-rail">
+      {primary}
+      {recentOthers.length > 0 ? (
+        <div className="home-recent-rail" aria-label="Đọc gần đây">
+          {recentOthers.map((item) => (
+            <Link
+              key={item.storyId}
+              className={`home-recent-chip${isFresh(item.storyId) ? " home-recent-chip-fresh" : ""}`}
+              href={storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber)}
+              onClick={() =>
+                writeResumeNavigationTarget(item.storyId, item.chapterNumber, {
+                  scrollPosition: item.scrollPosition,
+                  paragraphIndex: item.paragraphIndex ?? null
+                })
+              }
+            >
+              <span className="home-recent-chip-title">{item.storyTitle}</span>
+              <small>Ch. {item.chapterNumber}</small>
+            </Link>
+          ))}
+          <Link className="home-recent-more" href="/reading-history">
+            Tàng thư
+          </Link>
+        </div>
+      ) : null}
+    </div>
   );
 }

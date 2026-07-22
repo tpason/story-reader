@@ -23726,3 +23726,210 @@ html[data-xi-time="night"] .library-header > .xi-poetry-col .xi-poetry-line,
   }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════
+   Foreign UX Synthesis — Phase 1 home densify (2026-07-22)
+   Singular personal strip · follows rail-or-nothing · compact hero
+   · filters in sticky catalog · one discovery surface
+   No new continuous animations (calm pack stays).
+   ═══════════════════════════════════════════════════════════════════ */
+
+.home-personal-strip {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.home-personal-strip .resume-mini-bar {
+  margin: 0;
+}
+
+.home-recent-rail {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 2px 2px;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.home-recent-chip,
+.home-recent-more {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  max-width: 11.5rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--hairline-strong, #d9d2c4) 75%, transparent);
+  background: color-mix(in srgb, var(--canvas, #f7f3ea) 92%, #fff 8%);
+  color: var(--ink, #1c1814);
+  text-decoration: none;
+  font-size: 0.82rem;
+  line-height: 1.25;
+}
+
+.home-recent-chip-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.home-recent-chip small,
+.home-recent-more {
+  color: var(--muted, var(--steel, #6b6458));
+  font-size: 0.72rem;
+}
+
+.home-recent-chip-fresh {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--xi-gold, #c8962e) 22%, transparent);
+}
+
+[data-xi-theme="dark"] .home-recent-chip,
+[data-xi-theme="dark"] .home-recent-more {
+  background: color-mix(in srgb, #17140f 94%, #000 6%);
+  border-color: rgba(200, 150, 46, 0.22);
+  color: #f5f0e6;
+}
+
+.home-priority-rail {
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+}
+
+.home-priority-rail .home-follows-block:empty {
+  display: none;
+}
+
+.home-follows-block .followed-section {
+  margin: 0;
+  padding: 8px 0 4px;
+}
+
+.home-follows-block .followed-heading-compact {
+  margin-bottom: 6px;
+}
+
+.home-follows-block .followed-heading-compact h2 {
+  font-size: clamp(1.05rem, 2.2vw, 1.25rem);
+  margin: 0;
+}
+
+.home-follows-block .followed-heading-compact .eyebrow {
+  margin: 0 0 2px;
+}
+
+.library-header--compact {
+  margin-bottom: 8px !important;
+}
+
+.library-header--compact .library-hero-shell--compact .xi-hero-cloud,
+.library-header--compact .library-hero-shell--compact {
+  min-height: 0 !important;
+}
+
+.library-header--compact .library-hero-content-modern {
+  padding: 14px 18px 12px !important;
+}
+
+.library-header--compact .library-title-modern {
+  font-size: clamp(1.35rem, 3.2vw, 1.85rem) !important;
+  margin: 0 !important;
+}
+
+.library-header--compact .library-subtitle {
+  display: none !important;
+}
+
+/* Filters live in sticky catalog — hide any leftover hero filter row */
+.library-header--compact > .filters.library-search {
+  display: none !important;
+}
+
+.home-story-flow--single {
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+}
+
+.home-discovery-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0 2px;
+}
+
+.home-cultivation-slot--compact {
+  margin: 6px 0 10px !important;
+}
+
+.home-cultivation-slot--compact .cultivation-panel {
+  padding: 10px 12px !important;
+}
+
+.library-sticky-filters {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.library-sticky-quick-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+}
+
+.library-sticky-panel .library-sticky-toolbar {
+  margin: 0;
+}
+
+@media (max-width: 839px) {
+  .home-personal-strip {
+    margin-bottom: 8px;
+  }
+
+  .library-header--compact .library-hero-content-modern {
+    padding: 12px 14px 10px !important;
+  }
+
+  .home-cultivation-slot--compact .cultivation-panel {
+    padding: 8px 10px !important;
+  }
+}
+
+/* Sticky host clips absolute dropdowns — keep advanced filter in-flow */
+.library-sticky-panel .library-sticky-filters {
+  flex: 0 0 auto;
+  padding: 10px 10px 0;
+}
+
+.library-sticky-panel .library-sticky-quick-filters {
+  padding-bottom: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 12%, transparent);
+  background: color-mix(in srgb, var(--canvas) 88%, rgba(255, 248, 230, 0.35) 12%);
+  margin: 0 -10px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.library-sticky-panel .advanced-filter {
+  position: relative;
+  z-index: 2;
+  overflow: visible !important;
+}
+
+.library-sticky-panel .advanced-filter-panel {
+  position: static !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin-top: 8px !important;
+}
+
+.library-sticky-panel:has(.advanced-filter[open]) {
+  overflow: visible;
+}
