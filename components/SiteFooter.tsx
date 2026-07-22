@@ -3,6 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/brand";
 
 type FooterLink = {
@@ -84,9 +85,34 @@ function shouldHideFooter(pathname: string | null) {
   return false;
 }
 
+function subscribeRouteLoading(onStoreChange: () => void) {
+  if (typeof document === "undefined") return () => undefined;
+  const mo = new MutationObserver(onStoreChange);
+  mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+  return () => mo.disconnect();
+}
+
+function readRouteLoading() {
+  return Boolean(document.querySelector(".xi-route-loading"));
+}
+
+/** True while a route `loading.tsx` shell is mounted (footer should stay hidden). */
+function useRouteLoadingActive() {
+  return useSyncExternalStore(subscribeRouteLoading, readRouteLoading, () => false);
+}
+
 export function SiteFooter() {
   const pathname = usePathname();
-  if (shouldHideFooter(pathname)) return null;
+  const routeLoading = useRouteLoadingActive();
+  // Defer until after hydrate so SSR/client first paint match (null) and we can
+  // detect `.xi-route-loading` without flashing the footer over empty content.
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || routeLoading || shouldHideFooter(pathname)) return null;
 
   return (
     <footer className="site-footer site-footer-dense site-footer-bookstore" aria-label="Chân trang Linh Quyển Các">
