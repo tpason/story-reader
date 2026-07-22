@@ -23300,3 +23300,429 @@ html:not([data-xi-theme="dark"]) .error-panel p {
   color: var(--slate) !important;
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════
+   Calm chrome Slice 3 (2026-07-22) — residual pulse/cloud loops + denser hero.
+   Features unchanged. Last @keyframes wins (same technique as Slice 1).
+   ═══════════════════════════════════════════════════════════════════ */
+
+@keyframes xi-button-border-pulse {
+  0%,
+  50%,
+  100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.56),
+      0 7px 18px rgba(79, 55, 20, 0.06);
+  }
+}
+
+@keyframes xi-cloud-drift {
+  0%,
+  45%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-0.35deg);
+    filter: drop-shadow(0 20px 36px rgba(130, 98, 42, 0.11));
+  }
+}
+
+@keyframes xi-cloud-halo {
+  0%,
+  50%,
+  100% {
+    opacity: 0.62;
+    transform: translate3d(-1%, 0, 0) scale(1);
+  }
+}
+
+/* Compact home hero — keep brand + copy, cut empty vertical budget */
+.library-header > div:not(.home-library-stage) {
+  min-height: clamp(200px, 22vw, 300px) !important;
+}
+
+.library-hero-content-modern {
+  padding: clamp(16px, 2.4vw, 28px) clamp(16px, 3vw, 28px) !important;
+}
+
+.library-title-modern {
+  font-size: clamp(1.45rem, 3.6vw, 2.35rem) !important;
+}
+
+.library-header > .library-hero-shell .library-hero-content .library-subtitle {
+  margin-top: 0.45rem;
+  max-width: 36rem;
+}
+
+@media (max-width: 839px) {
+  .library-header > div:not(.home-library-stage) {
+    min-height: clamp(160px, 42vw, 240px) !important;
+  }
+
+  .library-hero-content-modern {
+    padding: 14px 14px 12px !important;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   Home IA Slice 4 (2026-07-22) — continue/follows before marketing hero.
+   Dense priority rail; discovery capped to polished/updated + trending.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.home-priority-rail {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 10px;
+}
+
+.home-priority-rail .home-continue-section,
+.home-priority-rail .home-follows-block {
+  margin: 0;
+}
+
+.home-priority-rail .continue-section {
+  margin-bottom: 0;
+}
+
+.home-priority-rail .section-heading-row {
+  margin-bottom: 8px;
+}
+
+.home-priority-rail .continue-row {
+  gap: 8px;
+}
+
+@media (max-width: 839px) {
+  .home-priority-rail {
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   Anti-glare atmosphere (2026-07-22) — day sky / hero / jade wash.
+   Complements softer WebGL bloom + Sky presets. Features unchanged.
+   ═══════════════════════════════════════════════════════════════════ */
+
+html[data-xi-time="day"] body {
+  background:
+    radial-gradient(circle at 72% 18%, rgba(180, 150, 90, 0.12), transparent 20%),
+    radial-gradient(ellipse at 40% 74%, rgba(40, 55, 50, 0.2), transparent 30%),
+    linear-gradient(180deg, #6a8690 0%, #b8b4a4 50%, #a8a090 100%) !important;
+}
+
+html[data-xi-time="day"] .xi-css-sky,
+.xianxia-css-backdrop[data-xi-time="day"] .xi-css-sky {
+  background:
+    radial-gradient(ellipse 70% 45% at 78% 12%, rgba(255, 248, 220, 0.22), transparent 52%),
+    radial-gradient(ellipse 55% 38% at 22% 18%, rgba(110, 150, 170, 0.28), transparent 48%),
+    linear-gradient(180deg, #5a8494 0%, #9ab0b8 32%, #d0ccc0 62%, #b8b09a 100%) !important;
+}
+
+html[data-xi-time="day"] .xi-css-jade-glow {
+  opacity: 0.35;
+  filter: blur(16px);
+  background: radial-gradient(circle, rgba(38, 168, 130, 0.1) 0%, transparent 70%);
+}
+
+/* Dim CSS sky further when WebGL is on — avoid double-bright stack */
+html[data-xi-time="day"] .xianxia-css-backdrop-under-webgl .xi-css-sky,
+html[data-xi-time="day"] .xianxia-css-backdrop-under-webgl .xi-css-jade-glow,
+html[data-xi-time="day"] .xianxia-css-backdrop-under-webgl .xi-css-sun-halo {
+  opacity: 0.1 !important;
+}
+
+.xianxia-world-background[data-xi-time="day"] {
+  filter: brightness(0.9) saturate(0.9) contrast(0.98);
+}
+
+html[data-xi-time="day"] .library-header > .library-hero-shell .xi-cloud-aura--primary {
+  box-shadow:
+    inset 0 0 20px rgba(200, 150, 46, 0.08),
+    0 0 12px 4px rgba(200, 150, 46, 0.1),
+    0 0 28px 10px rgba(200, 150, 46, 0.06) !important;
+}
+
+html[data-xi-time="day"] .library-hero-cloud-modern {
+  box-shadow:
+    0 16px 40px rgba(45, 38, 29, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+  border-color: color-mix(in srgb, #c8962e 12%, var(--hairline) 88%);
+}
+
+html[data-xi-time="day"] .page-wrap {
+  background: color-mix(in srgb, var(--canvas) 88%, rgba(232, 228, 216, 0.55) 12%);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   Sitewide calm harmony (2026-07-22) — all app-shell pages under shared
+   world backdrop. Softens day/dawn/dusk washes, hero strips, cultivation,
+   rankings podium, auth CTA peaks. Keep gold/jade vibe, cut white-hot glare.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* —— Shared world: stronger day dim + dawn/dusk sun-halo —— */
+.xianxia-world-background[data-xi-time="day"] {
+  filter: brightness(0.82) saturate(0.86) contrast(0.97) !important;
+}
+
+.xianxia-world-background[data-xi-time="dawn"],
+.xianxia-world-background[data-xi-time="dusk"] {
+  filter: brightness(0.9) saturate(0.92);
+}
+
+html[data-xi-time="dawn"] .xi-css-sun-halo,
+html[data-xi-time="dusk"] .xi-css-sun-halo,
+.xianxia-css-backdrop[data-xi-time="dawn"] .xi-css-sun-halo,
+.xianxia-css-backdrop[data-xi-time="dusk"] .xi-css-sun-halo {
+  opacity: 0.35 !important;
+  filter: blur(18px);
+}
+
+html[data-xi-time="day"] .xi-css-jade-glow {
+  opacity: 0.18 !important;
+}
+
+/* Mobile AppAura light wash — less bleach over parchment */
+.app-aura-css-light,
+.rankings-aura-css-light {
+  opacity: 0.35;
+  mix-blend-mode: soft-light;
+}
+
+/* —— Page hero strips (discover / updates / rankings / following / history / categories) —— */
+html[data-xi-time="day"] .xi-page-hero-strip-inner {
+  background: color-mix(in srgb, var(--canvas) 90%, rgba(200, 150, 46, 0.06) 10%) !important;
+  box-shadow: none !important;
+}
+
+html[data-xi-time="day"] .xi-page-hero-strip-glow {
+  opacity: 0.28 !important;
+  filter: blur(22px);
+}
+
+/* —— Story detail hero —— */
+html[data-xi-time="day"] .story-detail-hero-aura {
+  opacity: 0.4 !important;
+  filter: blur(20px) saturate(0.85);
+}
+
+html[data-xi-time="day"] .story-detail-hero-modern {
+  box-shadow: 0 14px 36px rgba(45, 38, 29, 0.07) !important;
+}
+
+/* —— Cultivation (home slot + account) —— */
+html[data-xi-time="day"] .cultivation-panel {
+  box-shadow:
+    0 10px 28px rgba(45, 38, 29, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  filter: saturate(0.92) !important;
+}
+
+/* —— Rankings podium gold —— */
+html[data-xi-time="day"] .rankings-podium-gold {
+  box-shadow: 0 12px 28px rgba(120, 90, 30, 0.12) !important;
+}
+
+html[data-xi-time="day"] .rankings-podium-gold .rankings-podium-cover {
+  box-shadow: 0 0 0 1px rgba(200, 150, 46, 0.22) !important;
+}
+
+html[data-xi-time="day"] .rankings-scroll-shell--aura {
+  box-shadow: none;
+}
+
+/* —— Frosted page content: slightly denser so sky doesn’t bleach text —— */
+html[data-xi-time="day"] .page-wrap {
+  background: color-mix(in srgb, var(--canvas) 92%, rgba(220, 214, 200, 0.72) 8%) !important;
+}
+
+html[data-xi-time="day"] .library-sticky-panel {
+  background: color-mix(in srgb, var(--canvas) 94%, rgba(236, 230, 214, 0.55) 6%);
+}
+
+/* —— Chip / CTA peak trim (keep gold edge, cut white flash) —— */
+html[data-xi-time="day"] .chip-active,
+html[data-xi-time="day"] .auth-submit,
+html[data-xi-time="day"] .story-mobile-cta-primary,
+html[data-xi-time="day"] .comment-submit {
+  filter: saturate(0.92) brightness(0.96) !important;
+}
+
+html[data-xi-time="day"] .auth-portal-submit {
+  filter: saturate(0.9) brightness(0.94) !important;
+  box-shadow: 0 8px 22px rgba(80, 55, 20, 0.22) !important;
+}
+
+/* Home hero cloud: less white frost — hero only, not poetry companion */
+html[data-xi-time="day"] .library-header > div:not(.home-library-stage):not(.xi-poetry-col) {
+  background:
+    radial-gradient(ellipse at 18% 36%, rgba(255, 255, 255, 0.72) 0 22%, transparent 50%),
+    radial-gradient(ellipse at 62% 32%, rgba(255, 248, 230, 0.45) 0 20%, transparent 50%),
+    linear-gradient(118deg, rgba(255, 255, 255, 0.28), rgba(255, 246, 218, 0.12) 48%, rgba(255, 255, 255, 0.22)),
+    rgba(248, 244, 232, 0.52) !important;
+  box-shadow:
+    0 0 28px 10px rgba(255, 252, 242, 0.28),
+    0 0 56px 24px rgba(255, 246, 220, 0.14),
+    inset 0 0 18px rgba(255, 252, 240, 0.28) !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   Poetry = hero companion (2026-07-22)
+   Match left library-hero: soft gold aura (no ring), ink upright Sora —
+   drop Literata italic / jade-gold clip / thin circular border.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.library-header > .xi-poetry-col,
+.library-header > div.xi-poetry-col {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.library-header > .xi-poetry-col .xi-poetry-cloud-bg,
+.library-header > .xi-poetry-col .xi-cloud-aura--secondary {
+  border: none !important;
+  outline: none !important;
+  /* Same soft gold aura recipe as .xi-hero-cloud-bg / primary aura */
+  background: rgba(200, 150, 46, 0.04) !important;
+  box-shadow:
+    inset 0 0 28px rgba(200, 150, 46, 0.10),
+    0 0  14px  5px rgba(200, 150, 46, 0.22),
+    0 0  36px 14px rgba(200, 150, 46, 0.14),
+    0 0  72px 28px rgba(240, 208, 106, 0.08),
+    0 0 120px 50px rgba(240, 208, 106, 0.04) !important;
+  filter: url(#xi-cloud-f) !important;
+}
+
+html[data-xi-time="dawn"] .library-header > .xi-poetry-col .xi-poetry-cloud-bg,
+html[data-xi-time="day"] .library-header > .xi-poetry-col .xi-poetry-cloud-bg,
+html[data-xi-time="dusk"] .library-header > .xi-poetry-col .xi-poetry-cloud-bg,
+html[data-xi-time="dawn"] .library-header > .xi-poetry-col .xi-cloud-aura--secondary,
+html[data-xi-time="day"] .library-header > .xi-poetry-col .xi-cloud-aura--secondary,
+html[data-xi-time="dusk"] .library-header > .xi-poetry-col .xi-cloud-aura--secondary {
+  border: none !important;
+  background: rgba(200, 150, 46, 0.04) !important;
+  box-shadow:
+    inset 0 0 28px rgba(200, 150, 46, 0.10),
+    0 0  14px  5px rgba(200, 150, 46, 0.20),
+    0 0  36px 14px rgba(200, 150, 46, 0.12),
+    0 0  72px 28px rgba(240, 208, 106, 0.07) !important;
+}
+
+html[data-xi-time="night"] .library-header > .xi-poetry-col .xi-poetry-cloud-bg,
+html[data-xi-time="night"] .library-header > .xi-poetry-col .xi-cloud-aura--secondary,
+[data-xi-theme="dark"] .library-header > .xi-poetry-col .xi-poetry-cloud-bg,
+[data-xi-theme="dark"] .library-header > .xi-poetry-col .xi-cloud-aura--secondary {
+  border: none !important;
+  background: rgba(8, 10, 14, 0.78) !important;
+  box-shadow:
+    inset 0 0 32px rgba(0, 0, 0, 0.58),
+    inset 0 0 14px rgba(200, 150, 46, 0.14),
+    0 0  18px  8px rgba(0, 0, 0, 0.48),
+    0 0  40px 16px rgba(200, 150, 46, 0.10),
+    0 0  72px 32px rgba(0, 0, 0, 0.30) !important;
+}
+
+.library-header > .xi-poetry-col .xi-poetry-line,
+.xi-poetry-col .xi-poetry-line {
+  /* Kill jade/gold clipped glyphs */
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #1a1209 !important;
+  color: #1a1209 !important;
+
+  /* Match left hero copy — Sora upright ink */
+  font-family: var(--font-sora), system-ui, sans-serif !important;
+  font-style: normal !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
+
+  filter: none !important;
+  animation: xi-poetry-word-in-plain 0.75s ease forwards !important;
+  animation-delay: calc(var(--col-i, 0) * 0.35s + var(--row-i, 0) * 0.1s) !important;
+  will-change: opacity;
+}
+
+html[data-xi-time="night"] .library-header > .xi-poetry-col .xi-poetry-line,
+[data-xi-theme="dark"] .library-header > .xi-poetry-col .xi-poetry-line,
+[data-xi-theme="dark"] .xi-poetry-col .xi-poetry-line {
+  -webkit-text-fill-color: #f5f0e6 !important;
+  color: #f5f0e6 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75) !important;
+  filter: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-header > .xi-poetry-col .xi-poetry-line,
+  .xi-poetry-col .xi-poetry-line {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Story detail mobile: heatmap grid already hidden — hide new label too */
+@media (max-width: 839px) {
+  .story-detail-hero-progress .chapter-sidebar-heatmap-label {
+    display: none;
+  }
+}
+
+/* Story detail: heatmap already has % caption — keep label quiet */
+.story-detail-hero-progress .chapter-sidebar-heatmap-label {
+  margin-bottom: 2px;
+}
+
+.story-detail-hero-progress .chapter-sidebar-heatmap-label span {
+  display: none;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   Sitewide portal chrome floors (2026-07-22)
+   Notification / identity / toasts portal to body — keep opaque panels
+   so light/dark UI never renders as blank or washed overlays.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.notification-panel-portal {
+  background: color-mix(in srgb, var(--canvas, #f7f3ea) 96%, #fff 4%) !important;
+  border: 1px solid color-mix(in srgb, var(--hairline-strong, #d9d2c4) 70%, transparent) !important;
+  color: var(--ink, #1c1814);
+  box-shadow: 0 18px 48px rgba(28, 24, 20, 0.18) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-xi-theme="dark"] .notification-panel-portal {
+  background: color-mix(in srgb, #141210 94%, #000 6%) !important;
+  border-color: rgba(200, 150, 46, 0.22) !important;
+  color: #f5f0e6;
+}
+
+.identity-modal-panel {
+  background: var(--canvas, #f7f3ea) !important;
+  color: var(--ink, #1c1814);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-xi-theme="dark"] .identity-modal-panel {
+  background: #161310 !important;
+  color: #f5f0e6;
+  border: 1px solid rgba(200, 150, 46, 0.2);
+}
+
+/* Mobile topbar: keep taps ≥44px */
+@media (max-width: 839px) {
+  .topbar .icon-button,
+  .topbar .notification-trigger {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
