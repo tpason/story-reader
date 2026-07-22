@@ -603,12 +603,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   useEffect(() => {
     const mount = () => setFloatingActionsMounted(true);
-    if ("requestIdleCallback" in window) {
+    // Prefer idle callback when available; use global timers so TS does not
+    // narrow `window` to `never` after an `in` check (breaks next build).
+    if (typeof window.requestIdleCallback === "function") {
       const id = window.requestIdleCallback(mount, { timeout: 1200 });
       return () => window.cancelIdleCallback(id);
     }
-    const timer = window.setTimeout(mount, 400);
-    return () => window.clearTimeout(timer);
+    const timer = globalThis.setTimeout(mount, 400);
+    return () => globalThis.clearTimeout(timer);
   }, []);
   const paragraphs = useMemo(() => {
     if (bilingualActive && bilingualPairs.length > 0) {
@@ -989,7 +991,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       });
     };
 
-    if ("requestIdleCallback" in window) {
+    if (typeof window.requestIdleCallback === "function") {
       const idleId = window.requestIdleCallback(prefetch, { timeout: 1800 });
       return () => window.cancelIdleCallback(idleId);
     }
@@ -2074,7 +2076,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               window.clearTimeout(prev.id);
             }
           }
-          if ("requestIdleCallback" in window) {
+          if (typeof window.requestIdleCallback === "function") {
             const id = window.requestIdleCallback(append, { timeout: 900 });
             continuousAppendHandleRef.current = { kind: "idle", id };
           } else {
@@ -2122,7 +2124,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               })
               .catch(() => undefined);
           };
-          if ("requestIdleCallback" in window) {
+          if (typeof window.requestIdleCallback === "function") {
             window.requestIdleCallback(warmNextChapter, { timeout: 2000 });
           } else {
             globalThis.setTimeout(warmNextChapter, 0);

@@ -1,0 +1,28 @@
+# PR gate: catch TypeScript / Next build failures before merge.
+name: CI
+
+on:
+  pull_request:
+
+concurrency:
+  group: ci-reader-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Production build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://linhquyen.cc
+        run: npm run build
