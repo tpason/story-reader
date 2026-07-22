@@ -9,7 +9,8 @@ import { readCachedWebGLPerfTier, WEBGL_PERF_EVENT } from "@/lib/webgl-performan
 
 const CANVAS_BG: Record<TimeOfDay, string> = {
   dawn: "#1a1420",
-  day: "#8aa8b8",
+  // Muted — bright clears flash through before first WebGL frame / around edges.
+  day: "#4a6270",
   dusk: "#181018",
   night: "#020408",
 };

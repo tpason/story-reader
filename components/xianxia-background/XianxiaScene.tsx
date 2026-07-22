@@ -57,31 +57,35 @@ function ScenePostEffects({ showGodRays, sunMesh, bloom, isMid }: ScenePostEffec
     ? { multisampling: 0 as const, resolutionScale: 0.88 }
     : { multisampling: 4 as const, resolutionScale: 1 };
 
+  // Higher threshold + softer GodRays — homepage parchment stays readable (anti-glare).
+  const bloomThreshold = 0.78;
+  const bloomSmooth = 0.5;
+
   if (showGodRays && sunMesh) {
     return (
       <EffectComposer {...composerProps}>
-        <Bloom intensity={bloom * (isMid ? 0.9 : 1)} luminanceThreshold={0.62} luminanceSmoothing={0.42} />
+        <Bloom intensity={bloom * (isMid ? 0.75 : 0.85)} luminanceThreshold={bloomThreshold} luminanceSmoothing={bloomSmooth} />
         <GodRays
           sun={sunMesh}
           blendFunction={BlendFunction.SCREEN}
           samples={isMid ? 10 : 16}
-          density={0.96}
-          decay={0.91}
-          weight={isMid ? 0.2 : 0.28}
-          exposure={isMid ? 0.42 : 0.55}
+          density={0.94}
+          decay={0.9}
+          weight={isMid ? 0.14 : 0.2}
+          exposure={isMid ? 0.28 : 0.36}
           clampMax={1}
           kernelSize={KernelSize.SMALL}
           blur
         />
-        <Vignette offset={0.24} darkness={0.58} />
+        <Vignette offset={0.28} darkness={0.64} />
       </EffectComposer>
     );
   }
 
   return (
     <EffectComposer {...composerProps}>
-      <Bloom intensity={bloom * (isMid ? 0.85 : 1)} luminanceThreshold={0.62} luminanceSmoothing={0.42} />
-      <Vignette offset={0.24} darkness={0.58} />
+      <Bloom intensity={bloom * (isMid ? 0.7 : 0.8)} luminanceThreshold={bloomThreshold} luminanceSmoothing={bloomSmooth} />
+      <Vignette offset={0.28} darkness={0.64} />
     </EffectComposer>
   );
 }
@@ -310,9 +314,9 @@ export function XianxiaScene({ timeOfDay, qualityTier = "full" }: XianxiaScenePr
       <mesh position={[0, 0, -3.0]}>
         <planeGeometry args={[20, 10]} />
         <meshBasicMaterial
-          color={timeOfDay === "night" ? "#203050" : timeOfDay === "dusk" ? "#b06840" : timeOfDay === "dawn" ? "#d09850" : "#90b8cc"}
+          color={timeOfDay === "night" ? "#203050" : timeOfDay === "dusk" ? "#a06038" : timeOfDay === "dawn" ? "#c09048" : "#6a8898"}
           transparent
-          opacity={(timeOfDay === "night" ? 0.04 : 0.06) * pngMul}
+          opacity={(timeOfDay === "night" ? 0.04 : timeOfDay === "day" ? 0.035 : 0.05) * pngMul}
           depthWrite={false}
         />
       </mesh>
@@ -324,7 +328,7 @@ export function XianxiaScene({ timeOfDay, qualityTier = "full" }: XianxiaScenePr
           src={preset.haze}
           position={[0, 0, -0.1]}
           scale={[6, 6, 1]}
-          opacity={0.035 * pngMul}
+          opacity={(timeOfDay === "day" ? 0.018 : 0.03) * pngMul}
           blendMode={AdditiveBlending}
         />
       )}

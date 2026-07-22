@@ -22,7 +22,9 @@ import {
 } from "@/lib/brand";
 import "./globals.css";
 
-export const dynamic = "force-dynamic";
+// ponytail: do not force-dynamic the whole shell — pages/APIs that need request
+// time already set `dynamic = "force-dynamic"` locally; home uses `revalidate`.
+// AppAuraLayer `useSearchParams` is already inside <Suspense>.
 
 const literata = Literata({
   axes: ["opsz"],
