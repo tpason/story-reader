@@ -64,11 +64,26 @@ export type ChapterRow = {
   raw_text_content?: string | null;
   translated_text_content?: string | null;
   polished_text_content?: string | null;
+  /** Present on slim list queries that avoid selecting TEXT bodies. */
+  has_raw_text_content?: boolean;
+  has_translated_text_content?: boolean;
+  has_polished_text_content?: boolean;
   reader_formatted_text_content?: string | null;
   reader_formatted_content_version?: number | null;
   has_audio: boolean;
   chapter_updated_at: Date | null;
 };
+
+/** Metadata-only SELECT for chapter lists/sidebars — no full `*_text_content` blobs.
+ * Presence uses BTRIM so whitespace-only rows stay false; DB may detoast for the boolean
+ * but the TEXT body is never returned to Node (main list-size win). */
+export const CHAPTER_LIST_SELECT_SQL = `
+  c.id, c.story_id, c.chapter_number, c.title, c.is_downloaded, c.is_polished, c.is_translated,
+  c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
+  (NULLIF(BTRIM(c.raw_text_content), '') IS NOT NULL) AS has_raw_text_content,
+  (NULLIF(BTRIM(c.translated_text_content), '') IS NOT NULL) AS has_translated_text_content,
+  (NULLIF(BTRIM(c.polished_text_content), '') IS NOT NULL) AS has_polished_text_content,
+  (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio`;
 
 export type CategoryRow = {
   id: string;
@@ -118,10 +133,29 @@ export function textSource(row: Pick<ChapterRow, "polished_text_path" | "transla
   return null;
 }
 
-export function contentSource(row: Pick<ChapterRow, "polished_text_content" | "translated_text_content" | "raw_text_content" | "polished_text_path" | "translated_text_path" | "raw_text_path">) {
-  if (row.polished_text_content) return "polished";
-  if (row.translated_text_content) return "translated";
-  if (row.raw_text_content) return "raw";
+export function contentSource(
+  row: Pick<
+    ChapterRow,
+    | "polished_text_content"
+    | "translated_text_content"
+    | "raw_text_content"
+    | "has_polished_text_content"
+    | "has_translated_text_content"
+    | "has_raw_text_content"
+    | "polished_text_path"
+    | "translated_text_path"
+    | "raw_text_path"
+  >
+) {
+  if ((row.polished_text_content && row.polished_text_content.trim()) || row.has_polished_text_content) {
+    return "polished";
+  }
+  if ((row.translated_text_content && row.translated_text_content.trim()) || row.has_translated_text_content) {
+    return "translated";
+  }
+  if ((row.raw_text_content && row.raw_text_content.trim()) || row.has_raw_text_content) {
+    return "raw";
+  }
   if (row.polished_text_path) return "polished";
   if (row.translated_text_path) return "translated";
   if (row.raw_text_path) return "raw";
@@ -130,6 +164,29 @@ export function contentSource(row: Pick<ChapterRow, "polished_text_content" | "t
 
 export function textContent(row: Pick<ChapterRow, "polished_text_content" | "translated_text_content" | "raw_text_content">) {
   return row.polished_text_content ?? row.translated_text_content ?? row.raw_text_content ?? null;
+}
+
+export function hasDbTextContent(
+  row: Pick<
+    ChapterRow,
+    | "polished_text_content"
+    | "translated_text_content"
+    | "raw_text_content"
+    | "has_polished_text_content"
+    | "has_translated_text_content"
+    | "has_raw_text_content"
+    | "polished_text_path"
+    | "translated_text_path"
+    | "raw_text_path"
+  >
+) {
+  return Boolean(
+    textContent(row)?.trim() ||
+      row.has_polished_text_content ||
+      row.has_translated_text_content ||
+      row.has_raw_text_content ||
+      textPath(row)
+  );
 }
 
 export function readerFormattedContent(row: Pick<ChapterRow, "reader_formatted_text_content" | "reader_formatted_content_version">) {
@@ -210,7 +267,7 @@ export function mapChapter(row: ChapterRow): ChapterSummary {
     isPolished: row.is_polished,
     isTranslated: row.is_translated,
     isAudioGenerated: row.is_audio_generated,
-    hasDbText: Boolean(textContent(row) ?? textPath(row)),
+    hasDbText: hasDbTextContent(row),
     textSource: contentSource(row),
     hasAudio: row.has_audio,
     updatedAt: row.chapter_updated_at?.toISOString() ?? null

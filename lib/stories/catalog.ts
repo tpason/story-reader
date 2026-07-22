@@ -445,6 +445,13 @@ export async function listRecommendedStories(storyId: string, limit = 6): Promis
   return rows.map(mapStory);
 }
 
+/** Default homepage catalog page 1 (no search/filters) — TTL matches `app/page.tsx` revalidate. */
+export const getCachedDefaultHomeStories = unstable_cache(
+  () => listStoriesCursor({ limit: 24, minChapters: 1 }),
+  ["home-stories-default"],
+  { revalidate: 60 }
+);
+
 export const getCachedStory = unstable_cache(
   (storyId: string) => getStory(storyId),
   ["story"],

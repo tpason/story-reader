@@ -53,6 +53,34 @@ function chapterKey(storyId: string, chapterNumber: number) {
   return `${storyId}:${chapterNumber}`;
 }
 
+/** Must stay aligned with `CACHE_VERSION` + `-api` in `public/sw.js`. */
+const SW_API_CACHE_PREFIX = "linh-quyen-";
+const SW_API_CACHE_FALLBACK = "linh-quyen-v4-api";
+
+/** One-way Dexie → Cache API mirror so SW SWR can serve warmed chapter JSON. */
+async function mirrorChapterPayloadToCacheApi(payload: ReaderPayload) {
+  if (typeof caches === "undefined") return;
+  try {
+    const cacheNames = await caches.keys();
+    const apiCacheName =
+      cacheNames.find((name) => name.startsWith(SW_API_CACHE_PREFIX) && name.endsWith("-api")) ??
+      SW_API_CACHE_FALLBACK;
+    const cache = await caches.open(apiCacheName);
+    const url = `/api/stories/${payload.story.id}/chapters/${payload.chapter.chapterNumber}`;
+    await cache.put(
+      url,
+      new Response(JSON.stringify(payload), {
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "public, max-age=120, stale-while-revalidate=600"
+        }
+      })
+    );
+  } catch {
+    // Best-effort only — Dexie remains source of truth for offline reading.
+  }
+}
+
 export async function cacheReaderPayload(payload: ReaderPayload) {
   if (!canUseIndexedDb()) return;
 
@@ -67,6 +95,7 @@ export async function cacheReaderPayload(payload: ReaderPayload) {
   };
 
   await offlineDb.chapters.put(record).catch(() => undefined);
+  void mirrorChapterPayloadToCacheApi(payload);
 }
 
 export async function getCachedChapter(storyId: string, chapterNumber: number) {

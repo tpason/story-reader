@@ -37,7 +37,17 @@ export async function GET(
 
   try {
     const data = await getReaderPayload(storyId, parsedChapter, options);
-    return NextResponse.json(data);
+    const isDefault =
+      !options.primaryLayer &&
+      !options.secondaryLayer &&
+      (!options.displayMode || options.displayMode === "single");
+    return NextResponse.json(data, {
+      headers: {
+        "Cache-Control": isDefault
+          ? "public, s-maxage=120, stale-while-revalidate=600"
+          : "private, no-store"
+      }
+    });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to load chapter", detail: error instanceof Error ? error.message : "Unknown error" },

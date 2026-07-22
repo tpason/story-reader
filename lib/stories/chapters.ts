@@ -12,6 +12,7 @@ import { supportsBilingualReader } from "@/lib/reader-source-language";
 import type { BilingualParagraphPair } from "@/lib/reader-bilingual-pairs";
 import type { ChapterDetail, ChapterSummary, CursorPage, Paginated, ReaderFetchOptions, ReaderPayload } from "@/lib/types";
 import {
+  CHAPTER_LIST_SELECT_SQL,
   READER_CHAPTER_PAGE_SIZE,
   chapterPageCursor,
   decodeCursor,
@@ -25,7 +26,12 @@ import {
   textPath,
   type ChapterRow
 } from "./_internal";
-import { getStory } from "./catalog";
+import { getCachedStory } from "./catalog";
+
+function isDefaultReaderOptions(options: ReaderFetchOptions = {}) {
+  const mode = options.displayMode ?? "single";
+  return !options.primaryLayer && !options.secondaryLayer && mode === "single";
+}
 
 export async function listChapters(storyId: string, options: { page?: number; pageSize?: number } = {}): Promise<Paginated<ChapterSummary>> {
   const { page, pageSize, offset } = pageParams(options.page, options.pageSize);
@@ -35,10 +41,7 @@ export async function listChapters(storyId: string, options: { page?: number; pa
     query<ChapterRow>(
       `
         SELECT
-          c.id, c.story_id, c.chapter_number, c.title, c.is_downloaded, c.is_polished, c.is_translated,
-          c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
-          c.raw_text_content, c.translated_text_content, c.polished_text_content,
-          (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
+          ${CHAPTER_LIST_SELECT_SQL},
           ${CHAPTER_DISPLAY_AT_SQL}
         FROM chapters c
         WHERE c.story_id = $1
@@ -73,10 +76,7 @@ export async function listChaptersCursor(
     const rows = await query<ChapterRow>(
       `
         SELECT
-          c.id, c.story_id, c.chapter_number, c.title, c.is_downloaded, c.is_polished, c.is_translated,
-          c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
-          c.raw_text_content, c.translated_text_content, c.polished_text_content,
-          (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
+          ${CHAPTER_LIST_SELECT_SQL},
           ${CHAPTER_DISPLAY_AT_SQL}
         FROM chapters c
         WHERE c.story_id = $1
@@ -101,10 +101,7 @@ export async function listChaptersCursor(
   const rows = await query<ChapterRow>(
     `
       SELECT
-        c.id, c.story_id, c.chapter_number, c.title, c.is_downloaded, c.is_polished, c.is_translated,
-        c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
-        c.raw_text_content, c.translated_text_content, c.polished_text_content,
-        (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
+        ${CHAPTER_LIST_SELECT_SQL},
         ${CHAPTER_DISPLAY_AT_SQL}
       FROM chapters c
       WHERE c.story_id = $1
@@ -150,10 +147,7 @@ export async function searchChapters(storyId: string, search: string, options: {
   const rows = await query<ChapterRow>(
     `
       SELECT
-        c.id, c.story_id, c.chapter_number, c.title, c.is_downloaded, c.is_polished, c.is_translated,
-        c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
-        c.raw_text_content, c.translated_text_content, c.polished_text_content,
-        (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
+        ${CHAPTER_LIST_SELECT_SQL},
         ${CHAPTER_DISPLAY_AT_SQL}
       FROM chapters c
       WHERE c.story_id = $1
@@ -171,87 +165,89 @@ export async function searchChapters(storyId: string, search: string, options: {
   };
 }
 
-export async function getReaderPayload(
+async function loadReaderPayload(
   storyId: string,
   chapterNumber: number,
   options: ReaderFetchOptions = {}
 ): Promise<ReaderPayload> {
-  const story = await getStory(storyId);
-  const currentRows = await query<ChapterRow>(
-    `
-      SELECT
-        c.id, c.story_id, c.chapter_number, c.title, c.is_downloaded, c.is_polished, c.is_translated,
-        c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
-        c.raw_text_content, c.translated_text_content, c.polished_text_content,
-        CASE
-          WHEN c.reader_formatted_content_version = $3
-           AND (
-             c.reader_formatted_source_hash = md5(COALESCE(c.polished_text_content, c.translated_text_content, c.raw_text_content, ''))
-             OR COALESCE(c.polished_text_content, c.translated_text_content, c.raw_text_content) IS NULL
-           )
-          THEN c.reader_formatted_text_content
-          ELSE NULL
-        END AS reader_formatted_text_content,
-        c.reader_formatted_content_version,
-        (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
-        ${CHAPTER_DISPLAY_AT_SQL}
-      FROM chapters c
-      WHERE c.story_id = $1
-        AND c.chapter_number = $2
-      LIMIT 1
-    `,
-    [storyId, chapterNumber, READER_CONTENT_FORMAT_VERSION]
-  );
+  const [story, currentRows] = await Promise.all([
+    getCachedStory(storyId),
+    query<ChapterRow>(
+      `
+        SELECT
+          c.id, c.story_id, c.chapter_number, c.title, c.is_downloaded, c.is_polished, c.is_translated,
+          c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
+          c.raw_text_content, c.translated_text_content, c.polished_text_content,
+          CASE
+            WHEN c.reader_formatted_content_version = $3
+             AND (
+               c.reader_formatted_source_hash = md5(COALESCE(c.polished_text_content, c.translated_text_content, c.raw_text_content, ''))
+               OR COALESCE(c.polished_text_content, c.translated_text_content, c.raw_text_content) IS NULL
+             )
+            THEN c.reader_formatted_text_content
+            ELSE NULL
+          END AS reader_formatted_text_content,
+          c.reader_formatted_content_version,
+          (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
+          ${CHAPTER_DISPLAY_AT_SQL}
+        FROM chapters c
+        WHERE c.story_id = $1
+          AND c.chapter_number = $2
+        LIMIT 1
+      `,
+      [storyId, chapterNumber, READER_CONTENT_FORMAT_VERSION]
+    )
+  ]);
 
   if (!currentRows[0]) {
     notFound();
   }
 
   const current = mapChapter(currentRows[0]);
-  const previousRows = await query<ChapterRow>(
-    `
-      SELECT
-        c.id, c.story_id, c.chapter_number, c.title, c.is_downloaded, c.is_polished, c.is_translated,
-        c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
-        c.raw_text_content, c.translated_text_content, c.polished_text_content,
-        CASE
-          WHEN c.reader_formatted_content_version = $3
-           AND (
-             c.reader_formatted_source_hash = md5(COALESCE(c.polished_text_content, c.translated_text_content, c.raw_text_content, ''))
-             OR COALESCE(c.polished_text_content, c.translated_text_content, c.raw_text_content) IS NULL
-           )
-          THEN c.reader_formatted_text_content
-          ELSE NULL
-        END AS reader_formatted_text_content,
-        c.reader_formatted_content_version,
-        (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
-        ${CHAPTER_DISPLAY_AT_SQL}
-      FROM chapters c
-      WHERE c.story_id = $1 AND c.chapter_number < $2
-      ORDER BY c.chapter_number DESC
-      LIMIT 1
-    `,
-    [storyId, chapterNumber, READER_CONTENT_FORMAT_VERSION]
-  );
-  const nextRows = await query<ChapterRow>(
-    `
-      SELECT
-        c.id, c.story_id, c.chapter_number, c.title, c.is_downloaded, c.is_polished, c.is_translated,
-        c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
-        c.raw_text_content, c.translated_text_content, c.polished_text_content,
-        (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
-        ${CHAPTER_DISPLAY_AT_SQL}
-      FROM chapters c
-      WHERE c.story_id = $1 AND c.chapter_number > $2
-      ORDER BY c.chapter_number ASC
-      LIMIT 1
-    `,
-    [storyId, chapterNumber]
-  );
-  const chapterPage = await listChaptersCursor(storyId, {
-    chapterNumber,
-    limit: READER_CHAPTER_PAGE_SIZE
-  });
+  const [previousRows, nextRows, chapterPage] = await Promise.all([
+    query<ChapterRow>(
+      `
+        SELECT
+          c.id, c.story_id, c.chapter_number, c.title, c.is_downloaded, c.is_polished, c.is_translated,
+          c.is_audio_generated, c.raw_text_path, c.translated_text_path, c.polished_text_path,
+          c.raw_text_content, c.translated_text_content, c.polished_text_content,
+          CASE
+            WHEN c.reader_formatted_content_version = $3
+             AND (
+               c.reader_formatted_source_hash = md5(COALESCE(c.polished_text_content, c.translated_text_content, c.raw_text_content, ''))
+               OR COALESCE(c.polished_text_content, c.translated_text_content, c.raw_text_content) IS NULL
+             )
+            THEN c.reader_formatted_text_content
+            ELSE NULL
+          END AS reader_formatted_text_content,
+          c.reader_formatted_content_version,
+          (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
+          ${CHAPTER_DISPLAY_AT_SQL}
+        FROM chapters c
+        WHERE c.story_id = $1 AND c.chapter_number < $2
+        ORDER BY c.chapter_number DESC
+        LIMIT 1
+      `,
+      [storyId, chapterNumber, READER_CONTENT_FORMAT_VERSION]
+    ),
+    query<ChapterRow>(
+      `
+        SELECT
+          ${CHAPTER_LIST_SELECT_SQL},
+          ${CHAPTER_DISPLAY_AT_SQL}
+        FROM chapters c
+        WHERE c.story_id = $1 AND c.chapter_number > $2
+        ORDER BY c.chapter_number ASC
+        LIMIT 1
+      `,
+      [storyId, chapterNumber]
+    ),
+    listChaptersCursor(storyId, {
+      chapterNumber,
+      limit: READER_CHAPTER_PAGE_SIZE
+    })
+  ]);
+
   const row = currentRows[0];
   const availableLayers = listAvailableLayers(row);
   const bilingualAllowed = supportsBilingualReader(story.sourceCode);
@@ -331,6 +327,23 @@ export async function getReaderPayload(
     previousChapterCursor: chapterPage.previousCursor ?? null,
     chapterCursor: chapterPage.nextCursor
   };
+}
+
+const getCachedDefaultReaderPayload = unstable_cache(
+  async (storyId: string, chapterNumber: number) => loadReaderPayload(storyId, chapterNumber, {}),
+  ["reader-payload-default", `fmt-v${READER_CONTENT_FORMAT_VERSION}`],
+  { revalidate: 300 }
+);
+
+export async function getReaderPayload(
+  storyId: string,
+  chapterNumber: number,
+  options: ReaderFetchOptions = {}
+): Promise<ReaderPayload> {
+  if (isDefaultReaderOptions(options)) {
+    return getCachedDefaultReaderPayload(storyId, chapterNumber);
+  }
+  return loadReaderPayload(storyId, chapterNumber, options);
 }
 
 export async function getFirstChapterNumber(storyId: string): Promise<number | null> {

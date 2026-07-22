@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useInfiniteQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, type Dispatch, type SetStateAction } from "react";
 import type { CursorPage, StorySummary } from "@/lib/types";
 import { syncFollowedStories } from "@/lib/store";
 import { useAppDispatch } from "@/lib/store-hooks";
@@ -17,6 +18,23 @@ type StoryLibraryQuery = {
   hasAudio?: string;
   sort?: string;
 };
+
+export function libraryStoriesQueryKey(query: StoryLibraryQuery) {
+  return [
+    "stories",
+    "library",
+    query.q ?? "",
+    query.author ?? "",
+    query.hot ?? "",
+    query.completed ?? "",
+    query.category ?? "",
+    query.minChapters ?? "",
+    query.maxChapters ?? "",
+    query.hasPolished ?? "",
+    query.hasAudio ?? "",
+    query.sort ?? ""
+  ] as const;
+}
 
 function apiUrl(cursor: string | null, query: StoryLibraryQuery) {
   const params = new URLSearchParams();
@@ -46,22 +64,68 @@ function mergeUniqueStories(current: StorySummary[], incoming: StorySummary[]): 
   return merged;
 }
 
+function flattenLibraryPages(data: InfiniteData<CursorPage<StorySummary>> | undefined) {
+  if (!data) return [] as StorySummary[];
+  return data.pages.reduce<StorySummary[]>((acc, page) => mergeUniqueStories(acc, page.items), []);
+}
+
 export function useStoryLibraryFeed(initialPage: CursorPage<StorySummary>, query: StoryLibraryQuery) {
   const dispatch = useAppDispatch();
-  const [items, setItems] = useState(() => mergeUniqueStories([], initialPage.items));
-  const [nextCursor, setNextCursor] = useState(initialPage.nextCursor);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const loadingRef = useRef(false);
+  const queryKey = libraryStoriesQueryKey(query);
 
+  const infinite = useInfiniteQuery({
+    queryKey,
+    queryFn: async ({ pageParam }) => {
+      const response = await fetch(apiUrl(pageParam, query));
+      if (!response.ok) throw new Error("Không tải được danh sách truyện");
+      return (await response.json()) as CursorPage<StorySummary>;
+    },
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialData: {
+      pages: [initialPage],
+      pageParams: [null]
+    },
+    staleTime: 1000 * 60,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false
+  });
+
+  const items = useMemo(() => flattenLibraryPages(infinite.data), [infinite.data]);
+  const nextCursor = infinite.data?.pages.at(-1)?.nextCursor ?? null;
+  const loading = infinite.isFetchingNextPage;
+  const error = infinite.error instanceof Error ? infinite.error.message : null;
+
+  const setItems: Dispatch<SetStateAction<StorySummary[]>> = useCallback(
+    (updater) => {
+      queryClient.setQueryData<InfiniteData<CursorPage<StorySummary>>>(queryKey, (current) => {
+        const flat = flattenLibraryPages(current);
+        const nextFlat = typeof updater === "function" ? updater(flat) : updater;
+        const cursor = current?.pages.at(-1)?.nextCursor ?? null;
+        const pageSize = current?.pages[0]?.pageSize ?? 24;
+        return {
+          pages: [{ items: nextFlat, nextCursor: cursor, pageSize }],
+          pageParams: [null]
+        };
+      });
+    },
+    [queryClient, queryKey]
+  );
+
+  // Keep SSR first page in sync when the server props change for the same filters.
   useEffect(() => {
-    setItems(mergeUniqueStories([], initialPage.items));
-    setNextCursor(initialPage.nextCursor);
-    setError(null);
-    loadingRef.current = false;
-    setLoading(false);
-  }, [initialPage, query.q, query.author, query.hot, query.completed, query.category, query.minChapters, query.maxChapters, query.hasPolished, query.hasAudio, query.sort]);
+    queryClient.setQueryData<InfiniteData<CursorPage<StorySummary>>>(queryKey, (current) => {
+      if (!current || current.pages.length === 0) {
+        return { pages: [initialPage], pageParams: [null] };
+      }
+      if (current.pages.length === 1 && current.pageParams[0] == null) {
+        return { pages: [initialPage], pageParams: [null] };
+      }
+      return current;
+    });
+  }, [initialPage, queryClient, queryKey]);
 
   // Idle-defer follow metadata sync — avoid competing with load-more paint on every page append.
   useEffect(() => {
@@ -87,32 +151,14 @@ export function useStoryLibraryFeed(initialPage: CursorPage<StorySummary>, query
   }, [dispatch, items]);
 
   const loadMore = useCallback(() => {
-    if (!nextCursor || loadingRef.current) return;
-
-    loadingRef.current = true;
-    setLoading(true);
-    fetch(apiUrl(nextCursor, query))
-      .then((response) => {
-        if (!response.ok) throw new Error("Không tải được danh sách truyện");
-        return response.json() as Promise<CursorPage<StorySummary>>;
-      })
-      .then((page) => {
-        setItems((current) => mergeUniqueStories(current, page.items));
-        setNextCursor(page.nextCursor);
-        setError(null);
-      })
-      .catch((fetchError: Error) => setError(fetchError.message))
-      .finally(() => {
-        loadingRef.current = false;
-        setLoading(false);
-      });
-  }, [nextCursor, query]);
+    if (!nextCursor || infinite.isFetchingNextPage) return;
+    void infinite.fetchNextPage();
+  }, [infinite, nextCursor]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel || !nextCursor) return;
 
-    // Prefer the bounded library host as IO root so load-more tracks inner scroll, not the window.
     const root = sentinel.closest(".story-library-scroll");
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -120,7 +166,8 @@ export function useStoryLibraryFeed(initialPage: CursorPage<StorySummary>, query
       },
       {
         root: root instanceof Element ? root : null,
-        rootMargin: "180px 0px",
+        rootMargin: "48px 0px",
+        threshold: 0.01
       }
     );
 

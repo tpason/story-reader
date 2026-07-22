@@ -39,7 +39,14 @@ export async function GET(request: NextRequest) {
       sort: sortParam(params.get("sort"))
     });
 
-    return NextResponse.json(data);
+    const hasSearch = Boolean(params.get("q")?.trim() || params.get("author")?.trim());
+    return NextResponse.json(data, {
+      headers: {
+        "Cache-Control": hasSearch
+          ? "private, no-store"
+          : "public, s-maxage=60, stale-while-revalidate=600"
+      }
+    });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to load stories", detail: error instanceof Error ? error.message : "Unknown error" },
