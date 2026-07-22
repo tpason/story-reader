@@ -1,7 +1,8 @@
 "use client";
 
 import { animate } from "animejs";
-import { ChevronDown, CornerDownRight, Flag, LoaderCircle, MessageCircle, Pencil, Trash2, UserPlus, UserX } from "lucide-react";
+import { Ban, ChevronDown, CornerDownRight, Flag, LoaderCircle, MessageCircle, Pencil, Trash2, UserPlus, UserX } from "lucide-react";
+import { CommentRulesNote } from "@/components/CommentRulesNote";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -155,7 +156,8 @@ function CommentOwnerButtons({
   userId,
   isAdmin,
   onEdit,
-  onDeleted
+  onDeleted,
+  onBanned
 }: {
   chapterId: string;
   comment: ChapterComment;
@@ -163,27 +165,58 @@ function CommentOwnerButtons({
   isAdmin: boolean;
   onEdit: () => void;
   onDeleted: (comment: ChapterComment) => void;
+  onBanned?: (bannedUserId: string) => void;
 }) {
   if (comment.deletedAt) return null;
-  if (comment.userId !== userId && !isAdmin) return null;
+  const isOwner = comment.userId === userId;
+  if (!isOwner && !isAdmin) return null;
 
   async function remove() {
-    if (!window.confirm("Phong ấn bình luận này?")) return;
+    if (!window.confirm(isAdmin && !isOwner ? "Tổng quản phong ấn bình luận này?" : "Phong ấn bình luận này?")) return;
     const response = await fetch(`/api/chapters/${chapterId}/comments/${comment.id}`, { method: "DELETE" });
     const data = (await response.json().catch(() => ({}))) as { item?: ChapterComment };
     if (data.item) onDeleted(data.item);
   }
 
+  async function banAuthor() {
+    if (!isAdmin || isOwner) return;
+    if (!window.confirm(`Phong cấm luận đạo ${comment.author.username} trong 7 ngày và phong ấn bình luận này?`)) {
+      return;
+    }
+    const banResponse = await fetch("/api/admin/comment-bans", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: comment.userId, banDays: 7 })
+    });
+    const banData = (await banResponse.json().catch(() => ({}))) as { error?: string; ok?: boolean };
+    if (!banResponse.ok) {
+      window.alert(banData.error ?? "Không phong cấm được.");
+      return;
+    }
+    const deleteResponse = await fetch(`/api/chapters/${chapterId}/comments/${comment.id}`, { method: "DELETE" });
+    const deleteData = (await deleteResponse.json().catch(() => ({}))) as { item?: ChapterComment };
+    if (deleteData.item) onDeleted(deleteData.item);
+    onBanned?.(comment.userId);
+  }
+
   return (
     <>
-      <button type="button" onClick={onEdit}>
-        <Pencil size={14} />
-        Sửa
-      </button>
+      {isOwner ? (
+        <button type="button" onClick={onEdit}>
+          <Pencil size={14} />
+          Sửa
+        </button>
+      ) : null}
       <button type="button" onClick={() => void remove()}>
         <Trash2 size={14} />
-        Xóa
+        {isAdmin && !isOwner ? "Xóa (Tổng quản)" : "Xóa"}
       </button>
+      {isAdmin && !isOwner ? (
+        <button type="button" onClick={() => void banAuthor()}>
+          <Ban size={14} />
+          Cấm 7 ngày
+        </button>
+      ) : null}
     </>
   );
 }
@@ -550,6 +583,7 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
         <div className="comment-login-note">
           <MessageCircle size={17} />
           <span>Tán tu có thể xem luận đạo. Hãy nhập môn để bình luận và hồi đáp.</span>
+          <CommentRulesNote variant="compact" className="chapter-comments-rules" />
           <Link href="/signup">
             <UserPlus size={15} />
             Nhập môn
@@ -623,6 +657,7 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
                           isAdmin={Boolean(user.isAdmin)}
                           onEdit={() => setEditingCommentId(comment.id)}
                           onDeleted={updateComment}
+                          onBanned={removeBlockedComments}
                         />
                       ) : null}
                     </div>
@@ -681,6 +716,7 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
                             isAdmin={Boolean(user.isAdmin)}
                             onEdit={() => setEditingCommentId(reply.id)}
                             onDeleted={updateComment}
+                            onBanned={removeBlockedComments}
                           />
                         ) : null}
                       </div>

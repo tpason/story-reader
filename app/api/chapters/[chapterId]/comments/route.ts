@@ -2,12 +2,11 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { cultivationProfileForAuthor } from "@/lib/cultivation";
 import { query } from "@/lib/db";
+import { validateCommentContent } from "@/lib/comment-rules";
 import { commentBanMessage, getCommentBanStatus, listBlockedUserIds } from "@/lib/moderation";
 import { computeStreakFromReadDates, streakBonusXp } from "@/lib/reading-streak";
 
 export const dynamic = "force-dynamic";
-
-const MAX_COMMENT_LENGTH = 1600;
 
 type CommentRow = {
   id: string;
@@ -29,11 +28,6 @@ type ChapterRow = {
   id: string;
   story_id: string;
 };
-
-function cleanComment(value: unknown) {
-  if (typeof value !== "string") return "";
-  return value.replace(/\s+\n/g, "\n").replace(/\n{4,}/g, "\n\n\n").trim();
-}
 
 function cleanCommentJson(value: unknown, fallbackText: string) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -145,17 +139,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ cha
 
   const { chapterId } = await params;
   const body = (await request.json()) as { content?: unknown; contentJson?: unknown; parentId?: unknown };
-  const content = cleanComment(body.content);
+  const validated = validateCommentContent(typeof body.content === "string" ? body.content : "");
+  if (!validated.ok) {
+    return NextResponse.json({ error: validated.error }, { status: 400 });
+  }
+  const content = validated.text;
   const contentJson = cleanCommentJson(body.contentJson, content);
-  const parentId = typeof body.parentId === "string" && body.parentId ? body.parentId : null;
-
-  if (content.length < 2) {
-    return NextResponse.json({ error: "Đạo luận cần ít nhất 2 ký tự." }, { status: 400 });
-  }
-
-  if (content.length > MAX_COMMENT_LENGTH) {
-    return NextResponse.json({ error: `Đạo luận tối đa ${MAX_COMMENT_LENGTH} ký tự.` }, { status: 400 });
-  }
+  const parentId = typeof body.parentId === "string" && body.parentId ? body.parentId : null
 
   const chapterRows = await query<ChapterRow>(
     `

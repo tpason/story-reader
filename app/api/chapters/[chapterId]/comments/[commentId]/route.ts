@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { validateCommentContent } from "@/lib/comment-rules";
 import { cultivationProfileForAuthor } from "@/lib/cultivation";
 import { query } from "@/lib/db";
 import { computeStreakFromReadDates, streakBonusXp } from "@/lib/reading-streak";
 
 export const dynamic = "force-dynamic";
-
-const MAX_COMMENT_LENGTH = 1600;
 
 type CommentRow = {
   id: string;
@@ -23,11 +22,6 @@ type CommentRow = {
   author_xp: string;
   read_dates: Date[] | null;
 };
-
-function cleanComment(value: unknown) {
-  if (typeof value !== "string") return "";
-  return value.replace(/\s+\n/g, "\n").replace(/\n{4,}/g, "\n\n\n").trim();
-}
 
 function cleanCommentJson(value: unknown, fallbackText: string) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -130,14 +124,12 @@ export async function PATCH(
   }
 
   const body = (await request.json().catch(() => ({}))) as { content?: unknown; contentJson?: unknown };
-  const content = cleanComment(body.content);
-  const contentJson = cleanCommentJson(body.contentJson, content);
-  if (content.length < 2) {
-    return NextResponse.json({ error: "Đạo luận cần ít nhất 2 ký tự." }, { status: 400 });
+  const validated = validateCommentContent(typeof body.content === "string" ? body.content : "");
+  if (!validated.ok) {
+    return NextResponse.json({ error: validated.error }, { status: 400 });
   }
-  if (content.length > MAX_COMMENT_LENGTH) {
-    return NextResponse.json({ error: `Đạo luận tối đa ${MAX_COMMENT_LENGTH} ký tự.` }, { status: 400 });
-  }
+  const content = validated.text;
+  const contentJson = cleanCommentJson(body.contentJson, content)
 
   await query(
     `

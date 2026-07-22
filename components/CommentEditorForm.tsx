@@ -6,6 +6,8 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import type { FormEvent } from "react";
 import type { ChapterComment } from "@/components/comment-types";
+import { CommentRulesNote } from "@/components/CommentRulesNote";
+import { MAX_COMMENT_LENGTH, MIN_COMMENT_LENGTH } from "@/lib/comment-rules";
 
 type CommentEditorFormProps = {
   chapterId: string;
@@ -80,6 +82,9 @@ export function CommentEditorForm({ chapterId, parentId, onCreated, onCancel, au
 
   return (
     <form className="comment-form" onSubmit={submit}>
+      {!parentId ? <CommentRulesNote variant="list" className="comment-form-rules" /> : (
+        <CommentRulesNote variant="compact" className="comment-form-rules" />
+      )}
       <div className="comment-editor">
         <div className="comment-editor-toolbar" aria-label="Comment formatting">
           <button type="button" aria-pressed={editor?.isActive("bold") ?? false} title="Bold" onClick={() => editor?.chain().focus().toggleBold().run()}>
@@ -108,14 +113,20 @@ export function CommentEditorForm({ chapterId, parentId, onCreated, onCancel, au
         </div>
       </div>
       <div className="comment-form-footer">
-        <span>{contentText.length}/1600</span>
+        <span>
+          {contentText.length}/{MAX_COMMENT_LENGTH}
+        </span>
         <div>
           {onCancel ? (
             <button className="comment-ghost-button" type="button" onClick={onCancel}>
               Hủy
             </button>
           ) : null}
-          <button className="comment-submit" type="submit" disabled={loading || contentText.length < 2 || contentText.length > 1600}>
+          <button
+            className="comment-submit"
+            type="submit"
+            disabled={loading || contentText.length < MIN_COMMENT_LENGTH || contentText.length > MAX_COMMENT_LENGTH}
+          >
             {loading ? <LoaderCircle size={15} className="spin" /> : <Send size={15} />}
             Gửi
           </button>
