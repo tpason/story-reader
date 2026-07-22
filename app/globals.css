@@ -23933,3 +23933,3149 @@ html[data-xi-time="night"] .library-header > .xi-poetry-col .xi-poetry-line,
 .library-sticky-panel:has(.advanced-filter[open]) {
   overflow: visible;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   UX polish pass (2026-07-22) — home density, dark hero square,
+   page-hero contrast, account scroll + segmented buttons, updates densify
+   Desktop + mobile ≤839
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* —— Home: content-first densify —— */
+.home-story-flow--dense {
+  display: grid;
+  gap: 12px;
+  margin: 4px 0 12px;
+}
+
+.home-trending-compact .trending-section {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 16%, var(--hairline));
+  background: color-mix(in srgb, var(--canvas) 92%, transparent);
+}
+
+.home-trending-compact .section-heading-row h2 {
+  font-size: clamp(1.05rem, 2vw, 1.28rem);
+  margin: 0;
+}
+
+.home-trending-compact .trending-row,
+.home-trending-compact .trending-grid {
+  gap: 10px;
+}
+
+/* Do NOT override .page-wrap width here — base is min(1220px, …).
+   Narrowing to 1120px clipped poetry / broke other page columns. */
+@media (min-width: 840px) {
+  .home-priority-rail {
+    margin-bottom: 6px !important;
+  }
+
+  .library-header--compact {
+    margin-top: 4px;
+    margin-bottom: 10px !important;
+  }
+}
+
+/* Dark home hero: ink panel, not cream square */
+[data-xi-theme="dark"] .library-header--compact .library-hero-shell--compact .xi-hero-cloud-bg,
+[data-xi-theme="dark"] .library-header--compact .library-hero-shell--compact .xi-cloud-aura--primary,
+[data-xi-theme="dark"] .library-header > .library-hero-shell .xi-hero-cloud-bg,
+[data-xi-theme="dark"] .library-header > .library-hero-shell .xi-cloud-aura--primary {
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(200, 150, 46, 0.16) 0 28%, transparent 58%),
+    radial-gradient(ellipse at 80% 70%, rgba(26, 107, 90, 0.12) 0 30%, transparent 60%),
+    linear-gradient(145deg, rgba(28, 24, 20, 0.94), rgba(16, 14, 12, 0.9)) !important;
+  box-shadow:
+    0 0 0 1px rgba(200, 150, 46, 0.18),
+    0 12px 36px rgba(0, 0, 0, 0.35) !important;
+  filter: none !important;
+}
+
+[data-xi-theme="dark"] .library-header--compact .library-title-modern,
+[data-xi-theme="dark"] .library-header--compact .library-title {
+  color: #f5f0e6 !important;
+  -webkit-text-fill-color: #f5f0e6 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55) !important;
+}
+
+[data-xi-theme="dark"] .library-header--compact .library-hero-eyebrow {
+  color: #e0c56a !important;
+}
+
+/* Poetry lighter in light mode */
+html:not([data-xi-theme="dark"]) .library-header > .xi-poetry-col .xi-poetry-line,
+html:not([data-xi-theme="dark"]) .xi-poetry-col .xi-poetry-line {
+  -webkit-text-fill-color: color-mix(in srgb, #1a1209 62%, #8a7a62 38%) !important;
+  color: color-mix(in srgb, #1a1209 62%, #8a7a62 38%) !important;
+  font-weight: 520 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  opacity: 0.88;
+}
+
+/* Quiet infinite end status */
+.library-sticky-panel .infinite-status:empty {
+  display: none;
+}
+
+.library-sticky-panel .infinite-status {
+  font-size: 0.8rem;
+  opacity: 0.75;
+  padding: 8px 4px 4px;
+}
+
+/* —— Shared page hero strips (discover / following / updates / …) —— */
+.library-header.xi-page-hero-strip > .xi-page-hero-strip-inner {
+  background:
+    radial-gradient(ellipse 80% 55% at 8% 0%, rgba(200, 150, 46, 0.12), transparent 58%),
+    radial-gradient(ellipse 70% 50% at 92% 100%, rgba(38, 168, 130, 0.08), transparent 52%),
+    color-mix(in srgb, var(--canvas) 96%, transparent) !important;
+}
+
+.library-header.xi-page-hero-strip .library-subtitle,
+.library-header.xi-page-hero-strip .xi-page-hero-strip-copy > p:not(.eyebrow) {
+  color: var(--slate) !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .library-header.xi-page-hero-strip > .xi-page-hero-strip-inner {
+  background:
+    radial-gradient(ellipse 80% 55% at 8% 0%, rgba(200, 150, 46, 0.14), transparent 58%),
+    radial-gradient(ellipse 70% 50% at 92% 100%, rgba(38, 168, 130, 0.1), transparent 52%),
+    linear-gradient(160deg, rgba(26, 22, 18, 0.96), rgba(16, 14, 12, 0.94)) !important;
+  border-color: rgba(200, 150, 46, 0.22) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+[data-xi-theme="dark"] .library-header.xi-page-hero-strip .library-title,
+[data-xi-theme="dark"] .discover-header .library-title,
+[data-xi-theme="dark"] .following-header .library-title,
+[data-xi-theme="dark"] .updates-header .library-title {
+  color: #f5f0e6 !important;
+  -webkit-text-fill-color: #f5f0e6 !important;
+}
+
+[data-xi-theme="dark"] .library-header.xi-page-hero-strip .library-subtitle,
+[data-xi-theme="dark"] .discover-header .library-subtitle,
+[data-xi-theme="dark"] .following-header .library-subtitle,
+[data-xi-theme="dark"] .updates-header .library-subtitle {
+  color: #c9c0b4 !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .library-header.xi-page-hero-strip .eyebrow,
+[data-xi-theme="dark"] .discover-header .eyebrow,
+[data-xi-theme="dark"] .following-header .eyebrow {
+  color: #e0c56a !important;
+}
+
+/* Discover / following list meta must not sink */
+[data-xi-theme="dark"] .discover-list-card,
+[data-xi-theme="dark"] .discover-list-card p,
+[data-xi-theme="dark"] .discover-list-card small,
+[data-xi-theme="dark"] .following-list p,
+[data-xi-theme="dark"] .following-list small {
+  color: var(--slate) !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .discover-list-card strong,
+[data-xi-theme="dark"] .discover-list-card h3,
+[data-xi-theme="dark"] .following-list h3 {
+  color: var(--ink) !important;
+}
+
+/* —— Account: scroll + readable segmented CTAs —— */
+html:has(.account-shell),
+body:has(.account-shell) {
+  height: auto !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+.account-shell {
+  overflow: visible !important;
+  min-height: auto !important;
+  padding-bottom: 72px;
+}
+
+.account-page-wrap {
+  overflow: visible !important;
+  padding-bottom: 96px !important;
+}
+
+.account-panel {
+  overflow: visible !important;
+  animation: none !important;
+}
+
+[data-xi-theme="dark"] .account-heading h1,
+[data-xi-theme="dark"] .account-panel .account-heading h1 {
+  color: #f5f0e6 !important;
+}
+
+[data-xi-theme="dark"] .account-heading p,
+[data-xi-theme="dark"] .account-linh-tin-heading p,
+[data-xi-theme="dark"] .performance-mode-settings-copy p,
+[data-xi-theme="dark"] .realtime-fx-settings-copy p,
+[data-xi-theme="dark"] .account-offline-cache-heading p {
+  color: #c9c0b4 !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .account-linh-tin-heading h2,
+[data-xi-theme="dark"] .performance-mode-settings-copy h2,
+[data-xi-theme="dark"] .realtime-fx-settings-copy h2,
+[data-xi-theme="dark"] .account-offline-cache-heading h2 {
+  color: #f0e8dc !important;
+}
+
+/* Kakao-like: active = gold fill + dark ink text (never white-on-cream) */
+.performance-mode-segmented button,
+.realtime-fx-segmented button {
+  border: 1px solid color-mix(in srgb, var(--hairline-strong) 80%, transparent) !important;
+  border-radius: 999px !important;
+  padding: 9px 12px !important;
+  background: color-mix(in srgb, var(--canvas) 88%, transparent) !important;
+  color: var(--ink) !important;
+  font-weight: 650 !important;
+  cursor: pointer;
+}
+
+.performance-mode-segmented button.chip-active,
+.realtime-fx-segmented button.chip-active {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 55%, transparent) !important;
+  background:
+    linear-gradient(135deg, #f0d06a, #c8962e 70%) padding-box !important;
+  color: #1a1209 !important;
+  -webkit-text-fill-color: #1a1209 !important;
+  text-shadow: none !important;
+  box-shadow: 0 4px 14px rgba(200, 150, 46, 0.28) !important;
+  filter: none !important;
+}
+
+[data-xi-theme="dark"] .performance-mode-segmented button,
+[data-xi-theme="dark"] .realtime-fx-segmented button {
+  background: rgba(28, 24, 20, 0.92) !important;
+  border-color: rgba(200, 150, 46, 0.22) !important;
+  color: #e8e0d4 !important;
+  -webkit-text-fill-color: #e8e0d4 !important;
+}
+
+[data-xi-theme="dark"] .performance-mode-segmented button.chip-active,
+[data-xi-theme="dark"] .realtime-fx-segmented button.chip-active {
+  background: linear-gradient(135deg, #f0d06a, #c8962e 72%) !important;
+  color: #1a1209 !important;
+  -webkit-text-fill-color: #1a1209 !important;
+  border-color: transparent !important;
+}
+
+/* —— Updates densify —— */
+.updates-list {
+  gap: 8px !important;
+}
+
+.update-card {
+  border-radius: 10px !important;
+  box-shadow: 0 4px 14px rgba(45, 38, 29, 0.04) !important;
+}
+
+.update-card-main {
+  grid-template-columns: 56px minmax(0, 1fr) 24px !important;
+  gap: 10px 12px !important;
+  padding: 10px 12px 8px !important;
+}
+
+.update-card .cover {
+  width: 56px !important;
+  height: 84px !important;
+}
+
+.update-card-footer {
+  padding: 5px 10px 7px !important;
+}
+
+[data-xi-theme="dark"] .update-card-cta,
+[data-xi-theme="dark"] .update-card-footer,
+[data-xi-theme="dark"] .update-card small,
+[data-xi-theme="dark"] .update-caught-up-btn {
+  color: #c9c0b4 !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .update-caught-up-btn {
+  border-color: rgba(200, 150, 46, 0.35) !important;
+  background: rgba(28, 24, 20, 0.9) !important;
+  color: #e8d9a8 !important;
+}
+
+.app-shell:not(.story-detail-shell) .page-wrap > .updates-header,
+.app-shell:not(.story-detail-shell) .page-wrap .updates-section {
+  margin-bottom: 12px;
+}
+
+/* —— Mobile ≤839 —— */
+@media (max-width: 839px) {
+  .home-story-flow--dense {
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .home-trending-compact .trending-section {
+    padding: 8px 10px;
+  }
+
+  .library-header--compact .library-hero-content-modern {
+    padding: 10px 12px 8px !important;
+  }
+
+  .library-header.xi-page-hero-strip > .xi-page-hero-strip-inner {
+    padding: 14px 14px !important;
+  }
+
+  .account-shell {
+    padding-bottom: 56px;
+  }
+
+  .account-page-wrap {
+    padding-bottom: 72px !important;
+  }
+
+  .performance-mode-segmented,
+  .realtime-fx-segmented {
+    grid-template-columns: 1fr !important;
+  }
+
+  .update-card-main {
+    grid-template-columns: 48px minmax(0, 1fr) 22px !important;
+    padding: 8px 10px 6px !important;
+  }
+
+  .update-card .cover {
+    width: 48px !important;
+    height: 72px !important;
+  }
+}
+
+/* Beat day-time cream frost when UI theme is dark (square hero bug) */
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header > .library-hero-shell,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header > .library-hero-shell .xi-cloud-aura--primary,
+html[data-xi-theme="dark"][data-xi-time="dawn"] .library-header > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"][data-xi-time="dawn"] .library-header > .library-hero-shell .xi-cloud-aura--primary,
+html[data-xi-theme="dark"][data-xi-time="dusk"] .library-header > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"][data-xi-time="dusk"] .library-header > .library-hero-shell .xi-cloud-aura--primary,
+html[data-xi-theme="dark"] .library-header > div.library-hero-shell:not(.home-library-stage):not(.xi-poetry-col),
+html[data-xi-theme="dark"] .library-header > .library-hero-shell:not(.home-library-stage) {
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+html[data-xi-theme="dark"] .library-header > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"] .library-header > .library-hero-shell .xi-cloud-aura--primary {
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(200, 150, 46, 0.16) 0 28%, transparent 58%),
+    radial-gradient(ellipse at 80% 70%, rgba(26, 107, 90, 0.12) 0 30%, transparent 60%),
+    linear-gradient(145deg, rgba(28, 24, 20, 0.94), rgba(16, 14, 12, 0.9)) !important;
+  box-shadow:
+    0 0 0 1px rgba(200, 150, 46, 0.18),
+    0 12px 36px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Home recent chips: keep “Ch. 1123” on one line (no wrap drop) */
+.home-recent-chip {
+  align-items: center !important;
+  max-width: 14.5rem !important;
+  min-width: 0;
+}
+
+.home-recent-chip-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.home-recent-chip small {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  line-height: 1.2;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Focused fixes (2026-07-22) — evidence-based, no feature churn
+   1) Rank seals 4+ same brush square
+   2) Dark page-hero + account heading contrast
+   3) Updates 2-col densify
+   4) Poetry clip on home hero
+   ═══════════════════════════════════════════════════════════════════ */
+
+.rankings-seal--brush .rankings-seal-num {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-xi-calligraphy), var(--font-xi-grass), "Ma Shan Zheng", cursive;
+  font-size: 1.35rem;
+  font-weight: 400;
+  transform: rotate(-6deg);
+}
+
+.rankings-seal--trending.rankings-seal--brush .rankings-seal-num {
+  font-size: 1.15rem;
+}
+
+/* Dark xi-page-hero: kill wash/glow that sinks body copy */
+[data-xi-theme="dark"] .library-header.xi-page-hero-strip > .xi-page-hero-strip-inner,
+[data-xi-theme="dark"] .xi-page-hero-strip > .xi-page-hero-strip-inner {
+  background: #17140f !important;
+  border: 1px solid rgba(200, 150, 46, 0.28) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35) !important;
+  filter: none !important;
+}
+
+[data-xi-theme="dark"] .xi-page-hero-strip-glow,
+[data-xi-theme="dark"] .library-header.xi-page-hero-strip .xi-page-hero-strip-glow {
+  opacity: 0.22 !important;
+  background: radial-gradient(ellipse 70% 50% at 12% 0%, rgba(200, 150, 46, 0.18), transparent 60%) !important;
+  mix-blend-mode: normal !important;
+  filter: none !important;
+}
+
+[data-xi-theme="dark"] .xi-page-hero-strip .library-title,
+[data-xi-theme="dark"] .library-header.xi-page-hero-strip .library-title,
+[data-xi-theme="dark"] .discover-header .library-title,
+[data-xi-theme="dark"] .following-header .library-title,
+[data-xi-theme="dark"] .updates-header .library-title {
+  color: #f7f1e6 !important;
+  -webkit-text-fill-color: #f7f1e6 !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .xi-page-hero-strip .library-subtitle,
+[data-xi-theme="dark"] .library-header.xi-page-hero-strip .library-subtitle,
+[data-xi-theme="dark"] .discover-header .library-subtitle,
+[data-xi-theme="dark"] .following-header .library-subtitle,
+[data-xi-theme="dark"] .updates-header .library-subtitle,
+[data-xi-theme="dark"] .xi-page-hero-strip-copy > p:not(.eyebrow) {
+  color: #d2c8b8 !important;
+  -webkit-text-fill-color: #d2c8b8 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+/* Account heading was sinking under slate/orange floors */
+[data-xi-theme="dark"] .account-heading h1,
+[data-xi-theme="dark"] .account-panel .account-heading h1,
+[data-xi-theme="dark"] .auth-heading.account-heading h1 {
+  color: #f7f1e6 !important;
+  -webkit-text-fill-color: #f7f1e6 !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .account-heading p,
+[data-xi-theme="dark"] .account-panel .account-heading p,
+[data-xi-theme="dark"] .auth-heading.account-heading p {
+  color: #d2c8b8 !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .account-heading .eyebrow,
+[data-xi-theme="dark"] .auth-heading.account-heading .eyebrow {
+  color: #e0c56a !important;
+}
+
+/* Undo account scroll traps from prior overflow experiments */
+.account-shell,
+.account-page-wrap,
+.account-panel {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+html:has(.account-shell),
+body:has(.account-shell) {
+  overflow-y: auto !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+/* Updates: 2 columns on desktop to reduce empty column feel */
+@media (min-width: 840px) {
+  .updates-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+}
+
+@media (max-width: 839px) {
+  .updates-list {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Home poetry: stop right-edge glyph clip */
+.library-header > .xi-poetry-col {
+  overflow: visible !important;
+}
+
+.library-header > .xi-poetry-col .xi-poetry-line {
+  overflow: visible !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   xi-page-hero-strip-inner dark bg — root cause fix (2026-07-22)
+   Winner was:
+     html[data-xi-time="day"] .library-header > div:not(.home-library-stage):not(.xi-poetry-col)
+     specificity (0,4,2) + cream frost !important
+   It matches .xi-page-hero-strip-inner (direct child div of .library-header).
+   Prior dark rules were only (0,4,0) so they lost during daytime clock.
+   Beat with html[data-xi-theme][data-xi-time] + both strip classes (≥0,5,1).
+   ═══════════════════════════════════════════════════════════════════ */
+
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.xi-page-hero-strip > .xi-page-hero-strip-inner,
+html[data-xi-theme="dark"][data-xi-time="dawn"] .library-header.xi-page-hero-strip > .xi-page-hero-strip-inner,
+html[data-xi-theme="dark"][data-xi-time="dusk"] .library-header.xi-page-hero-strip > .xi-page-hero-strip-inner,
+html[data-xi-theme="dark"][data-xi-time="night"] .library-header.xi-page-hero-strip > .xi-page-hero-strip-inner,
+html[data-xi-theme="dark"] .library-header.xi-page-hero-strip > .xi-page-hero-strip-inner {
+  background: #17140f !important;
+  border-color: rgba(200, 150, 46, 0.28) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35) !important;
+  filter: none !important;
+}
+
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.xi-page-hero-strip > .xi-page-hero-strip-inner > .xi-page-hero-strip-glow,
+html[data-xi-theme="dark"] .library-header.xi-page-hero-strip > .xi-page-hero-strip-inner > .xi-page-hero-strip-glow {
+  opacity: 0.2 !important;
+  background: radial-gradient(ellipse 70% 50% at 10% 0%, rgba(200, 150, 46, 0.16), transparent 62%) !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+}
+
+html[data-xi-theme="dark"] .library-header.xi-page-hero-strip .library-title,
+html[data-xi-theme="dark"] .library-header.xi-page-hero-strip .xi-page-hero-strip-copy .library-title {
+  color: #f7f1e6 !important;
+  -webkit-text-fill-color: #f7f1e6 !important;
+  opacity: 1 !important;
+}
+
+html[data-xi-theme="dark"] .library-header.xi-page-hero-strip .library-subtitle,
+html[data-xi-theme="dark"] .library-header.xi-page-hero-strip .xi-page-hero-strip-copy > p:not(.eyebrow) {
+  color: #d2c8b8 !important;
+  -webkit-text-fill-color: #d2c8b8 !important;
+  opacity: 1 !important;
+}
+
+html[data-xi-theme="dark"] .library-header.xi-page-hero-strip .eyebrow {
+  color: #e0c56a !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   C1 Home bookstore craft (2026-07-22)
+   Cover-forward rails + demoted brand signal. Scoped under home-* /
+   discovery-cover-* / trending-section--bookstore only.
+   No .page-wrap width / global token changes.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.home-story-flow.home-story-flow--dense {
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.home-story-flow .discovery-section--cover-rail {
+  margin: 0;
+}
+
+.home-story-flow .discovery-section--cover-rail .discovery-section-title {
+  margin-bottom: 8px;
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 55%, var(--slate));
+}
+
+.home-story-flow .discovery-panel--cover-rail {
+  padding: 12px 12px 10px;
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 18%, var(--hairline));
+  background:
+    linear-gradient(165deg, rgba(255, 250, 236, 0.55), transparent 48%),
+    color-mix(in srgb, var(--canvas) 94%, rgba(255, 248, 230, 0.4) 6%);
+  box-shadow: 0 8px 20px rgba(45, 38, 29, 0.04);
+}
+
+.home-story-flow .discovery-panel--cover-rail .discovery-heading {
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.home-story-flow .discovery-panel--cover-rail .discovery-heading h2 {
+  margin: 0;
+  font-size: clamp(1.05rem, 2.2vw, 1.22rem);
+  font-weight: 720;
+  letter-spacing: 0.01em;
+}
+
+.home-story-flow .discovery-panel--cover-rail .discovery-more {
+  min-height: 32px;
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 28%, transparent);
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 10%, transparent);
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 72%, #5a4010);
+}
+
+.home-story-flow .discovery-panel--cover-rail .discovery-more:hover,
+.home-story-flow .discovery-panel--cover-rail .discovery-more:focus-visible {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 48%, transparent);
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 16%, transparent);
+  outline: none;
+}
+
+.discovery-cover-rail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.discovery-cover-rail::-webkit-scrollbar {
+  height: 6px;
+}
+
+.discovery-cover-rail::-webkit-scrollbar-thumb {
+  background: rgba(200, 150, 46, 0.35);
+  border-radius: 999px;
+}
+
+.discovery-cover-card {
+  flex: 0 0 118px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 44px;
+  scroll-snap-align: start;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 8px;
+  transition: transform 160ms ease;
+}
+
+.discovery-cover-card:hover,
+.discovery-cover-card:focus-visible {
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.discovery-cover-card .cover {
+  width: 118px;
+  height: 168px;
+  border-radius: 8px;
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 22%, var(--hairline));
+  box-shadow: 0 10px 22px rgba(45, 38, 29, 0.12);
+}
+
+.discovery-cover-card:hover .cover,
+.discovery-cover-card:focus-visible .cover {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 42%, var(--hairline));
+  box-shadow: 0 14px 28px rgba(45, 38, 29, 0.14);
+}
+
+.discovery-cover-card-meta {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 0 2px;
+}
+
+.discovery-cover-card-kicker {
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 78%, #8a6418);
+  font-size: 10.5px;
+  font-weight: 780;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.discovery-cover-card-meta h3 {
+  margin: 0;
+  color: var(--charcoal, var(--ink));
+  font-size: 0.86rem;
+  font-weight: 720;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.discovery-cover-card-meta small {
+  color: var(--steel, #6b6560);
+  font-size: 0.7rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.discovery-cover-card-fresh .cover {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--xi-jade, #1a6b5a) 35%, transparent),
+    0 10px 22px rgba(45, 38, 29, 0.12);
+}
+
+.home-trending-compact .trending-section--bookstore {
+  margin: 0;
+}
+
+.home-trending-compact .trending-section--bookstore .section-heading-row h2 {
+  font-size: clamp(1.05rem, 2.2vw, 1.22rem);
+}
+
+.home-trending-compact .trending-section--bookstore .trending-card {
+  flex: 0 0 132px;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.home-trending-compact .trending-section--bookstore .trending-card .cover {
+  width: 100%;
+  height: 168px;
+  border-radius: 8px;
+}
+
+.home-trending-compact .trending-section--bookstore .trending-card-body h3 {
+  font-size: 0.86rem;
+  -webkit-line-clamp: 2;
+}
+
+.home-trending-compact .trending-section--bookstore .trending-card-body small {
+  font-size: 0.7rem;
+}
+
+.home-trending-compact .trending-section--bookstore .trending-scroll-hint {
+  margin-top: 6px;
+  opacity: 0.7;
+}
+
+/* Brand signal: quiet side strip after cover rails */
+.library-header--brand-signal {
+  margin-top: 4px !important;
+  margin-bottom: 6px !important;
+  opacity: 0.96;
+}
+
+.library-header--brand-signal .library-hero-shell--compact .xi-hero-cloud,
+.library-header--brand-signal .library-hero-shell--compact {
+  min-height: 0 !important;
+}
+
+.library-header--brand-signal .library-hero-content-modern {
+  padding: 10px 14px 9px !important;
+}
+
+.library-header--brand-signal .library-brand-signal-title {
+  font-size: clamp(1.15rem, 2.6vw, 1.45rem) !important;
+  margin: 0 !important;
+  letter-spacing: 0.01em;
+}
+
+.library-header--brand-signal .library-brand-signal-line {
+  margin: 4px 0 0;
+  color: var(--slate, #5f6d68);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.library-header--brand-signal > .xi-poetry-col {
+  opacity: 0.88;
+}
+
+@media (max-width: 839px) {
+  .home-story-flow .discovery-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .discovery-cover-card {
+    flex-basis: 108px;
+  }
+
+  .discovery-cover-card .cover {
+    width: 108px;
+    height: 154px;
+  }
+
+  .home-trending-compact .trending-section--bookstore .trending-card {
+    flex-basis: 118px;
+  }
+
+  .home-trending-compact .trending-section--bookstore .trending-card .cover {
+    height: 154px;
+  }
+
+  .library-header--brand-signal .library-hero-content-modern {
+    padding: 9px 12px 8px !important;
+  }
+}
+
+@media (min-width: 840px) {
+  .home-story-flow .discovery-section--cover-rail .discovery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+}
+
+[data-xi-theme="dark"] .home-story-flow .discovery-panel--cover-rail {
+  background:
+    linear-gradient(165deg, rgba(200, 150, 46, 0.08), transparent 48%),
+    color-mix(in srgb, var(--canvas) 94%, rgba(0, 0, 0, 0.14) 6%);
+  border-color: rgba(200, 150, 46, 0.22);
+}
+
+[data-xi-theme="dark"] .discovery-cover-card-meta h3 {
+  color: #f0e8da;
+}
+
+[data-xi-theme="dark"] .discovery-cover-card-meta small {
+  color: #b8ae9e;
+}
+
+[data-xi-theme="dark"] .library-header--brand-signal .library-brand-signal-title {
+  color: #f7f1e6 !important;
+  -webkit-text-fill-color: #f7f1e6 !important;
+}
+
+[data-xi-theme="dark"] .library-header--brand-signal .library-brand-signal-line {
+  color: #d2c8b8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discovery-cover-card,
+  .discovery-cover-card:hover,
+  .discovery-cover-card:focus-visible {
+    transform: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Phase 2 — Story detail bookstore craft (2026-07-22)
+   Scoped under .story-detail-shell only. No .page-wrap width changes.
+   Contrast: explicit light + dark floors for new text/surfaces.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.story-detail-shell .story-detail-quiet-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: color-mix(in srgb, var(--slate, #5f6d68) 88%, var(--ink, #1c1916));
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.story-detail-shell .story-detail-quiet-action:hover,
+.story-detail-shell .story-detail-quiet-action:focus-visible {
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 70%, var(--ink));
+  background: color-mix(in srgb, var(--xi-jade, #1a6b5a) 8%, transparent);
+  outline: none;
+}
+
+.story-detail-shell .story-detail-quiet-action.is-done {
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 75%, #0f3d34);
+}
+
+.story-detail-shell .story-detail-primary-cta {
+  min-height: 48px;
+}
+
+.story-detail-shell .story-detail-progress-disclosure {
+  margin-top: 14px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 22%, var(--hairline));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--canvas) 94%, rgba(255, 248, 230, 0.35) 6%);
+  overflow: hidden;
+}
+
+.story-detail-shell .story-detail-progress-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--ink, #1c1916);
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.story-detail-shell .story-detail-progress-summary::-webkit-details-marker {
+  display: none;
+}
+
+.story-detail-shell .story-detail-progress-summary small {
+  margin-left: auto;
+  color: var(--slate, #5f6d68);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.story-detail-shell .story-detail-progress-disclosure .story-detail-hero-aside {
+  padding: 0 12px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 12%, transparent);
+}
+
+.story-detail-shell .story-detail-progress-summary svg {
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 70%, #6a4d10);
+  flex: 0 0 auto;
+}
+
+/* Cover-forward related rails */
+.story-detail-shell .story-rec-row--cover-rail,
+.story-detail-shell .recommendation-row.story-rec-row--cover-rail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 2px 2px 10px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.story-detail-shell .story-rec-card--cover {
+  flex: 0 0 118px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  scroll-snap-align: start;
+  text-decoration: none;
+  color: inherit;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 8px;
+  transition: transform 160ms ease;
+}
+
+.story-detail-shell .story-rec-card--cover:hover,
+.story-detail-shell .story-rec-card--cover:focus-visible {
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.story-detail-shell .story-rec-card--cover .cover {
+  width: 118px;
+  height: 168px;
+  border-radius: 8px;
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 22%, var(--hairline));
+  box-shadow: 0 10px 22px rgba(45, 38, 29, 0.12);
+}
+
+.story-detail-shell .story-rec-card--cover .story-rec-body {
+  display: grid;
+  gap: 3px;
+  padding: 0 2px;
+  min-width: 0;
+}
+
+.story-detail-shell .story-rec-card--cover h3 {
+  margin: 0;
+  color: var(--charcoal, var(--ink, #1c1916));
+  font-size: 0.86rem;
+  font-weight: 720;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.story-detail-shell .story-rec-meta-line {
+  color: var(--steel, #6b6560);
+  font-size: 0.7rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* TOC skim: unread priority; mute status carnival */
+.story-detail-shell .story-chapter-filters {
+  gap: 8px;
+}
+
+.story-detail-shell .story-chapter-filter-unread {
+  border-color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 28%, var(--hairline));
+}
+
+.story-detail-shell .story-chapter-filter-audio:not(.chip-active) {
+  opacity: 0.72;
+  order: 3;
+}
+
+.story-detail-shell .story-chapter-filters {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.story-detail-shell .chapter-status {
+  font-size: 0.65rem;
+  opacity: 0.78;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.story-detail-shell .chapter-status-polished,
+.story-detail-shell .chapter-status-audio {
+  background: color-mix(in srgb, var(--canvas) 88%, rgba(200, 150, 46, 0.12) 12%);
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 18%, transparent);
+  color: color-mix(in srgb, var(--slate, #5f6d68) 70%, #3d3428);
+}
+
+@media (max-width: 839px) {
+  .story-detail-shell .story-rec-card--cover {
+    flex-basis: 108px;
+  }
+
+  .story-detail-shell .story-rec-card--cover .cover {
+    width: 108px;
+    height: 154px;
+  }
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-quiet-action {
+  color: #cfc4b4;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-quiet-action:hover,
+[data-xi-theme="dark"] .story-detail-shell .story-detail-quiet-action:focus-visible {
+  color: #e8d9b0;
+  background: rgba(200, 150, 46, 0.12);
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-progress-disclosure {
+  background: color-mix(in srgb, var(--canvas) 92%, rgba(0, 0, 0, 0.18) 8%);
+  border-color: rgba(200, 150, 46, 0.28);
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-progress-summary {
+  color: #f0e8da;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-progress-summary small {
+  color: #b8ae9e;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-rec-card--cover h3 {
+  color: #f0e8da;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-rec-meta-line {
+  color: #b8ae9e;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .chapter-status-polished,
+[data-xi-theme="dark"] .story-detail-shell .chapter-status-audio {
+  background: rgba(200, 150, 46, 0.1);
+  border-color: rgba(200, 150, 46, 0.22);
+  color: #d2c8b8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-detail-shell .story-rec-card--cover,
+  .story-detail-shell .story-rec-card--cover:hover,
+  .story-detail-shell .story-rec-card--cover:focus-visible {
+    transform: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Home brand-signal fix (2026-07-22) — contrast + cloud balance
+   Evidence: light mode title/tagline sinking (clip/fill cascade + weak
+   frost); dark left cloud much fainter than poetry cloud; poetry
+   absolute right:7% leaves a wide dead gap.
+   Scope: .library-header--brand-signal only.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.library-header.library-header--brand-signal {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.2fr) minmax(200px, 0.9fr);
+  align-items: center;
+  column-gap: clamp(12px, 2.4vw, 28px);
+  row-gap: 10px;
+  min-height: 0 !important;
+  margin-top: 8px !important;
+  margin-bottom: 10px !important;
+  padding-bottom: 8px !important;
+  border-bottom: none !important;
+  overflow: visible !important;
+  opacity: 1;
+}
+
+.library-header.library-header--brand-signal > .library-hero-shell {
+  position: relative !important;
+  grid-column: 1;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  justify-self: stretch;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.library-header.library-header--brand-signal > .xi-poetry-col {
+  position: relative !important;
+  grid-column: 2;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: none !important;
+  width: auto !important;
+  max-width: 100%;
+  margin: 0 !important;
+  padding: 18px 20px !important;
+  justify-self: end;
+  align-self: center;
+  opacity: 1 !important;
+  z-index: 2;
+}
+
+.library-header.library-header--brand-signal .xi-hero-cloud {
+  animation: none !important;
+  min-height: 0 !important;
+}
+
+.library-header.library-header--brand-signal .xi-hero-cloud-bg,
+.library-header.library-header--brand-signal .xi-cloud-aura--primary {
+  inset: -28px -36px !important;
+  filter: none !important;
+  opacity: 1 !important;
+  animation: none !important;
+  background:
+    radial-gradient(
+      ellipse 86% 84% at 46% 50%,
+      rgba(255, 253, 246, 0.97) 0%,
+      rgba(255, 250, 236, 0.9) 36%,
+      rgba(255, 246, 224, 0.62) 64%,
+      transparent 100%
+    ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 8px 28px rgba(120, 90, 40, 0.1),
+    0 0 0 1px rgba(200, 150, 46, 0.14) !important;
+}
+
+.library-header.library-header--brand-signal .xi-poetry-cloud-bg,
+.library-header.library-header--brand-signal .xi-cloud-aura--secondary {
+  filter: none !important;
+  opacity: 1 !important;
+  animation: none !important;
+  background:
+    radial-gradient(
+      ellipse 88% 86% at 50% 50%,
+      rgba(255, 253, 246, 0.96) 0%,
+      rgba(255, 248, 230, 0.86) 40%,
+      rgba(255, 244, 220, 0.5) 68%,
+      transparent 100%
+    ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 8px 26px rgba(120, 90, 40, 0.1),
+    0 0 0 1px rgba(200, 150, 46, 0.14) !important;
+}
+
+.library-header.library-header--brand-signal .library-hero-content-modern {
+  padding: 14px 18px 12px !important;
+}
+
+.library-header.library-header--brand-signal .library-hero-eyebrow,
+.library-header.library-header--brand-signal p.eyebrow {
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #8a5c18 !important;
+  color: #8a5c18 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+  opacity: 1 !important;
+  margin-bottom: 6px !important;
+}
+
+.library-header.library-header--brand-signal .library-brand-signal-title,
+.library-header.library-header--brand-signal .library-title {
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #1a1209 !important;
+  color: #1a1209 !important;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95),
+    0 0 16px rgba(255, 252, 245, 0.9) !important;
+  font-size: clamp(1.35rem, 2.8vw, 1.75rem) !important;
+  line-height: 1.2 !important;
+  opacity: 1 !important;
+}
+
+.library-header.library-header--brand-signal .library-brand-signal-line {
+  margin: 6px 0 0 !important;
+  background: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #3a3028 !important;
+  color: #3a3028 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  font-size: 0.88rem !important;
+  line-height: 1.4 !important;
+  opacity: 1 !important;
+}
+
+.library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-line {
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #2a2218 !important;
+  color: #2a2218 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+  opacity: 1 !important;
+}
+
+/* Dark: lift left cloud to match poetry; parchment ink → cream floors */
+[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-hero-cloud-bg,
+[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-cloud-aura--primary,
+[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-poetry-cloud-bg,
+[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-cloud-aura--secondary {
+  filter: none !important;
+  opacity: 1 !important;
+  animation: none !important;
+  background:
+    radial-gradient(
+      ellipse 86% 84% at 48% 50%,
+      rgba(42, 36, 28, 0.96) 0%,
+      rgba(28, 24, 20, 0.9) 42%,
+      rgba(18, 16, 14, 0.55) 70%,
+      transparent 100%
+    ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 10px 28px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(200, 150, 46, 0.22) !important;
+}
+
+[data-xi-theme="dark"] .library-header.library-header--brand-signal .library-hero-eyebrow,
+[data-xi-theme="dark"] .library-header.library-header--brand-signal p.eyebrow {
+  -webkit-text-fill-color: #e0c56a !important;
+  color: #e0c56a !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75) !important;
+}
+
+[data-xi-theme="dark"] .library-header.library-header--brand-signal .library-brand-signal-title,
+[data-xi-theme="dark"] .library-header.library-header--brand-signal .library-title {
+  -webkit-text-fill-color: #f7f1e6 !important;
+  color: #f7f1e6 !important;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.75),
+    0 0 14px rgba(0, 0, 0, 0.35) !important;
+}
+
+[data-xi-theme="dark"] .library-header.library-header--brand-signal .library-brand-signal-line {
+  -webkit-text-fill-color: #d2c8b8 !important;
+  color: #d2c8b8 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65) !important;
+}
+
+[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-line {
+  -webkit-text-fill-color: #efe6d6 !important;
+  color: #efe6d6 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7) !important;
+}
+
+@media (max-width: 839px) {
+  .library-header.library-header--brand-signal {
+    grid-template-columns: 1fr;
+  }
+
+  .library-header.library-header--brand-signal > .xi-poetry-col {
+    display: none !important;
+  }
+
+  .library-header.library-header--brand-signal > .library-hero-shell {
+    grid-column: 1;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Story detail dark contrast + quiet actions + route progress (2026-07-22)
+   Root causes:
+   1) .story-detail-copy h1 keeps brown gradient + text-fill:transparent;
+      dark color:#f5f0e6 never paints (fill stays transparent / brown clip).
+   2) .story-detail-quiet-action transparent + stage glow washes “Chia sẻ”.
+   3) app/loading used full-screen .xi-loader-overlay (z-index 9999, 0.4s
+      fade) → perceived multi-beat blank between navigations.
+   ═══════════════════════════════════════════════════════════════════ */
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-copy h1,
+[data-xi-theme="dark"] .story-detail-shell .story-detail-hero-modern .story-detail-copy h1,
+[data-xi-theme="dark"] .story-detail-shell .story-detail-composition .story-detail-copy h1 {
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #f7f1e6 !important;
+  color: #f7f1e6 !important;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.75),
+    0 0 12px rgba(0, 0, 0, 0.35) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-copy .eyebrow,
+[data-xi-theme="dark"] .story-detail-shell .story-detail-copy .category-eyebrow-link {
+  -webkit-text-fill-color: #e0c56a !important;
+  color: #e0c56a !important;
+  opacity: 1 !important;
+}
+
+.story-detail-shell .story-detail-secondary-actions {
+  position: relative;
+  z-index: 4;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-quiet-action,
+[data-xi-theme="dark"] .story-detail-shell .story-detail-quiet-action.story-share-btn {
+  background: rgba(28, 24, 20, 0.94) !important;
+  border: 1px solid rgba(200, 150, 46, 0.32) !important;
+  color: #f0e8da !important;
+  -webkit-text-fill-color: #f0e8da !important;
+  text-shadow: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-quiet-action:hover,
+[data-xi-theme="dark"] .story-detail-shell .story-detail-quiet-action:focus-visible,
+[data-xi-theme="dark"] .story-detail-shell .story-detail-quiet-action.story-share-btn:hover,
+[data-xi-theme="dark"] .story-detail-shell .story-detail-quiet-action.story-share-btn:focus-visible {
+  background: rgba(40, 34, 26, 0.98) !important;
+  border-color: rgba(200, 150, 46, 0.5) !important;
+  color: #fff6e4 !important;
+  -webkit-text-fill-color: #fff6e4 !important;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-stage-host,
+[data-xi-theme="dark"] .story-detail-shell .story-detail-stage-host--visible {
+  opacity: 0.42 !important;
+  pointer-events: none;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-hero-aura,
+[data-xi-theme="dark"] .story-detail-shell .story-detail-hero-aura--under-stage {
+  opacity: 0.35 !important;
+  filter: none !important;
+}
+
+/* Thin top progress — replaces full-screen loader on root navigations */
+.xi-route-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  height: 3px;
+  pointer-events: none;
+  background: transparent;
+  overflow: hidden;
+}
+
+.xi-route-progress-bar {
+  display: block;
+  height: 100%;
+  width: 36%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1a6b5a, #c8962e, #e0c56a);
+  box-shadow: 0 0 12px rgba(200, 150, 46, 0.45);
+  animation: xi-route-progress-slide 0.9s ease-in-out infinite;
+}
+
+@keyframes xi-route-progress-slide {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xi-route-progress-bar {
+    width: 100%;
+    animation: none;
+    opacity: 0.85;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Cover rail slide (2026-07-22) — hide native scrollbar, arrow controls
+   ═══════════════════════════════════════════════════════════════════ */
+
+.cover-rail-slide {
+  position: relative;
+  min-width: 0;
+}
+
+.cover-rail-slide-scroller {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 2px 6px;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.cover-rail-slide-scroller::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.cover-rail-slide-scroller > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+
+.cover-rail-slide-btn {
+  position: absolute;
+  top: 38%;
+  transform: translateY(-50%);
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 36%, var(--hairline));
+  background: color-mix(in srgb, var(--canvas, #fffaf0) 92%, rgba(255, 248, 230, 0.5) 8%);
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 70%, #4a3410);
+  box-shadow: 0 6px 18px rgba(45, 38, 29, 0.12);
+  cursor: pointer;
+}
+
+.cover-rail-slide-btn:hover,
+.cover-rail-slide-btn:focus-visible {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 55%, transparent);
+  background: color-mix(in srgb, var(--canvas) 86%, rgba(200, 150, 46, 0.14) 14%);
+  outline: none;
+}
+
+.cover-rail-slide-btn--prev {
+  left: 4px;
+}
+
+.cover-rail-slide-btn--next {
+  right: 4px;
+}
+
+/* Discovery cards keep cover sizing inside slide scroller */
+.discovery-cover-rail-slide .discovery-cover-card {
+  flex: 0 0 118px;
+}
+
+.trending-cover-rail-slide .trending-card {
+  flex: 0 0 132px;
+}
+
+.story-rec-cover-rail-slide .story-rec-card--cover {
+  flex: 0 0 118px;
+}
+
+/* Kill leftover native scrollbar hints on old shells */
+.home-story-flow .discovery-cover-rail,
+.home-trending-compact .trending-scroll-shell .trending-row {
+  scrollbar-width: none;
+}
+
+.home-trending-compact .trending-scroll-hint {
+  display: none !important;
+}
+
+[data-xi-theme="dark"] .cover-rail-slide-btn {
+  background: rgba(28, 24, 20, 0.94);
+  border-color: rgba(200, 150, 46, 0.34);
+  color: #f0e8da;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+[data-xi-theme="dark"] .cover-rail-slide-btn:hover,
+[data-xi-theme="dark"] .cover-rail-slide-btn:focus-visible {
+  background: rgba(40, 34, 26, 0.98);
+  border-color: rgba(200, 150, 46, 0.5);
+  color: #fff6e4;
+}
+
+@media (max-width: 839px) {
+  .cover-rail-slide-btn {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  .discovery-cover-rail-slide .discovery-cover-card {
+    flex-basis: 108px;
+  }
+
+  .trending-cover-rail-slide .trending-card {
+    flex-basis: 118px;
+  }
+
+  .story-rec-cover-rail-slide .story-rec-card--cover {
+    flex-basis: 108px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover-rail-slide-scroller {
+    scroll-behavior: auto;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Fix slide-btn / chip hover jitter + brand-signal twin clouds (2026-07-22)
+   Evidence:
+   - Global `.chip:hover` / `button:hover` use translateY(-2px) + 3px ring
+     → height/overflow shift on home-discovery-jump + cover-rail-slide-btn.
+   - Slide buttons were mount/unmounted → DOM churn.
+   - Poetry absolute + dark poetry glow beat brand-signal left cloud.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Always-mounted slide arrows: overlay only, never lift on hover */
+.cover-rail-slide {
+  position: relative !important;
+  contain: layout;
+  isolation: isolate;
+  overflow: visible;
+}
+
+.cover-rail-slide-btn,
+.cover-rail-slide-btn:hover,
+.cover-rail-slide-btn:focus-visible,
+.cover-rail-slide-btn:active,
+.cover-rail-slide-btn:disabled {
+  position: absolute !important;
+  top: 38% !important;
+  /* Keep Y-center; kill global hover lift (translateY(-2px)) */
+  transform: translateY(-50%) !important;
+  translate: none !important;
+  margin: 0 !important;
+  box-shadow: 0 4px 14px rgba(45, 38, 29, 0.12) !important;
+  animation: none !important;
+}
+
+.cover-rail-slide-btn:hover::after,
+.cover-rail-slide-btn:focus-visible::after,
+.cover-rail-slide-btn:active::after {
+  content: none !important;
+  animation: none !important;
+  display: none !important;
+}
+
+.cover-rail-slide-btn--prev {
+  left: 6px !important;
+}
+
+.cover-rail-slide-btn--next {
+  right: 6px !important;
+}
+
+.cover-rail-slide-btn:disabled,
+.cover-rail-slide-btn[aria-disabled="true"] {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+/* Jump chips: no lift / no expanding ring */
+.home-discovery-jump {
+  min-height: 40px;
+  align-items: center;
+  contain: layout;
+}
+
+.home-discovery-jump .chip,
+.home-discovery-jump .chip:hover,
+.home-discovery-jump .chip:focus-visible,
+.home-discovery-jump .chip:active {
+  transform: none !important;
+  translate: none !important;
+  box-shadow: none !important;
+  min-height: 36px;
+  border-width: 1px !important;
+}
+
+.home-discovery-jump .chip:hover::after,
+.home-discovery-jump .chip:focus-visible::after {
+  content: none !important;
+  animation: none !important;
+  display: none !important;
+}
+
+/* Twin clouds — beat html[data-xi-theme][data-xi-time] absolute poetry + glow packs */
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal,
+html[data-xi-theme="dark"][data-xi-time="dawn"] .library-header.library-header--brand-signal,
+html[data-xi-theme="dark"][data-xi-time="dusk"] .library-header.library-header--brand-signal,
+html[data-xi-theme="dark"][data-xi-time="night"] .library-header.library-header--brand-signal {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.15fr) minmax(220px, 0.95fr) !important;
+  align-items: center !important;
+  column-gap: clamp(10px, 2vw, 22px) !important;
+  overflow: visible !important;
+}
+
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .library-hero-shell,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .library-hero-shell {
+  grid-column: 1 !important;
+  position: relative !important;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > div.xi-poetry-col,
+html[data-xi-theme="dark"][data-xi-time="dawn"] .library-header.library-header--brand-signal > div.xi-poetry-col,
+html[data-xi-theme="dark"][data-xi-time="dusk"] .library-header.library-header--brand-signal > div.xi-poetry-col,
+html[data-xi-theme="dark"][data-xi-time="night"] .library-header.library-header--brand-signal > div.xi-poetry-col,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > div.xi-poetry-col {
+  position: relative !important;
+  grid-column: 2 !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  width: auto !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 16px 18px !important;
+  justify-self: end !important;
+  align-self: center !important;
+  opacity: 1 !important;
+}
+
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .library-hero-shell .xi-cloud-aura--primary,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-cloud-aura--secondary,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .library-hero-shell .xi-cloud-aura--primary,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-cloud-bg,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-cloud-aura--secondary,
+html[data-xi-theme="dark"][data-xi-time="night"] .library-header.library-header--brand-signal > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"][data-xi-time="night"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-cloud-bg {
+  inset: -26px -32px !important;
+  filter: none !important;
+  opacity: 1 !important;
+  animation: none !important;
+  border: none !important;
+  border-radius: 58% 42% 54% 46% / 50% 56% 44% 50% !important;
+  background:
+    radial-gradient(
+      ellipse 86% 84% at 48% 50%,
+      rgba(48, 40, 30, 0.96) 0%,
+      rgba(30, 26, 20, 0.9) 40%,
+      rgba(18, 16, 14, 0.5) 68%,
+      transparent 100%
+    ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(200, 150, 46, 0.22),
+    0 10px 28px rgba(0, 0, 0, 0.32) !important;
+}
+
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .library-brand-signal-title,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .library-title,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal .library-title {
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #f7f1e6 !important;
+  color: #f7f1e6 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75) !important;
+  opacity: 1 !important;
+}
+
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .library-brand-signal-line {
+  -webkit-text-fill-color: #d2c8b8 !important;
+  color: #d2c8b8 !important;
+  opacity: 1 !important;
+}
+
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .library-hero-eyebrow,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal p.eyebrow {
+  -webkit-text-fill-color: #e0c56a !important;
+  color: #e0c56a !important;
+}
+
+/* Light twin clouds — same balance */
+html:not([data-xi-theme="dark"]) .library-header.library-header--brand-signal > .xi-poetry-col,
+html:not([data-xi-theme="dark"]) .library-header.library-header--brand-signal > div.xi-poetry-col {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  transform: none !important;
+  grid-column: 2 !important;
+  justify-self: end !important;
+}
+
+@media (max-width: 839px) {
+  html[data-xi-theme="dark"] .library-header.library-header--brand-signal,
+  html:not([data-xi-theme="dark"]) .library-header.library-header--brand-signal {
+    grid-template-columns: 1fr !important;
+  }
+
+  html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col,
+  html:not([data-xi-theme="dark"]) .library-header.library-header--brand-signal > .xi-poetry-col {
+    display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Brand-signal clouds: RESTORE soft aura (2026-07-22)
+   Reverts egg/spotlight overrides that set filter:none + opaque radial
+   + hard 1px ring. Layout/title contrast stay; cloud look returns to
+   v9/v13 recipe: SVG #xi-cloud-f + near-transparent tint + layered glow.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.library-header.library-header--brand-signal .xi-hero-cloud-bg,
+.library-header.library-header--brand-signal .xi-cloud-aura--primary,
+.library-header.library-header--brand-signal .xi-poetry-cloud-bg,
+.library-header.library-header--brand-signal .xi-cloud-aura--secondary,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-hero-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-cloud-aura--primary,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-poetry-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-cloud-aura--secondary,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .library-hero-shell .xi-cloud-aura--primary,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-cloud-bg,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-cloud-aura--secondary,
+html[data-xi-theme="dark"][data-xi-time="night"] .library-header.library-header--brand-signal > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"][data-xi-time="night"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .library-hero-shell .xi-cloud-aura--primary,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-cloud-aura--secondary {
+  border: none !important;
+  outline: none !important;
+  background-image: none !important;
+  opacity: 1 !important;
+}
+
+/* Left hero: soft gold veil + organic SVG edge */
+.library-header.library-header--brand-signal .xi-hero-cloud-bg,
+.library-header.library-header--brand-signal .xi-cloud-aura--primary,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .library-hero-shell .xi-cloud-aura--primary,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .library-hero-shell .xi-cloud-aura--primary {
+  inset: -22px -30px -24px -30px !important;
+  border-radius: 54% 46% 42% 58% / 44% 50% 50% 56% !important;
+  filter: url(#xi-cloud-f) !important;
+  background: rgba(200, 150, 46, 0.05) !important;
+  box-shadow:
+    inset 0 0 28px rgba(200, 150, 46, 0.12),
+    0 0 16px 6px rgba(200, 150, 46, 0.2),
+    0 0 40px 16px rgba(200, 150, 46, 0.12),
+    0 0 80px 32px rgba(240, 208, 106, 0.07),
+    0 0 120px 50px rgba(240, 208, 106, 0.04) !important;
+  animation:
+    xi-poetry-cloud-morph 13s ease-in-out infinite,
+    xi-cloud-breathe 11s ease-in-out infinite !important;
+}
+
+/* Right poetry: same family, slightly lighter + alt turbulence */
+.library-header.library-header--brand-signal .xi-poetry-cloud-bg,
+.library-header.library-header--brand-signal .xi-cloud-aura--secondary,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-cloud-bg,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-cloud-aura--secondary,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-cloud-aura--secondary {
+  inset: 0 !important;
+  border-radius: 54% 46% 42% 58% / 44% 50% 50% 56% !important;
+  filter: url(#xi-cloud-f-alt) !important;
+  background: rgba(200, 150, 46, 0.03) !important;
+  box-shadow:
+    inset 0 0 22px rgba(200, 150, 46, 0.08),
+    0 0 12px 4px rgba(200, 150, 46, 0.16),
+    0 0 32px 12px rgba(200, 150, 46, 0.09),
+    0 0 64px 26px rgba(240, 208, 106, 0.05) !important;
+  animation:
+    xi-poetry-cloud-morph 15s ease-in-out infinite,
+    xi-cloud-breathe 13s ease-in-out infinite !important;
+  animation-delay: -4s, -2s !important;
+}
+
+/* Dark UI: mist veil (not solid slab) — gold breath still soft */
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-hero-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-cloud-aura--primary,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .library-hero-shell .xi-cloud-aura--primary {
+  background: rgba(200, 150, 46, 0.06) !important;
+  box-shadow:
+    inset 0 0 26px rgba(255, 255, 255, 0.06),
+    inset 0 0 14px rgba(200, 150, 46, 0.12),
+    0 0 14px 6px rgba(200, 150, 46, 0.18),
+    0 0 36px 16px rgba(200, 150, 46, 0.11),
+    0 0 72px 30px rgba(240, 208, 106, 0.07),
+    0 0 120px 52px rgba(240, 208, 106, 0.03) !important;
+}
+
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-poetry-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-cloud-aura--secondary,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-cloud-aura--secondary {
+  background: rgba(200, 150, 46, 0.045) !important;
+  box-shadow:
+    inset 0 0 20px rgba(200, 150, 46, 0.1),
+    0 0 12px 4px rgba(200, 150, 46, 0.14),
+    0 0 32px 12px rgba(200, 150, 46, 0.08),
+    0 0 60px 26px rgba(240, 208, 106, 0.04) !important;
+}
+
+/* Night sky only: slightly denser mist for title legibility — still veil */
+html[data-xi-time="night"] .library-header.library-header--brand-signal .xi-hero-cloud-bg,
+html[data-xi-time="night"] .library-header.library-header--brand-signal .xi-cloud-aura--primary,
+html[data-xi-theme="dark"][data-xi-time="night"] .library-header.library-header--brand-signal > .library-hero-shell .xi-hero-cloud-bg {
+  background: rgba(10, 12, 16, 0.42) !important;
+  box-shadow:
+    inset 0 0 28px rgba(0, 0, 0, 0.35),
+    inset 0 0 12px rgba(200, 150, 46, 0.12),
+    0 0 18px 7px rgba(200, 150, 46, 0.14),
+    0 0 40px 16px rgba(200, 150, 46, 0.08),
+    0 0 72px 32px rgba(0, 0, 0, 0.2) !important;
+}
+
+html[data-xi-time="night"] .library-header.library-header--brand-signal .xi-poetry-cloud-bg,
+html[data-xi-time="night"] .library-header.library-header--brand-signal .xi-cloud-aura--secondary,
+html[data-xi-theme="dark"][data-xi-time="night"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-cloud-bg {
+  background: rgba(10, 12, 16, 0.28) !important;
+  box-shadow:
+    inset 0 0 18px rgba(200, 150, 46, 0.1),
+    0 0 14px 5px rgba(200, 150, 46, 0.12),
+    0 0 32px 12px rgba(200, 150, 46, 0.07),
+    0 0 56px 24px rgba(0, 0, 0, 0.16) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-header.library-header--brand-signal .xi-hero-cloud-bg,
+  .library-header.library-header--brand-signal .xi-cloud-aura--primary,
+  .library-header.library-header--brand-signal .xi-poetry-cloud-bg,
+  .library-header.library-header--brand-signal .xi-cloud-aura--secondary {
+    animation: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Go-live critical: body scroll lock must beat account overflow !important
+   lockBodyScroll() toggles .xi-body-scroll-locked on <html>/<body>.
+   ═══════════════════════════════════════════════════════════════════ */
+html.xi-body-scroll-locked,
+html.xi-body-scroll-locked body,
+body.xi-body-scroll-locked {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Brand-signal balance (2026-07-22) — eye QA from light+dark screenshots
+   1) Poetry overflow: padding too tight (16–20px) + cloud inset:0
+   2) Left empty oval: hero shell stretched full grid column
+   3) Fluff: keep SVG aura; softer/wider glow + gentle drift (no egg fill)
+   Scope: .library-header--brand-signal only
+   ═══════════════════════════════════════════════════════════════════ */
+
+.library-header.library-header--brand-signal {
+  grid-template-columns: max-content minmax(240px, 1fr) !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  column-gap: clamp(18px, 3.5vw, 44px) !important;
+}
+
+/* Left cloud hugs title — no wide empty lobe */
+.library-header.library-header--brand-signal > .library-hero-shell,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .library-hero-shell,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .library-hero-shell {
+  width: fit-content !important;
+  max-width: min(28rem, 100%) !important;
+  justify-self: start !important;
+}
+
+.library-header.library-header--brand-signal .xi-hero-cloud {
+  width: fit-content !important;
+  max-width: 100% !important;
+  animation: xi-poetry-text-drift 22s ease-in-out infinite !important;
+  animation-delay: -3s !important;
+}
+
+.library-header.library-header--brand-signal .library-hero-content-modern {
+  padding: 20px 30px 18px !important;
+  text-align: left;
+}
+
+.library-header.library-header--brand-signal .library-brand-signal-title,
+.library-header.library-header--brand-signal .library-title {
+  font-size: clamp(1.45rem, 2.9vw, 1.85rem) !important;
+  letter-spacing: 0.01em;
+}
+
+.library-header.library-header--brand-signal .library-brand-signal-line {
+  margin-top: 8px !important;
+  max-width: 22rem;
+}
+
+/* Poetry: restore room so words sit inside the mist, not on the rim */
+.library-header.library-header--brand-signal > .xi-poetry-col,
+.library-header.library-header--brand-signal > div.xi-poetry-col,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > div.xi-poetry-col,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > div.xi-poetry-col,
+html[data-xi-theme="dark"][data-xi-time="dawn"] .library-header.library-header--brand-signal > div.xi-poetry-col,
+html[data-xi-theme="dark"][data-xi-time="dusk"] .library-header.library-header--brand-signal > div.xi-poetry-col,
+html[data-xi-theme="dark"][data-xi-time="night"] .library-header.library-header--brand-signal > div.xi-poetry-col,
+html:not([data-xi-theme="dark"]) .library-header.library-header--brand-signal > .xi-poetry-col,
+html:not([data-xi-theme="dark"]) .library-header.library-header--brand-signal > div.xi-poetry-col {
+  padding: 42px 52px 38px !important;
+  justify-self: end !important;
+}
+
+.library-header.library-header--brand-signal .xi-poetry-grid,
+.library-header.library-header--brand-signal .xi-poetry-grid--plaque {
+  gap: 18px !important;
+}
+
+.library-header.library-header--brand-signal .xi-poetry-pillar {
+  gap: 10px !important;
+}
+
+.library-header.library-header--brand-signal .xi-poetry-line {
+  font-size: 16px !important;
+}
+
+/* Fluffier left mist — soft wide breath, no hard ring */
+.library-header.library-header--brand-signal .xi-hero-cloud-bg,
+.library-header.library-header--brand-signal .xi-cloud-aura--primary,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .library-hero-shell .xi-cloud-aura--primary,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .library-hero-shell .xi-cloud-aura--primary {
+  inset: -34px -42px -36px -42px !important;
+  border-radius: 62% 38% 48% 52% / 48% 58% 42% 52% !important;
+  filter: url(#xi-cloud-f) !important;
+  background: rgba(200, 150, 46, 0.045) !important;
+  box-shadow:
+    inset 0 0 36px rgba(255, 252, 244, 0.28),
+    inset 0 0 18px rgba(200, 150, 46, 0.1),
+    0 0 10px 4px rgba(255, 250, 236, 0.35),
+    0 0 28px 12px rgba(200, 150, 46, 0.16),
+    0 0 56px 24px rgba(240, 208, 106, 0.1),
+    0 0 96px 44px rgba(255, 244, 214, 0.06) !important;
+  animation:
+    xi-poetry-cloud-morph 16s ease-in-out infinite,
+    xi-cloud-breathe 13s ease-in-out infinite !important;
+}
+
+/* Fluffier poetry mist — extend past text; keep words inside padding */
+.library-header.library-header--brand-signal .xi-poetry-cloud-bg,
+.library-header.library-header--brand-signal .xi-cloud-aura--secondary,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-cloud-aura--secondary,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-cloud-bg,
+html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-cloud-aura--secondary,
+html[data-xi-theme="dark"][data-xi-time="night"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-cloud-bg {
+  inset: -30px -40px -34px -40px !important;
+  border-radius: 48% 52% 58% 42% / 56% 44% 52% 48% !important;
+  filter: url(#xi-cloud-f-alt) !important;
+  background: rgba(200, 150, 46, 0.035) !important;
+  box-shadow:
+    inset 0 0 30px rgba(255, 252, 244, 0.22),
+    inset 0 0 14px rgba(200, 150, 46, 0.08),
+    0 0 12px 5px rgba(200, 150, 46, 0.14),
+    0 0 34px 14px rgba(200, 150, 46, 0.1),
+    0 0 68px 28px rgba(240, 208, 106, 0.06) !important;
+  animation:
+    xi-poetry-cloud-morph 18s ease-in-out infinite,
+    xi-poetry-cloud-drift 20s ease-in-out infinite,
+    xi-cloud-breathe 14s ease-in-out infinite !important;
+  animation-delay: -5s, -3s, -1s !important;
+}
+
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-hero-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-cloud-aura--primary,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .library-hero-shell .xi-hero-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .library-hero-shell .xi-cloud-aura--primary {
+  background: rgba(200, 150, 46, 0.055) !important;
+  box-shadow:
+    inset 0 0 32px rgba(255, 255, 255, 0.05),
+    inset 0 0 16px rgba(200, 150, 46, 0.12),
+    0 0 12px 5px rgba(200, 150, 46, 0.16),
+    0 0 32px 14px rgba(200, 150, 46, 0.11),
+    0 0 64px 28px rgba(240, 208, 106, 0.06),
+    0 0 100px 48px rgba(240, 208, 106, 0.03) !important;
+}
+
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-poetry-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .xi-cloud-aura--secondary,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-poetry-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .xi-poetry-col .xi-cloud-aura--secondary {
+  background: rgba(200, 150, 46, 0.04) !important;
+  box-shadow:
+    inset 0 0 26px rgba(200, 150, 46, 0.1),
+    0 0 14px 6px rgba(200, 150, 46, 0.14),
+    0 0 36px 16px rgba(200, 150, 46, 0.09),
+    0 0 70px 30px rgba(240, 208, 106, 0.045) !important;
+}
+
+@media (max-width: 839px) {
+  .library-header.library-header--brand-signal {
+    grid-template-columns: 1fr !important;
+  }
+
+  .library-header.library-header--brand-signal > .library-hero-shell {
+    max-width: 100% !important;
+  }
+
+  .library-header.library-header--brand-signal > .xi-poetry-col {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-header.library-header--brand-signal .xi-hero-cloud,
+  .library-header.library-header--brand-signal .xi-hero-cloud-bg,
+  .library-header.library-header--brand-signal .xi-cloud-aura--primary,
+  .library-header.library-header--brand-signal .xi-poetry-cloud-bg,
+  .library-header.library-header--brand-signal .xi-cloud-aura--secondary {
+    animation: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Brand-signal ideas 1+3 (2026-07-22)
+   One shared mist band + pull brand/poetry into one tight cluster.
+   Demote left twin-cloud; keep brand text. Scope: --brand-signal only.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.library-header.library-header--brand-signal {
+  display: block !important;
+  width: 100% !important;
+}
+
+.library-header.library-header--brand-signal > .brand-signal-cluster {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-content: center;
+  column-gap: clamp(6px, 1.2vw, 14px);
+  width: fit-content;
+  max-width: min(920px, 100%);
+  margin-inline: auto;
+  padding: 10px 8px 12px;
+  isolation: isolate;
+}
+
+/* Shared horizontal mist — soft elongated veil behind both texts */
+.library-header.library-header--brand-signal .brand-signal-mist {
+  position: absolute;
+  z-index: 0;
+  inset: 4% -4% 6% -4%;
+  border-radius: 48% 52% 50% 50% / 58% 56% 44% 42%;
+  pointer-events: none;
+  filter: url(#xi-cloud-f);
+  background: rgba(200, 150, 46, 0.04);
+  box-shadow:
+    inset 0 0 40px rgba(255, 252, 244, 0.22),
+    inset 0 0 18px rgba(200, 150, 46, 0.08),
+    0 0 18px 8px rgba(200, 150, 46, 0.12),
+    0 0 48px 20px rgba(240, 208, 106, 0.08),
+    0 0 90px 40px rgba(255, 244, 214, 0.05);
+  animation:
+    xi-poetry-cloud-morph 18s ease-in-out infinite,
+    xi-cloud-breathe 14s ease-in-out infinite;
+}
+
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-signal-mist {
+  background: rgba(200, 150, 46, 0.05);
+  box-shadow:
+    inset 0 0 36px rgba(255, 255, 255, 0.04),
+    inset 0 0 16px rgba(200, 150, 46, 0.1),
+    0 0 16px 6px rgba(200, 150, 46, 0.14),
+    0 0 44px 18px rgba(200, 150, 46, 0.09),
+    0 0 80px 36px rgba(240, 208, 106, 0.04);
+}
+
+/* Kill twin egg clouds — shared mist carries atmosphere */
+.library-header.library-header--brand-signal .brand-signal-cluster .xi-hero-cloud-bg,
+.library-header.library-header--brand-signal .brand-signal-cluster .xi-cloud-aura--primary,
+.library-header.library-header--brand-signal .brand-signal-cluster .xi-poetry-cloud-bg,
+.library-header.library-header--brand-signal .brand-signal-cluster .xi-cloud-aura--secondary,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-signal-cluster .xi-hero-cloud-bg,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-signal-cluster .xi-poetry-cloud-bg {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  animation: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  filter: none !important;
+}
+
+.library-header.library-header--brand-signal .brand-signal-cluster > .library-hero-shell,
+.library-header.library-header--brand-signal .brand-signal-cluster > .xi-poetry-col,
+.library-header.library-header--brand-signal .brand-signal-cluster > div.xi-poetry-col {
+  position: relative !important;
+  z-index: 1;
+  grid-column: auto !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  margin: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  justify-self: stretch !important;
+}
+
+/* Brand demoted: quieter inscription beside poetry */
+.library-header.library-header--brand-signal .brand-signal-cluster > .library-hero-shell {
+  padding: 0 !important;
+}
+
+.library-header.library-header--brand-signal .brand-signal-cluster .library-hero-content-modern {
+  padding: 12px 10px 12px 18px !important;
+  max-width: 13.5rem;
+}
+
+.library-header.library-header--brand-signal .brand-signal-cluster .library-hero-eyebrow,
+.library-header.library-header--brand-signal .brand-signal-cluster p.eyebrow {
+  font-size: 0.68rem !important;
+  letter-spacing: 0.14em !important;
+  margin-bottom: 4px !important;
+  opacity: 0.9;
+}
+
+.library-header.library-header--brand-signal .brand-signal-cluster .library-brand-signal-title,
+.library-header.library-header--brand-signal .brand-signal-cluster .library-title {
+  font-size: clamp(1.05rem, 2.1vw, 1.28rem) !important;
+  line-height: 1.25 !important;
+  font-weight: 700 !important;
+}
+
+.library-header.library-header--brand-signal .brand-signal-cluster .library-brand-signal-line {
+  margin-top: 5px !important;
+  font-size: 0.72rem !important;
+  line-height: 1.35 !important;
+  max-width: 11.5rem;
+  opacity: 0.88;
+}
+
+/* Poetry: still the visual weight; sit close to brand (idea 3) */
+.library-header.library-header--brand-signal .brand-signal-cluster > .xi-poetry-col,
+.library-header.library-header--brand-signal .brand-signal-cluster > div.xi-poetry-col {
+  padding: 28px 34px 26px 22px !important;
+  opacity: 1 !important;
+}
+
+.library-header.library-header--brand-signal .brand-signal-cluster .xi-poetry-grid,
+.library-header.library-header--brand-signal .brand-signal-cluster .xi-poetry-grid--plaque {
+  gap: 16px !important;
+}
+
+.library-header.library-header--brand-signal .brand-signal-cluster .xi-poetry-pillar {
+  gap: 9px !important;
+}
+
+.library-header.library-header--brand-signal .brand-signal-cluster .xi-poetry-line {
+  font-size: 15px !important;
+}
+
+@media (max-width: 839px) {
+  .library-header.library-header--brand-signal > .brand-signal-cluster {
+    grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 100%;
+    justify-content: start;
+    padding: 4px 0;
+  }
+
+  .library-header.library-header--brand-signal .brand-signal-mist {
+    inset: 0 -8% 0 -4%;
+    opacity: 0.85;
+  }
+
+  .library-header.library-header--brand-signal .brand-signal-cluster > .xi-poetry-col {
+    display: none !important;
+  }
+
+  .library-header.library-header--brand-signal .brand-signal-cluster .library-hero-content-modern {
+    max-width: none;
+    padding: 14px 16px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-header.library-header--brand-signal .brand-signal-mist {
+    animation: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Brand-signal 1+3 correction (2026-07-22) — self-eval fail
+   Screenshots: white card on left + poetry nearly invisible + mist
+   reads as frosted rectangle. Fix: strip card chrome, ink poetry,
+   softer organic mist (still one shared veil).
+   ═══════════════════════════════════════════════════════════════════ */
+
+.library-header.library-header--brand-signal > .brand-signal-cluster,
+.library-header.library-header--brand-signal > .brand-signal-cluster > .library-hero-shell,
+.library-header.library-header--brand-signal .brand-signal-cluster .xi-hero-cloud,
+.library-header.library-header--brand-signal .brand-signal-cluster .library-hero-cloud-modern,
+.library-header.library-header--brand-signal .brand-signal-cluster .library-hero-content-modern {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.library-header.library-header--brand-signal > .brand-signal-cluster {
+  padding: 18px 12px 20px !important;
+  gap: 0;
+  column-gap: 4px !important;
+}
+
+/* Mist = soft elongated breath, not glass panel */
+.library-header.library-header--brand-signal .brand-signal-mist {
+  inset: -8% -6% -10% -6% !important;
+  border-radius: 55% 45% 48% 52% / 62% 58% 42% 38% !important;
+  background: rgba(200, 150, 46, 0.028) !important;
+  box-shadow:
+    0 0 24px 10px rgba(200, 150, 46, 0.1),
+    0 0 56px 28px rgba(240, 208, 106, 0.07),
+    0 0 100px 48px rgba(255, 248, 230, 0.05) !important;
+  filter: url(#xi-cloud-f) !important;
+}
+
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-signal-mist {
+  background: rgba(200, 150, 46, 0.04) !important;
+  box-shadow:
+    0 0 20px 8px rgba(200, 150, 46, 0.12),
+    0 0 48px 22px rgba(200, 150, 46, 0.08),
+    0 0 88px 40px rgba(240, 208, 106, 0.04) !important;
+}
+
+.library-header.library-header--brand-signal .brand-signal-cluster .library-hero-content-modern {
+  padding: 8px 8px 8px 14px !important;
+  max-width: 11.5rem !important;
+}
+
+.library-header.library-header--brand-signal .brand-signal-cluster .library-brand-signal-title,
+.library-header.library-header--brand-signal .brand-signal-cluster .library-title {
+  font-size: clamp(0.98rem, 1.9vw, 1.18rem) !important;
+  color: #1a1209 !important;
+  -webkit-text-fill-color: #1a1209 !important;
+  background: none !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) !important;
+}
+
+.library-header.library-header--brand-signal .brand-signal-cluster .library-brand-signal-line {
+  font-size: 0.68rem !important;
+  color: #5a5046 !important;
+  -webkit-text-fill-color: #5a5046 !important;
+  max-width: 10.5rem !important;
+}
+
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-signal-cluster .library-brand-signal-title,
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-signal-cluster .library-title {
+  color: #f3ebe0 !important;
+  -webkit-text-fill-color: #f3ebe0 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65) !important;
+}
+
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-signal-cluster .library-brand-signal-line {
+  color: #c8beb0 !important;
+  -webkit-text-fill-color: #c8beb0 !important;
+}
+
+/* Poetry readable again (nested under cluster — old > selectors missed it) */
+.library-header.library-header--brand-signal .brand-signal-cluster .xi-poetry-line {
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #2a2218 !important;
+  color: #2a2218 !important;
+  filter: none !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) !important;
+  opacity: 0.92 !important;
+  font-size: 15px !important;
+  font-weight: 650 !important;
+}
+
+html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-signal-cluster .xi-poetry-line {
+  -webkit-text-fill-color: #efe6d6 !important;
+  color: #efe6d6 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7) !important;
+  opacity: 0.95 !important;
+}
+
+.library-header.library-header--brand-signal .brand-signal-cluster > .xi-poetry-col,
+.library-header.library-header--brand-signal .brand-signal-cluster > div.xi-poetry-col {
+  padding: 22px 28px 20px 12px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Brand-signal: hide on desktop, keep mist+brand on mobile (2026-07-22)
+   Desktop felt redundant after C1 cover-first home. Mobile still needs
+   a soft brand cloud as atmosphere under the jump chips.
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 840px) {
+  .library-header.library-header--brand-signal {
+    display: none !important;
+  }
+}
+
+@media (max-width: 839px) {
+  .library-header.library-header--brand-signal {
+    display: block !important;
+    margin-top: 6px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .library-header.library-header--brand-signal > .brand-signal-cluster {
+    display: grid !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    justify-content: stretch !important;
+    padding: 8px 4px 10px !important;
+  }
+
+  /* Poetry stays off on compact; mist + brand title remain */
+  .library-header.library-header--brand-signal .brand-signal-cluster > .xi-poetry-col {
+    display: none !important;
+  }
+
+  .library-header.library-header--brand-signal .brand-signal-mist {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    inset: -6% -10% -8% -6% !important;
+  }
+
+  .library-header.library-header--brand-signal .brand-signal-cluster .library-hero-content-modern {
+    max-width: none !important;
+    padding: 16px 18px !important;
+  }
+
+  .library-header.library-header--brand-signal .brand-signal-cluster .library-brand-signal-title,
+  .library-header.library-header--brand-signal .brand-signal-cluster .library-title {
+    font-size: clamp(1.2rem, 5.5vw, 1.45rem) !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Homepage densify (no audio) — 2026-07-22
+   Priority: early categories → pull catalog up → guest invite.
+   Desktop + mobile. No audio shelf (audio temporarily hidden).
+   ═══════════════════════════════════════════════════════════════════ */
+
+.home-priority-rail {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.home-guest-invite {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 22%, var(--hairline));
+  background: color-mix(in srgb, var(--canvas, #fffaf0) 92%, rgba(200, 150, 46, 0.08) 8%);
+  color: var(--ink, #1c1916);
+}
+
+.home-guest-invite--slot {
+  min-height: 0;
+  height: 0;
+  padding: 0;
+  border: none;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.home-guest-invite svg {
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 80%, #6a4d10);
+}
+
+.home-guest-invite p {
+  margin: 0;
+  flex: 1 1 12rem;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.home-guest-invite strong {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.home-guest-invite span {
+  font-size: 0.8rem;
+  color: var(--slate, #5f6d68);
+  line-height: 1.35;
+}
+
+.home-guest-invite-link {
+  flex: 0 0 auto;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 36%, var(--hairline));
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 70%, #4a3410);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.home-guest-invite-link:hover,
+.home-guest-invite-link:focus-visible {
+  background: color-mix(in srgb, rgba(200, 150, 46, 0.12) 40%, transparent);
+  outline: none;
+}
+
+[data-xi-theme="dark"] .home-guest-invite {
+  background: color-mix(in srgb, var(--canvas) 88%, rgba(200, 150, 46, 0.1) 12%);
+  border-color: rgba(200, 150, 46, 0.28);
+  color: #f0e8da;
+}
+
+[data-xi-theme="dark"] .home-guest-invite span {
+  color: #c2b8a8;
+}
+
+/* Early category portal — after discovery jump */
+.home-category-portal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 2px 6px;
+  margin: 2px 0 0;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.home-category-portal::-webkit-scrollbar {
+  display: none;
+  height: 0;
+}
+
+.home-category-portal-label {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 75%, var(--slate));
+  padding-inline: 4px 2px;
+}
+
+.home-category-portal .chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.home-story-flow--dense {
+  gap: 10px !important;
+  margin-bottom: 6px !important;
+}
+
+.home-cultivation-slot--compact {
+  margin: 4px 0 6px !important;
+}
+
+.page-wrap > .library-sticky-panel {
+  margin-top: 0 !important;
+}
+
+@media (min-width: 840px) {
+  .home-story-flow--dense {
+    gap: 12px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .home-cultivation-slot--compact {
+    margin: 2px 0 4px !important;
+  }
+
+  .home-category-portal {
+    padding-top: 6px;
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 839px) {
+  .home-priority-rail {
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .home-guest-invite {
+    padding: 9px 10px;
+    gap: 8px;
+  }
+
+  .home-guest-invite-link {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .home-category-portal {
+    margin-top: 4px;
+    padding-bottom: 8px;
+  }
+
+  .home-category-portal-label {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: color-mix(in srgb, var(--canvas, #fffaf0) 88%, transparent);
+    padding-block: 6px;
+  }
+
+  .home-cultivation-slot--compact {
+    margin: 4px 0 6px !important;
+  }
+
+  /* Mobile brand mist stays; pull sticky catalog closer */
+  .library-header.library-header--brand-signal {
+    margin-top: 2px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .page-wrap > .library-sticky-panel {
+    margin-top: 0 !important;
+    padding-top: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-guest-invite-link:hover {
+    transform: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Brand-signal desktop hide — beat dark display:grid !important
+   Evidence: html[data-xi-theme="dark"] …brand-signal { display:grid !important }
+   outranked earlier @media (min-width:840) .library-header--brand-signal { none }.
+   Keep mobile ≤839 mist+brand visible.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 840px) {
+  html .library-header.library-header--brand-signal,
+  html[data-xi-theme="dark"] .library-header.library-header--brand-signal,
+  html[data-xi-theme="light"] .library-header.library-header--brand-signal,
+  html[data-xi-theme="auto"] .library-header.library-header--brand-signal,
+  html[data-xi-theme="dark"][data-xi-time="day"] .library-header.library-header--brand-signal,
+  html[data-xi-theme="dark"][data-xi-time="dawn"] .library-header.library-header--brand-signal,
+  html[data-xi-theme="dark"][data-xi-time="dusk"] .library-header.library-header--brand-signal,
+  html[data-xi-theme="dark"][data-xi-time="night"] .library-header.library-header--brand-signal,
+  html:not([data-xi-theme="dark"]) .library-header.library-header--brand-signal {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: none !important;
+    pointer-events: none !important;
+  }
+
+  html[data-xi-theme="dark"] .library-header.library-header--brand-signal > .brand-signal-cluster,
+  html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-signal-mist,
+  .library-header.library-header--brand-signal > .brand-signal-cluster {
+    display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Phase A1+A5 — featured spotlight + pull catalog (2026-07-22)
+   Expert pick: one useful density block, not full A1–A4 menu.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.home-featured {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 14px 16px;
+  align-items: start;
+  margin: 4px 0 2px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 22%, var(--hairline));
+  background:
+    radial-gradient(ellipse 70% 80% at 0% 0%, rgba(200, 150, 46, 0.1), transparent 55%),
+    color-mix(in srgb, var(--canvas, #fffaf0) 94%, rgba(200, 150, 46, 0.06) 6%);
+}
+
+.home-featured-cover-link {
+  display: block;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(45, 38, 29, 0.12);
+}
+
+.home-featured-cover,
+.home-featured-cover.cover {
+  width: 112px !important;
+  height: 158px !important;
+  border-radius: 10px;
+}
+
+.home-featured-body {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.home-featured-kicker {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 78%, #6a4d10);
+}
+
+.home-featured-title {
+  margin: 0;
+  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+  line-height: 1.25;
+  font-weight: 750;
+}
+
+.home-featured-title a {
+  color: var(--ink, #1c1916);
+  text-decoration: none;
+}
+
+.home-featured-title a:hover,
+.home-featured-title a:focus-visible {
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 55%, var(--ink));
+  outline: none;
+}
+
+.home-featured-meta {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  font-size: 0.78rem;
+  color: var(--slate, #5f6d68);
+  line-height: 1.35;
+}
+
+.home-featured-blurb {
+  margin: 2px 0 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--ink, #1c1916) 78%, var(--slate));
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.home-featured-cta {
+  justify-self: start;
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 40%, var(--hairline));
+  background: color-mix(in srgb, rgba(200, 150, 46, 0.14) 50%, var(--canvas));
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 65%, #3a2a10);
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.home-featured-cta:hover,
+.home-featured-cta:focus-visible {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 55%, transparent);
+  background: color-mix(in srgb, rgba(200, 150, 46, 0.2) 55%, var(--canvas));
+  outline: none;
+}
+
+[data-xi-theme="dark"] .home-featured {
+  background:
+    radial-gradient(ellipse 70% 80% at 0% 0%, rgba(200, 150, 46, 0.12), transparent 55%),
+    color-mix(in srgb, var(--canvas) 90%, rgba(0, 0, 0, 0.2) 10%);
+  border-color: rgba(200, 150, 46, 0.28);
+}
+
+[data-xi-theme="dark"] .home-featured-title a {
+  color: #f3ebe0;
+}
+
+[data-xi-theme="dark"] .home-featured-meta {
+  color: #b8ae9e;
+}
+
+[data-xi-theme="dark"] .home-featured-blurb {
+  color: #d2c8b8;
+}
+
+[data-xi-theme="dark"] .home-featured-cta {
+  background: color-mix(in srgb, rgba(200, 150, 46, 0.16) 45%, rgba(20, 16, 12, 0.6));
+  color: #e8d9b0;
+  border-color: rgba(200, 150, 46, 0.4);
+}
+
+/* A5 — pull sticky catalog closer (desktop + mobile) */
+.home-story-flow--dense {
+  margin-bottom: 2px !important;
+}
+
+.home-cultivation-slot--compact {
+  margin: 2px 0 2px !important;
+}
+
+.page-wrap > .library-sticky-panel {
+  margin-top: 0 !important;
+  margin-bottom: 12px !important;
+}
+
+@media (min-width: 840px) {
+  .home-featured {
+    grid-template-columns: 128px minmax(0, 1fr);
+    gap: 16px 20px;
+    padding: 14px 18px;
+    margin-top: 6px;
+  }
+
+  .home-featured-cover,
+  .home-featured-cover.cover {
+    width: 128px !important;
+    height: 180px !important;
+  }
+
+  .home-featured-blurb {
+    -webkit-line-clamp: 4;
+    max-width: 42rem;
+  }
+}
+
+@media (max-width: 839px) {
+  .home-featured {
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 10px 12px;
+    padding: 10px 12px;
+    margin: 2px 0 0;
+  }
+
+  .home-featured-cover,
+  .home-featured-cover.cover {
+    width: 96px !important;
+    height: 136px !important;
+  }
+
+  .home-featured-blurb {
+    -webkit-line-clamp: 2;
+    font-size: 0.82rem;
+  }
+
+  .home-featured-cta {
+    min-height: 44px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .home-cultivation-slot--compact {
+    margin: 2px 0 4px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Story rating dark contrast (2026-07-22)
+   Widget used var(--canvas) + backdrop blur → washed panel; inactive
+   stars at rgba(gold,0.35) disappear into the wash.
+   ═══════════════════════════════════════════════════════════════════ */
+
+[data-xi-theme="dark"] .story-rating-widget,
+[data-xi-theme="dark"] .story-detail-shell .story-rating-widget {
+  background: rgba(12, 11, 10, 0.72) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: rgba(200, 150, 46, 0.34) !important;
+  box-shadow: inset 0 0 0 1px rgba(240, 208, 106, 0.06);
+}
+
+[data-xi-theme="dark"] .story-rating-star-fill,
+[data-xi-theme="dark"] .story-rating-aggregate strong,
+[data-xi-theme="dark"] .story-rating-star-active {
+  color: #f0d06a !important;
+  filter: drop-shadow(0 0 4px rgba(240, 208, 106, 0.35));
+}
+
+[data-xi-theme="dark"] .story-rating-star:not(.story-rating-star-active) {
+  color: rgba(232, 217, 176, 0.42) !important;
+  filter: none;
+}
+
+[data-xi-theme="dark"] .story-rating-star:hover:not(:disabled),
+[data-xi-theme="dark"] .story-rating-star:focus-visible:not(:disabled) {
+  color: #f5e0a0 !important;
+}
+
+[data-xi-theme="dark"] .story-rating-count,
+[data-xi-theme="dark"] .story-rating-login-hint,
+[data-xi-theme="dark"] .story-rating-remove {
+  color: #b8ae9e !important;
+}
+
+[data-xi-theme="dark"] .story-rating-review-toggle {
+  color: #e8d9b0 !important;
+  border-color: rgba(200, 150, 46, 0.45) !important;
+  background: rgba(200, 150, 46, 0.08);
+}
+
+[data-xi-theme="dark"] .story-rating-review-input {
+  background: rgba(18, 16, 14, 0.92) !important;
+  border-color: rgba(200, 150, 46, 0.32) !important;
+  color: #f0e8da !important;
+}
+
+/* Inside progress disclosure: avoid double-wash nesting */
+[data-xi-theme="dark"] .story-detail-shell .story-detail-progress-disclosure .story-rating-widget {
+  background: rgba(8, 7, 6, 0.55) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Phase B1+B3 — story detail tags + rating above fold (2026-07-22)
+   Expert pick after home A1+A5. Scoped under .story-detail-shell.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.story-detail-shell .story-detail-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 2px 0 10px;
+}
+
+.story-detail-shell .story-detail-tag-chip {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 28%, var(--hairline));
+  background: color-mix(in srgb, var(--canvas) 92%, rgba(200, 150, 46, 0.08) 8%);
+  color: color-mix(in srgb, var(--ink, #1c1916) 88%, var(--slate));
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-decoration: none;
+  box-shadow: none;
+  transform: none !important;
+}
+
+.story-detail-shell a.story-detail-tag-chip:hover,
+.story-detail-shell a.story-detail-tag-chip:focus-visible {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 48%, transparent);
+  background: color-mix(in srgb, rgba(200, 150, 46, 0.14) 40%, var(--canvas));
+  outline: none;
+  transform: none !important;
+}
+
+.story-detail-shell .story-detail-tag-chip--done {
+  border-color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 36%, var(--hairline));
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 72%, #0f3d34);
+  background: color-mix(in srgb, rgba(26, 107, 90, 0.1) 50%, var(--canvas));
+}
+
+.story-detail-shell .story-detail-tag-chip--ongoing {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 34%, var(--hairline));
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 70%, #4a3410);
+}
+
+.story-detail-shell .story-detail-tag-chip--muted {
+  color: var(--slate, #5f6d68);
+  font-weight: 600;
+}
+
+.story-detail-shell .story-detail-rating-slot {
+  margin: 4px 0 12px;
+}
+
+.story-detail-shell .story-detail-rating-slot .story-rating-widget,
+.story-detail-shell .story-detail-rating-slot .story-rating-widget-compact {
+  margin: 0;
+  padding: 12px 14px;
+}
+
+/* Kill global chip hover lift on tag row only */
+.story-detail-shell .story-detail-tag-row .chip:hover,
+.story-detail-shell .story-detail-tag-row .chip:focus-visible,
+.story-detail-shell .story-detail-tag-row .chip:active {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.story-detail-shell .story-detail-tag-row .chip:hover::after,
+.story-detail-shell .story-detail-tag-row .chip:focus-visible::after {
+  content: none !important;
+  display: none !important;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-tag-chip {
+  background: rgba(18, 16, 14, 0.72);
+  border-color: rgba(200, 150, 46, 0.32);
+  color: #e8dfd0;
+}
+
+[data-xi-theme="dark"] .story-detail-shell a.story-detail-tag-chip:hover,
+[data-xi-theme="dark"] .story-detail-shell a.story-detail-tag-chip:focus-visible {
+  background: rgba(200, 150, 46, 0.14);
+  border-color: rgba(200, 150, 46, 0.48);
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-tag-chip--done {
+  border-color: rgba(38, 168, 130, 0.4);
+  color: #9fd9c4;
+  background: rgba(26, 107, 90, 0.18);
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-tag-chip--ongoing {
+  color: #e8d9b0;
+}
+
+[data-xi-theme="dark"] .story-detail-shell .story-detail-tag-chip--muted {
+  color: #b8ae9e;
+}
+
+@media (max-width: 839px) {
+  .story-detail-shell .story-detail-tag-row {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .story-detail-shell .story-detail-tag-chip {
+    min-height: 36px;
+  }
+
+  .story-detail-shell .story-detail-rating-slot {
+    margin-bottom: 10px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Phase C1+C2 — Discover cover grid + reader copy (2026-07-22)
+   Scoped under .discover-shell / .discover-cover-grid.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.discover-shell .discover-cover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 18px 14px;
+  margin: 4px 0 8px;
+}
+
+.discover-shell .discover-cover-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 10px;
+  transition: transform 160ms ease;
+}
+
+.discover-shell .discover-cover-card:hover,
+.discover-shell .discover-cover-card:focus-visible {
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.discover-shell .discover-cover-card .cover {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  height: auto;
+  border-radius: 10px;
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 22%, var(--hairline));
+  box-shadow: 0 12px 26px rgba(45, 38, 29, 0.12);
+}
+
+.discover-shell .discover-cover-card:hover .cover,
+.discover-shell .discover-cover-card:focus-visible .cover {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 44%, var(--hairline));
+  box-shadow: 0 16px 32px rgba(45, 38, 29, 0.16);
+}
+
+.discover-shell .discover-cover-card-meta {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 2px;
+}
+
+.discover-shell .discover-cover-card-kicker-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.discover-shell .discover-cover-card-kicker {
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 78%, #8a6418);
+  font-size: 0.68rem;
+  font-weight: 780;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.discover-shell .discover-cover-card-kicker-row small {
+  color: var(--steel, #6b6560);
+  font-size: 0.66rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+  text-align: right;
+}
+
+.discover-shell .discover-cover-card-meta h3 {
+  margin: 0;
+  color: var(--charcoal, var(--ink));
+  font-size: 0.92rem;
+  font-weight: 720;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.discover-shell .discover-cover-card-meta p {
+  margin: 0;
+  color: var(--slate, #5f6d68);
+  font-size: 0.76rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.discover-shell .discover-cover-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  color: var(--steel, #6b6560);
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.discover-shell .discover-cover-card-fresh .cover {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--xi-jade, #1a6b5a) 42%, transparent),
+    0 14px 28px rgba(45, 38, 29, 0.14);
+}
+
+[data-xi-theme="dark"] .discover-shell .discover-cover-card .cover {
+  border-color: rgba(200, 150, 46, 0.28);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.35);
+}
+
+[data-xi-theme="dark"] .discover-shell .discover-cover-card-meta h3 {
+  color: #f0e8da;
+}
+
+[data-xi-theme="dark"] .discover-shell .discover-cover-card-meta p,
+[data-xi-theme="dark"] .discover-shell .discover-cover-card-foot,
+[data-xi-theme="dark"] .discover-shell .discover-cover-card-kicker-row small {
+  color: #b8ae9e;
+}
+
+[data-xi-theme="dark"] .discover-shell .discover-cover-card-kicker {
+  color: #e8d9b0;
+}
+
+@media (max-width: 839px) {
+  .discover-shell .discover-cover-grid {
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+    gap: 14px 10px;
+  }
+
+  .discover-shell .discover-cover-card {
+    min-height: 44px;
+  }
+
+  .discover-shell .discover-cover-card-meta h3 {
+    font-size: 0.86rem;
+  }
+}
+
+@media (min-width: 1100px) {
+  .discover-shell .discover-cover-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
