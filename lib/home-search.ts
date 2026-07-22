@@ -1,3 +1,5 @@
+import { DISCOVERY_POLISHED_FILTER } from "@/lib/discovery-labels";
+
 export type HomeSearchParams = {
   q?: string;
   author?: string;
@@ -47,7 +49,7 @@ export function buildHomeFilterLabels(params: HomeSearchParams): string[] {
   if (params.category) labels.push(params.category);
   if (Number(params.minChapters) > 0) labels.push(`Từ ${params.minChapters} chương`);
   if (Number(params.maxChapters) > 0) labels.push(`Đến ${params.maxChapters} chương`);
-  if (params.hasPolished === "true") labels.push("Có polish");
+  if (params.hasPolished === "true") labels.push(DISCOVERY_POLISHED_FILTER);
   if (params.hasAudio === "true") labels.push("Có audio");
   if (params.sort && params.sort !== "updated") {
     labels.push(SORT_LABELS[params.sort] ?? params.sort);

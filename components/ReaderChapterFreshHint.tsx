@@ -46,7 +46,7 @@ export function ReaderChapterFreshHint({ storyId, storyTitle, hint, onDismiss }:
         <span>
           {hint.kind === "next"
             ? `Chương ${hint.chapterNumber} vừa ấn định. Tiếp tục hành trình?`
-            : `Nội dung chương ${hint.chapterNumber} vừa được polish lại.`}
+            : `Nội dung chương ${hint.chapterNumber} vừa được tinh luyện lại.`}
         </span>
         {nextChapterHref ? (
           <Link className="reader-chapter-fresh-hint-link" href={nextChapterHref} onClick={onDismiss}>
