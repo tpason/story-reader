@@ -1,28 +1,12 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
 import { ReaderLogo } from "@/components/ReaderLogo";
-import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 
-const ThreeXianxiaLoader = dynamic(
-  () => import("@/components/ThreeXianxiaLoader").then((m) => m.ThreeXianxiaLoader),
-  { ssr: false, loading: () => null }
-);
-
+/** Route-transition loader — CSS only (no WebGL remount per navigation). */
 export function XianxiaLoader() {
-  const [mounted, setMounted] = useState(false);
-  const decorativeWebglEnabled = useDecorativeWebglEnabled({ tier: "global", allowCompact: true });
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   return (
     <div className="xi-loader-overlay" role="status" aria-label="Đang tải...">
-      <div className="xi-loader-canvas" aria-hidden="true">
-        {mounted && decorativeWebglEnabled ? <ThreeXianxiaLoader /> : null}
-      </div>
+      <div className="xi-loader-canvas" aria-hidden="true" />
 
       <div className="xi-loader-css-rings" aria-hidden="true">
         <div className="xi-loader-ring xi-loader-ring-a" />

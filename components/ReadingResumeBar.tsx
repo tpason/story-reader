@@ -89,7 +89,7 @@ export function ReadingResumeBar({ storyId, showRecentRail = false }: ReadingRes
               }
             >
               <span className="home-recent-chip-title">{item.storyTitle}</span>
-              <small>Ch. {item.chapterNumber}</small>
+              <small className="home-recent-chip-ch">{`Ch.\u00A0${item.chapterNumber}`}</small>
             </Link>
           ))}
           <Link className="home-recent-more" href="/reading-history">

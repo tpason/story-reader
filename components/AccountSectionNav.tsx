@@ -40,7 +40,14 @@ export function AccountSectionNav() {
     const nav = navRef.current;
     if (!nav) return;
     const activeLink = nav.querySelector<HTMLAnchorElement>(`a[href="#${active}"]`);
-    activeLink?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    if (!activeLink) return;
+    // Scroll only the tab strip horizontally — never scrollIntoView the document
+    // (that was trapping page scroll to the “current tab” section).
+    const navRect = nav.getBoundingClientRect();
+    const linkRect = activeLink.getBoundingClientRect();
+    const delta = linkRect.left - navRect.left - (navRect.width - linkRect.width) / 2;
+    if (Math.abs(delta) < 2) return;
+    nav.scrollBy({ left: delta, behavior: "smooth" });
   }, [active]);
 
   function handleNavClick(id: string) {
