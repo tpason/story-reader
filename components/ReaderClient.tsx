@@ -3102,7 +3102,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     if (!mobileSheetOpen || mobileSheetTab !== "settings" || !scrollToBilingualSettingsRef.current) return;
     scrollToBilingualSettingsRef.current = false;
     const timer = window.setTimeout(() => {
-      document.getElementById("reader-bilingual-settings")?.scrollIntoView({ block: "start", behavior: "smooth" });
+      const target = document.getElementById("reader-bilingual-settings");
+      const scroller = mobileSheetScrollRef.current;
+      if (!target || !scroller) return;
+      // Scroll inside the sheet only — avoid viewport scrollIntoView hiding the sticky close header.
+      const top = Math.max(0, target.offsetTop - 12);
+      scroller.scrollTo({ top, behavior: "smooth" });
     }, 120);
     return () => window.clearTimeout(timer);
   }, [mobileSheetOpen, mobileSheetTab]);
@@ -4554,6 +4559,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   story={activePayload.story}
                   availableLayers={activePayload.chapter.availableContentLayers ?? ["polished", "raw"]}
                   onChange={handleBilingualPrefsChange}
+                  onDone={() => setMobileSheetOpen(false)}
                 />
               </div>
             ) : null}

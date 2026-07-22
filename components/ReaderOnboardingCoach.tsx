@@ -51,13 +51,9 @@ export function ReaderOnboardingCoach({ compact }: ReaderOnboardingCoachProps) {
         <h2>{step.title}</h2>
         <p>{step.body}</p>
         <div className="reader-onboarding-coach-actions">
-          {stepIndex > 0 ? (
-            <button type="button" className="reader-onboarding-coach-secondary" onClick={() => setStepIndex((value) => value - 1)}>
-              Quay lại
-            </button>
-          ) : (
-            <span />
-          )}
+          <button type="button" className="reader-onboarding-coach-secondary" onClick={finish}>
+            Bỏ qua
+          </button>
           <button
             type="button"
             className="reader-onboarding-coach-primary"

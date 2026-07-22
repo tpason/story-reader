@@ -10023,3 +10023,90 @@ html[data-xi-theme="dark"] .reader-shell .story-rating-star:not(.story-rating-st
 .reader-shell[data-theme="dark"] .story-rating-star:not(.story-rating-star-active) {
   color: color-mix(in srgb, #e8d9b0 45%, transparent);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Bilingual sheet + coach a11y / dark contrast (2026-07-22)
+   - Native <select> missing color → black text on dark reader themes
+   - Explicit Xong dismiss on bilingual card
+   - Coach dismiss no longer collides with step icon
+   ═══════════════════════════════════════════════════════════════════ */
+
+.reader-bilingual-field select,
+.reader-mobile-sheet-panel .reader-select,
+.reader-shell .reader-select {
+  color: var(--reader-ink) !important;
+  background: color-mix(in srgb, var(--reader-bg) 88%, var(--reader-ink) 12%) !important;
+  border: 1px solid color-mix(in srgb, var(--reader-line) 80%, transparent);
+  -webkit-text-fill-color: var(--reader-ink);
+}
+
+.reader-bilingual-field select option,
+.reader-mobile-sheet-panel .reader-select option,
+.reader-shell .reader-select option {
+  color: var(--reader-ink);
+  background: var(--reader-bg);
+}
+
+.reader-shell[data-theme="dark"] .reader-bilingual-field select,
+.reader-shell[data-theme="ink-night"] .reader-bilingual-field select,
+.reader-shell[data-theme="oled"] .reader-bilingual-field select,
+.reader-mobile-sheet-panel.reader-theme-portal[data-theme="dark"] .reader-bilingual-field select,
+.reader-mobile-sheet-panel.reader-theme-portal[data-theme="ink-night"] .reader-bilingual-field select,
+.reader-mobile-sheet-panel.reader-theme-portal[data-theme="oled"] .reader-bilingual-field select,
+.reader-mobile-sheet-panel.reader-theme-portal[data-theme="dark"] .reader-select,
+.reader-mobile-sheet-panel.reader-theme-portal[data-theme="ink-night"] .reader-select,
+.reader-mobile-sheet-panel.reader-theme-portal[data-theme="oled"] .reader-select {
+  color: #f2ebe0 !important;
+  -webkit-text-fill-color: #f2ebe0;
+  background: color-mix(in srgb, #1a1714 86%, #f2ebe0 14%) !important;
+  border-color: color-mix(in srgb, #f2ebe0 22%, transparent);
+  color-scheme: dark;
+}
+
+.reader-bilingual-done {
+  margin-top: 12px;
+  width: 100%;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 36%, var(--reader-line));
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 16%, var(--reader-bg));
+  color: var(--reader-ink);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.reader-bilingual-done:hover,
+.reader-bilingual-done:focus-visible {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 55%, var(--reader-line));
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 24%, var(--reader-bg));
+  outline: none;
+}
+
+.reader-onboarding-coach-card {
+  padding-top: 18px;
+  padding-right: 18px;
+}
+
+.reader-onboarding-coach-dismiss {
+  z-index: 2;
+  top: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid color-mix(in srgb, var(--reader-line, var(--hairline)) 70%, transparent);
+  background: color-mix(in srgb, var(--reader-bg, var(--panel)) 92%, transparent);
+  color: var(--reader-ink, var(--ink));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.reader-onboarding-coach-icon {
+  margin-top: 4px;
+  margin-right: 44px; /* keep clear of dismiss */
+}
+
+.reader-shell .reader-onboarding-coach-dismiss {
+  background: color-mix(in srgb, var(--reader-panel-solid, var(--reader-bg)) 94%, transparent);
+  border-color: color-mix(in srgb, var(--reader-line) 70%, transparent);
+  color: var(--reader-ink);
+}

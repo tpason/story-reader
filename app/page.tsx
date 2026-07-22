@@ -14,7 +14,6 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { StoryDiscoveryRail } from "@/components/StoryDiscoveryRail";
 import { DiscoveryRailSkeleton } from "@/components/DiscoveryRailSkeleton";
 import { TrendingStoriesPanel } from "@/components/TrendingStoriesPanel";
-import { XianxiaPoetryColumn } from "@/components/XianxiaPoetryColumn";
 import { HomeGuestInvite } from "@/components/HomeGuestInvite";
 import { HomeFeaturedStory } from "@/components/HomeFeaturedStory";
 import { JsonLdScript } from "@/components/JsonLdScript";
@@ -275,43 +274,12 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
         )}
 
-        {/* Brand as secondary signal after cover rails (C1) — not the first-viewport hero. */}
-        <section
-          className="library-header library-header--compact library-header--brand-signal"
-          aria-label="Linh Quyển Các"
-        >
-          <svg aria-hidden="true" className="xi-cloud-filters" style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }}>
-            <defs>
-              {/* Softer wisps: lower frequency + slightly stronger displace (still subtle). */}
-              <filter id="xi-cloud-f" x="-18%" y="-18%" width="136%" height="136%" colorInterpolationFilters="sRGB">
-                <feTurbulence type="fractalNoise" baseFrequency="0.011 0.014" numOctaves="2" seed="12" result="n" />
-                <feDisplacementMap in="SourceGraphic" in2="n" scale="11" xChannelSelector="R" yChannelSelector="G" />
-              </filter>
-              <filter id="xi-cloud-f-alt" x="-18%" y="-18%" width="136%" height="136%" colorInterpolationFilters="sRGB">
-                <feTurbulence type="fractalNoise" baseFrequency="0.012 0.016" numOctaves="2" seed="28" result="n" />
-                <feDisplacementMap in="SourceGraphic" in2="n" scale="10" xChannelSelector="R" yChannelSelector="G" />
-              </filter>
-            </defs>
-          </svg>
-          {!isSearchActive ? (
-            <div className="brand-signal-cluster">
-              {/* Single shared mist (ideas 1+3) — not twin egg clouds */}
-              <div className="brand-signal-mist" role="presentation" aria-hidden="true" />
-              <div className="library-hero-shell library-hero-shell-modern library-hero-shell--compact">
-                <div className="xi-hero-cloud library-hero-cloud-modern">
-                  <div className="xi-hero-cloud-bg xi-cloud-aura xi-cloud-aura--primary" role="presentation" />
-                  <div className="library-hero-content library-hero-content-modern">
-                    <p className="eyebrow library-hero-eyebrow">Thiên Thư</p>
-                    <h1 className="library-title library-title-modern library-brand-signal-title">
-                      Linh Quyển Các
-                    </h1>
-                    <p className="library-brand-signal-line">Tu tiên từng chương · vươn tới đỉnh trời</p>
-                  </div>
-                </div>
-              </div>
-              <XianxiaPoetryColumn />
-            </div>
-          ) : (
+        {/* Search results chrome only — brand lives in topbar; mid-page brand-signal was redundant on mobile. */}
+        {isSearchActive ? (
+          <section
+            className="library-header library-header--compact library-header--search-signal"
+            aria-label="Kết quả tìm kiếm"
+          >
             <div className="library-search-hero" aria-live="polite">
               <p className="eyebrow">Tìm trong Thiên Thư</p>
               <h1 className="library-search-hero-title">
@@ -321,8 +289,8 @@ export default async function Home({ searchParams }: HomeProps) {
                 {stories.total ?? stories.items.length} linh quyển phù hợp
               </p>
             </div>
-          )}
-        </section>
+          </section>
+        ) : null}
 
         {/* Cultivation above sticky catalog — never under sticky "Danh sách truyện" chrome. */}
         {!isSearchActive ? (

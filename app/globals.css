@@ -23941,10 +23941,17 @@ html[data-xi-time="night"] .library-header > .xi-poetry-col .xi-poetry-line,
    ═══════════════════════════════════════════════════════════════════ */
 
 /* —— Home: content-first densify —— */
+/* minmax(0,1fr) is required — bare `display:grid` uses auto tracks whose
+   min-content size is expanded by nowrap chip/cover rails → page overflow. */
 .home-story-flow--dense {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   margin: 4px 0 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
 }
 
 .home-trending-compact .trending-section {
@@ -26554,10 +26561,10 @@ html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-s
    ═══════════════════════════════════════════════════════════════════ */
 
 .home-featured {
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  gap: 14px 16px;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
   margin: 4px 0 2px;
   padding: 12px 14px;
   border-radius: 14px;
@@ -26565,27 +26572,11 @@ html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-s
   background:
     radial-gradient(ellipse 70% 80% at 0% 0%, rgba(200, 150, 46, 0.1), transparent 55%),
     color-mix(in srgb, var(--canvas, #fffaf0) 94%, rgba(200, 150, 46, 0.06) 6%);
-}
-
-.home-featured-cover-link {
-  display: block;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 10px 24px rgba(45, 38, 29, 0.12);
-}
-
-.home-featured-cover,
-.home-featured-cover.cover {
-  width: 112px !important;
-  height: 158px !important;
-  border-radius: 10px;
-}
-
-.home-featured-body {
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
-  display: grid;
-  gap: 6px;
-  align-content: start;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .home-featured-kicker {
@@ -26598,6 +26589,40 @@ html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-s
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--xi-gold, #c8962e) 78%, #6a4d10);
+}
+
+.home-featured-main {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px 14px;
+  align-items: start;
+  min-width: 0;
+  width: 100%;
+}
+
+.home-featured-cover-link {
+  display: block;
+  width: 96px;
+  max-width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(45, 38, 29, 0.12);
+  flex-shrink: 0;
+}
+
+.home-featured-cover,
+.home-featured-cover.cover {
+  width: 96px !important;
+  height: 136px !important;
+  max-width: 100% !important;
+  border-radius: 10px;
+}
+
+.home-featured-body {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  align-content: start;
 }
 
 .home-featured-title {
@@ -26620,12 +26645,9 @@ html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-s
 
 .home-featured-meta {
   margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 6px;
   font-size: 0.78rem;
   color: var(--slate, #5f6d68);
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 .home-featured-blurb {
@@ -26639,11 +26661,23 @@ html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-s
   overflow: hidden;
 }
 
+.home-featured-author {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--slate, #5f6d68);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .home-featured-cta {
   justify-self: start;
-  margin-top: 4px;
+  align-self: start;
+  margin-top: 2px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   min-height: 40px;
   padding: 0 14px;
@@ -26654,6 +26688,7 @@ html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-s
   font-size: 0.84rem;
   font-weight: 700;
   text-decoration: none;
+  box-sizing: border-box;
 }
 
 .home-featured-cta:hover,
@@ -26674,7 +26709,8 @@ html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-s
   color: #f3ebe0;
 }
 
-[data-xi-theme="dark"] .home-featured-meta {
+[data-xi-theme="dark"] .home-featured-meta,
+[data-xi-theme="dark"] .home-featured-author {
   color: #b8ae9e;
 }
 
@@ -26704,10 +26740,18 @@ html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-s
 
 @media (min-width: 840px) {
   .home-featured {
-    grid-template-columns: 128px minmax(0, 1fr);
-    gap: 16px 20px;
+    gap: 12px;
     padding: 14px 18px;
     margin-top: 6px;
+  }
+
+  .home-featured-main {
+    grid-template-columns: 128px minmax(0, 1fr);
+    gap: 14px 18px;
+  }
+
+  .home-featured-cover-link {
+    width: 128px;
   }
 
   .home-featured-cover,
@@ -26720,33 +26764,15 @@ html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-s
     -webkit-line-clamp: 4;
     max-width: 42rem;
   }
+
+  .home-featured-cta {
+    width: auto;
+    align-self: start;
+  }
 }
 
 @media (max-width: 839px) {
-  .home-featured {
-    grid-template-columns: 96px minmax(0, 1fr);
-    gap: 10px 12px;
-    padding: 10px 12px;
-    margin: 2px 0 0;
-  }
-
-  .home-featured-cover,
-  .home-featured-cover.cover {
-    width: 96px !important;
-    height: 136px !important;
-  }
-
-  .home-featured-blurb {
-    -webkit-line-clamp: 2;
-    font-size: 0.82rem;
-  }
-
-  .home-featured-cta {
-    min-height: 44px;
-    width: 100%;
-    justify-content: center;
-  }
-
+  /* Featured mobile layout consolidated at file end — keep only cultivation here. */
   .home-cultivation-slot--compact {
     margin: 2px 0 4px !important;
   }
@@ -27103,4 +27129,719 @@ html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-s
 
 .xi-route-loading .xi-route-progress {
   position: fixed;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Route loading — mobile compact (2026-07-22)
+   Keep skeleton above the fold; hide desktop-only chrome ≤839px.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.xi-route-loading-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.xi-route-loading-brand {
+  width: 110px;
+  height: 16px;
+}
+
+.xi-route-loading-search {
+  width: 160px;
+  height: 32px;
+  border-radius: 20px;
+}
+
+.xi-route-loading-chip {
+  width: 80px;
+  height: 28px;
+  border-radius: 20px;
+}
+
+@media (max-width: 839px) {
+  .xi-route-loading {
+    min-height: 100svh;
+    min-height: 100dvh;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .xi-route-loading-shell {
+    min-height: 100svh;
+    min-height: 100dvh;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .xi-route-loading-topbar {
+    gap: 8px;
+    padding-inline: 12px;
+  }
+
+  .xi-route-loading-search {
+    display: none;
+  }
+
+  .xi-route-loading-chip {
+    width: 64px;
+    height: 26px;
+  }
+
+  .xi-route-loading-hero {
+    width: 100%;
+    height: clamp(96px, 28vw, 148px);
+    border-radius: 18px;
+    margin: 8px 0 18px;
+  }
+
+  /* Discovery skeleton: fewer cards, tighter row on phone */
+  .xi-route-loading-discovery .discovery-grid {
+    display: grid;
+    gap: 14px;
+  }
+
+  .xi-route-loading-discovery .discovery-panel:nth-child(n + 2) {
+    display: none;
+  }
+
+  .xi-route-loading-discovery .discovery-row .discovery-card:nth-child(n + 3) {
+    display: none;
+  }
+
+  .xi-route-loading-discovery .discovery-card {
+    min-width: 0;
+  }
+
+  .xi-route-loading-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .xi-route-loading-card-extra {
+    display: none;
+  }
+
+  /* Segment loadings (discover/story/account…): fill viewport so footer stays off-screen */
+  main.xi-route-loading {
+    min-height: 100svh;
+    min-height: 100dvh;
+    padding-bottom: calc(32px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xi-route-loading .xi-skel,
+  .xi-route-loading .story-card-skeleton-cover,
+  .xi-route-loading .story-card-skeleton-line {
+    animation: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Mobile home/rankings overflow polish (2026-07-22)
+   Evidence: period/category chips + cover rails clipped at right edge;
+   featured meta/CTA cramped; page-wrap 12px too tight under overflow-x clip.
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 839px) {
+  /* Slightly wider page gutter — still edge-bleed scroll rows below */
+  .page-wrap {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* Shared horizontal chip rows: real end gutter + bleed into page pad */
+  .rankings-period-tabs,
+  .rankings-tabs,
+  .rankings-board-tabs,
+  .trending-period-tabs,
+  .home-category-portal {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-inline: -16px;
+    padding-inline: 16px 28px;
+    scroll-padding-inline: 16px;
+  }
+
+  .rankings-period-tabs::-webkit-scrollbar,
+  .rankings-tabs::-webkit-scrollbar,
+  .rankings-board-tabs::-webkit-scrollbar,
+  .trending-period-tabs::-webkit-scrollbar,
+  .home-category-portal::-webkit-scrollbar {
+    display: none;
+    height: 0;
+  }
+
+  .rankings-period-tabs .chip,
+  .rankings-tabs .chip,
+  .rankings-board-tabs .chip,
+  .trending-period-tabs .chip,
+  .home-category-portal .chip {
+    flex: 0 0 auto;
+  }
+
+  .trending-period-tabs {
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+
+  /* Sticky "Thể loại" label was eating left scroll space */
+  .home-category-portal-label {
+    position: static;
+    background: transparent;
+    padding-block: 0;
+  }
+
+  /* Cover rails: keep start flush, add end gutter; touch-scroll (hide overlay arrows) */
+  .home-story-flow .discovery-panel--cover-rail {
+    padding-inline: 10px 0;
+  }
+
+  .home-story-flow .discovery-panel--cover-rail .discovery-heading {
+    padding-right: 10px;
+  }
+
+  .cover-rail-slide-scroller {
+    padding: 2px 28px 8px 10px;
+    scroll-padding-inline: 10px;
+    gap: 10px;
+  }
+
+  .cover-rail-slide-btn {
+    display: none !important;
+  }
+
+  .discovery-cover-rail-slide .discovery-cover-card {
+    flex-basis: 112px;
+  }
+
+  .trending-cover-rail-slide .trending-card,
+  .home-trending-compact .trending-section--bookstore .trending-card {
+    flex-basis: 120px;
+  }
+
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   Mobile chip rows — stop "rơi hàng" (2026-07-22)
+   Evidence: Hot/Hoàn thành wrap → Lọc nâng cao alone; sort chips same;
+   Thiên bảng + Khám phá thêm look like leftover crumbs above featured.
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 839px) {
+  /* Jump CTAs: one intentional equal-width toolbar, not sparse wrap */
+  .home-discovery-jump {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 4px 0 2px;
+    padding: 0;
+    flex-wrap: nowrap;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .home-discovery-jump .chip {
+    width: 100%;
+    justify-content: center;
+    min-width: 0;
+    margin: 0;
+  }
+
+  /* Tighten portal → featured stack so chips don't float as orphans */
+  .home-story-flow--dense .home-discovery-jump {
+    margin-bottom: 0;
+  }
+
+  .home-story-flow--dense .home-category-portal {
+    margin-top: 6px;
+    margin-bottom: 2px;
+  }
+
+  .home-story-flow--dense .home-featured {
+    margin-top: 8px;
+  }
+
+  /* Quick filters + sort: keep one row, swipe instead of orphan wrap */
+  .library-sticky-panel .library-sticky-quick-filters,
+  .library-sticky-panel .library-sort-chips,
+  .library-sticky-panel .library-sticky-chips.category-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 8px;
+    padding-bottom: 6px;
+  }
+
+  .library-sticky-panel .library-sticky-quick-filters::-webkit-scrollbar,
+  .library-sticky-panel .library-sort-chips::-webkit-scrollbar,
+  .library-sticky-panel .library-sticky-chips.category-row::-webkit-scrollbar {
+    display: none;
+    height: 0;
+  }
+
+  .library-sticky-panel .library-sticky-quick-filters > .chip,
+  .library-sticky-panel .library-sticky-quick-filters > .advanced-filter,
+  .library-sticky-panel .library-sort-chips > .chip,
+  .library-sticky-panel .library-sticky-chips > .chip,
+  .library-sticky-panel .library-sticky-chips > a.chip {
+    flex: 0 0 auto;
+  }
+
+  /* details must shrink to summary width in the scroll row */
+  .library-sticky-panel .library-sticky-quick-filters > .advanced-filter {
+    display: inline-flex;
+    flex: 0 0 auto;
+    max-width: none;
+    width: auto;
+  }
+
+  .library-sticky-panel .library-sticky-quick-filters:has(.advanced-filter[open]) {
+    flex-wrap: wrap;
+  }
+
+  .library-sticky-panel .library-sticky-quick-filters > .advanced-filter[open] {
+    flex: 1 1 100%;
+    width: 100%;
+    display: grid;
+  }
+
+  .library-sticky-panel .library-sticky-quick-filters > .advanced-filter .advanced-filter-summary {
+    white-space: nowrap;
+  }
+
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Home featured — definitive mobile layout (2026-07-22)
+   Flex column: kicker → cover+title row → full-width blurb → CTA.
+   Avoids grid-area fights with .cover fixed widths that overflow viewport.
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 839px) {
+  .home-story-flow .home-featured,
+  .home-featured {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    gap: 10px !important;
+    padding: 12px !important;
+    margin: 8px 0 0 !important;
+    overflow: hidden !important;
+  }
+
+  .home-featured-main {
+    display: grid !important;
+    grid-template-columns: 72px minmax(0, 1fr) !important;
+    gap: 10px 12px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .home-featured-cover-link {
+    width: 72px !important;
+    max-width: 72px !important;
+  }
+
+  .home-story-flow .home-featured-cover,
+  .home-story-flow .home-featured-cover.cover,
+  .home-featured-cover,
+  .home-featured-cover.cover {
+    width: 72px !important;
+    height: 102px !important;
+    max-width: 72px !important;
+  }
+
+  .home-featured-body {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .home-featured-title {
+    font-size: 1.02rem !important;
+    line-height: 1.25 !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .home-featured-meta,
+  .home-featured-author {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: 0.72rem !important;
+  }
+
+  .home-featured-blurb {
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 3 !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    font-size: 0.82rem !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+  }
+
+  .home-featured-cta {
+    display: inline-flex !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    justify-content: center !important;
+    align-self: stretch !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Home Phong vân — definitive mobile layout (2026-07-22)
+   Same override problem as featured: long heading + CTA wrap orphan;
+   period chips bleed (-16px) misaligned vs title; rail cards too wide.
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 839px) {
+  .home-trending-compact .trending-section--bookstore .trending-heading-row,
+  .home-trending-compact .trending-heading-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .home-trending-compact .trending-heading-row > div {
+    min-width: 0 !important;
+  }
+
+  .home-trending-compact .trending-section--bookstore .section-heading-row h2,
+  .home-trending-compact .trending-heading-row h2 {
+    font-size: 1.05rem !important;
+    line-height: 1.3 !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  /* Drop long aside on narrow phones so title + CTA stay one row */
+  .home-trending-compact .trending-heading-aside {
+    display: none !important;
+  }
+
+  .home-trending-compact .rankings-home-cta {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    min-height: 36px !important;
+    padding-inline: 10px !important;
+    justify-content: center !important;
+  }
+
+  .home-trending-compact .trending-controls-row {
+    margin: 0 0 8px;
+    min-width: 0;
+  }
+
+  /* 4 equal period chips — no orphan wrap, no negative bleed */
+  .home-trending-compact .trending-period-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+  }
+
+  .home-trending-compact .trending-period-tabs .chip {
+    width: 100% !important;
+    min-width: 0 !important;
+    justify-content: center !important;
+    padding-inline: 4px !important;
+    font-size: 0.78rem !important;
+    gap: 4px !important;
+  }
+
+  .home-trending-compact .trending-period-tabs .chip svg {
+    width: 12px !important;
+    height: 12px !important;
+    flex-shrink: 0;
+  }
+
+  /* Rail: smaller cards + end gutter so peek of next card is intentional */
+  .home-trending-compact .trending-cover-rail-slide {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .home-trending-compact .cover-rail-slide-scroller {
+    padding: 2px 24px 8px 2px !important;
+    scroll-padding-inline: 2px !important;
+    gap: 8px !important;
+  }
+
+  .home-trending-compact .trending-cover-rail-slide .trending-card,
+  .home-trending-compact .trending-section--bookstore .trending-card {
+    flex: 0 0 108px !important;
+    flex-basis: 108px !important;
+    gap: 6px !important;
+    padding: 8px !important;
+    min-width: 0 !important;
+  }
+
+  .home-trending-compact .trending-section--bookstore .trending-card .cover {
+    width: 100% !important;
+    height: 140px !important;
+  }
+
+  .home-trending-compact .trending-section--bookstore .trending-card-body h3 {
+    font-size: 0.8rem !important;
+    -webkit-line-clamp: 2 !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .home-trending-compact .trending-section--bookstore .trending-card-body small {
+    font-size: 0.66rem !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Home overflow containment (2026-07-22) — VERIFY FIX
+   Root cause: .home-story-flow--dense was display:grid with implicit
+   auto column → min-content from nowrap chips/rails widened the page;
+   body overflow-x:hidden then clipped .home-featured on the right.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.home-story-flow,
+.home-story-flow--dense,
+.home-trending-compact,
+.home-discovery-jump,
+.home-category-portal,
+.trending-controls-row,
+.cover-rail-slide {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 839px) {
+  .page-wrap {
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    overflow-x: clip !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    box-sizing: border-box !important;
+  }
+
+  .home-story-flow,
+  .home-story-flow.home-story-flow--dense,
+  .home-story-flow--dense {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: clip !important;
+  }
+
+  .home-story-flow > *,
+  .home-story-flow--dense > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* No negative bleed inside the flow — it expands scroll width */
+  .home-story-flow .home-category-portal,
+  .home-story-flow .trending-period-tabs,
+  .home-trending-compact .trending-period-tabs {
+    margin-inline: 0 !important;
+    padding-inline: 0 !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .home-trending-compact,
+  .home-trending-compact .trending-section,
+  .home-trending-compact .trending-cover-rail-slide,
+  .home-trending-compact .cover-rail-slide-scroller,
+  .home-story-flow .discovery-panel--cover-rail,
+  .home-story-flow .cover-rail-slide,
+  .home-story-flow .cover-rail-slide-scroller {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .home-story-flow .home-featured,
+  .home-featured {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .home-featured-main,
+  .home-featured-body,
+  .home-featured-blurb,
+  .home-featured-cta,
+  .home-featured-title,
+  .home-featured-meta,
+  .home-featured-author {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Phong vân rail = same scrollport as "Vừa cập nhật" (2026-07-22)
+   Evidence: section/cards clipped on right; no pan-x. Cause: period
+   chips + rail escaped as page overflow instead of overflow-x:auto
+   inside a width-bounded scroller (discovery rail does this right).
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 839px) {
+  .home-trending-compact {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .home-trending-compact .trending-section,
+  .home-trending-compact .trending-section--bookstore {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important; /* clip chrome; children scroll inside */
+    padding: 10px 12px !important;
+  }
+
+  /* Title + trophy stay inside */
+  .home-trending-compact .trending-heading-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin-bottom: 8px !important;
+  }
+
+  .home-trending-compact .trending-heading-row > div {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  .home-trending-compact .rankings-home-cta {
+    flex: 0 0 auto !important;
+    max-width: none !important;
+  }
+
+  /* Period chips: horizontal swipe row (like discovery), not clipped grid */
+  .home-trending-compact .trending-controls-row {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 0 10px !important;
+  }
+
+  .home-trending-compact .trending-period-tabs {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 0 4px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-x: contain !important;
+    touch-action: pan-x !important;
+    scrollbar-width: none !important;
+  }
+
+  .home-trending-compact .trending-period-tabs::-webkit-scrollbar {
+    display: none !important;
+    height: 0 !important;
+  }
+
+  .home-trending-compact .trending-period-tabs .chip {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: auto !important;
+    padding-inline: 12px !important;
+    font-size: 0.84rem !important;
+  }
+
+  /* Cover rail scrollport — mirror discovery-cover-rail behavior */
+  .home-trending-compact .trending-cover-rail-slide.cover-rail-slide,
+  .home-trending-compact .cover-rail-slide {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important; /* bound the scroller */
+    contain: none !important; /* layout contain was fighting width calc */
+  }
+
+  .home-trending-compact .cover-rail-slide-scroller {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    overscroll-behavior-x: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x !important;
+    scroll-snap-type: x proximity !important;
+    padding: 2px 20px 8px 0 !important;
+    scrollbar-width: none !important;
+  }
+
+  .home-trending-compact .cover-rail-slide-scroller::-webkit-scrollbar {
+    display: none !important;
+    height: 0 !important;
+  }
+
+  .home-trending-compact .cover-rail-slide-scroller > * {
+    flex: 0 0 auto !important;
+    scroll-snap-align: start !important;
+  }
+
+  .home-trending-compact .trending-cover-rail-slide .trending-card,
+  .home-trending-compact .trending-section--bookstore .trending-card {
+    flex: 0 0 118px !important;
+    width: 118px !important;
+    max-width: 118px !important;
+  }
+
+  .home-trending-compact .trending-section--bookstore .trending-card .cover {
+    width: 100% !important;
+    height: 154px !important;
+  }
+
+  /* Keep slide chevrons hidden on touch; pan-x is the affordance */
+  .home-trending-compact .cover-rail-slide-btn {
+    display: none !important;
+  }
 }

@@ -65,9 +65,6 @@ export function PushNotificationToggle() {
     }
   }
 
-  const canShowToggle = diagnostic?.canEnable || subscribed;
-  const showDiagnostics = diagnostic && diagnostic.blockers.length > 0 && !subscribed;
-
   if (checking && !diagnostic) {
     return (
       <div className="push-settings-card push-settings-card-loading" role="status">
@@ -77,7 +74,23 @@ export function PushNotificationToggle() {
     );
   }
 
-  if (!isPushApiSupported() && !showDiagnostics) return null;
+  // Feature not configured on server — hide from readers; admins still see ops diagnostics.
+  if (diagnostic && !diagnostic.featureAvailable && !subscribed && !diagnostic.isAdmin) {
+    return null;
+  }
+
+  if (!isPushApiSupported() && diagnostic && !diagnostic.isAdmin && !subscribed) {
+    return null;
+  }
+
+  const visibleBlockers =
+    diagnostic?.blockers.filter((blocker) => {
+      if (blocker.audience === "ops") return Boolean(diagnostic.isAdmin);
+      return true;
+    }) ?? [];
+
+  const canShowToggle = Boolean(diagnostic?.canEnable || subscribed);
+  const showDiagnostics = visibleBlockers.length > 0 && !subscribed;
 
   return (
     <div className="push-settings-card" role="region" aria-label={NOTIFY_COPY.eyebrow}>
@@ -96,7 +109,7 @@ export function PushNotificationToggle() {
         </p>
         {showDiagnostics ? (
           <ul className="push-diagnostic-list">
-            {diagnostic.blockers.map((blocker) => (
+            {visibleBlockers.map((blocker) => (
               <li key={blocker.code}>
                 <strong>{blocker.message}</strong>
                 {blocker.hint ? <span>{blocker.hint}</span> : null}
@@ -115,9 +128,13 @@ export function PushNotificationToggle() {
           {loading ? <LoaderCircle size={14} className="spin" /> : subscribed ? <BellOff size={14} /> : <Bell size={14} />}
           {loading ? "Đang xử lý…" : subscribed ? "Đang bật. Nhấn để tắt" : NOTIFY_COPY.pushCta}
         </button>
-      ) : (
-        <p className="push-diagnostic-foot">Sửa các mục trên rồi tải lại trang để bật linh tin.</p>
-      )}
+      ) : showDiagnostics ? (
+        <p className="push-diagnostic-foot">
+          {diagnostic?.isAdmin
+            ? "Sửa cấu hình máy chủ rồi tải lại trang để bật linh tin."
+            : "Hoàn tất các mục trên rồi tải lại trang để bật linh tin."}
+        </p>
+      ) : null}
     </div>
   );
 }

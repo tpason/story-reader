@@ -59,17 +59,30 @@ export function TrendingStoriesPanel({
 
   return (
     <section className={sectionClass} aria-label="Truyện thịnh hành">
-      <div className="section-heading-row">
+      <div className="section-heading-row trending-heading-row">
         <div>
-          <h2>Phong vân {periodLabel} · đạo hữu tu đọc nhiều nhất</h2>
+          <h2>
+            {isBookstore ? (
+              <>
+                Phong vân {periodLabel}
+                <span className="trending-heading-aside"> · đạo hữu tu đọc nhiều nhất</span>
+              </>
+            ) : (
+              <>Phong vân {periodLabel} · đạo hữu tu đọc nhiều nhất</>
+            )}
+          </h2>
         </div>
         <Link className="chip chip-inverted rankings-home-cta" href={"/rankings?tab=trending&period=" + period as Route}>
           <Trophy size={14} aria-hidden />
-          Xem thiên bảng
+          {isBookstore ? "Thiên bảng" : "Xem thiên bảng"}
         </Link>
       </div>
 
-      {hrefForPeriod ? <TrendingPeriodChips period={period} hrefForPeriod={hrefForPeriod} /> : null}
+      {hrefForPeriod ? (
+        <div className="trending-controls-row">
+          <TrendingPeriodChips period={period} hrefForPeriod={hrefForPeriod} />
+        </div>
+      ) : null}
 
       <CoverRailSlide
         label={`Phong vân ${periodLabel}`}

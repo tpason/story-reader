@@ -22,9 +22,9 @@ export function layerLanguage(layer: ContentLayer, sourceCode: string): LayerLan
 }
 
 export function layerLabel(layer: ContentLayer, lang: LayerLanguage) {
-  if (layer === "polished") return "Bản polish";
-  if (layer === "translated") return "Bản dịch";
-  if (lang === "en") return "English (gốc)";
+  if (layer === "polished") return "Tiếng Việt";
+  if (layer === "translated") return "Bản dịch Việt";
+  if (lang === "en") return "Tiếng Anh";
   if (lang === "zh") return "Bản gốc (Trung)";
   if (lang === "ko") return "Bản gốc (Hàn)";
   return "Bản gốc";

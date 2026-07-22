@@ -17,11 +17,13 @@ type ReaderBilingualSettingsProps = {
   story: StorySummary;
   availableLayers: ContentLayer[];
   onChange: (prefs: ReaderBilingualPrefs) => void;
+  /** Mobile sheet: explicit dismiss so bilingual block is not a dead-end. */
+  onDone?: () => void;
 };
 
 const LAYER_OPTIONS: ContentLayer[] = ["raw", "translated", "polished"];
 
-export function ReaderBilingualSettings({ story, availableLayers, onChange }: ReaderBilingualSettingsProps) {
+export function ReaderBilingualSettings({ story, availableLayers, onChange, onDone }: ReaderBilingualSettingsProps) {
   const prefs = readReaderBilingualPrefs();
   const layers = LAYER_OPTIONS.filter((layer) => availableLayers.includes(layer));
 
@@ -37,11 +39,11 @@ export function ReaderBilingualSettings({ story, availableLayers, onChange }: Re
         <div className="reader-bilingual-settings-heading">
           <p className="reader-bilingual-eyebrow">
             <Languages size={13} aria-hidden />
-            Song ngữ EN–VI
+            Song ngữ Anh – Việt
           </p>
           <h3>Bật bản Anh + Việt</h3>
           <p className="reader-bilingual-settings-note">
-            EN gốc xen kẽ VI polish. Bôi đen cụm từ rồi <strong>Lưu câu</strong>. Audio vẫn theo bản Việt.
+            Đọc tiếng Anh xen kẽ tiếng Việt. Bôi đen cụm từ rồi <strong>Lưu câu</strong>. Audio vẫn theo bản Việt.
           </p>
         </div>
 
@@ -54,7 +56,7 @@ export function ReaderBilingualSettings({ story, availableLayers, onChange }: Re
           <div className="reader-bilingual-settings-body">
             <button type="button" className="reader-bilingual-preset-chip" onClick={() => update(learnEnglishPreset())}>
               <Sparkles size={14} aria-hidden />
-              Kiếm Anh · EN gốc + VI polish
+              Học Anh · Anh trên + Việt dưới
             </button>
 
             <label className="reader-bilingual-field">
@@ -124,6 +126,12 @@ export function ReaderBilingualSettings({ story, availableLayers, onChange }: Re
               <span>Làm nổi đoạn đang đọc khi cuộn</span>
             </label>
           </div>
+        ) : null}
+
+        {onDone ? (
+          <button type="button" className="reader-bilingual-done" onClick={onDone}>
+            Xong
+          </button>
         ) : null}
       </div>
     </section>
