@@ -7,6 +7,11 @@ declare global {
   var storyReaderPool: Pool | undefined;
 }
 
+function isNextProductionBuild(): boolean {
+  // CI / Docker image builds often have no Postgres; ISR pages must not fail the build.
+  return process.env.NEXT_PHASE === "phase-production-build";
+}
+
 export const pool =
   globalThis.storyReaderPool ??
   new Pool({
@@ -21,8 +26,19 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 export async function query<T extends QueryResultRow>(text: string, values: unknown[] = []): Promise<T[]> {
-  const result = await pool.query<T>(text, values);
-  return result.rows;
+  try {
+    const result = await pool.query<T>(text, values);
+    return result.rows;
+  } catch (error) {
+    if (isNextProductionBuild()) {
+      console.warn(
+        "[db] build-time query failed; returning empty rows:",
+        error instanceof Error ? error.message : error,
+      );
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {

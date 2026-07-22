@@ -7,9 +7,12 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ARG NEXT_PUBLIC_READER_WS_URL=
+# Optional: when compose build joins the app network, point at postgres for ISR bake.
+ARG STORY_DATABASE_URL=
 ENV NEXT_TELEMETRY_DISABLED=1 \
     NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
-    NEXT_PUBLIC_READER_WS_URL=$NEXT_PUBLIC_READER_WS_URL
+    NEXT_PUBLIC_READER_WS_URL=$NEXT_PUBLIC_READER_WS_URL \
+    STORY_DATABASE_URL=$STORY_DATABASE_URL
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx next build
