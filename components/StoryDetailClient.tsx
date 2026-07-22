@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 const MotionFX = dynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX), { ssr: false });
 import { SiteHeader } from "@/components/SiteHeader";
 import { StoryDetailBreadcrumb } from "@/components/StoryDetailBreadcrumb";
+import { CoverRailSlide } from "@/components/CoverRailSlide";
 import { StoryCover } from "@/components/StoryCover";
 import { UserIdentity } from "@/components/UserIdentity";
 import { FollowButton } from "@/components/FollowButton";
@@ -35,6 +36,7 @@ import { useStoryDetailAdminEdit } from "@/hooks/useStoryDetailAdminEdit";
 import { writeResumeNavigationTarget } from "@/lib/reader-resume";
 import { estimateReadingMinutes, formatReadingDuration } from "@/lib/reading-estimate";
 import { displayStoryAuthor, resolveStoryStatusBadge } from "@/lib/story-status";
+import { prefetchReaderChapterQuery } from "@/lib/reader-query";
 
 const ThreeStoryStage = dynamic(() => import("@/components/ThreeStoryStage").then((mod) => mod.ThreeStoryStage), {
   ssr: false
@@ -133,11 +135,12 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
     void import("@/components/ReaderClient");
   }, []);
 
-  // Warm the continue/start chapter route while the user is on story detail.
+  // Warm continue/start chapter route + chapter JSON while the user is on story detail.
   useEffect(() => {
     if (!heroCtaChapter) return;
     router.prefetch(storyHref(currentStory, heroCtaChapter));
-  }, [router, currentStory, heroCtaChapter]);
+    void prefetchReaderChapterQuery(queryClient, currentStory.id, heroCtaChapter);
+  }, [router, currentStory, heroCtaChapter, queryClient]);
 
   useEffect(() => {
     if (!decorativeWebglEnabled || !stageReady) {
@@ -242,17 +245,33 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
                   <BookOpen size={12} aria-hidden="true" />
                   {totalChapters} chương
                 </span>
-                {statusBadge.completed ? (
-                  <span className="xi-badge-completed">{statusBadge.label}</span>
-                ) : (
-                  <span className="xi-badge-ongoing">{statusBadge.label}</span>
-                )}
                 <span className="story-meta-icon-badge">
                   <Clock3 size={12} aria-hidden="true" />
                   {updatedLabel ?? "Cập nhật gần đây"}
                 </span>
                 <StoryRankMeta story={currentStory} />
               </div>
+
+              {/* B1: genre + status as bookstore chips (status moved out of meta) */}
+              <nav className="story-detail-tag-row" aria-label="Thẻ linh quyển">
+                {currentStory.primaryCategorySlug ? (
+                  <Link
+                    className="chip story-detail-tag-chip"
+                    href={`/categories/${currentStory.primaryCategorySlug}` as Route}
+                  >
+                    {currentStory.primaryCategoryName || currentStory.category || "Truyện chữ"}
+                  </Link>
+                ) : (
+                  <span className="chip story-detail-tag-chip">
+                    {currentStory.primaryCategoryName || currentStory.category || "Truyện chữ"}
+                  </span>
+                )}
+                <span
+                  className={`chip story-detail-tag-chip${statusBadge.completed ? " story-detail-tag-chip--done" : " story-detail-tag-chip--ongoing"}`}
+                >
+                  {statusBadge.label}
+                </span>
+              </nav>
 
               <div className="story-detail-cta-cluster">
                 <Link
@@ -273,14 +292,14 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
                   <FollowButton story={currentStory} />
                   <button
                     type="button"
-                    className={`chip story-share-btn${shareCopied ? " chip-active" : ""}`}
+                    className={`story-detail-quiet-action story-share-btn${shareCopied ? " is-done" : ""}`}
                     onClick={handleShare}
                     title="Chia sẻ truyện"
                   >
                     {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
                     {shareCopied ? "Đã copy!" : "Chia sẻ"}
                   </button>
-                  <Link className="chip" href="/">
+                  <Link className="story-detail-quiet-action" href="/">
                     Thư viện
                   </Link>
                 </div>
@@ -306,36 +325,51 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
                 </div>
               )}
 
-              <div className="story-detail-hero-aside">
-                <StoryRatingWidget storyId={currentStory.id} />
-                <StoryDetailPushHint storyId={currentStory.id} boosted={Boolean(freshChapterNumber)} />
-                {estimatedStoryMinutes > 0 ? (
-                  <p className="story-detail-read-estimate">
-                    Ước tính ~{formatReadingDuration(estimatedStoryMinutes)} đọc hết
-                  </p>
-                ) : null}
-                {maxReadChapter > 0 && totalChapters > 0 ? (() => {
-                  const progressPct = Math.min(100, Math.max(0, Math.round((maxReadChapter / totalChapters) * 100)));
-                  const activeChapter = history?.chapterNumber ?? continueChapter ?? 0;
-                  return (
-                    <div className="story-detail-hero-progress" aria-label="Tiến độ đọc">
-                      <ChapterSidebarHeatmap
-                        totalChapters={totalChapters}
-                        maxReadChapter={maxReadChapter}
-                        activeChapterNumber={activeChapter}
-                        onJump={(chapterNumber) => {
-                          writeResumeNavigationTarget(currentStory.id, chapterNumber, {});
-                          router.push(storyHref(currentStory, chapterNumber));
-                        }}
-                      />
-                      <span className="story-detail-hero-progress-label">
-                        <BookOpenCheck size={13} />
-                        {Math.min(maxReadChapter, totalChapters)}/{totalChapters} chương ({progressPct}%)
-                      </span>
-                    </div>
-                  );
-                })() : null}
+              <div className="story-detail-rating-slot">
+                <StoryRatingWidget storyId={currentStory.id} compact />
               </div>
+
+              {/* Default closed — heatmap / estimate / push; rating stays above fold */}
+              <details className="story-detail-progress-disclosure">
+                <summary className="story-detail-progress-summary">
+                  <BookOpenCheck size={15} aria-hidden />
+                  <span>Tiến độ đạo hành</span>
+                  {maxReadChapter > 0 && totalChapters > 0 ? (
+                    <small>
+                      {Math.min(maxReadChapter, totalChapters)}/{totalChapters}
+                    </small>
+                  ) : null}
+                </summary>
+                <div className="story-detail-hero-aside">
+                  <StoryDetailPushHint storyId={currentStory.id} boosted={Boolean(freshChapterNumber)} />
+                  {estimatedStoryMinutes > 0 ? (
+                    <p className="story-detail-read-estimate">
+                      Ước tính ~{formatReadingDuration(estimatedStoryMinutes)} đọc hết
+                    </p>
+                  ) : null}
+                  {maxReadChapter > 0 && totalChapters > 0 ? (() => {
+                    const progressPct = Math.min(100, Math.max(0, Math.round((maxReadChapter / totalChapters) * 100)));
+                    const activeChapter = history?.chapterNumber ?? continueChapter ?? 0;
+                    return (
+                      <div className="story-detail-hero-progress" aria-label="Tiến độ đọc">
+                        <ChapterSidebarHeatmap
+                          totalChapters={totalChapters}
+                          maxReadChapter={maxReadChapter}
+                          activeChapterNumber={activeChapter}
+                          onJump={(chapterNumber) => {
+                            writeResumeNavigationTarget(currentStory.id, chapterNumber, {});
+                            router.push(storyHref(currentStory, chapterNumber));
+                          }}
+                        />
+                        <span className="story-detail-hero-progress-label">
+                          <BookOpenCheck size={13} />
+                          {Math.min(maxReadChapter, totalChapters)}/{totalChapters} chương ({progressPct}%)
+                        </span>
+                      </div>
+                    );
+                  })() : null}
+                </div>
+              </details>
             </div>
           </div>
         </section>
@@ -402,25 +436,22 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
                     {recommendations.length} truyện
                   </span>
                 </div>
-                <div className="recommendation-row">
+                <CoverRailSlide label="Linh quyển cùng đạo" className="story-rec-cover-rail-slide">
                   {recommendations.map((item) => (
                     <Link
-                      className={`recommendation-card ${isFresh(item.id) ? "recommendation-card-fresh" : ""}`.trim()}
+                      className={`story-rec-card story-rec-card--cover ${isFresh(item.id) ? "recommendation-card-fresh" : ""}`.trim()}
                       href={storyHref(item)}
                       key={item.id}
+                      role="listitem"
                     >
                       <StoryCover src={item.coverImageUrl} title={item.title} />
-                      <div>
+                      <div className="story-rec-body">
                         <h3>{item.title}</h3>
-                        <div className="discovery-meta">
-                          <span>{item.author || "Unknown author"}</span>
-                          <span>{item.totalChapters} chương</span>
-                          {item.primaryCategoryName ? <span>{item.primaryCategoryName}</span> : null}
-                        </div>
+                        <small className="story-rec-meta-line">{item.totalChapters} chương</small>
                       </div>
                     </Link>
                   ))}
-                </div>
+                </CoverRailSlide>
               </section>
             ) : null)}
             {sameAuthorSlot}
