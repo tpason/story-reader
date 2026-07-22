@@ -9469,7 +9469,8 @@ button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.skill-
   --xi-void: #2a1a52;
   position: fixed;
   inset: 0;
-  z-index: 120;
+  /* Must match --xi-z-continue-fab: portal is outside .reader-shell so shell rules never apply. */
+  z-index: var(--xi-z-continue-fab, 1370);
   pointer-events: none;
 }
 

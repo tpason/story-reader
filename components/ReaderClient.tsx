@@ -545,7 +545,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const compactViewportRef = useRef(false);
   const readerChromeHiddenRef = useRef(false);
   const readerShellRef = useRef<HTMLElement | null>(null);
-  const swipeStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
+  const swipeGestureRef = useRef<{
+    x: number;
+    y: number;
+    pointerId: number;
+    axis: "x" | "y" | null;
+    lastX: number;
+    lastY: number;
+  } | null>(null);
   const zenTapRef = useRef<{ t: number; x: number; y: number } | null>(null);
   const swipeNoticeTimerRef = useRef<number | null>(null);
   const restoredScrollKeyRef = useRef<string | null>(null);
@@ -1141,6 +1148,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePayload.chapter.chapterNumber, activePayload.story.id, forceTopKey, historyHydrated, paragraphPositionKey, storageKey]);
 
+  // Drop soft-nav cache only when the RSC/server chapter actually changes (router navigation).
+  // Soft nav (Đọc tiếp / swipe / promote) sets cachedPayload then updates activePayload — clearing
+  // on activePayload would snap the reader back to the stale server payload.
+  useEffect(() => {
+    setCachedPayload(null);
+  }, [payload.chapter.id, payload.chapter.chapterNumber]);
+
   useEffect(() => {
     setMobileMenuOpen(false);
     setMobileFormatOpen(false);
@@ -1150,7 +1164,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setChapterSearchOpen(false);
     setChapterSearchQuery("");
     setGlossaryDrawerOpen(false);
-    setCachedPayload(null);
     setShowCompletionOverlay(false);
     setParagraphNoteEditor(null);
     completionShownRef.current = false;
@@ -1165,12 +1178,16 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
     continuousChapterTriggeredRef.current = false;
     setJumpBackTarget(null);
-    setInlineChapters([]);
+    // promoteHeadInlineToPrimary sets skipInlineClearRef so appended chapters survive the handoff.
+    const keepInline = skipInlineClearRef.current;
+    if (!keepInline) {
+      setInlineChapters([]);
+    }
     visibleChapterRef.current = {
       chapterId: activePayload.chapter.id,
       chapterNumber: activePayload.chapter.chapterNumber,
       chapterTitle: activePayload.chapter.title,
-      paragraphIndex: 0
+      paragraphIndex: keepInline ? visibleChapterRef.current.paragraphIndex : 0
     };
     syncedReaderUrlChapterRef.current = activePayload.chapter.chapterNumber;
     setCommentsChapterId(activePayload.chapter.id);
@@ -3123,11 +3140,20 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   useEffect(() => {
     if (!supportsBilingualReader(payload.story.sourceCode) || !bilingualPrefs.enabled) {
-      if (!bilingualPrefs.enabled) setCachedPayload(null);
+      if (!bilingualPrefs.enabled) {
+        // Don't wipe soft-navigated chapters (Đọc tiếp / swipe). Only drop bilingual
+        // overlays that still match the RSC payload chapter.
+        setCachedPayload((current) => {
+          if (current && current.chapter.id !== payload.chapter.id) return current;
+          return null;
+        });
+      }
       return;
     }
-    void reloadChapterWithBilingual(bilingualPrefs, payload.chapter.chapterNumber);
+    void reloadChapterWithBilingual(bilingualPrefs, activePayload.chapter.chapterNumber);
   }, [
+    activePayload.chapter.chapterNumber,
+    payload.chapter.id,
     payload.chapter.chapterNumber,
     payload.story.id,
     payload.story.sourceCode,
@@ -3170,28 +3196,58 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }
   promoteHeadInlineRef.current = () => promoteHeadInlineToPrimary();
 
+  function applySoftChapterNav(nextPayload: ReaderPayload) {
+    setCachedPayload(nextPayload);
+    setInlineChapters([]);
+    setMobileSheetOpen(false);
+    setMobileMenuOpen(false);
+    queryClient.setQueryData(
+      readerQueryKeys.chapter(nextPayload.story.id, nextPayload.chapter.chapterNumber, bilingualQueryOptions),
+      nextPayload
+    );
+    window.history.replaceState(null, "", storyHref(nextPayload.story, nextPayload.chapter.chapterNumber));
+    scrollPageTo(0);
+  }
+
   async function openNextChapterFast() {
-    const tailNextChapter = resolveTailNextChapter(inlineChaptersRef.current, activePayload.nextChapter);
-    const nextChapter = tailNextChapter;
-    if (!nextChapter) return;
+    const current = activePayloadRef.current;
+    const nextChapter = resolveTailNextChapter(inlineChaptersRef.current, current.nextChapter);
+    if (!nextChapter) {
+      showSwipeNotice("Không có chương sau");
+      return;
+    }
+    const href = storyHref(current.story, nextChapter.chapterNumber);
     setInlineChapters([]);
     setChapterTransitionDirection("next");
     setChapterTransitionTrigger((t) => t + 1);
     markChapterListNavigation(nextChapter.chapterNumber);
+    showSwipeNotice("Chương sau");
 
-    const queryPayload = queryClient.getQueryData<ReaderPayload>(readerQueryKeys.chapter(activePayload.story.id, nextChapter.chapterNumber));
-    const cachedPayloadFromDisk = queryPayload ? null : await readCachedChapterPayload(activePayload.story.id, nextChapter.chapterNumber);
-    const nextPayload = queryPayload ?? cachedPayloadFromDisk;
-
-    if (nextPayload) {
-      setCachedPayload(nextPayload);
-      queryClient.setQueryData(readerQueryKeys.chapter(nextPayload.story.id, nextPayload.chapter.chapterNumber), nextPayload);
-      window.history.replaceState(null, "", storyHref(nextPayload.story, nextPayload.chapter.chapterNumber));
-      window.scrollTo({ top: 0, behavior: "auto" });
+    // Sync warm hit — avoid awaiting fetch inside the tap gesture (mobile Safari is flaky).
+    const warm =
+      queryClient.getQueryData<ReaderPayload>(
+        readerQueryKeys.chapter(current.story.id, nextChapter.chapterNumber, bilingualQueryOptions)
+      ) ??
+      queryClient.getQueryData<ReaderPayload>(readerQueryKeys.chapter(current.story.id, nextChapter.chapterNumber));
+    if (warm) {
+      applySoftChapterNav(warm);
       return;
     }
 
-    router.push(storyHref(activePayload.story, nextChapter.chapterNumber));
+    // Compact/mobile: hard navigate immediately. Soft-nav await+replaceState was leaving
+    // readers stuck on the old RSC payload when fetch was slow or wiped mid-flight.
+    if (compactViewportRef.current) {
+      router.push(href);
+      return;
+    }
+
+    const nextPayload = await resolveChapterPayload(nextChapter.chapterNumber);
+    if (nextPayload) {
+      applySoftChapterNav(nextPayload);
+      return;
+    }
+
+    router.push(href);
   }
   openNextChapterFastRef.current = () => {
     void openNextChapterFast();
@@ -3320,12 +3376,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }
 
   async function navigateBySwipe(direction: "previous" | "next") {
-    const targetChapter = direction === "previous" ? activePayload.previousChapter : activePayload.nextChapter;
+    const current = activePayloadRef.current;
+    const targetChapter = direction === "previous" ? current.previousChapter : current.nextChapter;
     if (!targetChapter) {
       showSwipeNotice(direction === "previous" ? "Không có chương trước" : "Không có chương sau");
       return;
     }
 
+    const href = storyHref(current.story, targetChapter.chapterNumber);
     setChapterTransitionDirection(direction === "next" ? "next" : "prev");
     setChapterTransitionTrigger((t) => t + 1);
     markChapterListNavigation(targetChapter.chapterNumber);
@@ -3336,53 +3394,107 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       return;
     }
 
-    // Prefer RQ / Dexie / fetch into local state — avoids full RSC roundtrip when warm.
-    const nextPayload = await resolveChapterPayload(targetChapter.chapterNumber);
-    if (nextPayload) {
-      setCachedPayload(nextPayload);
-      setInlineChapters([]);
-      setMobileSheetOpen(false);
-      setMobileMenuOpen(false);
-      queryClient.setQueryData(
-        readerQueryKeys.chapter(nextPayload.story.id, nextPayload.chapter.chapterNumber),
-        nextPayload
-      );
-      window.history.replaceState(null, "", storyHref(nextPayload.story, targetChapter.chapterNumber));
-      window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+    const warm =
+      queryClient.getQueryData<ReaderPayload>(
+        readerQueryKeys.chapter(current.story.id, targetChapter.chapterNumber, bilingualQueryOptions)
+      ) ??
+      queryClient.getQueryData<ReaderPayload>(readerQueryKeys.chapter(current.story.id, targetChapter.chapterNumber));
+    if (warm) {
+      applySoftChapterNav(warm);
       return;
     }
 
-    router.push(storyHref(activePayload.story, targetChapter.chapterNumber));
+    // Mobile: don't block on fetch inside the gesture — App Router navigation is reliable.
+    if (compactViewportRef.current) {
+      router.push(href);
+      return;
+    }
+
+    const nextPayload = await resolveChapterPayload(targetChapter.chapterNumber);
+    if (nextPayload) {
+      applySoftChapterNav(nextPayload);
+      return;
+    }
+
+    router.push(href);
   }
 
   function canStartReaderSwipe(target: EventTarget | null) {
     if (!(target instanceof HTMLElement)) return false;
-    return !target.closest("a, button, input, textarea, select, audio, .chapter-comments, .reader-mobile-dock, .reader-mobile-sheet, .background-audio, .reader-tap-edge");
+    return !target.closest(
+      "a, button, input, textarea, select, audio, .chapter-comments, .reader-mobile-dock, .reader-mobile-sheet, .background-audio, .reader-tap-edge, .reader-spirit-companion, .cover-rail-slide-scroller"
+    );
+  }
+
+  function finishReaderSwipe(pointerId: number, clientX: number, clientY: number) {
+    const gesture = swipeGestureRef.current;
+    swipeGestureRef.current = null;
+    if (!gesture || gesture.pointerId !== pointerId) return;
+
+    const deltaX = clientX - gesture.x;
+    const deltaY = clientY - gesture.y;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+    const axis = gesture.axis ?? (absX > absY * 1.15 ? "x" : "y");
+    // Vertical scroll wins unless the gesture locked horizontal with enough travel.
+    if (axis !== "x" || absX < 56 || absX < absY * 1.1) return;
+
+    void navigateBySwipe(deltaX > 0 ? "previous" : "next");
   }
 
   function handleReaderPointerDown(event: ReactPointerEvent<HTMLElement>) {
     if (event.pointerType !== "touch" || mobileMenuOpen || mobileSheetOpen) return;
     if (!canStartReaderSwipe(event.target)) return;
-    swipeStartRef.current = {
+    swipeGestureRef.current = {
       x: event.clientX,
       y: event.clientY,
-      pointerId: event.pointerId
+      lastX: event.clientX,
+      lastY: event.clientY,
+      pointerId: event.pointerId,
+      axis: null
     };
+    // Keep move/up/cancel on this element even when the finger leaves text nodes.
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Older WebViews may reject capture; pointerup on reader-main still helps.
+    }
+  }
+
+  function handleReaderPointerMove(event: ReactPointerEvent<HTMLElement>) {
+    const gesture = swipeGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    gesture.lastX = event.clientX;
+    gesture.lastY = event.clientY;
+    if (gesture.axis) return;
+    const absX = Math.abs(event.clientX - gesture.x);
+    const absY = Math.abs(event.clientY - gesture.y);
+    if (absX < 12 && absY < 12) return;
+    // Lock axis once: horizontal swipe → chapter nav; vertical → native scroll.
+    gesture.axis = absX > absY * 1.15 ? "x" : "y";
   }
 
   function handleReaderPointerUp(event: ReactPointerEvent<HTMLElement>) {
-    const start = swipeStartRef.current;
-    swipeStartRef.current = null;
-    if (!start || start.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      try {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      } catch {
+        // ignore
+      }
+    }
+    finishReaderSwipe(event.pointerId, event.clientX, event.clientY);
+  }
 
-    const deltaX = event.clientX - start.x;
-    const deltaY = event.clientY - start.y;
-    const absX = Math.abs(deltaX);
-    const absY = Math.abs(deltaY);
-    if (absX < 78 || absX < absY * 1.45 || absY > 86) return;
-
-    event.preventDefault();
-    navigateBySwipe(deltaX > 0 ? "previous" : "next");
+  function handleReaderPointerCancel(event: ReactPointerEvent<HTMLElement>) {
+    // Browser often cancels the pointer when vertical scroll starts. If we already
+    // locked a horizontal swipe, still honor it using the last known coordinates.
+    const gesture = swipeGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    if (gesture.axis === "x") {
+      finishReaderSwipe(event.pointerId, gesture.lastX, gesture.lastY);
+      return;
+    }
+    swipeGestureRef.current = null;
   }
 
   function handleZenDoubleTap(event: ReactMouseEvent<HTMLElement>) {
@@ -3615,9 +3727,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               ref={continueButtonRef}
               className="reader-continue-fab"
               type="button"
+              aria-label="Đọc tiếp chương sau"
               aria-hidden={true}
               tabIndex={-1}
-              onClick={openNextChapterFast}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                void openNextChapterFast();
+              }}
             >
               <span>Đọc tiếp</span>
               <ChevronRight size={17} />
@@ -5037,9 +5154,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           className="reader-main"
           onClick={handleZenDoubleTap}
           onPointerDown={handleReaderPointerDown}
-          onPointerCancel={() => {
-            swipeStartRef.current = null;
-          }}
+          onPointerMove={handleReaderPointerMove}
+          onPointerCancel={handleReaderPointerCancel}
           onPointerUp={handleReaderPointerUp}
         >
           <div className={`reader-main-columns ${commentsSplitOpen && !compactReader ? "reader-main-columns-split" : ""}`}>

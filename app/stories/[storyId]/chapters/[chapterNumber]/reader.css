@@ -10110,3 +10110,44 @@ html[data-xi-theme="dark"] .reader-shell .story-rating-star:not(.story-rating-st
   border-color: color-mix(in srgb, var(--reader-line) 70%, transparent);
   color: var(--reader-ink);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Reader swipe chapter nav (2026-07-22)
+   Allow horizontal gesture delivery to JS while keeping vertical scroll.
+   pan-y alone can cancel pointers mid-swipe on some mobile browsers.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.reader-main {
+  touch-action: pan-y pinch-zoom;
+}
+
+.reader-main .reader-content,
+.reader-main .reader-article {
+  touch-action: pan-y pinch-zoom;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Mobile continue FAB hit-target (2026-07-22)
+   FAB is portaled to document.body — .reader-shell z-index rules never
+   applied. Raise portal above engagement/overlays so taps reach the button.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.reader-floating-actions-portal {
+  z-index: var(--xi-z-continue-fab, 1370) !important;
+  pointer-events: none;
+}
+
+.reader-floating-actions-portal .reader-continue-fab,
+.reader-floating-actions-portal .scroll-top-button {
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 839px) {
+  .reader-floating-actions-portal .reader-continue-fab {
+    z-index: var(--xi-z-continue-fab, 1370) !important;
+    min-height: 44px;
+    padding: 0 16px;
+  }
+}
