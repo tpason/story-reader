@@ -25,11 +25,9 @@ export function XianxiaPoetryColumn() {
   return (
     <XiDisplayFontScope className="xi-poetry-col" role="presentation" aria-hidden="true">
       <div className="xi-poetry-cloud-bg xi-cloud-aura xi-cloud-aura--secondary" />
-      {/* Landscape plaque: 6 pillars × 4 words — companion to left hero, not a tall strip */}
-      <div
-        className="xi-poetry-grid xi-poetry-grid--plaque"
-        style={{ opacity: columns ? 1 : 0 }}
-      >
+      {/* Landscape plaque: 6 pillars × 4 words — companion to left hero, not a tall strip.
+          Always opacity 1: default poem paints on SSR/first paint; client may swap poem without blank flash. */}
+      <div className="xi-poetry-grid xi-poetry-grid--plaque">
         {display.map((col, ci) => (
           <div key={`${col.join("-")}-${ci}`} className="xi-poetry-pillar">
             {col.map((word, wi) => (

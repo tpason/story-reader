@@ -14,8 +14,6 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { StoryDiscoveryRail } from "@/components/StoryDiscoveryRail";
 import { DiscoveryRailSkeleton } from "@/components/DiscoveryRailSkeleton";
 import { HomeContinueReading } from "@/components/HomeContinueReading";
-import { HomeSocialSlot } from "@/components/HomeSocialSlot";
-import { RecentCommentsRail } from "@/components/RecentCommentsRail";
 import { TrendingStoriesPanel } from "@/components/TrendingStoriesPanel";
 import { XianxiaPoetryColumn } from "@/components/XianxiaPoetryColumn";
 import { JsonLdScript } from "@/components/JsonLdScript";
@@ -30,10 +28,6 @@ const FollowedStoriesPanel = nextDynamic(
 );
 const CultivationPanel = nextDynamic(
   () => import("@/components/CultivationPanel").then((mod) => mod.CultivationPanel),
-);
-const HomeRecommendationsPanel = nextDynamic(
-  () => import("@/components/HomeRecommendationsPanel").then((mod) => mod.HomeRecommendationsPanel),
-  { loading: () => <DiscoveryRailSkeleton /> },
 );
 
 export const revalidate = 60;
@@ -165,6 +159,21 @@ export default async function Home({ searchParams }: HomeProps) {
 
       <div className="page-wrap" data-search-active={isSearchActive ? "true" : undefined}>
         {!isSearchActive ? <ReadingResumeBar /> : null}
+
+        {/*
+          Bookstore IA (Qidian/Kakao-like priority):
+          resume → continue/follows → compact brand/hero → ≤2 discovery rails → catalog
+          Social/recommendations remain on /dao-luan, /discover, /rankings (not removed).
+        */}
+        {!isSearchActive ? (
+          <div className="home-priority-rail" aria-label="Tu luyện đang mở">
+            <HomeContinueReading />
+            <section className="home-follows-block" aria-label="Tủ truyện đang theo">
+              <FollowedStoriesPanel />
+            </section>
+          </div>
+        ) : null}
+
         <section className="library-header">
           <svg aria-hidden="true" className="xi-cloud-filters" style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }}>
             <defs>
@@ -264,10 +273,6 @@ export default async function Home({ searchParams }: HomeProps) {
           </form>
         </section>
 
-        {/*
-          Vertical story (CN/KR/EN bookstore):
-          hero → continue/follows → discovery rails → comments → filters → library → footer
-        */}
         {isSearchActive ? (
           <div className="search-active-header">
             <div className="search-active-info">
@@ -287,10 +292,6 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
         ) : (
           <div className="home-story-flow">
-            <HomeContinueReading />
-            <section className="home-follows-block" aria-label="Tủ truyện đang theo">
-              <FollowedStoriesPanel />
-            </section>
             <Suspense fallback={<DiscoveryRailSkeleton />}>
               <DiscoverySection />
             </Suspense>
@@ -298,21 +299,12 @@ export default async function Home({ searchParams }: HomeProps) {
               className="home-discovery-panels"
               summaryClassName=""
               labelEyebrow="Thiên bảng hơi thở"
-              labelStrong="Thịnh hành · gợi ý đạo hữu"
+              labelStrong="Thịnh hành"
             >
               <Suspense fallback={<DiscoveryRailSkeleton />} key={`trending-${trendPeriod}`}>
                 <TrendingSection period={trendPeriod} linkParams={trendLinkParams} />
               </Suspense>
-              <HomeRecommendationsPanel />
             </RankingsSubfilters>
-            {/* Sibling comments rail — slot stays even if rail returns null (teaser fallback). */}
-            <HomeSocialSlot
-              commentsRail={
-                <Suspense fallback={null}>
-                  <RecentCommentsRail limit={10} />
-                </Suspense>
-              }
-            />
           </div>
         )}
 
