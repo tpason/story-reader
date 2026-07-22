@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Literata, Sora } from "next/font/google";
 import { Suspense } from "react";
 import { GlobalScrollTop } from "@/components/GlobalScrollTop";
+import { SiteFooter } from "@/components/SiteFooter";
 import { AppBootSplash } from "@/components/AppBootSplash";
 import { GlobalThemeProvider } from "@/components/GlobalThemeProvider";
 import { PwaRuntime } from "@/components/PwaRuntime";
@@ -120,6 +121,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               </Suspense>
               <PwaRuntime />
               {children}
+              <SiteFooter />
               <GlobalScrollTop />
             </ReaderRealtimeProvider>
           </QueryProvider>

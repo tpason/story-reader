@@ -9382,3 +9382,137 @@ html[data-xi-compact="0"] .reader-mobile-dock {
     background: var(--reader-panel-solid, var(--reader-bg, #fffefa)) !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   READER CONTRAST AUDIT v2 (2026-07-22)
+   Isolate chapter chrome from html [data-xi-theme] text tokens.
+   Dark UI theme raises --steel/--muted for app chrome; that washes out
+   light/sepia parchment when glossary/dock helpers still use var(--muted).
+   Also raise OLED muted floor; keep gold/jade accents.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Map shared text tokens to reader parchment palette */
+.reader-shell[data-theme="light"],
+.reader-shell[data-theme="sepia"],
+.reader-shell[data-theme="parchment"],
+.reader-shell[data-theme="bamboo"] {
+  --ink: var(--reader-ink);
+  --charcoal: var(--reader-ink);
+  --slate: var(--reader-muted);
+  --steel: var(--reader-muted);
+  --muted: var(--reader-muted);
+}
+
+.reader-shell[data-theme="dark"],
+.reader-shell[data-theme="oled"],
+.reader-shell[data-theme="ink-night"] {
+  --ink: var(--reader-ink);
+  --charcoal: var(--reader-ink);
+  --slate: var(--reader-muted);
+  --steel: var(--reader-muted);
+  --muted: var(--reader-muted);
+}
+
+/* OLED / ink-night: slightly higher muted floor for dock + sheet labels */
+.reader-shell[data-theme="oled"] {
+  --reader-muted: #b8b2aa;
+}
+
+.reader-shell[data-theme="ink-night"] {
+  --reader-muted: #c0b7a8;
+}
+
+/* Secondary labels: no stacked opacity on already-muted color */
+.reader-shell .reader-sheet-nav-card[aria-disabled="true"] {
+  color: var(--reader-muted);
+  opacity: 0.72;
+}
+
+.reader-shell .reader-glossary-tap-popover span,
+.reader-shell .reader-glossary-tap-popover small,
+.reader-shell .reader-onboarding-coach-eyebrow,
+.reader-shell .reader-onboarding-coach-card p,
+.reader-shell .reader-keyboard-help-list li {
+  color: var(--reader-muted) !important;
+  opacity: 1 !important;
+}
+
+.reader-shell .reader-keyboard-help-list kbd {
+  color: var(--reader-ink) !important;
+  background: color-mix(in srgb, var(--reader-bg) 88%, var(--reader-ink) 12%);
+  border-color: var(--reader-line);
+}
+
+/* Dock / settings: ensure chrome labels readable on every parchment */
+.reader-shell .reader-dock-meta,
+.reader-shell .reader-dock-meta span,
+.reader-shell .reader-dock-time,
+.reader-shell .reader-quick-settings-title,
+.reader-shell .format-controls .font-size-value,
+.reader-shell .reader-range-control > span {
+  color: color-mix(in srgb, var(--reader-ink) 58%, var(--reader-muted) 42%) !important;
+  opacity: 1 !important;
+}
+
+.reader-shell .reader-story-title,
+.reader-shell .reader-heading h1,
+.reader-shell .reader-content {
+  color: var(--reader-ink);
+}
+
+/* Bookmark affordance: muted until hover, but not invisible */
+.reader-shell .paragraph-bookmark-button {
+  color: color-mix(in srgb, var(--reader-muted) 88%, var(--reader-ink) 12%);
+  opacity: 0.55;
+}
+
+.reader-shell .reader-paragraph:hover .paragraph-bookmark-button,
+.reader-shell .paragraph-bookmark-button:focus-visible,
+.reader-shell .reader-paragraph-bookmarked .paragraph-bookmark-button {
+  opacity: 1;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   READER CONTRAST AUDIT v3 (2026-07-22) — comments + chrome floors
+   Keeps chapter ink on parchment; comment meta never sinks under UI theme.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.reader-shell .comment-meta,
+.reader-shell .comment-time,
+.reader-shell .comment-login-note,
+.reader-shell .comment-realm-chip,
+.reader-shell .comment-actions time,
+.reader-shell .reader-bilingual-settings-note,
+.reader-shell .reader-bilingual-eyebrow {
+  color: color-mix(in srgb, var(--reader-ink) 52%, var(--reader-muted) 48%) !important;
+  opacity: 1 !important;
+}
+
+.reader-shell .comment-body,
+.reader-shell .comment-text,
+.reader-shell .comment-editor-content {
+  color: var(--reader-ink) !important;
+}
+
+.reader-shell .chapter-comments,
+.reader-shell .comment-editor-shell,
+.reader-shell .reader-mobile-sheet,
+.reader-shell .reader-quick-settings {
+  color: var(--reader-ink);
+}
+
+/* Light parchment: don't inherit dark-UI --link blue that fights gold chrome */
+.reader-shell[data-theme="light"] a,
+.reader-shell[data-theme="parchment"] a,
+.reader-shell[data-theme="bamboo"] a,
+.reader-shell[data-theme="sepia"] a {
+  --link: color-mix(in srgb, var(--xi-jade, #1a6b5a) 70%, var(--reader-ink) 30%);
+}
+
+.reader-shell[data-theme="dark"] a,
+.reader-shell[data-theme="oled"] a,
+.reader-shell[data-theme="ink-night"] a {
+  --link: color-mix(in srgb, var(--xi-gold-light, #f0d06a) 55%, #9ec9ff 45%);
+}
+

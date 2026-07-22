@@ -303,7 +303,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const isAdmin = Boolean(currentUser?.isAdmin);
   const showAdminExtras = readerAdminExtrasEnabled(isAdmin);
   const maxReadChapter = useAppSelector(useMemo(() => selectMaxReadChapter(payload.story.id), [payload.story.id]));
-  const [showScrollTop, setShowScrollTop] = useState(false);
+  // Scroll-top / continue FAB visibility is imperative (classList + refs) — no useState per scroll.
   const {
     mobileMenuOpen,
     setMobileMenuOpen,
@@ -338,8 +338,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   });
   const readerOverflowRef = useRef<HTMLDivElement>(null);
   const [floatingActionsMounted, setFloatingActionsMounted] = useState(false);
-  const [showContinuePrompt, setShowContinuePrompt] = useState(false);
-  const [highlightContinuePrompt, setHighlightContinuePrompt] = useState(false);
+  // continue FAB: showContinuePromptRef / highlightContinuePromptRef + classList only
   const [showCompletionOverlay, setShowCompletionOverlay] = useState(false);
   const {
     enabled: readerDimEnabled,
@@ -2014,15 +2013,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               mobileProgressStateRef.current = latestProgress;
               lastMobileProgressCommitRef.current = Date.now();
             }
-            // Sync React consumers only after scroll settles — never during active scroll.
-            // Identical values short-circuit so React does not wake the reader tree.
+            // Sync React progress consumers only after scroll settles — never during active scroll.
+            // Scroll-top / continue FAB stay imperative (no setState) to avoid waking the reader tree.
             readerShellRef.current?.style.setProperty("--reader-dock-progress", String(latestProgress));
             setMobileProgress((current) => (current === latestProgress ? current : latestProgress));
-            setShowScrollTop((current) => (current === showScrollTopRef.current ? current : showScrollTopRef.current));
-            setShowContinuePrompt((current) => (current === showContinuePromptRef.current ? current : showContinuePromptRef.current));
-            setHighlightContinuePrompt((current) =>
-              current === highlightContinuePromptRef.current ? current : highlightContinuePromptRef.current
-            );
           }, isCompactViewport ? 720 : 480);
         }
 
@@ -2242,7 +2236,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setSheetProgress(rounded);
     const shouldShowContinue = Boolean(activePayload.nextChapter) && pageIndex >= paragraphPages.length - 1;
     showContinuePromptRef.current = shouldShowContinue;
-    setShowContinuePrompt(shouldShowContinue);
+    // Imperative — no setState (page-layout path still needs FAB class without waking the tree).
+    const btn = continueButtonRef.current;
+    if (btn) {
+      btn.classList.toggle("reader-continue-fab-visible", shouldShowContinue);
+      btn.setAttribute("aria-hidden", shouldShowContinue ? "false" : "true");
+      btn.tabIndex = shouldShowContinue ? 0 : -1;
+    }
   }, [activePayload.nextChapter, isPageLayout, pageIndex, paragraphPages.length]);
 
   // Sync continue button DOM state after any React re-render so the class isn't lost
@@ -2290,12 +2290,25 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     readerShellRef.current?.style.setProperty("--reader-dock-progress", String(mobileProgressRef.current));
   }, [mobileProgress]);
 
-  useEffect(() => {
-    const button = scrollTopButtonRef.current;
-    if (!button) return;
-    // ClassList opacity already handles visibility — skip animejs (idle hitch after scroll).
-    button.style.opacity = showScrollTop ? "1" : "0";
-  }, [showScrollTop]);
+  // After React re-renders the portal, restore imperative FAB visibility (className is static in JSX).
+  useLayoutEffect(() => {
+    const scrollTopButton = scrollTopButtonRef.current;
+    if (scrollTopButton) {
+      const show = showScrollTopRef.current;
+      scrollTopButton.classList.toggle("scroll-top-button-visible", show);
+      scrollTopButton.setAttribute("aria-hidden", show ? "false" : "true");
+      scrollTopButton.tabIndex = show ? 0 : -1;
+    }
+    const continueButton = continueButtonRef.current;
+    if (continueButton) {
+      const show = showContinuePromptRef.current;
+      const highlight = highlightContinuePromptRef.current;
+      continueButton.classList.toggle("reader-continue-fab-visible", show);
+      continueButton.classList.toggle("reader-continue-fab-near-end", highlight);
+      continueButton.setAttribute("aria-hidden", show ? "false" : "true");
+      continueButton.tabIndex = show ? 0 : -1;
+    }
+  });
 
   useEffect(() => {
     const button = formatTriggerRef.current;
@@ -3565,13 +3578,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           style={readerShellStyle}
         >
           <button
-            className={`scroll-top-button ${showScrollTop ? "scroll-top-button-visible" : ""}`}
+            className="scroll-top-button"
             ref={scrollTopButtonRef}
             type="button"
             title="Cuộn lên đầu"
             aria-label="Cuộn lên đầu"
-            aria-hidden={!showScrollTop}
-            tabIndex={showScrollTop ? 0 : -1}
+            aria-hidden={true}
+            tabIndex={-1}
             onClick={scrollToTop}
           >
             <ArrowUp size={18} />
@@ -3580,10 +3593,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           {tailNextChapter ? (
             <button
               ref={continueButtonRef}
-              className={`reader-continue-fab${showContinuePrompt ? " reader-continue-fab-visible" : ""}${highlightContinuePrompt ? " reader-continue-fab-near-end" : ""}`}
+              className="reader-continue-fab"
               type="button"
-              aria-hidden={!showContinuePrompt}
-              tabIndex={showContinuePrompt ? 0 : -1}
+              aria-hidden={true}
+              tabIndex={-1}
               onClick={openNextChapterFast}
             >
               <span>Đọc tiếp</span>

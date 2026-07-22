@@ -11,7 +11,7 @@ import {
   persistReducer,
   persistStore
 } from "redux-persist";
-import storage from "redux-persist/lib/storage";
+import createWebStorage from "redux-persist/lib/storage/createWebStorage";
 import { mergeBookmarks, removeBookmark, upsertBookmark, type ReaderBookmarkItem } from "@/lib/bookmarks";
 import { mergeFollowedStories, storyToFollowItem, type FollowedStoryItem } from "@/lib/follows";
 import { mergeHistory, type ReadingHistoryItem } from "@/lib/reading-history";
@@ -347,11 +347,29 @@ const rootReducer = combineReducers({
   globalTheme: globalThemeSlice.reducer
 });
 
+/** SSR-safe storage: real localStorage on client; silent noop on server (no console warn). */
+function createNoopStorage() {
+  return {
+    getItem(_key: string) {
+      return Promise.resolve(null);
+    },
+    setItem(_key: string, value: string) {
+      return Promise.resolve(value);
+    },
+    removeItem(_key: string) {
+      return Promise.resolve();
+    }
+  };
+}
+
+const persistStorage =
+  typeof window !== "undefined" ? createWebStorage("local") : createNoopStorage();
+
 const persistedReducer = persistReducer(
   {
     key: "story-reader",
     version: 1,
-    storage,
+    storage: persistStorage,
     whitelist: ["identity", "history", "readerStyle", "follows", "bookmarks", "readingStreak", "globalTheme"]
   },
   rootReducer

@@ -11582,11 +11582,12 @@ button:focus-visible .bookmark-jade-icon {
   --surface-soft: rgba(32, 30, 27, 0.84);
   --hairline: rgba(255, 255, 255, 0.09);
   --hairline-strong: rgba(255, 255, 255, 0.16);
-  --ink: #f0ece4;
-  --charcoal: #e6e2da;
-  --slate: #a09890;
-  --steel: #726c64;
-  --muted: #524e4a;
+  /* Secondary text must be LIGHTER than canvas (was inverted #726c64/#524e4a). */
+  --ink: #f5f1e8;
+  --charcoal: #efeae2;
+  --slate: #c9c0b4;
+  --steel: #b7aea2;
+  --muted: #a69e94;
 }
 
 [data-xi-theme="dark"] .topbar {
@@ -21036,3 +21037,2266 @@ html[data-xi-compact="0"] .reader-mobile-dock {
     opacity: 0.92;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   HOMEPAGE UX — bounded library scroll + site footer (2026-07-22)
+   Destination below infinite feed; frosted minimal nav; no mega-footer.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.story-library-scroll {
+  --story-library-scroll-max: min(72vh, 56rem);
+  position: relative;
+  max-height: var(--story-library-scroll-max);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 18%, var(--hairline));
+  border-radius: 14px;
+  padding: 12px 12px 4px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--canvas) 88%, rgba(255, 248, 230, 0.55) 12%),
+      color-mix(in srgb, var(--canvas) 94%, rgba(26, 107, 90, 0.04) 6%)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 10px 28px rgba(45, 38, 29, 0.06);
+  scrollbar-gutter: stable;
+}
+
+.story-library-scroll:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--xi-jade, #1a6b5a) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.story-library-scroll .infinite-status {
+  min-height: 64px;
+  position: sticky;
+  bottom: 0;
+  margin-top: 8px;
+  padding: 10px 8px 14px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--canvas) 20%, transparent) 0%,
+    color-mix(in srgb, var(--canvas) 92%, rgba(255, 248, 230, 0.5) 8%) 40%,
+    color-mix(in srgb, var(--canvas) 96%, rgba(255, 248, 230, 0.55) 4%) 100%
+  );
+}
+
+.site-footer {
+  position: relative;
+  z-index: 2;
+  margin-top: clamp(28px, 4vw, 48px);
+  padding:
+    clamp(22px, 3vw, 32px)
+    max(16px, env(safe-area-inset-right))
+    calc(clamp(28px, 4vw, 40px) + env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  border-top: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 22%, var(--hairline));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--canvas) 72%, rgba(255, 248, 230, 0.42) 28%),
+      color-mix(in srgb, var(--canvas) 90%, rgba(26, 107, 90, 0.06) 10%)
+    );
+  backdrop-filter: blur(14px) saturate(1.05);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+}
+
+.site-footer-inner {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px 28px;
+}
+
+.site-footer-brand {
+  min-width: min(100%, 220px);
+  max-width: 34ch;
+}
+
+.site-footer-eyebrow {
+  margin: 0 0 6px;
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 78%, var(--steel));
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.site-footer-title {
+  margin: 0;
+  font-family: var(--font-literata), Literata, Georgia, serif;
+  font-size: clamp(1.15rem, 2vw, 1.35rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+.site-footer-tagline {
+  margin: 6px 0 0;
+  color: var(--slate);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.site-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.site-footer-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 16%, var(--hairline));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--canvas) 82%, rgba(255, 255, 255, 0.35) 18%);
+  color: var(--charcoal);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.site-footer-link:hover,
+.site-footer-link:focus-visible {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 48%, var(--hairline));
+  background: color-mix(in srgb, var(--canvas) 70%, rgba(200, 150, 46, 0.12) 30%);
+  color: var(--ink);
+  outline: none;
+}
+
+.site-footer-link-active {
+  border-color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 42%, var(--hairline));
+  background: color-mix(in srgb, var(--canvas) 74%, rgba(26, 107, 90, 0.12) 26%);
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 72%, var(--ink));
+}
+
+[data-xi-theme="dark"] .story-library-scroll {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 24%, rgba(255, 255, 255, 0.08));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--canvas) 88%, rgba(200, 150, 46, 0.08) 12%),
+      color-mix(in srgb, var(--canvas) 94%, rgba(26, 107, 90, 0.08) 6%)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 28px rgba(0, 0, 0, 0.22);
+}
+
+[data-xi-theme="dark"] .story-library-scroll .infinite-status {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--canvas) 88%, rgba(0, 0, 0, 0.2) 12%) 45%,
+    color-mix(in srgb, var(--canvas) 92%, rgba(0, 0, 0, 0.25) 8%) 100%
+  );
+}
+
+[data-xi-theme="dark"] .site-footer {
+  border-top-color: color-mix(in srgb, var(--xi-gold, #c8962e) 28%, rgba(255, 255, 255, 0.08));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--canvas) 78%, rgba(200, 150, 46, 0.08) 22%),
+      color-mix(in srgb, var(--canvas) 90%, rgba(26, 107, 90, 0.1) 10%)
+    );
+}
+
+[data-xi-theme="dark"] .site-footer-link {
+  background: color-mix(in srgb, var(--canvas) 86%, rgba(255, 255, 255, 0.04) 14%);
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 22%, rgba(255, 255, 255, 0.1));
+  color: var(--ink);
+}
+
+@media (max-width: 839px) {
+  .story-library-scroll {
+    --story-library-scroll-max: min(68vh, 42rem);
+    padding: 10px 8px 2px;
+    border-radius: 12px;
+  }
+
+  .site-footer {
+    /* Keep clear of global scroll-top FAB on compact viewports */
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+
+  .site-footer-inner {
+    align-items: stretch;
+  }
+
+  .site-footer-nav {
+    width: 100%;
+  }
+
+  .site-footer-link {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-footer-link {
+    transition: none;
+  }
+}
+
+/* ── Site footer groups (NN/G doormat, Hako-density) — 2026-07-22 expand ── */
+.site-footer-groups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 18px 32px;
+}
+
+.site-footer-group {
+  min-width: min(100%, 200px);
+}
+
+.site-footer-group-label {
+  margin: 0 0 8px;
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 70%, var(--steel));
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 839px) {
+  .site-footer-groups {
+    width: 100%;
+    gap: 16px;
+  }
+
+  .site-footer-group {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CN/KR/EN library UX polish — homepage + shared chrome (2026-07-22)
+   Steal structure/smoothness only; keep Linh Quyển Các gold/jade parchment.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* —— 1) Vertical rhythm (QQ calm sections + Ridi shelf gaps) —— */
+.page-wrap > .library-sticky-toolbar,
+.page-wrap > .library-sticky-chips,
+.page-wrap > .home-discovery-panels,
+.page-wrap > .home-discovery-more,
+.page-wrap > .search-active-header {
+  margin-bottom: 18px;
+}
+
+.page-wrap .continue-section {
+  margin: 0 0 22px;
+}
+
+.page-wrap .library-list-section {
+  margin: 0 0 22px;
+}
+
+.page-wrap .library-list-chrome {
+  margin-bottom: 10px;
+}
+
+.page-wrap .library-list-chrome .section-heading-row {
+  margin-bottom: 0;
+}
+
+.page-wrap .home-discovery-more {
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+/* —— 2) Sticky filter / sort strips (Kakao day-tabs / Naver / QQ sub-nav) —— */
+.library-sticky-chips,
+.library-sticky-toolbar {
+  --library-sticky-top: 54px;
+  position: sticky;
+  top: var(--library-sticky-top);
+  z-index: 12;
+  margin-left: -2px;
+  margin-right: -2px;
+  padding: 8px 2px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--canvas) 86%, rgba(255, 248, 230, 0.55) 14%) 0%,
+      color-mix(in srgb, var(--canvas) 92%, rgba(255, 248, 230, 0.35) 8%) 72%,
+      color-mix(in srgb, var(--canvas) 78%, transparent 22%) 100%
+    );
+  backdrop-filter: blur(12px) saturate(1.04);
+  -webkit-backdrop-filter: blur(12px) saturate(1.04);
+  border-bottom: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 14%, transparent);
+}
+
+.library-sticky-toolbar {
+  top: calc(var(--library-sticky-top) + 0px);
+  z-index: 11;
+  padding-top: 4px;
+  padding-bottom: 6px;
+  border-bottom-color: color-mix(in srgb, var(--xi-gold, #c8962e) 10%, transparent);
+}
+
+/* When both stick, stack sort under category without fighting topbar */
+.library-sticky-chips + .library-sticky-toolbar,
+.library-sticky-chips ~ .library-sticky-toolbar {
+  top: calc(var(--library-sticky-top) + 46px);
+}
+
+.library-sticky-toolbar .library-sort-chips,
+.library-sticky-toolbar .filters {
+  margin: 0;
+  gap: 8px;
+}
+
+.library-sticky-chips.category-row {
+  margin-top: 0;
+}
+
+@supports (height: 100dvh) {
+  .library-sticky-chips,
+  .library-sticky-toolbar {
+    /* topbar min-height ~54px; keep chips under sticky header */
+    --library-sticky-top: 54px;
+  }
+}
+
+/* —— 3) Smooth library scroll host (CN app inertia + EN soft scroll) —— */
+.story-library-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
+  scroll-behavior: smooth;
+  /* Slightly denser catalog feel (Kakao gutters) without empty luxury */
+  --story-library-scroll-max: min(70vh, 52rem);
+  padding: 10px 10px 2px;
+}
+
+.story-library-scroll .story-grid {
+  gap: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-library-scroll {
+    scroll-behavior: auto;
+  }
+}
+
+/* Avoid double-scrollbar flash: host owns Y; page scrolls hero/rails/footer */
+.story-library-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.story-library-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 28%, var(--hairline));
+  border-radius: 999px;
+}
+
+/* —— 4) Continue + discovery rails (WebNovel / Kakao horizontal rhythm) —— */
+.page-wrap .continue-row {
+  gap: 10px;
+}
+
+.page-wrap .discovery-section {
+  margin: 0 0 8px;
+}
+
+.page-wrap .discovery-grid {
+  gap: 14px;
+}
+
+.page-wrap .discovery-row {
+  gap: 10px;
+}
+
+@media (max-width: 839px) {
+  .page-wrap .discovery-row {
+    gap: 10px;
+    scroll-padding-inline: 12px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  .page-wrap .discovery-card {
+    scroll-snap-align: start;
+  }
+
+  .page-wrap .continue-row {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 12px;
+  }
+
+  .page-wrap .continue-card {
+    scroll-snap-align: start;
+  }
+}
+
+/* —— 5) Dense utility footer (WebNovel/QQ doormat — text links, not pill slab) —— */
+.site-footer.site-footer-dense {
+  margin-top: clamp(20px, 3vw, 36px);
+  padding-top: clamp(16px, 2.4vw, 24px);
+  padding-bottom: calc(clamp(20px, 3vw, 28px) + env(safe-area-inset-bottom));
+}
+
+.site-footer-dense .site-footer-inner {
+  align-items: flex-start;
+  gap: 16px 36px;
+}
+
+.site-footer-dense .site-footer-tagline {
+  margin-top: 4px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  max-width: 36ch;
+}
+
+.site-footer-dense .site-footer-groups {
+  gap: 14px 40px;
+}
+
+.site-footer-dense .site-footer-group-label {
+  margin-bottom: 6px;
+}
+
+.site-footer-dense .site-footer-nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.site-footer-dense .site-footer-nav > li {
+  margin: 0;
+  padding: 0;
+}
+
+.site-footer-dense .site-footer-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 2px 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--charcoal);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  box-shadow: none;
+  transition:
+    color 160ms ease,
+    opacity 160ms ease;
+}
+
+.site-footer-dense .site-footer-link:hover,
+.site-footer-dense .site-footer-link:focus-visible {
+  border: none;
+  background: transparent;
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 72%, var(--ink));
+  transform: none;
+  outline: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--xi-gold, #c8962e) 55%, transparent);
+}
+
+.site-footer-dense .site-footer-link-active {
+  border: none;
+  background: transparent;
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 78%, var(--ink));
+  font-weight: 720;
+}
+
+/* —— 6) Scroll-top: CSS smooth show/hide (no setState thrash) —— */
+.scroll-top-button {
+  transition:
+    opacity 220ms ease,
+    translate 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 220ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease !important;
+  will-change: opacity, translate;
+}
+
+.scroll-top-button:not(.scroll-top-button-visible) {
+  transition:
+    opacity 160ms ease,
+    translate 160ms ease,
+    transform 160ms ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-top-button,
+  .scroll-top-button:not(.scroll-top-button-visible) {
+    transition: none !important;
+  }
+
+  .library-sticky-chips,
+  .library-sticky-toolbar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* —— 7) Dark + compact polish —— */
+[data-xi-theme="dark"] .library-sticky-chips,
+[data-xi-theme="dark"] .library-sticky-toolbar {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--canvas) 90%, rgba(200, 150, 46, 0.08) 10%) 0%,
+      color-mix(in srgb, var(--canvas) 88%, transparent 12%) 100%
+    );
+  border-bottom-color: color-mix(in srgb, var(--xi-gold, #c8962e) 18%, rgba(255, 255, 255, 0.06));
+}
+
+[data-xi-theme="dark"] .site-footer-dense .site-footer-link {
+  background: transparent;
+  border: none;
+  color: var(--ink);
+}
+
+[data-xi-theme="dark"] .site-footer-dense .site-footer-link:hover,
+[data-xi-theme="dark"] .site-footer-dense .site-footer-link:focus-visible {
+  background: transparent;
+  color: color-mix(in srgb, var(--xi-gold-light, #f0d06a) 55%, var(--ink));
+}
+
+@media (max-width: 839px) {
+  .library-sticky-chips,
+  .library-sticky-toolbar {
+    --library-sticky-top: 52px;
+    margin-left: -12px;
+    margin-right: -12px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .library-sticky-chips + .library-sticky-toolbar,
+  .library-sticky-chips ~ .library-sticky-toolbar {
+    top: calc(var(--library-sticky-top) + 44px);
+  }
+
+  .story-library-scroll {
+    --story-library-scroll-max: min(66vh, 40rem);
+  }
+
+  .site-footer.site-footer-dense {
+    /* Clear global scroll-top FAB */
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
+  .site-footer-dense .site-footer-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    width: 100%;
+  }
+
+  .site-footer-dense .site-footer-link {
+    flex: 0 0 auto;
+    min-height: 32px;
+    justify-content: flex-start;
+  }
+
+  .site-footer-dense .site-footer-groups {
+    gap: 14px 20px;
+  }
+
+  .site-footer-dense .site-footer-group {
+    flex: 1 1 calc(50% - 10px);
+    min-width: 140px;
+  }
+}
+
+@media (min-width: 1100px) {
+  /* Desktop: category sticky only; sort sits in normal flow under chips when not stuck together awkwardly */
+  .library-sticky-chips ~ .library-sticky-toolbar {
+    top: calc(var(--library-sticky-top) + 48px);
+  }
+
+  .page-wrap .story-grid {
+    gap: 14px;
+  }
+}
+
+/* ===== Recent comments discovery rail + luận đạo rules (2026-07-22) =====
+   Namespaced `.recent-comments-*` / `.comment-rules*` / `.dao-luan-*`
+   so sibling homepage rhythm polish can restyle shared `.discovery-*` safely. */
+
+.recent-comments-section {
+  margin: 18px 0 8px;
+}
+
+.recent-comments-panel {
+  width: 100%;
+}
+
+.recent-comments-rules {
+  margin-top: 8px;
+}
+
+.recent-comments-row {
+  gap: 12px;
+  padding-bottom: 4px;
+}
+
+.recent-comment-card {
+  --rc-ink: var(--ink, #1c1914);
+  --rc-muted: var(--steel, #6b6458);
+  --rc-gold: var(--xi-gold, #c8962e);
+  --rc-jade: var(--xi-jade, #1a6b5a);
+  flex: 0 0 min(280px, 78vw);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 148px;
+  padding: 14px 14px 12px;
+  border-radius: 18px;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid color-mix(in srgb, var(--rc-gold) 28%, var(--hairline, rgba(40, 32, 20, 0.12)));
+  background:
+    linear-gradient(
+      155deg,
+      color-mix(in srgb, #fff8e7 72%, transparent) 0%,
+      color-mix(in srgb, #f3efe4 88%, transparent) 55%,
+      color-mix(in srgb, #ebe4d4 90%, transparent) 100%
+    );
+  box-shadow:
+    0 10px 28px color-mix(in srgb, #2a2114 10%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 55%, transparent);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.recent-comment-card:hover,
+.recent-comment-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--rc-gold) 55%, var(--hairline, rgba(40, 32, 20, 0.16)));
+  box-shadow:
+    0 14px 34px color-mix(in srgb, #2a2114 14%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 65%, transparent);
+  outline: none;
+}
+
+.recent-comment-kicker {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
+.recent-comment-kicker span {
+  font-weight: 650;
+  color: color-mix(in srgb, var(--rc-jade) 70%, var(--rc-ink));
+}
+
+.recent-comment-kicker small,
+.recent-comment-kicker time {
+  color: var(--rc-muted);
+  white-space: nowrap;
+}
+
+.recent-comment-snippet {
+  margin: 0;
+  flex: 1 1 auto;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--rc-ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.recent-comment-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--rc-gold) 22%, transparent);
+  font-size: 0.75rem;
+  color: var(--rc-muted);
+}
+
+.recent-comment-meta strong {
+  font-weight: 650;
+  color: color-mix(in srgb, var(--rc-ink) 88%, var(--rc-gold));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.comment-rules {
+  color: color-mix(in srgb, var(--steel, #6b6458) 92%, var(--xi-jade, #1a6b5a));
+}
+
+.comment-rules-compact {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.comment-rules-compact svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--xi-gold, #c8962e);
+}
+
+.comment-rules-list {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 24%, var(--hairline, rgba(40, 32, 20, 0.12)));
+  background: color-mix(in srgb, #fff9ec 70%, transparent);
+}
+
+.comment-rules-list .eyebrow {
+  margin-bottom: 4px;
+}
+
+.comment-rules-list ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 4px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.comment-form-rules {
+  margin-bottom: 8px;
+}
+
+.chapter-comments-rules {
+  margin: 0 0 10px;
+}
+
+.dao-luan-page {
+  display: grid;
+  gap: 18px;
+  padding-bottom: 48px;
+}
+
+.dao-luan-header h1 {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 8px;
+  font-size: clamp(1.45rem, 2.4vw, 1.9rem);
+}
+
+.dao-luan-header p {
+  margin: 0 0 12px;
+  color: var(--slate, #4a453c);
+}
+
+.dao-luan-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.dao-luan-card {
+  flex: none;
+  width: 100%;
+  min-height: 160px;
+}
+
+.dao-luan-empty {
+  margin: 12px 0;
+  color: var(--steel, #6b6458);
+}
+
+.dao-luan-back {
+  margin: 8px 0 0;
+}
+
+[data-xi-theme="dark"] .recent-comment-card {
+  background:
+    linear-gradient(
+      155deg,
+      color-mix(in srgb, #2a2418 78%, transparent) 0%,
+      color-mix(in srgb, #1c1812 90%, transparent) 100%
+    );
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 30%, rgba(255, 255, 255, 0.08));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+[data-xi-theme="dark"] .recent-comment-snippet,
+[data-xi-theme="dark"] .recent-comment-meta strong {
+  color: color-mix(in srgb, #f4ecd8 92%, #fff);
+}
+
+[data-xi-theme="dark"] .comment-rules-list {
+  background: color-mix(in srgb, #2a2418 70%, transparent);
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 28%, rgba(255, 255, 255, 0.08));
+}
+
+@media (max-width: 839px) {
+  .recent-comments-section {
+    margin: 14px 0 4px;
+  }
+
+  .recent-comment-card {
+    flex-basis: min(248px, 82vw);
+    min-height: 136px;
+    border-radius: 16px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   P0–P2 CN/KR/EN cohesion — story detail + home story flow + shared rhythm
+   (2026-07-22 expand). Append-only. Keep gold/jade; no purple SaaS.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* —— P0 Story detail: one composition (Kakao/Qidian/WebNovel) —— */
+.story-detail-shell .page-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.story-detail-shell .story-detail-breadcrumb,
+.story-detail-shell .reading-resume-bar,
+.story-detail-shell .story-detail-fresh-banner {
+  margin-bottom: 0;
+}
+
+.story-detail-composition {
+  position: relative;
+  margin: 0 !important;
+  padding: clamp(14px, 2vw, 22px);
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 20%, var(--hairline));
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--canvas) 86%, rgba(255, 248, 230, 0.5) 14%),
+      color-mix(in srgb, var(--canvas) 94%, rgba(26, 107, 90, 0.05) 6%)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 14px 36px rgba(45, 38, 29, 0.07);
+  overflow: visible;
+}
+
+.story-detail-hero-cluster {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+  gap: clamp(14px, 2.4vw, 28px);
+  align-items: start;
+}
+
+.story-detail-composition .cover,
+.story-detail-composition .story-cover,
+.story-detail-hero-cluster > :first-child {
+  margin: 0;
+}
+
+.story-detail-composition .story-detail-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.story-detail-composition .story-detail-copy h1 {
+  margin: 0;
+  line-height: 1.2;
+}
+
+.story-detail-composition .story-detail-meta {
+  margin: 0;
+  gap: 6px 8px;
+}
+
+.story-detail-cta-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin: 2px 0 0;
+}
+
+.story-detail-cta-cluster .story-detail-primary-cta {
+  flex: 1 1 auto;
+  min-width: min(100%, 200px);
+  justify-content: center;
+}
+
+.story-detail-secondary-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.story-detail-secondary-actions .chip,
+.story-detail-secondary-actions .follow-button {
+  margin: 0;
+}
+
+.story-detail-hero-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.story-detail-hero-aside .story-rating-widget,
+.story-detail-composition .story-rating-widget {
+  margin: 0;
+}
+
+.story-detail-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.story-detail-chapters {
+  margin: 0 !important;
+  padding: clamp(12px, 1.8vw, 18px);
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 14%, var(--hairline));
+  background: color-mix(in srgb, var(--canvas) 92%, rgba(255, 248, 230, 0.35) 8%);
+}
+
+.story-detail-chapters-sticky {
+  position: sticky;
+  top: 54px;
+  z-index: 8;
+  margin: -4px 0 10px;
+  padding: 8px 0 10px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--canvas) 94%, rgba(255, 248, 230, 0.5) 6%) 70%,
+      color-mix(in srgb, var(--canvas) 70%, transparent 30%)
+    );
+  backdrop-filter: blur(10px) saturate(1.04);
+  -webkit-backdrop-filter: blur(10px) saturate(1.04);
+  border-bottom: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 12%, transparent);
+}
+
+.story-detail-chapters-sticky .section-heading-row {
+  margin: 0;
+}
+
+.story-detail-utilities {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.story-detail-utilities > * {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.story-detail-related {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.story-detail-related-rail {
+  margin: 0 !important;
+  padding: 12px 0 0;
+  opacity: 0.98;
+}
+
+.story-detail-related .recommendation-row {
+  gap: 10px;
+}
+
+[data-xi-theme="dark"] .story-detail-composition {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 26%, rgba(255, 255, 255, 0.08));
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--canvas) 88%, rgba(200, 150, 46, 0.1) 12%),
+      color-mix(in srgb, var(--canvas) 94%, rgba(26, 107, 90, 0.08) 6%)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 16px 36px rgba(0, 0, 0, 0.28);
+}
+
+[data-xi-theme="dark"] .story-detail-chapters {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 18%, rgba(255, 255, 255, 0.08));
+  background: color-mix(in srgb, var(--canvas) 92%, rgba(0, 0, 0, 0.2) 8%);
+}
+
+[data-xi-theme="dark"] .story-detail-chapters-sticky {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--canvas) 94%, rgba(200, 150, 46, 0.08) 6%) 65%,
+      transparent
+    );
+}
+
+@media (max-width: 839px) {
+  .story-detail-shell .page-wrap {
+    gap: 14px;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+
+  .story-detail-hero-cluster {
+    grid-template-columns: 108px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .story-detail-composition {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .story-detail-cta-cluster {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .story-detail-cta-cluster .story-detail-primary-cta {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .story-detail-secondary-actions {
+    width: 100%;
+  }
+
+  .story-detail-secondary-actions > * {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .story-detail-chapters-sticky {
+    top: 52px;
+    margin-bottom: 8px;
+  }
+
+  .story-detail-flow {
+    gap: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-detail-chapters-sticky {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* —— P1 Homepage vertical story —— */
+.home-story-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 0 0 18px;
+}
+
+.home-story-flow > * {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.home-follows-block {
+  min-width: 0;
+}
+
+.home-continue-section .section-heading-row h2,
+.home-story-flow .discovery-section-title,
+.home-social-slot .section-heading-row h2 {
+  letter-spacing: 0.01em;
+}
+
+.home-social-slot {
+  min-width: 0;
+}
+
+.home-social-slot:empty {
+  display: none;
+}
+
+.home-thien-thu-teaser-copy {
+  margin: 6px 0 0;
+  color: var(--slate);
+  font-size: 13px;
+  line-height: 1.45;
+  max-width: 52ch;
+}
+
+.home-thien-thu-teaser-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.home-thien-thu-card {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 16%, var(--hairline));
+  background: color-mix(in srgb, var(--canvas) 88%, rgba(255, 248, 230, 0.4) 12%);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.home-thien-thu-card strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.home-thien-thu-card small {
+  display: block;
+  margin-top: 2px;
+  color: var(--slate);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.home-thien-thu-card:hover,
+.home-thien-thu-card:focus-visible {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 42%, var(--hairline));
+  background: color-mix(in srgb, var(--canvas) 78%, rgba(200, 150, 46, 0.1) 22%);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.home-thien-thu-card svg {
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 70%, var(--xi-gold, #c8962e));
+  margin-top: 2px;
+}
+
+/* Tighten discovery + comments rails inside home flow */
+.home-story-flow .discovery-section,
+.home-story-flow .recent-comments-section,
+.home-social-slot .recent-comments-section {
+  margin: 0;
+}
+
+.home-story-flow .discovery-row,
+.home-story-flow .recent-comments-row,
+.home-story-flow .continue-row {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+@media (max-width: 839px) {
+  .home-story-flow {
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .home-thien-thu-teaser-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .home-story-flow .discovery-row,
+  .home-story-flow .recent-comments-row {
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 12px;
+  }
+
+  .home-story-flow .discovery-card,
+  .home-story-flow .recent-comment-card {
+    scroll-snap-align: start;
+  }
+}
+
+[data-xi-theme="dark"] .home-thien-thu-card {
+  background: color-mix(in srgb, var(--canvas) 90%, rgba(200, 150, 46, 0.08) 10%);
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 22%, rgba(255, 255, 255, 0.08));
+}
+
+/* —— P2 Shared page rhythm (updates / discover / rankings / history / account) —— */
+.app-shell:not(.story-detail-shell) .page-wrap > .xi-page-hero-strip,
+.app-shell:not(.story-detail-shell) .page-wrap > .library-header,
+.app-shell:not(.story-detail-shell) .page-wrap > .section-heading-row {
+  margin-bottom: 14px;
+}
+
+.app-shell:not(.story-detail-shell) .page-wrap > .filters,
+.app-shell:not(.story-detail-shell) .page-wrap > .category-row,
+.app-shell:not(.story-detail-shell) .page-wrap > .library-list-section,
+.app-shell:not(.story-detail-shell) .page-wrap > .discovery-section,
+.app-shell:not(.story-detail-shell) .page-wrap > .continue-section,
+.app-shell:not(.story-detail-shell) .page-wrap > .rankings-subfilters,
+.app-shell:not(.story-detail-shell) .page-wrap > .home-discovery-panels {
+  margin-bottom: 16px;
+}
+
+.app-shell:not(.story-detail-shell) .page-wrap .story-grid,
+.app-shell:not(.story-detail-shell) .page-wrap .updates-list,
+.app-shell:not(.story-detail-shell) .page-wrap .history-list {
+  gap: 12px;
+}
+
+@media (max-width: 839px) {
+  .app-shell:not(.story-detail-shell) .page-wrap > .filters,
+  .app-shell:not(.story-detail-shell) .page-wrap > .library-list-section,
+  .app-shell:not(.story-detail-shell) .page-wrap > .discovery-section {
+    margin-bottom: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-thien-thu-card {
+    transition: none;
+  }
+}
+
+/* —— Fix: composition hero must not use legacy 2-col grid (cover was a direct child) —— */
+.story-detail-hero.story-detail-composition {
+  display: block;
+  grid-template-columns: none;
+  gap: 0;
+  align-items: stretch;
+  border-bottom: none;
+  padding-bottom: clamp(14px, 2vw, 22px);
+  overflow: visible;
+}
+
+.story-detail-composition .story-detail-hero-cluster .cover,
+.story-detail-composition .story-detail-hero-cluster .story-cover,
+.story-detail-composition .story-detail-hero-cluster [class*="cover"] {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 180px;
+  height: auto;
+  aspect-ratio: 2 / 3;
+}
+
+.story-detail-composition .story-detail-description {
+  margin-top: 4px;
+}
+
+.story-detail-composition .story-detail-meta {
+  margin-top: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Homepage UX fix pack (2026-07-22) — sticky library + bookstore footer
+   + dark contrast floors. Append-only; keep gold/jade parchment tokens.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* —— Sticky catalog panel: filters + heading + infinite scroll host ——
+   Hero / continue / discovery scroll away; panel pins under topbar with a
+   fixed viewport budget; feed scrolls inside; footer remains below page-wrap. */
+.library-sticky-panel {
+  --library-sticky-top: 54px;
+  position: sticky;
+  top: var(--library-sticky-top);
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+  max-height: calc(100vh - var(--library-sticky-top) - 10px);
+  margin: 0 0 10px;
+  padding: 0;
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--canvas) 90%, rgba(255, 248, 230, 0.4) 10%) 0%,
+      color-mix(in srgb, var(--canvas) 94%, transparent 6%) 100%
+    );
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 14%, var(--hairline));
+  box-shadow: 0 10px 28px rgba(45, 38, 29, 0.05);
+  overflow: hidden;
+}
+
+@supports (height: 100dvh) {
+  .library-sticky-panel {
+    max-height: calc(100dvh - var(--library-sticky-top) - 10px);
+  }
+}
+
+/* Inside sticky host: chips/toolbar are chrome, not second sticky layers */
+.library-sticky-panel .library-sticky-chips,
+.library-sticky-panel .library-sticky-toolbar {
+  position: relative;
+  top: auto;
+  z-index: 1;
+  flex: 0 0 auto;
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 0;
+  padding-left: 10px;
+  padding-right: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 12%, transparent);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: color-mix(in srgb, var(--canvas) 88%, rgba(255, 248, 230, 0.35) 12%);
+}
+
+.library-sticky-panel .library-sticky-chips + .library-sticky-toolbar,
+.library-sticky-panel .library-sticky-chips ~ .library-sticky-toolbar {
+  top: auto;
+}
+
+.library-sticky-panel .library-list-section {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 8px 10px 6px;
+  background: transparent !important;
+  border: none;
+}
+
+.library-sticky-panel .library-list-chrome {
+  flex: 0 0 auto;
+  margin-bottom: 8px;
+}
+
+.library-sticky-panel .story-library-scroll {
+  flex: 1 1 auto;
+  min-height: 14rem;
+  max-height: none;
+  --story-library-scroll-max: none;
+  border: none;
+  border-radius: 10px;
+  box-shadow: none;
+  background: transparent;
+  padding: 2px 2px 0;
+}
+
+@media (max-width: 839px) {
+  .library-sticky-panel {
+    --library-sticky-top: 52px;
+    /* Softer mobile: bounded height without sticky pin jump */
+    position: relative;
+    top: auto;
+    z-index: 2;
+    max-height: min(70vh, 38rem);
+    border-radius: 12px;
+  }
+
+  .library-sticky-panel .story-library-scroll {
+    min-height: 12rem;
+  }
+}
+
+/* —— Bookstore footer: balanced 3-zone grid (brand | Đạo lộ | Tu luyện) ——
+   Replaces sparse space-between doormat (brand left, links far right). */
+.site-footer.site-footer-bookstore .site-footer-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  justify-content: stretch;
+  gap: 20px clamp(20px, 3vw, 36px);
+  width: min(1040px, 100%);
+  margin: 0 auto;
+}
+
+.site-footer-bookstore .site-footer-brand {
+  min-width: 0;
+  max-width: none;
+}
+
+.site-footer-bookstore .site-footer-group {
+  min-width: 0;
+}
+
+.site-footer-bookstore .site-footer-tagline {
+  max-width: 36ch;
+}
+
+.site-footer-bookstore .site-footer-nav {
+  width: 100%;
+}
+
+@media (max-width: 839px) {
+  .site-footer.site-footer-bookstore .site-footer-inner {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 18px;
+  }
+
+  .site-footer-bookstore .site-footer-brand {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 420px) {
+  .site-footer.site-footer-bookstore .site-footer-inner {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* —— Dark theme contrast floors (footer / library / comments / chips) —— */
+[data-xi-theme="dark"] .library-sticky-panel {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--canvas) 92%, rgba(200, 150, 46, 0.08) 8%) 0%,
+      color-mix(in srgb, var(--canvas) 96%, rgba(0, 0, 0, 0.15) 4%) 100%
+    );
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 22%, rgba(255, 255, 255, 0.08));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+[data-xi-theme="dark"] .library-sticky-panel .library-sticky-chips,
+[data-xi-theme="dark"] .library-sticky-panel .library-sticky-toolbar {
+  background: color-mix(in srgb, var(--canvas) 90%, rgba(200, 150, 46, 0.06) 10%);
+  border-bottom-color: color-mix(in srgb, var(--xi-gold, #c8962e) 18%, rgba(255, 255, 255, 0.06));
+}
+
+[data-xi-theme="dark"] .site-footer .site-footer-title,
+[data-xi-theme="dark"] .site-footer-bookstore .site-footer-title {
+  color: var(--ink);
+}
+
+[data-xi-theme="dark"] .site-footer .site-footer-tagline,
+[data-xi-theme="dark"] .site-footer-bookstore .site-footer-tagline {
+  color: var(--slate);
+}
+
+[data-xi-theme="dark"] .site-footer .site-footer-eyebrow,
+[data-xi-theme="dark"] .site-footer .site-footer-group-label,
+[data-xi-theme="dark"] .site-footer-bookstore .site-footer-eyebrow,
+[data-xi-theme="dark"] .site-footer-bookstore .site-footer-group-label {
+  color: color-mix(in srgb, var(--xi-gold-light, #f0d06a) 74%, var(--ink));
+}
+
+[data-xi-theme="dark"] .site-footer-dense .site-footer-link,
+[data-xi-theme="dark"] .site-footer-bookstore .site-footer-link {
+  color: var(--charcoal);
+}
+
+[data-xi-theme="dark"] .site-footer-dense .site-footer-link:hover,
+[data-xi-theme="dark"] .site-footer-dense .site-footer-link:focus-visible,
+[data-xi-theme="dark"] .site-footer-bookstore .site-footer-link:hover,
+[data-xi-theme="dark"] .site-footer-bookstore .site-footer-link:focus-visible {
+  color: color-mix(in srgb, var(--xi-gold-light, #f0d06a) 62%, var(--ink));
+}
+
+[data-xi-theme="dark"] .site-footer-dense .site-footer-link-active,
+[data-xi-theme="dark"] .site-footer-bookstore .site-footer-link-active {
+  color: color-mix(in srgb, var(--xi-jade-light, #26a882) 55%, var(--ink));
+}
+
+[data-xi-theme="dark"] .section-heading-row h2,
+[data-xi-theme="dark"] .library-sticky-panel .section-heading-row h2 {
+  color: var(--ink) !important;
+  -webkit-text-fill-color: var(--ink) !important;
+}
+
+[data-xi-theme="dark"] .section-heading-row .eyebrow,
+[data-xi-theme="dark"] .library-sticky-panel .eyebrow,
+[data-xi-theme="dark"] .home-story-flow .eyebrow {
+  color: color-mix(in srgb, var(--xi-gold-light, #f0d06a) 78%, var(--ink)) !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+[data-xi-theme="dark"] .discovery-badge,
+[data-xi-theme="dark"] .library-sticky-panel .discovery-badge {
+  color: color-mix(in srgb, var(--xi-gold-light, #f0d06a) 70%, var(--ink)) !important;
+  background: color-mix(in srgb, var(--canvas) 88%, rgba(200, 150, 46, 0.12) 12%) !important;
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 28%, rgba(255, 255, 255, 0.1));
+}
+
+[data-xi-theme="dark"] .chip:not(.chip-active),
+[data-xi-theme="dark"] .library-sticky-panel .chip:not(.chip-active) {
+  color: var(--slate) !important;
+}
+
+[data-xi-theme="dark"] .chip-count {
+  color: var(--steel) !important;
+}
+
+[data-xi-theme="dark"] .story-library-scroll .infinite-status,
+[data-xi-theme="dark"] .library-sticky-panel .infinite-status {
+  color: var(--slate);
+}
+
+[data-xi-theme="dark"] .continue-card,
+[data-xi-theme="dark"] .continue-card span {
+  color: var(--ink) !important;
+}
+
+[data-xi-theme="dark"] .continue-card small {
+  color: var(--slate) !important;
+}
+
+[data-xi-theme="dark"] .home-thien-thu-teaser-copy,
+[data-xi-theme="dark"] .home-thien-thu-card p,
+[data-xi-theme="dark"] .home-thien-thu-card strong {
+  color: var(--charcoal);
+}
+
+[data-xi-theme="dark"] .recent-comment-card {
+  --rc-ink: var(--ink);
+  --rc-muted: var(--slate);
+}
+
+[data-xi-theme="dark"] .recent-comment-kicker span {
+  color: color-mix(in srgb, var(--xi-jade-light, #26a882) 55%, var(--ink));
+}
+
+[data-xi-theme="dark"] .recent-comment-kicker small,
+[data-xi-theme="dark"] .recent-comment-kicker time,
+[data-xi-theme="dark"] .recent-comment-meta {
+  color: var(--slate);
+}
+
+[data-xi-theme="dark"] .recent-comment-snippet,
+[data-xi-theme="dark"] .recent-comment-meta strong {
+  color: var(--ink);
+}
+
+[data-xi-theme="dark"] .comment-rules,
+[data-xi-theme="dark"] .comment-rules-compact,
+[data-xi-theme="dark"] .comment-rules-list {
+  color: var(--slate);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-sticky-panel {
+    scroll-behavior: auto;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TEXT CONTRAST AUDIT v2 (2026-07-22) — full-site light/dark floors
+   Covers remaining sunk text: auth portal labels, hard-coded muted chips,
+   account/following/dao-luan/rankings/toast/drawer, and light placeholders.
+   Tokens already raised in [data-xi-theme="dark"] + audit v1; this pass
+   overrides residual hardcodes / rgba opacity sinks.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* —— Dark: kill residual hard-coded low muted floors —— */
+[data-xi-theme="dark"] .chip-count {
+  color: var(--steel) !important;
+}
+
+[data-xi-theme="dark"] .identity-chip-muted,
+[data-xi-theme="dark"] .recommendation-card .discovery-meta,
+[data-xi-theme="dark"] .recommendation-card .discovery-meta span {
+  color: var(--slate) !important;
+}
+
+[data-xi-theme="dark"] .site-header-drawer-group-label {
+  color: var(--slate) !important;
+  opacity: 1;
+}
+
+/* —— Auth portal: light labels were dark-brown rgba; invisible on dark —— */
+[data-xi-theme="dark"] .auth-portal-label {
+  color: color-mix(in srgb, var(--xi-gold-light, #f0d06a) 55%, var(--ink)) !important;
+}
+
+[data-xi-theme="dark"] .auth-shell--portal .auth-portal-form input::placeholder {
+  color: var(--steel) !important;
+  opacity: 0.92;
+}
+
+[data-xi-theme="dark"] .auth-portal-lede {
+  color: var(--slate) !important;
+}
+
+[data-xi-theme="dark"] .auth-portal-tab {
+  color: color-mix(in srgb, var(--ink) 72%, var(--slate) 28%) !important;
+}
+
+[data-xi-theme="dark"] .auth-portal-tab--active {
+  color: var(--ink) !important;
+}
+
+[data-xi-theme="dark"] .auth-portal-quote-en {
+  color: color-mix(in srgb, #f4efe6 78%, transparent) !important;
+}
+
+[data-xi-theme="dark"] .auth-portal-footer p {
+  color: color-mix(in srgb, #f4efe6 70%, transparent) !important;
+}
+
+[data-xi-theme="dark"] .auth-portal-switch,
+[data-xi-theme="dark"] .auth-portal-switch a {
+  color: color-mix(in srgb, var(--xi-gold-light, #f0d06a) 70%, var(--ink)) !important;
+}
+
+[data-xi-theme="dark"] .auth-error {
+  color: #ffb4a8 !important;
+}
+
+/* Light auth: raise label/placeholder floors (was 0.38–0.62 opacity sinks) */
+html:not([data-xi-theme="dark"]) .auth-portal-label {
+  color: color-mix(in srgb, var(--charcoal) 82%, var(--slate) 18%);
+}
+
+html:not([data-xi-theme="dark"]) .auth-shell--portal .auth-portal-form input::placeholder {
+  color: color-mix(in srgb, var(--charcoal) 52%, var(--steel) 48%);
+  opacity: 1;
+}
+
+html:not([data-xi-theme="dark"]) .auth-portal-footer p {
+  color: color-mix(in srgb, #f4efe6 72%, transparent);
+}
+
+html:not([data-xi-theme="dark"]) .auth-portal-quote-en {
+  color: color-mix(in srgb, #f4efe6 78%, transparent);
+}
+
+/* —— Account / Động phủ secondary copy —— */
+[data-xi-theme="dark"] .account-offline-cache-heading p,
+[data-xi-theme="dark"] .account-offline-cache-summary,
+[data-xi-theme="dark"] .account-offline-cache-item-copy small,
+[data-xi-theme="dark"] .account-linh-tin-heading p,
+[data-xi-theme="dark"] .account-performance-block p,
+[data-xi-theme="dark"] .account-section-nav a:not(.account-section-nav-active) {
+  color: var(--slate) !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .account-offline-cache-item-copy strong,
+[data-xi-theme="dark"] .account-linh-tin-heading h2,
+[data-xi-theme="dark"] .account-heading h1,
+[data-xi-theme="dark"] .account-heading h2 {
+  color: var(--ink) !important;
+}
+
+[data-xi-theme="dark"] .account-offline-cache-block,
+[data-xi-theme="dark"] .account-linh-tin-block {
+  background: color-mix(in srgb, var(--canvas) 92%, rgba(200, 150, 46, 0.08) 8%);
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 24%, rgba(255, 255, 255, 0.08));
+}
+
+/* —— Following / history / empty / dao-luan —— */
+[data-xi-theme="dark"] .following-summary,
+[data-xi-theme="dark"] .following-footer-hint,
+[data-xi-theme="dark"] .following-footer-hint a,
+[data-xi-theme="dark"] .dao-luan-header p,
+[data-xi-theme="dark"] .dao-luan-empty,
+[data-xi-theme="dark"] .xianxia-empty-hint,
+[data-xi-theme="dark"] .xianxia-empty-state p,
+[data-xi-theme="dark"] .empty-state,
+[data-xi-theme="dark"] .history-item small,
+[data-xi-theme="dark"] .history-item span,
+[data-xi-theme="dark"] .pagination,
+[data-xi-theme="dark"] .infinite-status {
+  color: var(--slate) !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .dao-luan-header h1,
+[data-xi-theme="dark"] .following-header .library-title,
+[data-xi-theme="dark"] .history-wrap .library-title,
+[data-xi-theme="dark"] .xianxia-empty-state strong,
+[data-xi-theme="dark"] .xianxia-empty-state h2 {
+  color: var(--ink) !important;
+}
+
+[data-xi-theme="dark"] .rankings-fallback-heading {
+  color: color-mix(in srgb, var(--xi-gold-light, #f0d06a) 72%, var(--ink)) !important;
+}
+
+[data-xi-theme="dark"] .rankings-header .library-subtitle,
+[data-xi-theme="dark"] .categories-index-header .library-subtitle {
+  color: var(--slate) !important;
+}
+
+[data-xi-theme="dark"] .rankings-header .library-title,
+[data-xi-theme="dark"] .categories-index-header .library-title {
+  color: var(--ink) !important;
+}
+
+/* —— Toast / modals / notification panel —— */
+[data-xi-theme="dark"] .realtime-chapter-toast {
+  background:
+    radial-gradient(circle at 88% 12%, rgba(240, 208, 106, 0.16), transparent 34%),
+    radial-gradient(circle at 8% 88%, rgba(38, 168, 130, 0.12), transparent 38%),
+    rgba(18, 16, 14, 0.96);
+  border-color: color-mix(in srgb, var(--xi-jade-light, #26a882) 34%, rgba(255, 255, 255, 0.1));
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
+}
+
+[data-xi-theme="dark"] .realtime-chapter-toast-eyebrow {
+  color: color-mix(in srgb, var(--xi-jade-light, #26a882) 70%, var(--ink)) !important;
+}
+
+[data-xi-theme="dark"] .realtime-chapter-toast-link {
+  color: color-mix(in srgb, var(--xi-gold-light, #f0d06a) 68%, var(--ink)) !important;
+}
+
+[data-xi-theme="dark"] .realtime-chapter-toast-close {
+  color: var(--slate) !important;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-xi-theme="dark"] .notification-panel,
+[data-xi-theme="dark"] .topbar-modern-more-panel,
+[data-xi-theme="dark"] .auth-modal-inner {
+  color: var(--ink);
+}
+
+[data-xi-theme="dark"] .topbar-modern-more-link {
+  color: var(--charcoal) !important;
+}
+
+[data-xi-theme="dark"] .topbar-modern-more-link:hover,
+[data-xi-theme="dark"] .topbar-modern-more-link:focus-visible {
+  color: var(--ink) !important;
+  background: rgba(200, 150, 46, 0.12);
+}
+
+[data-xi-theme="dark"] .notification-empty,
+[data-xi-theme="dark"] .notification-panel .eyebrow {
+  color: var(--slate) !important;
+}
+
+/* —— Story detail search / chapter chrome —— */
+[data-xi-theme="dark"] .story-chapter-search input::placeholder,
+[data-xi-theme="dark"] .story-chapter-search-clear,
+[data-xi-theme="dark"] .story-chapter-page-label span,
+[data-xi-theme="dark"] .story-chapter-page-label small {
+  color: var(--steel) !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .story-chapter-toolbar,
+[data-xi-theme="dark"] .story-chapter-search {
+  background: color-mix(in srgb, var(--canvas) 94%, rgba(0, 0, 0, 0.2) 6%);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-xi-theme="dark"] .story-chapter-search button:not(.story-chapter-search-clear) {
+  color: var(--ink) !important;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* —— Light secondary floors on frosted / mountain surfaces —— */
+html:not([data-xi-theme="dark"]) .page-wrap .xianxia-empty-hint,
+html:not([data-xi-theme="dark"]) .page-wrap .dao-luan-empty,
+html:not([data-xi-theme="dark"]) .page-wrap .following-footer-hint,
+html:not([data-xi-theme="dark"]) .page-wrap .infinite-status,
+html:not([data-xi-theme="dark"]) .page-wrap .chip-count {
+  color: color-mix(in srgb, var(--charcoal) 70%, var(--slate) 30%);
+  opacity: 1;
+}
+
+html:not([data-xi-theme="dark"]) .page-wrap .rankings-fallback-heading {
+  color: color-mix(in srgb, #6a4d10 88%, var(--charcoal) 12%);
+}
+
+/* Keep canvas/surface frosted cards opaque enough under body text */
+[data-xi-theme="dark"] .page-wrap .empty-state,
+[data-xi-theme="dark"] .page-wrap .xianxia-empty-state,
+[data-xi-theme="dark"] .page-wrap .account-panel,
+[data-xi-theme="dark"] .page-wrap .profile-shelf {
+  color: var(--ink);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Homepage layout fix pack (2026-07-22) — sticky overlap / padding /
+   discovery equal height / quieter catalog chrome.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* —— 1) Cultivation stays ABOVE sticky catalog (never under white panel) —— */
+.home-cultivation-slot {
+  position: relative;
+  z-index: 12;
+  margin: 0 0 14px;
+}
+
+.home-cultivation-slot .cultivation-panel {
+  margin: 0;
+}
+
+/* Sticky catalog clears topbar with breathing room; lower than cultivation slot */
+.library-sticky-panel {
+  --library-sticky-top: 64px;
+  z-index: 10;
+  margin-top: 4px;
+  margin-bottom: 16px;
+  padding: 14px 16px 12px;
+  gap: 0;
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgba(45, 38, 29, 0.04);
+}
+
+@supports (height: 100dvh) {
+  .library-sticky-panel {
+    max-height: calc(100dvh - var(--library-sticky-top) - 16px);
+  }
+}
+
+.library-sticky-panel {
+  max-height: calc(100vh - var(--library-sticky-top) - 16px);
+}
+
+/* —— 2) Catalog header padding — not kẹt cứng top-left —— */
+.library-sticky-panel .library-sticky-chips,
+.library-sticky-panel .library-sticky-toolbar {
+  margin: 0 -4px;
+  padding: 8px 4px 10px;
+  border-bottom-color: color-mix(in srgb, var(--xi-gold, #c8962e) 10%, transparent);
+  background: transparent;
+}
+
+.library-sticky-panel .library-sticky-chips + .library-sticky-toolbar,
+.library-sticky-panel .library-sticky-chips ~ .library-sticky-toolbar {
+  padding-top: 4px;
+  border-bottom: none;
+}
+
+.library-sticky-panel .library-list-section {
+  padding: 12px 2px 4px;
+}
+
+.library-sticky-panel .library-list-chrome {
+  margin-bottom: 12px;
+  padding: 2px 2px 0;
+}
+
+.library-sticky-panel .library-list-chrome .section-heading-row {
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.library-sticky-panel .library-list-chrome .eyebrow {
+  margin-bottom: 4px;
+}
+
+.library-sticky-panel .library-list-chrome h2 {
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.library-sticky-panel .story-library-scroll {
+  padding: 0;
+}
+
+/* —— 3) Quieter catalog chrome — less stacked competing surfaces —— */
+.library-sticky-panel .library-sticky-chips.category-row,
+.library-sticky-panel .library-sticky-toolbar .library-sort-chips {
+  gap: 6px;
+}
+
+.library-sticky-panel .chip {
+  min-height: 32px;
+  padding-inline: 10px;
+  font-size: 12.5px;
+  box-shadow: none !important;
+}
+
+.library-sticky-panel .chip-count {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+/* Soften discovery panel frames so two columns don't scream as two white slabs */
+.home-story-flow .discovery-section {
+  margin: 0;
+}
+
+.home-story-flow .discovery-section-title {
+  margin-bottom: 10px;
+}
+
+.home-story-flow .discovery-grid {
+  align-items: start;
+  gap: 12px;
+}
+
+.home-story-flow .discovery-panel {
+  align-self: start;
+  height: auto;
+  min-height: 0;
+  padding: 12px 12px 10px;
+  box-shadow: none;
+  background: color-mix(in srgb, var(--canvas) 92%, rgba(255, 248, 230, 0.35) 8%);
+}
+
+.home-story-flow .discovery-panel-polished,
+.home-story-flow .discovery-panel-updated {
+  background: color-mix(in srgb, var(--canvas) 92%, rgba(255, 248, 230, 0.35) 8%);
+}
+
+.home-story-flow .discovery-heading {
+  margin-bottom: 10px;
+}
+
+.home-story-flow .discovery-heading p:not(.eyebrow) {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.home-story-flow .discovery-row {
+  gap: 8px;
+}
+
+.home-story-flow .discovery-card {
+  min-height: 92px;
+  padding: 8px;
+}
+
+/* Reduce stacked chrome before catalog: collapse discovery/trending density slightly */
+.home-story-flow {
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.home-discovery-panels {
+  margin: 0;
+}
+
+@media (max-width: 839px) {
+  .home-cultivation-slot {
+    margin-bottom: 12px;
+    z-index: 3;
+  }
+
+  .library-sticky-panel {
+    --library-sticky-top: 56px;
+    padding: 12px 12px 10px;
+    /* Keep relative on mobile — no sticky pin covering prior content */
+    position: relative;
+    top: auto;
+    z-index: 2;
+    max-height: min(70vh, 38rem);
+  }
+
+  .home-story-flow .discovery-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+[data-xi-theme="dark"] .home-cultivation-slot .cultivation-panel {
+  background: color-mix(in srgb, var(--canvas) 92%, rgba(200, 150, 46, 0.1) 8%);
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 22%, rgba(255, 255, 255, 0.08));
+}
+
+[data-xi-theme="dark"] .home-story-flow .discovery-panel,
+[data-xi-theme="dark"] .home-story-flow .discovery-panel-polished,
+[data-xi-theme="dark"] .home-story-flow .discovery-panel-updated {
+  background: color-mix(in srgb, var(--canvas) 94%, rgba(0, 0, 0, 0.12) 6%);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   Calm chrome pack (2026-07-22) — freeze continuous spectacle loops.
+   Features unchanged: chips / auth CTA / cultivation keep static gold-jade
+   conic accents. Last @keyframes wins so shared lists (e.g. breakthrough
+   glow + neon) are not stripped via animation:none.
+   ═══════════════════════════════════════════════════════════════════ */
+
+html {
+  --xi-ba: 0deg;
+}
+
+@keyframes xi-neon-run {
+  to {
+    --xi-ba: 0deg;
+  }
+}
+
+@keyframes cloudMorph {
+  0%,
+  25%,
+  50%,
+  75%,
+  100% {
+    border-radius: 52% 48% 44% 56% / 38% 44% 56% 62%;
+  }
+}
+
+@keyframes cloudMorphMobile {
+  0%,
+  50%,
+  100% {
+    border-radius: 28px 36px 24px 32px / 32px 24px 36px 28px;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TEXT CONTRAST AUDIT v3 (2026-07-22) — finish full-theme pass
+   After layout fix (cultivation above sticky) + calm chrome. Floors for
+   sticky catalog, cultivation slot, error, chapter cards, .muted, light
+   mountain sinks. Do not regress sticky/footer/discovery equal counts.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Reaffirm dark secondary floors (source of truth; survives earlier hardcodes) */
+[data-xi-theme="dark"] {
+  --ink: #f5f1e8;
+  --charcoal: #efeae2;
+  --slate: #c9c0b4;
+  --steel: #b7aea2;
+  --muted: #a69e94;
+  --link: #7eb6ff;
+}
+
+/* —— Sticky catalog + cultivation (homepage layout surfaces) —— */
+[data-xi-theme="dark"] .home-cultivation-slot,
+[data-xi-theme="dark"] .home-cultivation-slot .cultivation-panel {
+  color: var(--ink);
+}
+
+[data-xi-theme="dark"] .home-cultivation-slot .cultivation-heading .eyebrow,
+[data-xi-theme="dark"] .home-cultivation-slot .cultivation-stats,
+[data-xi-theme="dark"] .home-cultivation-slot .cultivation-stats span,
+[data-xi-theme="dark"] .home-cultivation-slot .cultivation-level {
+  color: var(--slate) !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .home-cultivation-slot .cultivation-heading h2,
+[data-xi-theme="dark"] .home-cultivation-slot .cultivation-body strong {
+  color: var(--ink) !important;
+}
+
+[data-xi-theme="dark"] .library-sticky-panel {
+  color: var(--ink);
+}
+
+[data-xi-theme="dark"] .library-sticky-panel .library-list-chrome h2,
+[data-xi-theme="dark"] .library-sticky-panel .section-heading-row h2 {
+  color: var(--ink) !important;
+  -webkit-text-fill-color: var(--ink) !important;
+}
+
+[data-xi-theme="dark"] .library-sticky-panel .eyebrow,
+[data-xi-theme="dark"] .library-sticky-panel .discovery-badge,
+[data-xi-theme="dark"] .library-sticky-panel .chip-count,
+[data-xi-theme="dark"] .library-sticky-panel .infinite-status {
+  color: var(--slate) !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .library-sticky-panel .chip:not(.chip-active) {
+  color: var(--charcoal) !important;
+}
+
+html:not([data-xi-theme="dark"]) .library-sticky-panel .library-list-chrome h2,
+html:not([data-xi-theme="dark"]) .library-sticky-panel .section-heading-row h2 {
+  color: var(--ink);
+}
+
+html:not([data-xi-theme="dark"]) .library-sticky-panel .eyebrow,
+html:not([data-xi-theme="dark"]) .library-sticky-panel .chip-count,
+html:not([data-xi-theme="dark"]) .library-sticky-panel .infinite-status {
+  color: color-mix(in srgb, var(--charcoal) 72%, var(--slate) 28%);
+  opacity: 1;
+}
+
+/* —— Error / forgot-reset auth lede already via portal; error shell —— */
+[data-xi-theme="dark"] .error-shell,
+[data-xi-theme="dark"] .error-panel {
+  color: var(--ink);
+}
+
+[data-xi-theme="dark"] .error-panel .eyebrow {
+  color: color-mix(in srgb, var(--xi-gold-light, #f0d06a) 74%, var(--ink)) !important;
+}
+
+[data-xi-theme="dark"] .error-panel h1 {
+  color: var(--ink) !important;
+}
+
+[data-xi-theme="dark"] .error-panel p,
+[data-xi-theme="dark"] .error-panel .muted,
+[data-xi-theme="dark"] .muted {
+  color: var(--slate) !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .error-panel {
+  background: color-mix(in srgb, var(--canvas) 94%, rgba(0, 0, 0, 0.1) 6%);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* —— Story detail chapter list / read state —— */
+[data-xi-theme="dark"] .story-chapter-card {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--canvas) 92%, rgba(0, 0, 0, 0.12) 8%);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-xi-theme="dark"] .story-chapter-title {
+  color: var(--ink) !important;
+}
+
+[data-xi-theme="dark"] .story-chapter-read {
+  opacity: 1;
+  color: var(--slate) !important;
+}
+
+[data-xi-theme="dark"] .story-chapter-loading,
+[data-xi-theme="dark"] .story-chapter-error,
+[data-xi-theme="dark"] .story-chapter-list-loading {
+  color: var(--slate) !important;
+}
+
+[data-xi-theme="dark"] .story-detail-breadcrumb,
+[data-xi-theme="dark"] .story-detail-breadcrumb a,
+[data-xi-theme="dark"] .story-detail-breadcrumb span {
+  color: var(--slate) !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .story-detail-breadcrumb a:hover,
+[data-xi-theme="dark"] .story-detail-breadcrumb a:focus-visible {
+  color: color-mix(in srgb, var(--xi-gold-light, #f0d06a) 65%, var(--ink)) !important;
+}
+
+/* —— Rankings / trending secondary —— */
+[data-xi-theme="dark"] .rankings-item,
+[data-xi-theme="dark"] .trending-card {
+  color: var(--ink);
+}
+
+[data-xi-theme="dark"] .rankings-item p,
+[data-xi-theme="dark"] .rankings-item small,
+[data-xi-theme="dark"] .rankings-item span:not(.rankings-rank),
+[data-xi-theme="dark"] .trending-card p,
+[data-xi-theme="dark"] .trending-card small,
+[data-xi-theme="dark"] .rankings-board-caption,
+[data-xi-theme="dark"] .rankings-fallback-heading {
+  color: var(--slate) !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .rankings-body h3,
+[data-xi-theme="dark"] .trending-card-body h3,
+[data-xi-theme="dark"] .rankings-podium-link h3 {
+  color: var(--ink) !important;
+}
+
+/* —— History / bookmarks / continue (account + tàng thư) —— */
+[data-xi-theme="dark"] .history-item,
+[data-xi-theme="dark"] .bookmark-card,
+[data-xi-theme="dark"] .continue-card {
+  color: var(--ink);
+}
+
+[data-xi-theme="dark"] .history-item strong,
+[data-xi-theme="dark"] .bookmark-card strong,
+[data-xi-theme="dark"] .continue-card span,
+[data-xi-theme="dark"] .continue-card strong {
+  color: var(--ink) !important;
+}
+
+[data-xi-theme="dark"] .history-item small,
+[data-xi-theme="dark"] .bookmark-card small,
+[data-xi-theme="dark"] .continue-card small {
+  color: var(--slate) !important;
+  opacity: 1 !important;
+}
+
+/* —— Footer + site chrome (don't regress bookstore grid) —— */
+[data-xi-theme="dark"] .site-footer,
+[data-xi-theme="dark"] .site-footer-bookstore {
+  color: var(--charcoal);
+}
+
+[data-xi-theme="dark"] .site-footer .site-footer-title {
+  color: var(--ink) !important;
+}
+
+[data-xi-theme="dark"] .site-footer .site-footer-tagline,
+[data-xi-theme="dark"] .site-footer .site-footer-link {
+  color: var(--slate) !important;
+}
+
+[data-xi-theme="dark"] .site-footer .site-footer-link:hover,
+[data-xi-theme="dark"] .site-footer .site-footer-link:focus-visible {
+  color: color-mix(in srgb, var(--xi-gold-light, #f0d06a) 62%, var(--ink)) !important;
+}
+
+/* —— Topbar / chips / primary links on dark —— */
+[data-xi-theme="dark"] .topbar,
+[data-xi-theme="dark"] .topbar-modern {
+  color: var(--ink);
+}
+
+[data-xi-theme="dark"] a.chip:not(.chip-active),
+[data-xi-theme="dark"] button.chip:not(.chip-active) {
+  color: var(--charcoal) !important;
+}
+
+[data-xi-theme="dark"] .page-wrap a:where(.discovery-more, .update-card-cta, .realtime-chapter-toast-link) {
+  color: color-mix(in srgb, var(--xi-gold-light, #f0d06a) 68%, var(--ink));
+}
+
+/* —— Light mountain: secondary labels on frosted sticky / cultivation —— */
+html:not([data-xi-theme="dark"]) .home-cultivation-slot .cultivation-stats,
+html:not([data-xi-theme="dark"]) .home-cultivation-slot .cultivation-stats span,
+html:not([data-xi-theme="dark"]) .home-cultivation-slot .cultivation-level {
+  color: color-mix(in srgb, var(--charcoal) 78%, var(--slate) 22%);
+  opacity: 1;
+}
+
+html:not([data-xi-theme="dark"]) .page-wrap .muted,
+html:not([data-xi-theme="dark"]) .error-panel p {
+  color: color-mix(in srgb, var(--charcoal) 70%, var(--slate) 30%);
+  opacity: 1;
+}
+
+/* Kill residual hardcode muted that still appear mid-file */
+[data-xi-theme="dark"] .identity-chip-muted,
+[data-xi-theme="dark"] .chip-count,
+[data-xi-theme="dark"] .recommendation-card .discovery-meta,
+[data-xi-theme="dark"] .recommendation-card .discovery-meta span {
+  color: var(--slate) !important;
+}
+

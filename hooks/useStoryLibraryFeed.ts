@@ -63,8 +63,27 @@ export function useStoryLibraryFeed(initialPage: CursorPage<StorySummary>, query
     setLoading(false);
   }, [initialPage, query.q, query.author, query.hot, query.completed, query.category, query.minChapters, query.maxChapters, query.hasPolished, query.hasAudio, query.sort]);
 
+  // Idle-defer follow metadata sync — avoid competing with load-more paint on every page append.
   useEffect(() => {
-    if (items.length > 0) dispatch(syncFollowedStories(items));
+    if (items.length === 0) return;
+    let idleId: number | null = null;
+    let timeoutId: number | null = null;
+    const run = () => {
+      idleId = null;
+      timeoutId = null;
+      dispatch(syncFollowedStories(items));
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(run, { timeout: 1200 });
+    } else {
+      timeoutId = window.setTimeout(run, 220);
+    }
+    return () => {
+      if (idleId != null && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId != null) window.clearTimeout(timeoutId);
+    };
   }, [dispatch, items]);
 
   const loadMore = useCallback(() => {
@@ -93,11 +112,16 @@ export function useStoryLibraryFeed(initialPage: CursorPage<StorySummary>, query
     const sentinel = sentinelRef.current;
     if (!sentinel || !nextCursor) return;
 
+    // Prefer the bounded library host as IO root so load-more tracks inner scroll, not the window.
+    const root = sentinel.closest(".story-library-scroll");
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) loadMore();
       },
-      { rootMargin: "180px 0px" }
+      {
+        root: root instanceof Element ? root : null,
+        rootMargin: "180px 0px",
+      }
     );
 
     observer.observe(sentinel);

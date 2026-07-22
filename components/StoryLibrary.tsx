@@ -28,6 +28,10 @@ type StoryLibraryProps = {
   /** @deprecated use `mode="search"` */
   searchActive?: boolean;
   mode?: StoryLibraryMode;
+  /** Homepage lifts continue into earlier vertical story; keep false there. */
+  showContinueSection?: boolean;
+  /** Homepage renders cultivation above sticky catalog so sticky chrome cannot cover it. */
+  showCultivationPanel?: boolean;
   query: {
     q?: string;
     author?: string;
@@ -225,7 +229,14 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
   );
 });
 
-export function StoryLibrary({ initialPage, searchActive = false, mode, query }: StoryLibraryProps) {
+export function StoryLibrary({
+  initialPage,
+  searchActive = false,
+  mode,
+  showContinueSection = true,
+  showCultivationPanel = true,
+  query
+}: StoryLibraryProps) {
   const libraryMode: StoryLibraryMode = mode ?? (searchActive ? "search" : "default");
   const hideHomeExtras = libraryMode !== "default";
   const queryClient = useQueryClient();
@@ -243,6 +254,7 @@ export function StoryLibrary({ initialPage, searchActive = false, mode, query }:
 
   const historyByStory = useMemo(() => new Map(history.map((item) => [item.storyId, item])), [history]);
   const recentItems = useMemo(() => history.slice(0, 6), [history]);
+  const renderContinue = showContinueSection && !hideHomeExtras && recentItems.length > 0;
 
   if (items.length === 0) {
     return (
@@ -255,7 +267,7 @@ export function StoryLibrary({ initialPage, searchActive = false, mode, query }:
 
   return (
     <>
-      {!hideHomeExtras ? <CultivationPanel items={history} /> : null}
+      {!hideHomeExtras && showCultivationPanel ? <CultivationPanel items={history} /> : null}
 
       {adminEdit ? (
         <div className="admin-edit-floating" role="status">
@@ -270,7 +282,7 @@ export function StoryLibrary({ initialPage, searchActive = false, mode, query }:
         </div>
       ) : null}
 
-      {!hideHomeExtras && recentItems.length > 0 ? (
+      {renderContinue ? (
         <section className="continue-section" aria-label="Tu luyện tiếp">
           <div className="section-heading-row">
             <div>
@@ -296,47 +308,53 @@ export function StoryLibrary({ initialPage, searchActive = false, mode, query }:
       ) : null}
 
       <section className="library-list-section" aria-label={libraryMode === "search" ? "Search results" : "Stories"}>
-        <div className="section-heading-row story-list-heading">
-          <div>
-            <p className="eyebrow">{libraryMode === "search" ? "Kết quả" : "Thư viện"}</p>
-            <h2>{libraryMode === "search" ? "Linh quyển tìm thấy" : "Danh sách truyện"}</h2>
+        {/* Heading stays above bounded feed (Ridi shelf title → grid rhythm). */}
+        <div className="library-list-chrome">
+          <div className="section-heading-row story-list-heading">
+            <div>
+              <p className="eyebrow">{libraryMode === "search" ? "Kết quả" : "Thư viện"}</p>
+              <h2>{libraryMode === "search" ? "Linh quyển tìm thấy" : "Danh sách truyện"}</h2>
+            </div>
+            <span className="discovery-badge">{initialPage.total ?? items.length} truyện</span>
           </div>
-          <span className="discovery-badge">{initialPage.total ?? items.length} truyện</span>
         </div>
 
-        <div className="story-grid">
-          {items.map((story, index) => (
-            <StoryCard
-              key={story.id}
-              story={story}
-              storyHistory={historyByStory.get(story.id)}
-              isAdmin={!!currentUser?.isAdmin}
-              adminEditForCard={adminEdit?.storyId === story.id ? adminEdit : null}
-              highlight={query.q || undefined}
-              fresh={isFresh(story.id)}
-              priority={index < 6}
-              onStartEdit={startAdminEdit}
-              onSetAdminEdit={setAdminEdit}
-            />
-          ))}
+        {/* Inner scroll host (sticky panel on homepage owns viewport height). */}
+        <div className="story-library-scroll" tabIndex={0} aria-label="Danh sách linh quyển — cuộn trong khung này">
+          <div className="story-grid">
+            {items.map((story, index) => (
+              <StoryCard
+                key={story.id}
+                story={story}
+                storyHistory={historyByStory.get(story.id)}
+                isAdmin={!!currentUser?.isAdmin}
+                adminEditForCard={adminEdit?.storyId === story.id ? adminEdit : null}
+                highlight={query.q || undefined}
+                fresh={isFresh(story.id)}
+                priority={index < 6}
+                onStartEdit={startAdminEdit}
+                onSetAdminEdit={setAdminEdit}
+              />
+            ))}
+          </div>
+
+          {loading ? (
+            <div className="story-grid story-grid-skeleton" aria-busy="true" aria-label="Đang tải thêm linh quyển">
+              {Array.from({ length: 6 }).map((_, i) => <StoryCardSkeleton key={i} />)}
+            </div>
+          ) : null}
+
+          <div className="infinite-status" ref={sentinelRef}>
+            {error ? (
+              error
+            ) : nextCursor ? (
+              "Cuộn để tải thêm"
+            ) : (
+              "Đã xem hết Linh Quyển Đại Thư"
+            )}
+          </div>
         </div>
       </section>
-
-      {loading ? (
-        <div className="story-grid story-grid-skeleton" aria-busy="true" aria-label="Đang tải thêm linh quyển">
-          {Array.from({ length: 6 }).map((_, i) => <StoryCardSkeleton key={i} />)}
-        </div>
-      ) : null}
-
-      <div className="infinite-status" ref={sentinelRef}>
-        {error ? (
-          error
-        ) : nextCursor ? (
-          "Cuộn để tải thêm"
-        ) : (
-          "Đã xem hết Linh Quyển Đại Thư"
-        )}
-      </div>
     </>
   );
 }

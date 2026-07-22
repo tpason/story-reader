@@ -188,7 +188,10 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
             </Link>
           </div>
         ) : null}
-        <section className={`story-detail-hero story-detail-hero-modern ${isFresh(currentStory.id) ? "story-detail-hero-fresh" : ""}`.trim()}>
+        {/* Kakao/Qidian/WebNovel: one hero composition — cover+meta+CTA, then chapters, related last */}
+        <section
+          className={`story-detail-hero story-detail-hero-modern story-detail-composition ${isFresh(currentStory.id) ? "story-detail-hero-fresh" : ""}`.trim()}
+        >
           <div
             className={`story-detail-hero-aura${stageVisible ? " story-detail-hero-aura--under-stage" : ""}`}
             aria-hidden="true"
@@ -205,209 +208,224 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
               />
             </div>
           ) : null}
-          <StoryCover src={currentStory.coverImageUrl} title={currentStory.title} />
-          <div className="story-detail-copy">
-            <p className="eyebrow">
-              {currentStory.primaryCategorySlug ? (
-                <Link href={`/categories/${currentStory.primaryCategorySlug}` as Route} className="category-eyebrow-link">
-                  {currentStory.primaryCategoryName || currentStory.category || "Truyện chữ"}
-                </Link>
-              ) : (currentStory.primaryCategoryName || currentStory.category || "Truyện chữ")}
-            </p>
-            {adminEdit?.field === "storyTitle" ? (
-              <input className="admin-inline-input admin-inline-title" value={adminEdit.value} autoFocus onChange={(event) => setAdminEdit({ field: "storyTitle", value: event.target.value })} />
-            ) : (
-              <h1 className={currentUser?.isAdmin ? "admin-editable-hidden" : undefined} onDoubleClick={() => startAdminEdit("storyTitle", currentStory.title)}>
-                {currentStory.title}
-              </h1>
-            )}
-            <div className="story-detail-meta">
-              {adminEdit?.field === "author" ? (
-                <input className="admin-inline-input" value={adminEdit.value} autoFocus onChange={(event) => setAdminEdit({ field: "author", value: event.target.value })} />
-              ) : (
-                <span
-                  className={`story-meta-icon-badge${currentUser?.isAdmin ? " admin-editable-hidden" : ""}`}
-                  onDoubleClick={() => startAdminEdit("author", currentStory.author)}
-                >
-                  <User size={12} aria-hidden="true" />
-                  {authorLabel}
-                </span>
-              )}
-              <span className="story-meta-icon-badge">
-                <BookOpen size={12} aria-hidden="true" />
-                {totalChapters} chương
-              </span>
-              {statusBadge.completed ? (
-                <span className="xi-badge-completed">{statusBadge.label}</span>
-              ) : (
-                <span className="xi-badge-ongoing">{statusBadge.label}</span>
-              )}
-              <span className="story-meta-icon-badge">
-                <Clock3 size={12} aria-hidden="true" />
-                {updatedLabel ?? "Cập nhật gần đây"}
-              </span>
-              <StoryRankMeta story={currentStory} />
-            </div>
-            {adminEdit?.field === "description" ? (
-              <textarea className="admin-content-editor admin-description-editor" value={adminEdit.value} autoFocus onChange={(event) => setAdminEdit({ field: "description", value: event.target.value })} />
-            ) : (
-              <div className={`story-detail-description-wrap${descExpanded ? " desc-expanded" : ""}`}>
-                <p
-                  className={currentUser?.isAdmin ? "story-detail-description admin-editable-hidden" : "story-detail-description"}
-                  onDoubleClick={() => startAdminEdit("description", currentStory.description)}
-                >
-                  {storyDisplayDescription(currentStory)}
-                </p>
-                <button
-                  type="button"
-                  className={`story-desc-expand-btn${descExpanded ? " desc-collapse-btn" : ""}`}
-                  onClick={() => setDescExpanded((v) => !v)}
-                >
-                  {descExpanded ? "Thu gọn" : "Xem thêm"}
-                </button>
-              </div>
-            )}
-            <div className="story-detail-actions">
-              <Link
-                className="auth-submit story-detail-primary-cta"
-                href={storyHref(currentStory, heroCtaChapter)}
-                onClick={() => {
-                  if (!history) return;
-                  writeResumeNavigationTarget(history.storyId, history.chapterNumber, {
-                    scrollPosition: history.scrollPosition,
-                    paragraphIndex: history.paragraphIndex ?? null
-                  });
-                }}
-              >
-                <BookOpenCheck size={16} />
-                {heroCtaLabel}
-              </Link>
-              <FollowButton story={currentStory} />
-              <button
-                type="button"
-                className={`chip story-share-btn${shareCopied ? " chip-active" : ""}`}
-                onClick={handleShare}
-                title="Chia sẻ truyện"
-              >
-                {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
-                {shareCopied ? "Đã copy!" : "Chia sẻ"}
-              </button>
-              <Link className="chip" href="/">
-                Thư viện
-              </Link>
-            </div>
-            <StoryDetailPushHint storyId={currentStory.id} boosted={Boolean(freshChapterNumber)} />
-            {estimatedStoryMinutes > 0 ? (
-              <p className="story-detail-read-estimate">
-                Ước tính ~{formatReadingDuration(estimatedStoryMinutes)} đọc hết
+
+          <div className="story-detail-hero-cluster">
+            <StoryCover src={currentStory.coverImageUrl} title={currentStory.title} />
+            <div className="story-detail-copy">
+              <p className="eyebrow">
+                {currentStory.primaryCategorySlug ? (
+                  <Link href={`/categories/${currentStory.primaryCategorySlug}` as Route} className="category-eyebrow-link">
+                    {currentStory.primaryCategoryName || currentStory.category || "Truyện chữ"}
+                  </Link>
+                ) : (currentStory.primaryCategoryName || currentStory.category || "Truyện chữ")}
               </p>
-            ) : null}
-            {maxReadChapter > 0 && totalChapters > 0 ? (() => {
-              const progressPct = Math.min(100, Math.max(0, Math.round((maxReadChapter / totalChapters) * 100)));
-              const activeChapter = history?.chapterNumber ?? continueChapter ?? 0;
-              return (
-                <div className="story-detail-hero-progress" aria-label="Tiến độ đọc">
-                  <ChapterSidebarHeatmap
-                    totalChapters={totalChapters}
-                    maxReadChapter={maxReadChapter}
-                    activeChapterNumber={activeChapter}
-                    onJump={(chapterNumber) => {
-                      writeResumeNavigationTarget(currentStory.id, chapterNumber, {});
-                      router.push(storyHref(currentStory, chapterNumber));
-                    }}
-                  />
-                  <span className="story-detail-hero-progress-label">
-                    <BookOpenCheck size={13} />
-                    {Math.min(maxReadChapter, totalChapters)}/{totalChapters} chương ({progressPct}%)
+              {adminEdit?.field === "storyTitle" ? (
+                <input className="admin-inline-input admin-inline-title" value={adminEdit.value} autoFocus onChange={(event) => setAdminEdit({ field: "storyTitle", value: event.target.value })} />
+              ) : (
+                <h1 className={currentUser?.isAdmin ? "admin-editable-hidden" : undefined} onDoubleClick={() => startAdminEdit("storyTitle", currentStory.title)}>
+                  {currentStory.title}
+                </h1>
+              )}
+              <div className="story-detail-meta">
+                {adminEdit?.field === "author" ? (
+                  <input className="admin-inline-input" value={adminEdit.value} autoFocus onChange={(event) => setAdminEdit({ field: "author", value: event.target.value })} />
+                ) : (
+                  <span
+                    className={`story-meta-icon-badge${currentUser?.isAdmin ? " admin-editable-hidden" : ""}`}
+                    onDoubleClick={() => startAdminEdit("author", currentStory.author)}
+                  >
+                    <User size={12} aria-hidden="true" />
+                    {authorLabel}
+                  </span>
+                )}
+                <span className="story-meta-icon-badge">
+                  <BookOpen size={12} aria-hidden="true" />
+                  {totalChapters} chương
+                </span>
+                {statusBadge.completed ? (
+                  <span className="xi-badge-completed">{statusBadge.label}</span>
+                ) : (
+                  <span className="xi-badge-ongoing">{statusBadge.label}</span>
+                )}
+                <span className="story-meta-icon-badge">
+                  <Clock3 size={12} aria-hidden="true" />
+                  {updatedLabel ?? "Cập nhật gần đây"}
+                </span>
+                <StoryRankMeta story={currentStory} />
+              </div>
+
+              <div className="story-detail-cta-cluster">
+                <Link
+                  className="auth-submit story-detail-primary-cta"
+                  href={storyHref(currentStory, heroCtaChapter)}
+                  onClick={() => {
+                    if (!history) return;
+                    writeResumeNavigationTarget(history.storyId, history.chapterNumber, {
+                      scrollPosition: history.scrollPosition,
+                      paragraphIndex: history.paragraphIndex ?? null
+                    });
+                  }}
+                >
+                  <BookOpenCheck size={16} />
+                  {heroCtaLabel}
+                </Link>
+                <div className="story-detail-secondary-actions" aria-label="Thao tác phụ">
+                  <FollowButton story={currentStory} />
+                  <button
+                    type="button"
+                    className={`chip story-share-btn${shareCopied ? " chip-active" : ""}`}
+                    onClick={handleShare}
+                    title="Chia sẻ truyện"
+                  >
+                    {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
+                    {shareCopied ? "Đã copy!" : "Chia sẻ"}
+                  </button>
+                  <Link className="chip" href="/">
+                    Thư viện
+                  </Link>
+                </div>
+              </div>
+
+              {adminEdit?.field === "description" ? (
+                <textarea className="admin-content-editor admin-description-editor" value={adminEdit.value} autoFocus onChange={(event) => setAdminEdit({ field: "description", value: event.target.value })} />
+              ) : (
+                <div className={`story-detail-description-wrap${descExpanded ? " desc-expanded" : ""}`}>
+                  <p
+                    className={currentUser?.isAdmin ? "story-detail-description admin-editable-hidden" : "story-detail-description"}
+                    onDoubleClick={() => startAdminEdit("description", currentStory.description)}
+                  >
+                    {storyDisplayDescription(currentStory)}
+                  </p>
+                  <button
+                    type="button"
+                    className={`story-desc-expand-btn${descExpanded ? " desc-collapse-btn" : ""}`}
+                    onClick={() => setDescExpanded((v) => !v)}
+                  >
+                    {descExpanded ? "Thu gọn" : "Xem thêm"}
+                  </button>
+                </div>
+              )}
+
+              <div className="story-detail-hero-aside">
+                <StoryRatingWidget storyId={currentStory.id} />
+                <StoryDetailPushHint storyId={currentStory.id} boosted={Boolean(freshChapterNumber)} />
+                {estimatedStoryMinutes > 0 ? (
+                  <p className="story-detail-read-estimate">
+                    Ước tính ~{formatReadingDuration(estimatedStoryMinutes)} đọc hết
+                  </p>
+                ) : null}
+                {maxReadChapter > 0 && totalChapters > 0 ? (() => {
+                  const progressPct = Math.min(100, Math.max(0, Math.round((maxReadChapter / totalChapters) * 100)));
+                  const activeChapter = history?.chapterNumber ?? continueChapter ?? 0;
+                  return (
+                    <div className="story-detail-hero-progress" aria-label="Tiến độ đọc">
+                      <ChapterSidebarHeatmap
+                        totalChapters={totalChapters}
+                        maxReadChapter={maxReadChapter}
+                        activeChapterNumber={activeChapter}
+                        onJump={(chapterNumber) => {
+                          writeResumeNavigationTarget(currentStory.id, chapterNumber, {});
+                          router.push(storyHref(currentStory, chapterNumber));
+                        }}
+                      />
+                      <span className="story-detail-hero-progress-label">
+                        <BookOpenCheck size={13} />
+                        {Math.min(maxReadChapter, totalChapters)}/{totalChapters} chương ({progressPct}%)
+                      </span>
+                    </div>
+                  );
+                })() : null}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="story-detail-flow">
+          <section className="story-detail-chapters library-list-section" id="story-chapters" aria-label="Danh sách chương">
+            <div className="story-detail-chapters-sticky">
+              <div className="section-heading-row story-list-heading">
+                <div>
+                  <p className="eyebrow">Mục lục</p>
+                  <h2>Danh sách chương</h2>
+                </div>
+                <span className="discovery-badge">
+                  <Clock3 size={15} />
+                  {chapterRangeLabel}
+                </span>
+              </div>
+            </div>
+
+            <ChapterList
+              chapters={chapterPage}
+              totalChapters={totalChapters}
+              currentStory={currentStory}
+              maxReadChapter={maxReadChapter}
+              currentChapterNumber={history?.chapterNumber ?? null}
+              isLoading={isLoadingChapters}
+              error={chapterLoadError}
+              chapterSearch={chapterSearch}
+              activeChapterSearch={activeChapterSearch}
+              pageFirstChapter={pageFirstChapter}
+              pageLastChapter={pageLastChapter}
+              chapterPageStart={chapterPageStart}
+              currentChapterPage={currentChapterPage}
+              totalChapterPages={totalChapterPages}
+              isSearching={isSearchingChapters}
+              hasPrevPage={hasPreviousChapterPage}
+              hasNextPage={hasNextChapterPage}
+              chapterRangeLabel={chapterRangeLabel}
+              isExpandedList={isExpandedList}
+              onChapterSearchChange={setChapterSearch}
+              onSearch={searchChapterList}
+              onClearSearch={clearChapterSearch}
+              onLoadPage={loadChapterPage}
+              onAppendNext={appendNextChapterPage}
+              freshChapterNumber={freshChapterNumber}
+            />
+          </section>
+
+          <div className="story-detail-utilities">
+            <CharMapBlock storyId={currentStory.id} />
+            <StoryDetailOfflineDownload story={currentStory} startChapter={heroCtaChapter} />
+          </div>
+
+          <div className="story-detail-related">
+            {recommendationsSlot ?? (recommendations.length > 0 ? (
+              <section className="library-list-section story-detail-related-rail" aria-label="Recommended stories">
+                <div className="section-heading-row story-list-heading">
+                  <div>
+                    <p className="eyebrow">Đạo hữu trên con đường tương tự</p>
+                    <h2>Linh quyển cùng đạo</h2>
+                  </div>
+                  <span className="discovery-badge">
+                    <Sparkles size={15} />
+                    {recommendations.length} truyện
                   </span>
                 </div>
-              );
-            })() : null}
+                <div className="recommendation-row">
+                  {recommendations.map((item) => (
+                    <Link
+                      className={`recommendation-card ${isFresh(item.id) ? "recommendation-card-fresh" : ""}`.trim()}
+                      href={storyHref(item)}
+                      key={item.id}
+                    >
+                      <StoryCover src={item.coverImageUrl} title={item.title} />
+                      <div>
+                        <h3>{item.title}</h3>
+                        <div className="discovery-meta">
+                          <span>{item.author || "Unknown author"}</span>
+                          <span>{item.totalChapters} chương</span>
+                          {item.primaryCategoryName ? <span>{item.primaryCategoryName}</span> : null}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ) : null)}
+            {sameAuthorSlot}
           </div>
-        </section>
-
-        <StoryRatingWidget storyId={currentStory.id} />
-
-        <CharMapBlock storyId={currentStory.id} />
-
-        {recommendationsSlot ?? (recommendations.length > 0 ? (
-          <section className="library-list-section" aria-label="Recommended stories">
-            <div className="section-heading-row story-list-heading">
-              <div>
-                <p className="eyebrow">Đạo hữu trên con đường tương tự</p>
-                <h2>Linh quyển cùng đạo</h2>
-              </div>
-              <span className="discovery-badge">
-                <Sparkles size={15} />
-                {recommendations.length} truyện
-              </span>
-            </div>
-            <div className="recommendation-row">
-              {recommendations.map((item) => (
-                <Link
-                  className={`recommendation-card ${isFresh(item.id) ? "recommendation-card-fresh" : ""}`.trim()}
-                  href={storyHref(item)}
-                  key={item.id}
-                >
-                  <StoryCover src={item.coverImageUrl} title={item.title} />
-                  <div>
-                    <h3>{item.title}</h3>
-                    <div className="discovery-meta">
-                      <span>{item.author || "Unknown author"}</span>
-                      <span>{item.totalChapters} chương</span>
-                      {item.primaryCategoryName ? <span>{item.primaryCategoryName}</span> : null}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        ) : null)}
-
-        {sameAuthorSlot}
-
-        <StoryDetailOfflineDownload story={currentStory} startChapter={heroCtaChapter} />
-
-        <section className="library-list-section" id="story-chapters">
-          <div className="section-heading-row story-list-heading">
-            <div>
-              <p className="eyebrow">Mục lục</p>
-              <h2>Danh sách chương</h2>
-            </div>
-            <span className="discovery-badge">
-              <Clock3 size={15} />
-              {chapterRangeLabel}
-            </span>
-          </div>
-
-          <ChapterList
-            chapters={chapterPage}
-            totalChapters={totalChapters}
-            currentStory={currentStory}
-            maxReadChapter={maxReadChapter}
-            currentChapterNumber={history?.chapterNumber ?? null}
-            isLoading={isLoadingChapters}
-            error={chapterLoadError}
-            chapterSearch={chapterSearch}
-            activeChapterSearch={activeChapterSearch}
-            pageFirstChapter={pageFirstChapter}
-            pageLastChapter={pageLastChapter}
-            chapterPageStart={chapterPageStart}
-            currentChapterPage={currentChapterPage}
-            totalChapterPages={totalChapterPages}
-            isSearching={isSearchingChapters}
-            hasPrevPage={hasPreviousChapterPage}
-            hasNextPage={hasNextChapterPage}
-            chapterRangeLabel={chapterRangeLabel}
-            isExpandedList={isExpandedList}
-            onChapterSearchChange={setChapterSearch}
-            onSearch={searchChapterList}
-            onClearSearch={clearChapterSearch}
-            onLoadPage={loadChapterPage}
-            onAppendNext={appendNextChapterPage}
-            freshChapterNumber={freshChapterNumber}
-          />
-        </section>
+        </div>
       </div>
       {heroCtaChapter ? (
         <nav className="story-mobile-cta" aria-label="Story quick actions">

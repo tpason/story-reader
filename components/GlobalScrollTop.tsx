@@ -7,6 +7,26 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import { prefersReducedMotion } from "@/lib/browser";
 import { forceUnlockBodyScroll } from "@/lib/body-scroll-lock";
 
+const LIBRARY_SCROLL_SELECTOR = ".story-library-scroll";
+
+function maxLibraryScrollTop() {
+  let max = 0;
+  document.querySelectorAll<HTMLElement>(LIBRARY_SCROLL_SELECTOR).forEach((node) => {
+    max = Math.max(max, node.scrollTop);
+  });
+  return max;
+}
+
+function resetLibraryScrollTops(behavior: ScrollBehavior) {
+  document.querySelectorAll<HTMLElement>(LIBRARY_SCROLL_SELECTOR).forEach((node) => {
+    if (typeof node.scrollTo === "function") {
+      node.scrollTo({ top: 0, behavior });
+    } else {
+      node.scrollTop = 0;
+    }
+  });
+}
+
 export function GlobalScrollTop() {
   const pathname = usePathname();
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -51,33 +71,28 @@ export function GlobalScrollTop() {
         frameRef.current = null;
         const scrollingElement = document.scrollingElement ?? document.documentElement;
         const scrollTop = scrollingElement.scrollTop || window.scrollY;
-        const shouldShow = scrollTop > Math.min(720, window.innerHeight * 0.8);
+        const threshold = Math.min(720, window.innerHeight * 0.8);
+        // Capture-phase scroll below also covers `.story-library-scroll` internal scroll.
+        const shouldShow = scrollTop > threshold || maxLibraryScrollTop() > 160;
 
         if (isVisibleRef.current === shouldShow) return;
         isVisibleRef.current = shouldShow;
 
+        // Visibility is CSS-transitioned via .scroll-top-button-visible (no setState / no show anime).
         button.classList.toggle("scroll-top-button-visible", shouldShow);
         button.setAttribute("aria-hidden", shouldShow ? "false" : "true");
         button.tabIndex = shouldShow ? 0 : -1;
-
-        if (!prefersReducedMotion() && animeRef.current) {
-          animeRef.current(button, {
-            scale: shouldShow ? [0.84, 1] : [1, 0.9],
-            rotate: shouldShow ? [-8, 0] : [0, 4],
-            duration: shouldShow ? 420 : 180,
-            ease: shouldShow ? "outBack" : "inQuad"
-          });
-        }
       });
     };
 
     update();
-    window.addEventListener("scroll", update, { passive: true });
+    // Capture so nested overflow hosts (library feed) notify without per-node wiring.
+    document.addEventListener("scroll", update, { passive: true, capture: true });
     window.addEventListener("resize", update);
 
     return () => {
       if (frameRef.current) window.cancelAnimationFrame(frameRef.current);
-      window.removeEventListener("scroll", update);
+      document.removeEventListener("scroll", update, { capture: true });
       window.removeEventListener("resize", update);
     };
   }, [isReaderChapter, pathname]);
@@ -102,7 +117,9 @@ export function GlobalScrollTop() {
             ease: "outElastic(1, .7)"
           });
         }
-        window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+        const behavior: ScrollBehavior = prefersReducedMotion() ? "auto" : "smooth";
+        window.scrollTo({ top: 0, behavior });
+        resetLibraryScrollTops(behavior);
       }}
     >
       <ArrowUp size={18} />

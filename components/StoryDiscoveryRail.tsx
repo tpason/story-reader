@@ -75,10 +75,14 @@ function DiscoveryGroup({ eyebrow, title, description, items, variant, href, isF
   );
 }
 
+const HOME_DISCOVERY_CARD_BUDGET = 5;
+
 export function StoryDiscoveryRail({ polishedStories, updatedStories }: StoryDiscoveryRailProps) {
   const { isFresh } = useFreshStoryRealtime({ refreshRoute: true });
+  const polished = polishedStories.slice(0, HOME_DISCOVERY_CARD_BUDGET);
+  const updated = updatedStories.slice(0, HOME_DISCOVERY_CARD_BUDGET);
 
-  if (polishedStories.length === 0 && updatedStories.length === 0) return null;
+  if (polished.length === 0 && updated.length === 0) return null;
 
   return (
     <div className="discovery-section">
@@ -91,7 +95,7 @@ export function StoryDiscoveryRail({ polishedStories, updatedStories }: StoryDis
           eyebrow="Bản đọc mượt hơn"
           title="Vừa được polish"
           description="Ưu tiên các truyện đã có chương được làm sạch để đọc dễ chịu hơn."
-          items={polishedStories}
+          items={polished}
           variant="polished"
           href="/discover?kind=polished"
           isFresh={isFresh}
@@ -100,7 +104,7 @@ export function StoryDiscoveryRail({ polishedStories, updatedStories }: StoryDis
           eyebrow="Theo dõi chương mới"
           title="Vừa cập nhật"
           description="Các truyện có chương mới tải về hoặc nội dung vừa thay đổi trong database."
-          items={updatedStories}
+          items={updated}
           variant="updated"
           href="/discover?kind=updated"
           isFresh={isFresh}

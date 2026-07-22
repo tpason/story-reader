@@ -13,6 +13,9 @@ import { ReadingResumeBar } from "@/components/ReadingResumeBar";
 import { SiteHeader } from "@/components/SiteHeader";
 import { StoryDiscoveryRail } from "@/components/StoryDiscoveryRail";
 import { DiscoveryRailSkeleton } from "@/components/DiscoveryRailSkeleton";
+import { HomeContinueReading } from "@/components/HomeContinueReading";
+import { HomeSocialSlot } from "@/components/HomeSocialSlot";
+import { RecentCommentsRail } from "@/components/RecentCommentsRail";
 import { TrendingStoriesPanel } from "@/components/TrendingStoriesPanel";
 import { XianxiaPoetryColumn } from "@/components/XianxiaPoetryColumn";
 import { JsonLdScript } from "@/components/JsonLdScript";
@@ -24,6 +27,9 @@ import type { TrendingPeriod } from "@/lib/types";
 const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX));
 const FollowedStoriesPanel = nextDynamic(
   () => import("@/components/FollowedStoriesPanel").then((mod) => mod.FollowedStoriesPanel),
+);
+const CultivationPanel = nextDynamic(
+  () => import("@/components/CultivationPanel").then((mod) => mod.CultivationPanel),
 );
 const HomeRecommendationsPanel = nextDynamic(
   () => import("@/components/HomeRecommendationsPanel").then((mod) => mod.HomeRecommendationsPanel),
@@ -90,9 +96,10 @@ async function TrendingSection({
 }
 
 async function DiscoverySection() {
+  // Same card budget per column — avoids tall empty polish slab vs dense updates.
   const [polishedStories, updatedStories] = await Promise.all([
-    getCachedPolishedStories(8),
-    getCachedUpdatedStories(8),
+    getCachedPolishedStories(5),
+    getCachedUpdatedStories(5),
   ]);
   return <StoryDiscoveryRail polishedStories={polishedStories} updatedStories={updatedStories} />;
 }
@@ -257,28 +264,10 @@ export default async function Home({ searchParams }: HomeProps) {
           </form>
         </section>
 
-        {categories.length > 0 ? (
-          <nav className="filters category-row" aria-label="Categories">
-            <a className={`chip ${!params.category ? "chip-active" : ""}`} href={`/?${buildQuery({ q: params.q, hot: params.hot, completed: params.completed, minChapters: params.minChapters, maxChapters: params.maxChapters, hasPolished: params.hasPolished, hasAudio: params.hasAudio, sort: params.sort })}`}>
-              Tất cả
-            </a>
-            {categories.map((category) => (
-              <a
-                className={`chip ${params.category === category.slug ? "chip-active" : ""}`}
-                href={`/?${buildQuery({ q: params.q, hot: params.hot, completed: params.completed, category: category.slug, minChapters: params.minChapters, maxChapters: params.maxChapters, hasPolished: params.hasPolished, hasAudio: params.hasAudio, sort: params.sort })}`}
-                key={category.id}
-              >
-                {category.name}
-                <span className="chip-count">{category.storyCount}</span>
-              </a>
-            ))}
-            <Link className="chip category-row-more" href="/categories">
-              <Layers3 size={15} />
-              Tất cả thể loại
-            </Link>
-          </nav>
-        ) : null}
-
+        {/*
+          Vertical story (CN/KR/EN bookstore):
+          hero → continue/follows → discovery rails → comments → filters → library → footer
+        */}
         {isSearchActive ? (
           <div className="search-active-header">
             <div className="search-active-info">
@@ -297,12 +286,69 @@ export default async function Home({ searchParams }: HomeProps) {
             </Link>
           </div>
         ) : (
-          <>
-            <details className="home-sort-details">
-              <summary className="chip home-sort-summary">
+          <div className="home-story-flow">
+            <HomeContinueReading />
+            <section className="home-follows-block" aria-label="Tủ truyện đang theo">
+              <FollowedStoriesPanel />
+            </section>
+            <Suspense fallback={<DiscoveryRailSkeleton />}>
+              <DiscoverySection />
+            </Suspense>
+            <RankingsSubfilters
+              className="home-discovery-panels"
+              summaryClassName=""
+              labelEyebrow="Thiên bảng hơi thở"
+              labelStrong="Thịnh hành · gợi ý đạo hữu"
+            >
+              <Suspense fallback={<DiscoveryRailSkeleton />} key={`trending-${trendPeriod}`}>
+                <TrendingSection period={trendPeriod} linkParams={trendLinkParams} />
+              </Suspense>
+              <HomeRecommendationsPanel />
+            </RankingsSubfilters>
+            {/* Sibling comments rail — slot stays even if rail returns null (teaser fallback). */}
+            <HomeSocialSlot
+              commentsRail={
+                <Suspense fallback={null}>
+                  <RecentCommentsRail limit={10} />
+                </Suspense>
+              }
+            />
+          </div>
+        )}
+
+        {/* Cultivation above sticky catalog — never under sticky "Danh sách truyện" chrome. */}
+        {!isSearchActive ? (
+          <div className="home-cultivation-slot">
+            <CultivationPanel />
+          </div>
+        ) : null}
+
+        {/* Sticky catalog panel: filters + fixed-height infinite scroll (footer stays reachable below). */}
+        <div className="library-sticky-panel">
+          {categories.length > 0 ? (
+            <nav className="filters category-row library-sticky-chips" aria-label="Categories">
+              <a className={`chip ${!params.category ? "chip-active" : ""}`} href={`/?${buildQuery({ q: params.q, hot: params.hot, completed: params.completed, minChapters: params.minChapters, maxChapters: params.maxChapters, hasPolished: params.hasPolished, hasAudio: params.hasAudio, sort: params.sort })}`}>
+                Tất cả
+              </a>
+              {categories.map((category) => (
+                <a
+                  className={`chip ${params.category === category.slug ? "chip-active" : ""}`}
+                  href={`/?${buildQuery({ q: params.q, hot: params.hot, completed: params.completed, category: category.slug, minChapters: params.minChapters, maxChapters: params.maxChapters, hasPolished: params.hasPolished, hasAudio: params.hasAudio, sort: params.sort })}`}
+                  key={category.id}
+                >
+                  {category.name}
+                  <span className="chip-count">{category.storyCount}</span>
+                </a>
+              ))}
+              <Link className="chip category-row-more" href="/categories">
                 <Layers3 size={15} />
-                Sắp xếp thư viện
-              </summary>
+                Tất cả thể loại
+              </Link>
+            </nav>
+          ) : null}
+
+          {!isSearchActive ? (
+            <div className="library-sticky-toolbar" aria-label="Sắp xếp thư viện">
               <LibrarySortChips
                 currentSort={params.sort}
                 hrefForSort={(sort) =>
@@ -320,40 +366,18 @@ export default async function Home({ searchParams }: HomeProps) {
                   })
                 }
               />
-            </details>
-            <RankingsSubfilters
-              className="home-discovery-panels"
-              summaryClassName=""
-              labelEyebrow="Khám phá"
-              labelStrong="Đang theo dõi · thịnh hành · gợi ý"
-            >
-              <FollowedStoriesPanel />
-              <Suspense fallback={<DiscoveryRailSkeleton />} key={`trending-${trendPeriod}`}>
-                <TrendingSection period={trendPeriod} linkParams={trendLinkParams} />
-              </Suspense>
-              <HomeRecommendationsPanel />
-            </RankingsSubfilters>
-          </>
-        )}
+            </div>
+          ) : null}
 
-        <StoryLibrary
-          key={libraryKey}
-          initialPage={stories}
-          mode={isSearchActive ? "search" : "default"}
-          query={{ q: queryText, author: authorText, hot: params.hot, completed: params.completed, category: params.category, minChapters: params.minChapters, maxChapters: params.maxChapters, hasPolished: params.hasPolished, hasAudio: params.hasAudio, sort: params.sort }}
-        />
-
-        {!isSearchActive ? (
-          <details className="home-discovery-more">
-            <summary>
-              <span className="eyebrow">Khám phá thêm</span>
-              <strong>Rail polish & cập nhật</strong>
-            </summary>
-            <Suspense fallback={<DiscoveryRailSkeleton />}>
-              <DiscoverySection />
-            </Suspense>
-          </details>
-        ) : null}
+          <StoryLibrary
+            key={libraryKey}
+            initialPage={stories}
+            mode={isSearchActive ? "search" : "default"}
+            showContinueSection={false}
+            showCultivationPanel={false}
+            query={{ q: queryText, author: authorText, hot: params.hot, completed: params.completed, category: params.category, minChapters: params.minChapters, maxChapters: params.maxChapters, hasPolished: params.hasPolished, hasAudio: params.hasAudio, sort: params.sort }}
+          />
+        </div>
       </div>
     </main>
   );

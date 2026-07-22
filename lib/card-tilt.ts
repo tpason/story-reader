@@ -21,7 +21,8 @@ export function isCardTiltEnabled() {
   if (typeof window === "undefined") return false;
   if (prefersReducedMotion()) return false;
   if (window.matchMedia(`(max-width: ${COMPACT_MAX_WIDTH}px)`).matches) return false;
-  if (readReaderPerformanceMode() === "battery_saver") return false;
+  // Calm default: pointer tilt only when user opts into full decorative FX.
+  if (readReaderPerformanceMode() !== "full_effects") return false;
   if (isLowEndConnection()) return false;
   return true;
 }
