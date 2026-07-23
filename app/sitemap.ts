@@ -3,17 +3,14 @@ import { getSiteUrl } from "@/lib/metadata";
 import { listCategories, listStoriesCursor } from "@/lib/stories";
 import { storyHref } from "@/lib/urls";
 
+/** Public marketing/browse URLs only — no auth or personal shelves. */
 const STATIC_PATHS = [
   "/",
   "/discover",
   "/rankings",
-  "/following",
   "/updates",
-  "/reading-history",
   "/categories",
-  "/account",
-  "/login",
-  "/signup",
+  "/dao-luan",
 ];
 
 // DB is not available during `docker build`; generate sitemap at request time instead.

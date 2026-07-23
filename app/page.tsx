@@ -37,6 +37,9 @@ export const metadata: Metadata = {
   description: SITE_DESCRIPTION,
   alternates: { canonical: "/" },
   openGraph: {
+    type: "website",
+    locale: "vi_VN",
+    siteName: SITE_NAME,
     title: SITE_NAME,
     description: SITE_OG_DESCRIPTION,
     url: "/",
