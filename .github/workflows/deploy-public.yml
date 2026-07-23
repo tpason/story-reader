@@ -1,10 +1,10 @@
 # Deploy Linh Quyển reader to VPS on push/merge to main.
 #
-# Required GitHub Actions secret (story-reader repo):
-#   VPS_SSH_KEY  — private key for SSH to VPS
-# Optional:
-#   VPS_HOST     — default root@167.233.211.214
-#   VPS_PATH     — default /opt/linhquyen
+# Fast path: build Next once on GHA → rsync .next → VPS only packages the image
+# (no second `next build`). ISR pages warm against live Postgres after start.
+#
+# Required secret: VPS_SSH_KEY
+# Optional: VPS_HOST (default root@167.233.211.214), VPS_PATH (default /opt/linhquyen)
 name: Deploy public reader
 
 on:
@@ -17,8 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Gate on GHA RAM before burning the 4GB VPS on a broken Next build.
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,12 +35,6 @@ jobs:
           NEXT_PUBLIC_SITE_URL: https://linhquyen.cc
         run: npm run build
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
       - name: Start SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -56,7 +49,7 @@ jobs:
           HOST="${HOST_SPEC#*@}"
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts
 
-      - name: Rsync story_reader + rebuild
+      - name: Rsync + package image (prebuilt) + warm ISR
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_PATH: ${{ secrets.VPS_PATH }}
@@ -64,33 +57,42 @@ jobs:
           set -euo pipefail
           HOST="${VPS_HOST:-root@167.233.211.214}"
           PATH_REMOTE="${VPS_PATH:-/opt/linhquyen}"
+          # Include .next from GHA build; drop cache to keep transfer ~100MB.
           rsync -az --delete \
-            --exclude node_modules --exclude .next --exclude .git \
+            --exclude node_modules --exclude .git \
             --exclude .claude --exclude .agent --exclude .agents \
             --exclude test-results --exclude e2e-report --exclude .cache \
+            --exclude .next/cache \
+            --exclude public/covers \
             ./ "${HOST}:${PATH_REMOTE}/story_reader/"
-          # Classic builder + compose network so ISR can reach postgres.
-          # BuildKit rejects --network=linhquyen-public_default (broke CI deploy).
-          # Never docker-rm the running reader on failure (avoids production 502).
           ssh -o BatchMode=yes "$HOST" \
             "set -euo pipefail
              cd $(printf %q "$PATH_REMOTE")
-             PASS=\$(grep -E '^POSTGRES_PASSWORD=' .env.public | head -1 | cut -d= -f2-)
              SITE=\$(grep -E '^NEXT_PUBLIC_SITE_URL=' .env.public | head -1 | cut -d= -f2-)
              WS=\$(grep -E '^NEXT_PUBLIC_READER_WS_URL=' .env.public | head -1 | cut -d= -f2- || true)
              export DOCKER_BUILDKIT=0
              if ! docker build \
-               --network=linhquyen-public_default \
                --build-arg NEXT_PUBLIC_SITE_URL=\"\$SITE\" \
                --build-arg NEXT_PUBLIC_READER_WS_URL=\"\$WS\" \
-               --build-arg STORY_DATABASE_URL=\"postgresql://betterbox:\${PASS}@postgres:5432/betterbox_story\" \
+               --build-arg PREBUILT=1 \
                -t linhquyen-public-story-reader:latest \
                -f story_reader/Dockerfile \
                story_reader; then
-               echo '[deploy] build failed — leaving existing reader container intact' >&2
+               echo '[deploy] image package failed — leaving existing reader intact' >&2
                exit 1
              fi
              docker compose -f docker-compose.public.yml --env-file .env.public \
-               up -d --no-deps --force-recreate story-reader"
-          ssh -o BatchMode=yes "$HOST" \
-            'for i in 1 2 3 4 5 6 7 8 9 10; do curl -sf http://127.0.0.1:3000/api/health && exit 0; sleep 3; done; exit 1'
+               up -d --no-deps --force-recreate story-reader
+             for i in 1 2 3 4 5 6 7 8 9 10; do
+               curl -sf http://127.0.0.1:3000/api/health >/dev/null && break
+               sleep 2
+             done
+             curl -sf http://127.0.0.1:3000/api/health | head -c 200; echo
+             for pass in 1 2; do
+               for p in / /categories /discover /rankings /updates /dao-luan; do
+                 curl -sf -o /dev/null \"http://127.0.0.1:3000\$p\" || true
+               done
+               sleep 2
+             done
+             curl -s http://127.0.0.1:3000/categories | grep -oE '[0-9]+ thể loại' | head -1 || true
+            "

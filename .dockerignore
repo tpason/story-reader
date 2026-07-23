@@ -1,8 +1,17 @@
-.next
+# Keep .next (minus cache) so PREBUILT=1 can copy CI output into the image.
+.next/cache
 node_modules
 .cache
 .tmp_screens
 .claude
+.agent
+.agents
 .vscode
+.git
+test-results
+e2e-report
 npm-debug.log
-Dockerfile
+# Served from compose volume story_data/covers → /app/public/covers
+public/covers
+*.md
+!README.md

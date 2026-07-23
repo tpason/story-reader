@@ -1,7 +1,4 @@
 import type { NextConfig } from "next";
-import bundleAnalyzer from "@next/bundle-analyzer";
-
-const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "true" });
 
 const nextConfig: NextConfig = {
   typedRoutes: true,
@@ -34,4 +31,13 @@ const nextConfig: NextConfig = {
   }
 };
 
-export default withBundleAnalyzer(nextConfig);
+// ponytail: analyzer is a devDependency — only require when ANALYZE=true so
+// production images can use `npm ci --omit=dev`.
+function withOptionalAnalyzer(config: NextConfig): NextConfig {
+  if (process.env.ANALYZE !== "true") return config;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const withBundleAnalyzer = require("@next/bundle-analyzer")({ enabled: true });
+  return withBundleAnalyzer(config);
+}
+
+export default withOptionalAnalyzer(nextConfig);
