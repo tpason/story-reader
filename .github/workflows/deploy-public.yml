@@ -88,11 +88,13 @@ jobs:
                sleep 2
              done
              curl -sf http://127.0.0.1:3000/api/health | head -c 200; echo
-             for pass in 1 2; do
-               for p in / /categories /discover /rankings /updates /dao-luan; do
-                 curl -sf -o /dev/null \"http://127.0.0.1:3000\$p\" || true
-               done
-               sleep 2
+             TOKEN=\$(grep -E '^READER_REALTIME_TOKEN=' .env.public | head -1 | cut -d= -f2-)
+             if [ -n \"\$TOKEN\" ]; then
+               curl -sf -X POST -H \"Authorization: Bearer \$TOKEN\" \
+                 http://127.0.0.1:3000/api/admin/revalidate >/dev/null || true
+             fi
+             for p in / /categories /discover /rankings /updates /dao-luan; do
+               curl -sf -o /dev/null \"http://127.0.0.1:3000\$p\" || true
              done
              curl -s http://127.0.0.1:3000/categories | grep -oE '[0-9]+ thể loại' | head -1 || true
             "
