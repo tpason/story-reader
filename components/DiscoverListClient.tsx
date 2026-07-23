@@ -10,6 +10,7 @@ import {
   discoveryPolishedChapterLabel
 } from "@/lib/discovery-labels";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
+import { resolveStoryStatusBadge } from "@/lib/story-status";
 import type { StoryDiscoveryItem } from "@/lib/types";
 import { storyHref } from "@/lib/urls";
 
@@ -58,7 +59,7 @@ export function DiscoverListClient({ items, kind }: DiscoverListClientProps) {
               {story.polishedChapterCount > 0 ? (
                 <span>{discoveryPolishedChapterLabel(story.polishedChapterCount)}</span>
               ) : null}
-              {story.isCompleted ? <span>Hoàn thành</span> : null}
+              {resolveStoryStatusBadge(story).completed ? <span>Hoàn thành</span> : null}
             </div>
           </div>
         </Link>

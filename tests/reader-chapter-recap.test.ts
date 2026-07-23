@@ -3,7 +3,13 @@ import { describe, it } from "node:test";
 import { buildPreviousChapterRecap } from "../lib/reader-chapter-recap.ts";
 import { buildGlossaryIndex, lookupGlossarySelection } from "../lib/reader-glossary.ts";
 import { buildQuoteShareText } from "../lib/reader-share.ts";
-import { resolveReaderRestoreTarget, shouldOfferResumeHint } from "../lib/reader-resume.ts";
+import {
+  clearReaderChapterForceTop,
+  markReaderChapterStart,
+  readerForceTopKey,
+  resolveReaderRestoreTarget,
+  shouldOfferResumeHint
+} from "../lib/reader-resume.ts";
 
 describe("reader chapter recap", () => {
   it("returns null for empty recap input", () => {
@@ -81,5 +87,40 @@ describe("reader resume", () => {
       }),
       { kind: "scroll", top: 420 }
     );
+  });
+
+  it("clears force-top so swipe-back can resume paragraph", () => {
+    const session = new Map<string, string>();
+    (globalThis as { window?: Window & typeof globalThis }).window = {
+      sessionStorage: {
+        getItem: (key: string) => session.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+          session.set(key, value);
+        },
+        removeItem: (key: string) => {
+          session.delete(key);
+        },
+        clear: () => session.clear(),
+        key: () => null,
+        length: 0
+      }
+    } as Window & typeof globalThis;
+
+    try {
+      markReaderChapterStart("story-a", 12);
+      assert.equal(session.get(readerForceTopKey("story-a", 12)), "true");
+      clearReaderChapterForceTop("story-a", 12);
+      assert.equal(session.get(readerForceTopKey("story-a", 12)), undefined);
+      assert.deepEqual(
+        resolveReaderRestoreTarget({
+          forceTop: false,
+          localParagraph: 18,
+          localScroll: 2400
+        }),
+        { kind: "paragraph", paragraphIndex: 18 }
+      );
+    } finally {
+      delete (globalThis as { window?: Window & typeof globalThis }).window;
+    }
   });
 });

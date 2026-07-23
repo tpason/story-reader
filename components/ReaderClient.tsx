@@ -149,7 +149,9 @@ import { useStoryContentSearch } from "@/hooks/useStoryContentSearch";
 import { readReaderPageColumns, writeReaderPageColumns, type ReaderPageColumns } from "@/lib/reader-page-columns";
 import type { StoryContentSearchHit } from "@/lib/reader-story-search";
 import {
+  clearReaderChapterForceTop,
   dismissResumeHint,
+  markReaderChapterStart,
   resolveReaderRestoreTarget,
   shouldOfferResumeHint,
   writeResumeNavigationTarget,
@@ -440,6 +442,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const activePayload = cachedPayload ?? payload;
   const activePayloadRef = useRef(activePayload);
   activePayloadRef.current = activePayload;
+  const flushVisibleReadingPositionRef = useRef<() => void>(() => undefined);
   const [bilingualPrefs, setBilingualPrefs] = useState<ReaderBilingualPrefs>(() => readReaderBilingualPrefs());
   const supportsBilingual = useMemo(() => supportsBilingualReader(activePayload.story.sourceCode), [activePayload.story.sourceCode]);
   const bilingualQueryOptions = useMemo(
@@ -1589,6 +1592,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         const next = tailNextChapter ?? activePayload.nextChapter;
         if (next) {
           event.preventDefault();
+          // Keep prior keyboard-next behavior (no force-top) — resume if chapter has progress.
+          flushVisibleReadingPositionRef.current();
           router.push(storyHref(activePayload.story, next.chapterNumber));
         }
         return;
@@ -1602,6 +1607,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         }
         if (activePayload.previousChapter) {
           event.preventDefault();
+          flushVisibleReadingPositionRef.current();
+          clearReaderChapterForceTop(activePayload.story.id, activePayload.previousChapter.chapterNumber);
           router.push(storyHref(activePayload.story, activePayload.previousChapter.chapterNumber));
         }
         return;
@@ -1623,6 +1630,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         }
         if (activePayload.nextChapter) {
           event.preventDefault();
+          flushVisibleReadingPositionRef.current();
           router.push(storyHref(activePayload.story, activePayload.nextChapter.chapterNumber));
         }
       } else if (event.key === "ArrowLeft") {
@@ -1633,6 +1641,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         }
         if (activePayload.previousChapter) {
           event.preventDefault();
+          flushVisibleReadingPositionRef.current();
+          clearReaderChapterForceTop(activePayload.story.id, activePayload.previousChapter.chapterNumber);
           router.push(storyHref(activePayload.story, activePayload.previousChapter.chapterNumber));
         }
       } else if (event.key === "b" || event.key === "B") {
@@ -3206,6 +3216,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       nextPayload
     );
     window.history.replaceState(null, "", storyHref(nextPayload.story, nextPayload.chapter.chapterNumber));
+    // Allow restore effect to re-run for this chapter (paragraph resume or force-top).
+    restoredScrollKeyRef.current = null;
+    // Optimistic top; restore effect repositions when a saved paragraph/scroll exists.
     scrollPageTo(0);
   }
 
@@ -3217,6 +3230,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       return;
     }
     const href = storyHref(current.story, nextChapter.chapterNumber);
+    flushVisibleReadingPosition();
     setInlineChapters([]);
     setChapterTransitionDirection("next");
     setChapterTransitionTrigger((t) => t + 1);
@@ -3324,7 +3338,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setMobileMenuOpen(false);
     queryClient.setQueryData(readerQueryKeys.chapter(nextPayload.story.id, nextPayload.chapter.chapterNumber), nextPayload);
     window.history.replaceState(null, "", storyHref(nextPayload.story, chapterNumber));
-    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+    // Parity with applySoftChapterNav: let restore effect land (paragraph resume or force-top).
+    // Instant top — smooth scrollTo(0) races restore and pinned offline previous at top.
+    restoredScrollKeyRef.current = null;
+    scrollPageTo(0);
   }
 
   function showSwipeNotice(message: string, durationMs = 1100) {
@@ -3375,6 +3392,22 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     void navigateBySwipe(direction);
   }
 
+  function flushVisibleReadingPosition() {
+    if (typeof window === "undefined" || isPageLayout) return;
+    const { scrollTop } = getPageScrollMetrics();
+    const visible = visibleChapterRef.current;
+    const storyId = activePayloadRef.current.story.id;
+    const scroll = Math.round(scrollTop);
+    window.localStorage.setItem(readerScrollPositionKey(storyId, visible.chapterNumber), String(scroll));
+    window.localStorage.setItem(readerParagraphPositionKey(storyId, visible.chapterNumber), String(visible.paragraphIndex));
+    lastSavedLocalPositionRef.current = {
+      scroll,
+      paragraph: visible.paragraphIndex,
+      chapter: visible.chapterNumber
+    };
+  }
+  flushVisibleReadingPositionRef.current = flushVisibleReadingPosition;
+
   async function navigateBySwipe(direction: "previous" | "next") {
     const current = activePayloadRef.current;
     const targetChapter = direction === "previous" ? current.previousChapter : current.nextChapter;
@@ -3383,10 +3416,18 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       return;
     }
 
+    // Persist mid-chapter before soft/hard leave — soft nav does not fire pagehide.
+    flushVisibleReadingPosition();
+
     const href = storyHref(current.story, targetChapter.chapterNumber);
     setChapterTransitionDirection(direction === "next" ? "next" : "prev");
     setChapterTransitionTrigger((t) => t + 1);
-    markChapterListNavigation(targetChapter.chapterNumber);
+    // Next → start of chapter. Previous → resume saved position (accidental swipe-back).
+    if (direction === "next") {
+      markChapterListNavigation(targetChapter.chapterNumber);
+    } else {
+      clearReaderChapterForceTop(current.story.id, targetChapter.chapterNumber);
+    }
     showSwipeNotice(direction === "previous" ? "Chương trước" : "Chương sau");
 
     if (!navigator.onLine && cachedChapterNumbers.has(targetChapter.chapterNumber)) {
@@ -3528,7 +3569,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }
 
   function markChapterListNavigation(chapterNumber: number) {
-    window.sessionStorage.setItem(`reader:force-top:${activePayload.story.id}:${chapterNumber}`, "true");
+    markReaderChapterStart(activePayload.story.id, chapterNumber);
   }
 
   function renderChapterSidebarLink(chapter: ChapterSummary, virtualStyle?: CSSProperties) {
@@ -3790,7 +3831,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       <ReaderEngagementPrompt
         story={activePayload.story}
         chapterNumber={activePayload.chapter.chapterNumber}
-        suppressed={Boolean(freshChapterHint)}
+        suppressed={Boolean(freshChapterHint) || focusModeEnabled}
       />
 
       <ReaderOnboardingCoach compact={compactReader} />
@@ -3957,9 +3998,11 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               href={activePayload.previousChapter ? storyHref(activePayload.story, activePayload.previousChapter.chapterNumber) : "#"}
               onClick={(event) => {
                 if (!activePayload.previousChapter) { event.preventDefault(); return; }
+                flushVisibleReadingPosition();
                 setChapterTransitionDirection("prev");
                 setChapterTransitionTrigger((t) => t + 1);
-                markChapterListNavigation(activePayload.previousChapter.chapterNumber);
+                // Resume mid-chapter — do not force-top (same as swipe previous).
+                clearReaderChapterForceTop(activePayload.story.id, activePayload.previousChapter.chapterNumber);
                 maybeOpenCachedChapter(event, activePayload.previousChapter.chapterNumber);
               }}
             >
@@ -3990,6 +4033,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               href={activePayload.nextChapter ? storyHref(activePayload.story, activePayload.nextChapter.chapterNumber) : "#"}
               onClick={(event) => {
                 if (!activePayload.nextChapter) { event.preventDefault(); return; }
+                flushVisibleReadingPosition();
                 setChapterTransitionDirection("next");
                 setChapterTransitionTrigger((t) => t + 1);
                 markChapterListNavigation(activePayload.nextChapter.chapterNumber);
@@ -5453,7 +5497,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 className="nav-card nav-card--prev"
                 aria-disabled={!activePayload.previousChapter}
                 href={activePayload.previousChapter ? storyHref(activePayload.story, activePayload.previousChapter.chapterNumber) : "#"}
-                onClick={(event) => maybeOpenCachedChapter(event, activePayload.previousChapter?.chapterNumber)}
+                onClick={(event) => {
+                  if (!activePayload.previousChapter) return;
+                  flushVisibleReadingPosition();
+                  clearReaderChapterForceTop(activePayload.story.id, activePayload.previousChapter.chapterNumber);
+                  maybeOpenCachedChapter(event, activePayload.previousChapter.chapterNumber);
+                }}
               >
                 <ChevronLeft size={18} />
                 <span>
@@ -5468,7 +5517,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 className="nav-card nav-card--next"
                 aria-disabled={!tailNextChapter}
                 href={tailNextChapter ? storyHref(activePayload.story, tailNextChapter.chapterNumber) : "#"}
-                onClick={(event) => maybeOpenCachedChapter(event, tailNextChapter?.chapterNumber)}
+                onClick={(event) => {
+                  if (!tailNextChapter) return;
+                  // Preserve prior footer-next behavior: no force-top (resume if progress exists).
+                  flushVisibleReadingPosition();
+                  maybeOpenCachedChapter(event, tailNextChapter.chapterNumber);
+                }}
               >
                 <StoryCover
                   src={activePayload.story.coverImageUrl}

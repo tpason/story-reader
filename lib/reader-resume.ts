@@ -31,6 +31,22 @@ export function shouldOfferResumeHint(
 const PARAGRAPH_POSITION_PREFIX = "reader:paragraph-position";
 const BOOKMARK_SCROLL_PREFIX = "reader:bookmark-scroll";
 
+export function readerForceTopKey(storyId: string, chapterNumber: number) {
+  return `reader:force-top:${storyId}:${chapterNumber}`;
+}
+
+/** TOC / intentional "start this chapter" — restore lands at top. */
+export function markReaderChapterStart(storyId: string, chapterNumber: number) {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(readerForceTopKey(storyId, chapterNumber), "true");
+}
+
+/** Swipe/prev back — clear force-top so saved paragraph/scroll can restore. */
+export function clearReaderChapterForceTop(storyId: string, chapterNumber: number) {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(readerForceTopKey(storyId, chapterNumber));
+}
+
 /** Restore reading position when jumping from library / resume bar. */
 export function writeResumeNavigationTarget(
   storyId: string,
@@ -38,7 +54,7 @@ export function writeResumeNavigationTarget(
   target: { scrollPosition?: number; paragraphIndex?: number | null }
 ) {
   if (typeof window === "undefined") return;
-  window.sessionStorage.removeItem(`reader:force-top:${storyId}:${chapterNumber}`);
+  clearReaderChapterForceTop(storyId, chapterNumber);
   if (target.paragraphIndex != null && target.paragraphIndex > 0) {
     window.localStorage.setItem(`${PARAGRAPH_POSITION_PREFIX}:${storyId}:${chapterNumber}`, String(target.paragraphIndex));
     window.sessionStorage.removeItem(`${BOOKMARK_SCROLL_PREFIX}:${storyId}:${chapterNumber}`);

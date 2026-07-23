@@ -7,6 +7,7 @@ import { StoryCover } from "@/components/StoryCover";
 import { useCardTiltHandlers } from "@/hooks/useCardTiltHandlers";
 import { storyDisplayDescription, storyCategoryLabel } from "@/lib/story-description";
 import { formatStoryUpdatedLabel } from "@/lib/content-timestamps";
+import { resolveStoryStatusBadge } from "@/lib/story-status";
 import type { StorySummary } from "@/lib/types";
 import { storyHref } from "@/lib/urls";
 
@@ -137,7 +138,7 @@ export const StoryCard = memo(function StoryCard({
             <span className="story-meta-time">{formatStoryUpdatedLabel(story.updatedAt)}</span>
           ) : null}
           {storyHistory ? <span>Tu luyện tiếp {storyHistory.chapterNumber}</span> : null}
-          {story.isCompleted ? <span>Hoàn thành</span> : null}
+          {resolveStoryStatusBadge(story).completed ? <span>Hoàn thành</span> : null}
           {story.rankPosition ? <span>#{story.rankPosition}</span> : null}
         </div>
         {adminEditForCard?.field === "description" ? (

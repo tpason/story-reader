@@ -18,6 +18,7 @@ import {
 } from "@/lib/discovery-labels";
 import { prefetchStorySummaryQuery } from "@/lib/reader-query";
 import { storyDisplayDescription } from "@/lib/story-description";
+import { resolveStoryStatusBadge } from "@/lib/story-status";
 import type { StoryDiscoveryItem } from "@/lib/types";
 import { storyHref } from "@/lib/urls";
 
@@ -130,7 +131,7 @@ function DiscoveryGroup({
                   {story.polishedChapterCount > 0 ? (
                     <span>{discoveryPolishedChapterLabel(story.polishedChapterCount)}</span>
                   ) : null}
-                  {story.isCompleted ? <span>Hoàn thành</span> : null}
+                  {resolveStoryStatusBadge(story).completed ? <span>Hoàn thành</span> : null}
                 </div>
               </div>
             </Link>

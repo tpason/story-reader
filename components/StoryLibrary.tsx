@@ -13,6 +13,7 @@ import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { storyHref } from "@/lib/urls";
 import { storyDisplayDescription, storyCategoryLabel } from "@/lib/story-description";
 import { formatRelativeActivity, formatStoryUpdatedLabel } from "@/lib/content-timestamps";
+import { resolveStoryStatusBadge } from "@/lib/story-status";
 import { prefetchStorySummaryQuery } from "@/lib/reader-query";
 import { useAppSelector } from "@/lib/store-hooks";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
@@ -189,7 +190,7 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
           <span>{story.totalChapters} chương</span>
           {updatedLabel ? <span className="story-meta-time">{updatedLabel}</span> : null}
           {storyHistory ? <span>Tu luyện tiếp {storyHistory.chapterNumber}</span> : null}
-          {story.isCompleted ? <span>Hoàn thành</span> : null}
+          {resolveStoryStatusBadge(story).completed ? <span>Hoàn thành</span> : null}
           <StoryRankMeta story={story} compact />
         </div>
         {adminEditForCard?.field === "description" ? (

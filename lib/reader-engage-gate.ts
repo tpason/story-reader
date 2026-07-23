@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { READER_ENGAGE_MIN_CHAPTER } from "@/lib/reader-engagement";
 
-const ENGAGE_DWELL_MS = 90_000;
-const ENGAGE_SCROLL_PERCENT = 40;
+// Calm reading: wait longer / deeper before surfacing follow/push chrome.
+const ENGAGE_DWELL_MS = 150_000;
+const ENGAGE_SCROLL_PERCENT = 55;
 
 export function useReaderEngageGate(chapterNumber: number) {
   const [scrollPercent, setScrollPercent] = useState(0);

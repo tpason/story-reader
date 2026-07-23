@@ -10151,3 +10151,12 @@ html[data-xi-theme="dark"] .reader-shell .story-rating-star:not(.story-rating-st
     padding: 0 16px;
   }
 }
+
+/* P0 calm — hide engagement only (not onboarding: must stay dismissable). Reader-scoped. */
+.reader-shell.reader-shell-chrome-hidden .reader-engagement-prompt,
+.reader-shell.reader-shell-focus-mode .reader-engagement-prompt {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
