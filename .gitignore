@@ -34,7 +34,9 @@ playwright/.cache/
 *_bk.*
 *.bak
 
-# Frontend media assets are kept local/provisioned separately.
+# Frontend media assets are kept local / provisioned on VPS
+# (docker volume story_data/reader-assets → /app/public/assets).
+# Do not rely on CI rsync for these — missing GLBs crash desktop WebGL.
 public/assets/
 public/background-audio/
 public/covers/*

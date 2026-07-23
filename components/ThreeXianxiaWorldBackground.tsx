@@ -2,6 +2,7 @@
 
 import { Canvas } from "@react-three/fiber";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { SafeGltfBoundary } from "@/components/SafeGltfBoundary";
 import { XianxiaScene } from "./xianxia-background/XianxiaScene";
 import type { TimeOfDay } from "./xianxia-background/sceneConfig";
 import type { SceneQualityTier } from "./xianxia-background/sceneConfig";
@@ -117,9 +118,11 @@ export function ThreeXianxiaWorldBackground({ timeOfDay }: ThreeXianxiaWorldBack
         }}
         style={{ background: CANVAS_BG[timeOfDay] }}
       >
-        <Suspense fallback={null}>
-          <XianxiaScene timeOfDay={timeOfDay} qualityTier={qualityTier} />
-        </Suspense>
+        <SafeGltfBoundary label="xianxia-scene">
+          <Suspense fallback={null}>
+            <XianxiaScene timeOfDay={timeOfDay} qualityTier={qualityTier} />
+          </Suspense>
+        </SafeGltfBoundary>
       </Canvas>
     </div>
   );

@@ -64,7 +64,9 @@ jobs:
             --exclude test-results --exclude e2e-report --exclude .cache \
             --exclude .next/cache \
             --exclude public/covers \
+            --exclude public/assets \
             ./ "${HOST}:${PATH_REMOTE}/story_reader/"
+          # reader-assets live on the VPS (gitignored). Never --delete them from CI.
           ssh -o BatchMode=yes "$HOST" \
             "set -euo pipefail
              cd $(printf %q "$PATH_REMOTE")

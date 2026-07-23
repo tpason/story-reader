@@ -7,6 +7,7 @@ import { BlendFunction, KernelSize } from "postprocessing";
 import { AdditiveBlending, MathUtils, Mesh, Vector3 } from "three";
 import { ImageLayer } from "./ImageLayer";
 import { MovingLayer } from "./MovingLayer";
+import { SafeGltfBoundary } from "@/components/SafeGltfBoundary";
 import { FlyingCranes } from "./FlyingCranes";
 import { WildAnimals } from "./WildAnimals";
 import { FlyingButterflies } from "./FlyingButterflies";
@@ -270,11 +271,23 @@ export function XianxiaScene({ timeOfDay, qualityTier = "full" }: XianxiaScenePr
         blendMode={AdditiveBlending}
       />
 
-      {!isPhone && <FlyingCranes density={isFull ? "full" : "lite"} />}
+      {!isPhone && (
+        <SafeGltfBoundary label="cranes">
+          <FlyingCranes density={isFull ? "full" : "lite"} />
+        </SafeGltfBoundary>
+      )}
       {/* Mid+full desktop: butterflies / carrot / parrots. Phone keeps them off for heat. */}
-      {!isPhone && <WildAnimals />}
+      {!isPhone && (
+        <SafeGltfBoundary label="wild-animals">
+          <WildAnimals />
+        </SafeGltfBoundary>
+      )}
       {!isPhone && timeOfDay !== "night" && <FlyingButterflies />}
-      {!isPhone && timeOfDay !== "night" && <FlyingCarrot />}
+      {!isPhone && timeOfDay !== "night" && (
+        <SafeGltfBoundary label="carrot">
+          <FlyingCarrot />
+        </SafeGltfBoundary>
+      )}
       {!isPhone && weather !== "clear" && (
         <FallingWeather
           mode={weather}
