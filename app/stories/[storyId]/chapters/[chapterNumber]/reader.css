@@ -10896,3 +10896,188 @@ html[data-xi-perf="saver"] .reader-topbar-modern .reader-chapter-kicker[data-mar
   border-radius: 10px;
   font-weight: 700;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   UI sweep 2026-07-24 — P1 reader chrome (title / TOC / sheets / buttons)
+   Append-only; measured --reader-mobile-chrome-h already set by ReaderClient.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Unify title-stack for full compact band (kill ≤640 hide-title fight) */
+@media (max-width: 839px) {
+  .reader-title-stack,
+  .reader-topbar .reader-title-stack,
+  .reader-topbar-modern .reader-title-stack {
+    max-width: min(58vw, 360px) !important;
+    gap: 3px !important;
+    min-width: 0;
+  }
+
+  .reader-story-title,
+  .reader-topbar .reader-story-title,
+  .reader-topbar-modern .reader-story-title {
+    display: block !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--reader-ink) !important;
+    -webkit-text-fill-color: var(--reader-ink) !important;
+    background: none !important;
+    opacity: 1 !important;
+    font-size: 12.5px !important;
+    font-weight: 750 !important;
+  }
+
+  .reader-chapter-kicker,
+  .reader-topbar .reader-chapter-kicker,
+  .reader-topbar-modern .reader-chapter-kicker {
+    display: inline-block !important;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  /* padding-top uses JS-measured --reader-mobile-chrome-h (fallback 96px) */
+  .reader-shell {
+    padding-top: var(--reader-mobile-chrome-h, 96px);
+  }
+}
+
+/* Light parchment / bamboo: story title solid ink (no gold gradient clip) */
+.reader-shell[data-theme="light"] .reader-story-title,
+.reader-shell[data-theme="parchment"] .reader-story-title,
+.reader-shell[data-theme="bamboo"] .reader-story-title,
+.reader-shell[data-theme="sepia"] .reader-story-title {
+  background: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: var(--reader-ink) !important;
+  color: var(--reader-ink) !important;
+}
+
+/* Overflow active: gold text alone sinks on parchment — solid pill */
+.reader-overflow-item-active {
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 22%, var(--reader-bg)) !important;
+  color: color-mix(in srgb, #6a4210 70%, var(--reader-ink) 30%) !important;
+  -webkit-text-fill-color: color-mix(in srgb, #6a4210 70%, var(--reader-ink) 30%) !important;
+  border-radius: 10px;
+}
+
+.reader-shell[data-theme="dark"] .reader-overflow-item-active,
+.reader-shell[data-theme="oled"] .reader-overflow-item-active,
+.reader-shell[data-theme="ink-night"] .reader-overflow-item-active {
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 28%, #1c1916) !important;
+  color: #f0d06a !important;
+  -webkit-text-fill-color: #f0d06a !important;
+}
+
+.reader-overflow-group-label {
+  color: color-mix(in srgb, var(--reader-ink) 72%, var(--reader-muted) 28%) !important;
+  opacity: 1 !important;
+}
+
+/* Sheets / dock: opaque enough that labels never wash into mountain */
+@media (max-width: 839px) {
+  .reader-mobile-sheet-panel {
+    background: var(--reader-panel-solid, var(--reader-bg)) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    color: var(--reader-ink) !important;
+  }
+
+  .reader-mobile-sheet-header h2,
+  .reader-mobile-sheet-scroll,
+  .reader-mobile-sheet-scroll label,
+  .reader-mobile-sheet-scroll span,
+  .reader-mobile-sheet-scroll button,
+  .reader-mobile-sheet-scroll a {
+    color: var(--reader-ink);
+    opacity: 1;
+  }
+
+  .reader-mobile-dock button,
+  .reader-mobile-dock a,
+  .reader-mobile-dock .reader-dock-meta,
+  .reader-mobile-dock .reader-dock-meta span {
+    color: var(--reader-ink) !important;
+    -webkit-text-fill-color: var(--reader-ink) !important;
+    opacity: 1 !important;
+  }
+
+  .reader-mobile-dock button,
+  .reader-mobile-dock a {
+    min-width: 0;
+  }
+
+  .reader-mobile-dock button span,
+  .reader-mobile-dock a span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+}
+
+/* Bookmark / nav cards in sheets: long VN titles wrap one line cleanly */
+.reader-mobile-sheet .nav-card-title,
+.reader-mobile-sheet .bookmark-card-title,
+.chapter-sidebar .chapter-list-item-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--reader-ink) !important;
+  opacity: 1 !important;
+}
+
+/* Icon actives on frosted chrome: solid tint under gold/jade */
+.reader-shell .bookmark-reader-button-active,
+.reader-shell .icon-button-active {
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 18%, var(--reader-bg)) !important;
+  color: color-mix(in srgb, #6a4210 55%, var(--reader-ink) 45%) !important;
+}
+
+.reader-shell[data-theme="dark"] .bookmark-reader-button-active,
+.reader-shell[data-theme="oled"] .bookmark-reader-button-active,
+.reader-shell[data-theme="ink-night"] .bookmark-reader-button-active,
+.reader-shell[data-theme="dark"] .icon-button-active,
+.reader-shell[data-theme="oled"] .icon-button-active,
+.reader-shell[data-theme="ink-night"] .icon-button-active {
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 26%, #1c1916) !important;
+  color: #f0d06a !important;
+}
+
+/* Comment ghost / disabled: keep readable muted ink */
+.reader-shell .comment-ghost-button,
+.reader-shell .comment-submit:disabled {
+  opacity: 1 !important;
+  color: color-mix(in srgb, var(--reader-ink) 70%, var(--reader-muted) 30%) !important;
+  -webkit-text-fill-color: color-mix(in srgb, var(--reader-ink) 70%, var(--reader-muted) 30%) !important;
+  background: color-mix(in srgb, var(--reader-bg) 88%, var(--reader-ink) 12%) !important;
+}
+
+/* UI sweep P1b: Đọc tiếp FAB — cream text on parchment was unreadable */
+.reader-shell .reader-continue-fab,
+.reader-shell .reader-continue-fab-active,
+.reader-shell .reader-continue-fab-near-end,
+.reader-floating-actions-portal .reader-continue-fab,
+.reader-floating-actions-portal .reader-continue-fab-active,
+.reader-floating-actions-portal .reader-continue-fab-near-end {
+  background: linear-gradient(135deg, #1a6b5a, #145a4c) !important;
+  border: 1px solid color-mix(in srgb, #f0d06a 45%, #1a6b5a) !important;
+  color: #f7f2ea !important;
+  -webkit-text-fill-color: #f7f2ea !important;
+  box-shadow: 0 12px 28px rgba(26, 107, 90, 0.34) !important;
+}
+
+.reader-shell[data-theme="dark"] .reader-continue-fab,
+.reader-shell[data-theme="oled"] .reader-continue-fab,
+.reader-shell[data-theme="ink-night"] .reader-continue-fab,
+.reader-shell[data-theme="dark"] .reader-continue-fab-active,
+.reader-shell[data-theme="oled"] .reader-continue-fab-active,
+.reader-shell[data-theme="ink-night"] .reader-continue-fab-active {
+  background: linear-gradient(135deg, #c8962e, #8a6418) !important;
+  border-color: #f0d06a !important;
+  color: #1c1610 !important;
+  -webkit-text-fill-color: #1c1610 !important;
+}

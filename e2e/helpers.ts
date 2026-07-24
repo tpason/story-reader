@@ -214,8 +214,11 @@ export async function loadReaderFixture(page: Page, chapterNumber = 1): Promise<
   await page.goto(readerPath, { waitUntil: "domcontentloaded" });
 
   await expect(page.getByText("Không mở được trang đọc")).toHaveCount(0);
-  await expect(page.locator(".reader-shell")).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator('[aria-label="Chapter content"]')).toBeVisible();
+  // Prefer the live shell — soft-nav can leave skeleton shells in the DOM.
+  await expect(page.locator(".reader-shell:not(.reader-shell-skeleton)").first()).toBeVisible({
+    timeout: 15_000
+  });
+  await expect(page.locator('[aria-label="Chapter content"]').first()).toBeVisible();
   await expect(page.locator(".reader-paragraph").first()).toBeVisible();
 
   return {

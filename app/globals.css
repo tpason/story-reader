@@ -28358,3 +28358,355 @@ html[data-xi-page-hidden="1"] .xianxia-css-backdrop .xi-css-cloud {
 .story-detail-hero-progress .chapter-sidebar-heatmap-grid {
   display: none !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   UI sweep 2026-07-24 — P0 token floors + shared contrast/layout
+   Scoped: no mid-file edits; prefer parent-qualified selectors.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* P0: light UI secondary tokens — readable over translucent frost/sky */
+html:not([data-xi-theme="dark"]) {
+  --steel: #5c564e;
+  --muted: #6f6860;
+}
+
+/* P0: kill gradient-clip sink — solid ink/gold floors (keep brand color) */
+html:not([data-xi-theme="dark"]) .page-wrap .eyebrow,
+html:not([data-xi-theme="dark"]) .library-hero-content .eyebrow,
+html:not([data-xi-theme="dark"]) .section-heading-row .eyebrow {
+  background: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: color-mix(in srgb, var(--xi-gold, #c8962e) 78%, var(--charcoal) 22%) !important;
+  color: color-mix(in srgb, var(--xi-gold, #c8962e) 78%, var(--charcoal) 22%) !important;
+}
+
+html:not([data-xi-theme="dark"]) .page-wrap .section-heading-row h2,
+html:not([data-xi-theme="dark"]) .page-wrap .story-detail-copy h1,
+html:not([data-xi-theme="dark"]) .page-wrap .cultivation-heading h2,
+html:not([data-xi-theme="dark"]) .page-wrap .library-title {
+  background: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: var(--ink) !important;
+  color: var(--ink) !important;
+}
+
+[data-xi-theme="dark"] .page-wrap .eyebrow,
+[data-xi-theme="dark"] .library-hero-content .eyebrow,
+[data-xi-theme="dark"] .section-heading-row .eyebrow {
+  background: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: var(--xi-gold-light, #f0d06a) !important;
+  color: var(--xi-gold-light, #f0d06a) !important;
+}
+
+[data-xi-theme="dark"] .page-wrap .section-heading-row h2,
+[data-xi-theme="dark"] .page-wrap .story-detail-copy h1,
+[data-xi-theme="dark"] .page-wrap .cultivation-heading h2,
+[data-xi-theme="dark"] .page-wrap .library-title,
+[data-xi-theme="dark"] .library-hero-content .library-title {
+  background: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: var(--ink) !important;
+  color: var(--ink) !important;
+}
+
+/* Brand wordmark: solid gold fallback (gradient clip can vanish on frost) */
+.topbar .brand > span:last-child,
+.topbar-modern .brand > span:last-child,
+.auth-brand > span:last-child {
+  background: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #b07818 !important;
+  color: #b07818 !important;
+}
+
+[data-xi-theme="dark"] .topbar .brand > span:last-child,
+[data-xi-theme="dark"] .topbar-modern .brand > span:last-child,
+[data-xi-theme="dark"] .auth-brand > span:last-child {
+  -webkit-text-fill-color: var(--xi-gold-light, #f0d06a) !important;
+  color: var(--xi-gold-light, #f0d06a) !important;
+}
+
+/* P0: frosted chips / continue / empty states — secondary text floors */
+.page-wrap .chip:not(.chip-active),
+.page-wrap .continue-card small,
+.page-wrap .continue-card span,
+.page-wrap .notification-empty,
+.page-wrap .empty-state p,
+.page-wrap .followed-kicker,
+.page-wrap .updates-item p,
+.page-wrap .history-item p,
+.page-wrap .discover-list p,
+.page-wrap .rankings-card p,
+.page-wrap .dao-luan-item p {
+  color: var(--steel) !important;
+  opacity: 1 !important;
+}
+
+.page-wrap .chip-active {
+  color: #6a4210 !important;
+  -webkit-text-fill-color: #6a4210 !important;
+}
+
+[data-xi-theme="dark"] .page-wrap .chip-active {
+  color: #f0d06a !important;
+  -webkit-text-fill-color: #f0d06a !important;
+  background:
+    rgba(40, 34, 26, 0.96) padding-box,
+    conic-gradient(from var(--xi-ba, 0deg),
+      transparent 0%, transparent 70%,
+      rgba(238, 190, 58, 0.55) 90%,
+      transparent 100%) border-box !important;
+}
+
+/* P1: home recent chips — allow 2-line title, keep chapter meta */
+.page-wrap .home-recent-chip {
+  max-width: min(18rem, 72vw) !important;
+  align-items: flex-start !important;
+  gap: 6px !important;
+}
+
+.page-wrap .home-recent-chip-title {
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal !important;
+  line-height: 1.25;
+  color: var(--ink) !important;
+}
+
+.page-wrap .home-recent-chip small {
+  margin-top: 1px;
+  color: var(--steel) !important;
+}
+
+/* P1: story mobile CTA — solid fill + readable labels */
+@media (max-width: 839px) {
+  .story-mobile-cta {
+    background: color-mix(in srgb, var(--canvas) 94%, #fff 6%) !important;
+    border-color: color-mix(in srgb, var(--hairline-strong) 70%, var(--xi-gold, #c8962e) 30%) !important;
+  }
+
+  .story-mobile-cta-primary {
+    background: linear-gradient(135deg, #1a6b5a, #145a4c) !important;
+    color: #f7f2ea !important;
+    -webkit-text-fill-color: #f7f2ea !important;
+    box-shadow: 0 8px 18px rgba(26, 107, 90, 0.28) !important;
+    font-size: 13px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-inline: 12px !important;
+  }
+
+  .story-mobile-cta-secondary {
+    background: color-mix(in srgb, var(--canvas) 96%, var(--ink) 4%) !important;
+    color: var(--ink) !important;
+    -webkit-text-fill-color: var(--ink) !important;
+    white-space: nowrap;
+  }
+
+  [data-xi-theme="dark"] .story-mobile-cta {
+    background: rgba(22, 20, 18, 0.96) !important;
+  }
+
+  [data-xi-theme="dark"] .story-mobile-cta-secondary {
+    background: rgba(36, 32, 28, 0.96) !important;
+    color: var(--ink) !important;
+    -webkit-text-fill-color: var(--ink) !important;
+  }
+}
+
+/* P1: description expand aligned to compact breakpoint */
+@media (max-width: 839px) {
+  .story-detail-description-wrap:not(.desc-expanded) .story-detail-description {
+    max-height: 5.5em;
+    overflow: hidden;
+  }
+
+  .story-detail-description-wrap:not(.desc-expanded)::after {
+    content: "";
+    position: absolute;
+    bottom: 1.6rem;
+    left: 0;
+    right: 0;
+    height: 2.5em;
+    background: linear-gradient(to bottom, transparent, var(--canvas, #fff));
+    pointer-events: none;
+  }
+
+  .story-desc-expand-btn {
+    display: inline-block;
+  }
+}
+
+/* P2: auth portal — scroll on all compact heights (not only ≤620) */
+@media (max-width: 839px) {
+  .auth-shell--portal {
+    overflow-y: auto !important;
+    overflow-x: clip;
+  }
+}
+
+.auth-shell--portal .auth-submit:disabled,
+.auth-panel .auth-submit:disabled {
+  color: #e8d5a8 !important;
+  -webkit-text-fill-color: #e8d5a8 !important;
+  background: rgba(80, 60, 36, 0.72) !important;
+  border-color: rgba(200, 150, 46, 0.35) !important;
+  opacity: 1 !important;
+}
+
+.auth-shell--portal .auth-heading h1,
+.auth-panel .auth-heading h1 {
+  background: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #f4efe6 !important;
+  color: #f4efe6 !important;
+}
+
+/* P2: identity name — room for Vietnamese display names */
+.identity-copy strong {
+  max-width: min(11rem, 42vw) !important;
+}
+
+.topbar-identity .identity-copy strong,
+.topbar-modern .identity-copy strong {
+  max-width: min(12rem, 36vw) !important;
+}
+
+/* P2: account sticky vs topbar — bridge 840–900 (compact nav still tall) */
+@media (min-width: 840px) and (max-width: 900px) {
+  .topbar-modern {
+    --topbar-sticky-offset: 112px;
+  }
+}
+
+@media (max-width: 839px) {
+  .topbar-modern {
+    --topbar-sticky-offset: 108px;
+  }
+
+  .account-section-nav-shell {
+    top: calc(var(--topbar-sticky-offset, 108px) + 4px);
+  }
+}
+
+/* P2/P4: secondary route cards + CTA rows */
+.page-wrap .updates-item strong,
+.page-wrap .history-item strong,
+.page-wrap .followed-card h3,
+.page-wrap .discover-card h3,
+.page-wrap .rankings-card h3,
+.page-wrap .dao-luan-item strong,
+.page-wrap .category-card h3 {
+  color: var(--ink) !important;
+  opacity: 1 !important;
+}
+
+.page-wrap a.continue-card,
+.page-wrap .history-item a,
+.page-wrap .updates-item a {
+  color: inherit;
+}
+
+.page-wrap .story-card-cta,
+.page-wrap .history-item .btn,
+.page-wrap .updates-item .btn,
+.page-wrap .followed-card .btn {
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 70%, var(--ink) 30%) !important;
+  opacity: 1 !important;
+}
+
+[data-xi-theme="dark"] .page-wrap .story-card-cta,
+[data-xi-theme="dark"] .page-wrap .history-item .btn,
+[data-xi-theme="dark"] .page-wrap .updates-item .btn {
+  color: var(--xi-gold-light, #f0d06a) !important;
+}
+
+/* Library filter chips: avoid nowrap crush on long VN labels */
+@media (max-width: 839px) {
+  .page-wrap .chip {
+    white-space: nowrap;
+    max-width: min(11rem, 46vw);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* UI sweep P3b: auth portal submit — dark ink on gold (white-on-pale-gold sinks) */
+.auth-shell--portal .auth-submit.auth-portal-submit {
+  background: linear-gradient(135deg, #c8962e 0%, #e2bc72 55%, #d4a04a 100%) !important;
+  color: #1c1610 !important;
+  -webkit-text-fill-color: #1c1610 !important;
+  text-shadow: none !important;
+  font-weight: 820 !important;
+}
+
+.auth-shell--portal .auth-submit.auth-portal-submit:disabled {
+  background: rgba(90, 70, 40, 0.78) !important;
+  color: #f0e2c0 !important;
+  -webkit-text-fill-color: #f0e2c0 !important;
+  opacity: 1 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Zero-loading — cover View Transition + saver neon leftovers (2026-07-24)
+   Kill switch: html[data-xi-vt="off"]
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Destination hero only (list covers arm via JS on click — never static on all cards). */
+html:not([data-xi-perf="saver"]):not([data-xi-vt="off"]):not([data-xi-compact="1"]) .story-cover-vt-hero {
+  view-transition-name: xi-story-cover;
+}
+
+@media (max-width: 839px) {
+  .story-cover-vt-hero {
+    view-transition-name: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-cover-vt-hero {
+    view-transition-name: none !important;
+  }
+}
+
+html[data-xi-vt="off"] .story-cover-vt-hero,
+html[data-xi-vt="off"] [data-story-cover][data-vt-armed="1"] {
+  view-transition-name: none !important;
+}
+
+html[data-xi-vt="off"]::view-transition-group(*),
+html[data-xi-perf="saver"]::view-transition-group(*) {
+  animation: none !important;
+}
+
+::view-transition-old(xi-story-cover),
+::view-transition-new(xi-story-cover) {
+  animation-duration: 280ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  height: 100%;
+  object-fit: cover;
+  overflow: clip;
+}
+
+/* Saver: freeze leftover neon / continuous chrome that still spins on catalog */
+html[data-xi-perf="saver"] .continue-card,
+html[data-xi-perf="saver"] .continue-card-fresh,
+html[data-xi-perf="saver"] .discovery-cover-card-fresh,
+html[data-xi-perf="saver"] .discover-cover-card-fresh,
+html[data-xi-perf="saver"] .followed-card-fresh,
+html[data-xi-perf="saver"] .story-card-fresh,
+html[data-xi-perf="saver"] .home-recent-chip-fresh,
+html[data-xi-perf="saver"] .update-card-fresh,
+html[data-xi-perf="saver"] .auth-panel {
+  animation: none !important;
+}
