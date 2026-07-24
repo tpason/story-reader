@@ -40,16 +40,20 @@ export function ReaderOnboardingCoach({ compact }: ReaderOnboardingCoachProps) {
     <div className="reader-onboarding-coach" role="dialog" aria-modal="true" aria-label="Hướng dẫn đọc">
       <div className="reader-onboarding-coach-card">
         <button type="button" className="reader-onboarding-coach-dismiss" aria-label="Bỏ qua hướng dẫn" onClick={finish}>
-          <X size={16} />
+          <X size={15} />
         </button>
-        <div className="reader-onboarding-coach-icon" aria-hidden="true">
-          <StepIcon size={20} />
+        <div className="reader-onboarding-coach-head">
+          <div className="reader-onboarding-coach-icon" aria-hidden="true">
+            <StepIcon size={18} />
+          </div>
+          <div className="reader-onboarding-coach-copy">
+            <p className="reader-onboarding-coach-eyebrow">
+              Mẹo {stepIndex + 1}/{READER_ONBOARDING_STEPS.length}
+            </p>
+            <h2>{step.title}</h2>
+          </div>
         </div>
-        <p className="reader-onboarding-coach-eyebrow">
-          Mẹo đọc {stepIndex + 1}/{READER_ONBOARDING_STEPS.length}
-        </p>
-        <h2>{step.title}</h2>
-        <p>{step.body}</p>
+        <p className="reader-onboarding-coach-body">{step.body}</p>
         <div className="reader-onboarding-coach-actions">
           <button type="button" className="reader-onboarding-coach-secondary" onClick={finish}>
             Bỏ qua

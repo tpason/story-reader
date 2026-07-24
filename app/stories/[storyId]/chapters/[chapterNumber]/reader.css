@@ -10474,31 +10474,37 @@ html[data-xi-perf="saver"] .reader-topbar-modern .reader-chapter-kicker[data-mar
   max-width: 100%;
 }
 
-/* Mobile mục lục: was clipped because .reader-layout { z-index:2 } sits under
-   .reader-topbar { z-index:60 }, so topbar painted over the drawer even when
-   top offset was raised. Full-viewport overlay + promote stacking when open. */
+/* Mobile mục lục: escape topbar paint (layout z-index:2 < topbar:60).
+   Drop topbar under the drawer, keep title clear of sticky desktop chrome rules,
+   and pad below measured topbar height as a fallback. */
 @media (max-width: 839px) {
   .reader-shell {
     --reader-mobile-chrome-h: 96px;
     padding-top: var(--reader-mobile-chrome-h);
   }
 
+  .reader-shell[data-mobile-toc="open"] .reader-topbar,
+  .reader-shell[data-mobile-toc="open"] .reader-topbar-modern {
+    z-index: 40 !important;
+  }
+
   .reader-shell[data-mobile-toc="open"] .reader-layout {
-    z-index: 80;
+    z-index: 220 !important;
   }
 
   .drawer-backdrop {
-    inset: 0 !important;
-    z-index: 80 !important;
+    inset: var(--reader-mobile-chrome-h, 96px) 0 0 !important;
+    z-index: 220 !important;
   }
 
   .chapter-sidebar {
-    top: 0 !important;
+    /* Sit just under the real topbar box so "Mục lục" cannot be painted over. */
+    top: var(--reader-mobile-chrome-h, 96px) !important;
     bottom: 0 !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
-    padding-top: calc(14px + env(safe-area-inset-top, 0px)) !important;
-    z-index: 81 !important;
+    height: calc(100dvh - var(--reader-mobile-chrome-h, 96px)) !important;
+    max-height: calc(100dvh - var(--reader-mobile-chrome-h, 96px)) !important;
+    padding-top: 14px !important;
+    z-index: 230 !important;
   }
 
   .chapter-sidebar-title-row {
@@ -10506,12 +10512,29 @@ html[data-xi-perf="saver"] .reader-topbar-modern .reader-chapter-kicker[data-mar
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin: 0 0 10px;
+    position: relative !important;
+    top: auto !important;
+    margin: 0 0 12px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    border: 0 !important;
+    z-index: 1;
   }
 
   .chapter-sidebar-title-row .chapter-sidebar-title {
-    margin: 0;
-    border-bottom: 0;
+    position: static !important;
+    top: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    color: var(--reader-ink) !important;
+    font-size: 13px !important;
+    font-weight: 760 !important;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .chapter-sidebar-close {
@@ -10519,6 +10542,57 @@ html[data-xi-perf="saver"] .reader-topbar-modern .reader-chapter-kicker[data-mar
     width: 36px;
     height: 36px;
   }
+}
+
+/* Offline pills: kill global metallic button skin (light fill + washed ink). */
+.reader-shell .offline-chapter-pill,
+.reader-shell button.offline-chapter-pill {
+  overflow: visible !important;
+  border: 1px solid color-mix(in srgb, var(--reader-line) 80%, var(--reader-ink) 20%) !important;
+  background: color-mix(in srgb, var(--reader-bg) 88%, var(--reader-ink) 12%) !important;
+  color: var(--reader-ink) !important;
+  -webkit-text-fill-color: var(--reader-ink) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.reader-shell .offline-chapter-pill::before,
+.reader-shell .offline-chapter-pill::after,
+.reader-shell button.offline-chapter-pill::before,
+.reader-shell button.offline-chapter-pill::after {
+  content: none !important;
+  display: none !important;
+}
+
+.reader-shell .offline-chapter-pill-active,
+.reader-shell button.offline-chapter-pill-active {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 45%, var(--reader-line) 55%) !important;
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 18%, var(--reader-bg) 82%) !important;
+  color: var(--xi-gold-light, #f0d06a) !important;
+  -webkit-text-fill-color: var(--xi-gold-light, #f0d06a) !important;
+}
+
+.reader-shell[data-theme="dark"] .offline-chapter-pill,
+.reader-shell[data-theme="oled"] .offline-chapter-pill,
+.reader-shell[data-theme="ink-night"] .offline-chapter-pill,
+.reader-shell[data-theme="dark"] button.offline-chapter-pill,
+.reader-shell[data-theme="oled"] button.offline-chapter-pill,
+.reader-shell[data-theme="ink-night"] button.offline-chapter-pill {
+  background: color-mix(in srgb, var(--reader-bg) 72%, #fff 8%) !important;
+  color: #f0e9dc !important;
+  -webkit-text-fill-color: #f0e9dc !important;
+  border-color: color-mix(in srgb, #f0e9dc 22%, transparent) !important;
+}
+
+.reader-shell[data-theme="dark"] .offline-chapter-pill-active,
+.reader-shell[data-theme="oled"] .offline-chapter-pill-active,
+.reader-shell[data-theme="ink-night"] .offline-chapter-pill-active,
+.reader-shell[data-theme="dark"] button.offline-chapter-pill-active,
+.reader-shell[data-theme="oled"] button.offline-chapter-pill-active,
+.reader-shell[data-theme="ink-night"] button.offline-chapter-pill-active {
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 28%, var(--reader-bg) 72%) !important;
+  color: #f7e7a8 !important;
+  -webkit-text-fill-color: #f7e7a8 !important;
 }
 
 /* Center ◆ sigil on the heading divider (was bottom:-9px + translateX only). */
@@ -10563,4 +10637,262 @@ html[data-xi-perf="saver"] .reader-topbar-modern .reader-chapter-kicker[data-mar
   text-shadow:
     0 2px 14px rgba(226, 188, 114, 0.48),
     0 0 32px rgba(200, 150, 46, 0.22);
+}
+
+/* Compact coach + dark-readable tips (onboarding / engagement / swipe / fresh / resume). */
+.reader-shell .reader-onboarding-coach {
+  padding: 10px 12px;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  opacity: 1 !important;
+}
+
+.reader-shell .reader-onboarding-coach-card {
+  display: grid;
+  gap: 8px;
+  width: min(360px, 100%);
+  padding: 12px 12px 10px !important;
+  border-radius: 14px !important;
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 28%, var(--reader-line)) !important;
+  background: var(--reader-panel-solid, var(--reader-bg)) !important;
+  color: var(--reader-ink) !important;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.34) !important;
+}
+
+.reader-shell .reader-onboarding-coach-head {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding-right: 36px;
+}
+
+.reader-shell .reader-onboarding-coach-icon {
+  width: 34px !important;
+  height: 34px !important;
+  margin: 0 !important;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 18%, var(--reader-bg)) !important;
+  color: var(--xi-gold-light, #f0d06a) !important;
+}
+
+.reader-shell .reader-onboarding-coach-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.reader-shell .reader-onboarding-coach-eyebrow {
+  margin: 0 !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--reader-ink) 62%, var(--xi-gold, #c8962e) 38%) !important;
+  opacity: 1 !important;
+}
+
+.reader-shell .reader-onboarding-coach-card h2 {
+  margin: 0 !important;
+  font-size: 0.98rem !important;
+  line-height: 1.25;
+  color: var(--reader-ink) !important;
+}
+
+.reader-shell .reader-onboarding-coach-body,
+.reader-shell .reader-onboarding-coach-card > p.reader-onboarding-coach-body {
+  margin: 0 !important;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--reader-ink) 82%, var(--reader-muted) 18%) !important;
+  opacity: 1 !important;
+}
+
+.reader-shell .reader-onboarding-coach-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.reader-shell .reader-onboarding-coach-primary,
+.reader-shell .reader-onboarding-coach-secondary,
+.reader-shell button.reader-onboarding-coach-primary,
+.reader-shell button.reader-onboarding-coach-secondary,
+.reader-shell button.reader-onboarding-coach-dismiss,
+.reader-shell .reader-engagement-push-btn,
+.reader-shell button.reader-engagement-push-btn,
+.reader-shell .reader-engagement-prompt-close,
+.reader-shell button.reader-engagement-prompt-close {
+  overflow: visible !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  min-height: 40px;
+  border-radius: 11px !important;
+}
+
+.reader-shell .reader-onboarding-coach-primary::before,
+.reader-shell .reader-onboarding-coach-primary::after,
+.reader-shell .reader-onboarding-coach-secondary::before,
+.reader-shell .reader-onboarding-coach-secondary::after,
+.reader-shell .reader-onboarding-coach-dismiss::before,
+.reader-shell .reader-onboarding-coach-dismiss::after,
+.reader-shell .reader-engagement-push-btn::before,
+.reader-shell .reader-engagement-push-btn::after,
+.reader-shell .reader-engagement-prompt-close::before,
+.reader-shell .reader-engagement-prompt-close::after {
+  content: none !important;
+  display: none !important;
+}
+
+.reader-shell .reader-onboarding-coach-secondary {
+  border: 1px solid color-mix(in srgb, var(--reader-line) 75%, var(--reader-ink) 25%) !important;
+  background: color-mix(in srgb, var(--reader-bg) 88%, var(--reader-ink) 12%) !important;
+  color: var(--reader-ink) !important;
+  -webkit-text-fill-color: var(--reader-ink) !important;
+}
+
+.reader-shell .reader-onboarding-coach-primary {
+  border: 1px solid color-mix(in srgb, var(--xi-gold, #c8962e) 48%, var(--reader-line)) !important;
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 26%, var(--reader-bg) 74%) !important;
+  color: var(--reader-ink) !important;
+  -webkit-text-fill-color: var(--reader-ink) !important;
+  font-weight: 700;
+}
+
+.reader-shell .reader-onboarding-coach-dismiss {
+  top: 8px !important;
+  right: 8px !important;
+  width: 34px !important;
+  height: 34px !important;
+  min-height: 34px;
+  border: 1px solid color-mix(in srgb, var(--reader-line) 70%, transparent) !important;
+  background: color-mix(in srgb, var(--reader-bg) 90%, var(--reader-ink) 10%) !important;
+  color: var(--reader-ink) !important;
+  -webkit-text-fill-color: var(--reader-ink) !important;
+}
+
+.reader-shell[data-theme="dark"] .reader-onboarding-coach-card,
+.reader-shell[data-theme="oled"] .reader-onboarding-coach-card,
+.reader-shell[data-theme="ink-night"] .reader-onboarding-coach-card,
+.reader-shell[data-theme="dark"] .reader-engagement-prompt,
+.reader-shell[data-theme="oled"] .reader-engagement-prompt,
+.reader-shell[data-theme="ink-night"] .reader-engagement-prompt,
+.reader-shell[data-theme="dark"] .reader-chapter-fresh-hint,
+.reader-shell[data-theme="oled"] .reader-chapter-fresh-hint,
+.reader-shell[data-theme="ink-night"] .reader-chapter-fresh-hint,
+.reader-shell[data-theme="dark"] .reader-swipe-notice,
+.reader-shell[data-theme="oled"] .reader-swipe-notice,
+.reader-shell[data-theme="ink-night"] .reader-swipe-notice,
+.reader-shell[data-theme="dark"] .reader-resume-banner,
+.reader-shell[data-theme="oled"] .reader-resume-banner,
+.reader-shell[data-theme="ink-night"] .reader-resume-banner {
+  background: #1c1916 !important;
+  border-color: color-mix(in srgb, #f0d06a 28%, #3a342c) !important;
+  color: #f2ebe0 !important;
+  opacity: 1 !important;
+}
+
+.reader-shell[data-theme="dark"] .reader-onboarding-coach-card h2,
+.reader-shell[data-theme="oled"] .reader-onboarding-coach-card h2,
+.reader-shell[data-theme="ink-night"] .reader-onboarding-coach-card h2,
+.reader-shell[data-theme="dark"] .reader-engagement-prompt-copy strong,
+.reader-shell[data-theme="oled"] .reader-engagement-prompt-copy strong,
+.reader-shell[data-theme="ink-night"] .reader-engagement-prompt-copy strong,
+.reader-shell[data-theme="dark"] .reader-chapter-fresh-hint-copy strong,
+.reader-shell[data-theme="oled"] .reader-chapter-fresh-hint-copy strong,
+.reader-shell[data-theme="ink-night"] .reader-chapter-fresh-hint-copy strong,
+.reader-shell[data-theme="dark"] .reader-resume-banner-copy strong,
+.reader-shell[data-theme="oled"] .reader-resume-banner-copy strong,
+.reader-shell[data-theme="ink-night"] .reader-resume-banner-copy strong,
+.reader-shell[data-theme="dark"] .reader-swipe-notice,
+.reader-shell[data-theme="oled"] .reader-swipe-notice,
+.reader-shell[data-theme="ink-night"] .reader-swipe-notice {
+  color: #f7f2ea !important;
+  -webkit-text-fill-color: #f7f2ea !important;
+}
+
+.reader-shell[data-theme="dark"] .reader-onboarding-coach-body,
+.reader-shell[data-theme="oled"] .reader-onboarding-coach-body,
+.reader-shell[data-theme="ink-night"] .reader-onboarding-coach-body,
+.reader-shell[data-theme="dark"] .reader-onboarding-coach-eyebrow,
+.reader-shell[data-theme="oled"] .reader-onboarding-coach-eyebrow,
+.reader-shell[data-theme="ink-night"] .reader-onboarding-coach-eyebrow,
+.reader-shell[data-theme="dark"] .reader-engagement-prompt-copy,
+.reader-shell[data-theme="oled"] .reader-engagement-prompt-copy,
+.reader-shell[data-theme="ink-night"] .reader-engagement-prompt-copy,
+.reader-shell[data-theme="dark"] .reader-engagement-prompt-copy span,
+.reader-shell[data-theme="oled"] .reader-engagement-prompt-copy span,
+.reader-shell[data-theme="ink-night"] .reader-engagement-prompt-copy span,
+.reader-shell[data-theme="dark"] .reader-chapter-fresh-hint-copy,
+.reader-shell[data-theme="oled"] .reader-chapter-fresh-hint-copy,
+.reader-shell[data-theme="ink-night"] .reader-chapter-fresh-hint-copy,
+.reader-shell[data-theme="dark"] .reader-resume-banner-copy span,
+.reader-shell[data-theme="oled"] .reader-resume-banner-copy span,
+.reader-shell[data-theme="ink-night"] .reader-resume-banner-copy span {
+  color: #d9d0c2 !important;
+  -webkit-text-fill-color: #d9d0c2 !important;
+  opacity: 1 !important;
+}
+
+.reader-shell[data-theme="dark"] .reader-onboarding-coach-primary,
+.reader-shell[data-theme="oled"] .reader-onboarding-coach-primary,
+.reader-shell[data-theme="ink-night"] .reader-onboarding-coach-primary,
+.reader-shell[data-theme="dark"] .reader-engagement-push-btn,
+.reader-shell[data-theme="oled"] .reader-engagement-push-btn,
+.reader-shell[data-theme="ink-night"] .reader-engagement-push-btn,
+.reader-shell[data-theme="dark"] .reader-resume-banner-action,
+.reader-shell[data-theme="oled"] .reader-resume-banner-action,
+.reader-shell[data-theme="ink-night"] .reader-resume-banner-action {
+  background: color-mix(in srgb, #c8962e 34%, #1c1916) !important;
+  border-color: color-mix(in srgb, #f0d06a 42%, #3a342c) !important;
+  color: #f7e7a8 !important;
+  -webkit-text-fill-color: #f7e7a8 !important;
+}
+
+.reader-shell[data-theme="dark"] .reader-onboarding-coach-secondary,
+.reader-shell[data-theme="oled"] .reader-onboarding-coach-secondary,
+.reader-shell[data-theme="ink-night"] .reader-onboarding-coach-secondary,
+.reader-shell[data-theme="dark"] .reader-onboarding-coach-dismiss,
+.reader-shell[data-theme="oled"] .reader-onboarding-coach-dismiss,
+.reader-shell[data-theme="ink-night"] .reader-onboarding-coach-dismiss,
+.reader-shell[data-theme="dark"] .reader-engagement-prompt-close,
+.reader-shell[data-theme="oled"] .reader-engagement-prompt-close,
+.reader-shell[data-theme="ink-night"] .reader-engagement-prompt-close,
+.reader-shell[data-theme="dark"] .reader-chapter-fresh-hint-close,
+.reader-shell[data-theme="oled"] .reader-chapter-fresh-hint-close,
+.reader-shell[data-theme="ink-night"] .reader-chapter-fresh-hint-close,
+.reader-shell[data-theme="dark"] .reader-resume-banner-dismiss,
+.reader-shell[data-theme="oled"] .reader-resume-banner-dismiss,
+.reader-shell[data-theme="ink-night"] .reader-resume-banner-dismiss {
+  background: #2a2621 !important;
+  border-color: color-mix(in srgb, #f2ebe0 18%, transparent) !important;
+  color: #f2ebe0 !important;
+  -webkit-text-fill-color: #f2ebe0 !important;
+}
+
+.reader-shell:not(.reader-shell-chrome-hidden):not(.reader-shell-focus-mode) .reader-engagement-prompt,
+.reader-shell:not(.reader-shell-chrome-hidden):not(.reader-shell-focus-mode) .reader-onboarding-coach {
+  opacity: 1 !important;
+}
+
+.reader-shell .reader-engagement-prompt {
+  gap: 10px;
+  padding: 12px 12px 12px 12px;
+  border-radius: 14px;
+}
+
+.reader-shell .reader-engagement-prompt-copy {
+  gap: 4px;
+}
+
+.reader-shell .reader-engagement-prompt-copy span {
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.reader-shell .reader-engagement-push-btn {
+  margin-top: 4px;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-weight: 700;
 }
