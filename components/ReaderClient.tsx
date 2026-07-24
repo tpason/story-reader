@@ -83,6 +83,7 @@ import {
   setReaderStyle,
   setReaderTapEdgeEnabled,
   store,
+  getRootState,
   removeBookmarkItem,
   upsertBookmarkItem,
   upsertHistoryItem,
@@ -1056,7 +1057,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       window.sessionStorage.removeItem(bookmarkScrollKey);
     }
 
-    const historyItem = store.getState().history.items.find((item) => item.storyId === activePayload.story.id);
+    const historyItem = getRootState().history.items.find((item) => item.storyId === activePayload.story.id);
     const sameChapter = historyItem?.chapterNumber === activePayload.chapter.chapterNumber;
     const progressPercent = sameChapter ? historyItem.progressPercent : 0;
     const historyParagraph = sameChapter ? (historyItem.paragraphIndex ?? null) : null;
@@ -2585,7 +2586,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     dispatch(
       setReaderStyle(
         sanitizeReaderStyleConfig({
-          ...store.getState().readerStyle.config,
+          ...getRootState().readerStyle.config,
           ...preset.config
         })
       )
@@ -2989,7 +2990,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }
 
   function continueFromResume() {
-    const historyItem = store.getState().history.items.find((item) => item.storyId === activePayload.story.id);
+    const historyItem = getRootState().history.items.find((item) => item.storyId === activePayload.story.id);
     const localScroll = Number(window.localStorage.getItem(storageKey));
     const savedScroll =
       Number.isFinite(localScroll) && localScroll > 0
@@ -3729,7 +3730,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   useLayoutEffect(() => {
     if (!compactReader) return;
     if (wasMobilePresetBootstrapped()) return;
-    const current = store.getState().readerStyle.config;
+    const current = getRootState().readerStyle.config;
     if (!isDefaultReaderStyleConfig(current)) {
       markMobilePresetBootstrapped();
       return;

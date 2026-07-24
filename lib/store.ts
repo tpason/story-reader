@@ -401,6 +401,7 @@ const readerStyleWidthTransform = createTransform(
   { whitelist: ["readerStyle"] }
 );
 
+// Cast: redux-persist typings widen slices to Partial/undefined vs combineReducers.
 const persistedReducer = persistReducer(
   {
     key: "story-reader",
@@ -409,8 +410,8 @@ const persistedReducer = persistReducer(
     whitelist: ["identity", "history", "readerStyle", "follows", "bookmarks", "readingStreak", "globalTheme"],
     transforms: [readerStyleWidthTransform]
   },
-  rootReducer
-);
+  rootReducer as Parameters<typeof persistReducer>[1]
+) as unknown as typeof rootReducer;
 
 export const store = configureStore({
   reducer: persistedReducer,
@@ -423,5 +424,10 @@ export const store = configureStore({
 });
 
 export const persistor = persistStore(store);
-export type RootState = ReturnType<typeof store.getState>;
+// Combined reducer type for selectors. store.getState() is PersistPartial; use
+// getRootState() when reading outside useAppSelector.
+export type RootState = ReturnType<typeof rootReducer>;
 export type AppDispatch = typeof store.dispatch;
+export function getRootState(): RootState {
+  return store.getState() as RootState;
+}

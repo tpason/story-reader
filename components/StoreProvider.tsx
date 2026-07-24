@@ -30,11 +30,12 @@ import {
   setFollows,
   setHistory,
   setReaderStyle,
-  store
+  store,
+  getRootState
 } from "@/lib/store";
 
 function migrateAndPersistReaderWidth() {
-  const state = store.getState();
+  const state = getRootState();
   const migrated = applyReaderContentWidthMigration(state.readerStyle.config);
   if (migrated.contentWidth !== state.readerStyle.config.contentWidth) {
     store.dispatch(setReaderStyle(migrated));
@@ -42,7 +43,7 @@ function migrateAndPersistReaderWidth() {
     store.dispatch(markReaderStyleHydrated());
   }
   // Flush even when transform already widened in-memory — storage may still hold 680–820.
-  writeReaderStyleConfig(store.getState().readerStyle.config);
+  writeReaderStyleConfig(getRootState().readerStyle.config);
   void persistor.flush();
 }
 
@@ -69,7 +70,7 @@ function StoreHydrator({ children }: { children: React.ReactNode }) {
     hydratedRef.current = true;
 
     const syncRemoteFollows = () => {
-      const state = store.getState();
+      const state = getRootState();
       const userId = state.identity.user?.id ?? null;
       if (!userId || remoteFollowsSyncedUserRef.current === userId) return;
 
@@ -89,7 +90,7 @@ function StoreHydrator({ children }: { children: React.ReactNode }) {
     };
 
     const syncRemoteBookmarks = () => {
-      const state = store.getState();
+      const state = getRootState();
       const userId = state.identity.user?.id ?? null;
       if (!userId || remoteBookmarksSyncedUserRef.current === userId) return;
 
@@ -104,7 +105,7 @@ function StoreHydrator({ children }: { children: React.ReactNode }) {
     };
 
     const syncRemotePreferences = () => {
-      const state = store.getState();
+      const state = getRootState();
       const userId = state.identity.user?.id ?? null;
       if (!userId || remotePreferencesSyncedUserRef.current === userId) return;
 
@@ -113,7 +114,7 @@ function StoreHydrator({ children }: { children: React.ReactNode }) {
         .then((preferences) => {
           if (!preferences) return;
           const apply = () => {
-            const local = store.getState().readerStyle.config;
+            const local = getRootState().readerStyle.config;
             store.dispatch(setReaderStyle(mergeRemoteReaderStyle(preferences.readerStyle, local)));
             writeReaderPerformanceMode(preferences.performanceMode);
             writeReaderFocusModeDefault(preferences.focusModeDefault);
@@ -135,7 +136,7 @@ function StoreHydrator({ children }: { children: React.ReactNode }) {
         });
     };
 
-    const state = store.getState();
+    const state = getRootState();
     const legacyUser = readCurrentUser();
     const legacyHistory = readLocalHistory();
     const legacyReaderStyle = readReaderStyleConfig();
@@ -179,7 +180,7 @@ function StoreHydrator({ children }: { children: React.ReactNode }) {
 
     fetchCurrentUser()
       .then((remoteUser) => {
-        const currentUser = store.getState().identity.user;
+        const currentUser = getRootState().identity.user;
         if (JSON.stringify(remoteUser) !== JSON.stringify(currentUser)) {
           store.dispatch(setCurrentUser(remoteUser));
         }
@@ -190,7 +191,7 @@ function StoreHydrator({ children }: { children: React.ReactNode }) {
     syncRemotePreferences();
 
     let savePreferencesTimer: number | null = null;
-    let previousReaderStyle = JSON.stringify(store.getState().readerStyle.config);
+    let previousReaderStyle = JSON.stringify(getRootState().readerStyle.config);
 
     const unsubscribe = store.subscribe(() => {
       syncRemoteFollows();
@@ -199,7 +200,7 @@ function StoreHydrator({ children }: { children: React.ReactNode }) {
 
       if (savePreferencesTimer) window.clearTimeout(savePreferencesTimer);
       savePreferencesTimer = window.setTimeout(() => {
-        const nextState = store.getState();
+        const nextState = getRootState();
         const nextReaderStyle = JSON.stringify(nextState.readerStyle.config);
 
         if (nextState.identity.user) {
