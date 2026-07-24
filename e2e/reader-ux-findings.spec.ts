@@ -43,10 +43,10 @@ test.describe("reader UX findings", () => {
       findings.push({ id: "stats-pill", severity: "warn", note: "Reading stats pill not visible in topbar" });
     }
 
-    const themeGroup = page.locator('[aria-label="Theme"]');
+    const themeGroup = page.locator('[aria-label="Giao diện"], [aria-label="Giao diện đọc"], [aria-label="Theme"]');
     if ((await themeGroup.count()) === 0) {
       findings.push({ id: "theme-controls", severity: "warn", note: "Theme segmented control hidden on desktop" });
-    } else if ((await themeGroup.locator('button[title="OLED"]').count()) === 0) {
+    } else if ((await themeGroup.locator('button[data-theme-id="oled"], button[title*="OLED"]').count()) === 0) {
       findings.push({ id: "oled-theme", severity: "warn", note: "OLED theme button missing — deploy latest reader bundle" });
     }
 
@@ -124,7 +124,7 @@ test.describe("reader UX findings", () => {
       findings.push({ id: "mobile-dock", severity: "fail", note: "Mobile dock hidden" });
     }
 
-    await page.getByRole("button", { name: "Mở công cụ đọc" }).click({ force: true });
+    await page.getByRole("button", { name: /Mở cài đặt và công cụ đọc|Mở công cụ đọc/i }).click({ force: true });
     const sheet = page.locator("#reader-mobile-sheet, .reader-mobile-sheet-panel").first();
     if (!(await sheet.isVisible({ timeout: 12_000 }).catch(() => false))) {
       findings.push({ id: "mobile-sheet", severity: "warn", note: "Settings sheet did not open" });

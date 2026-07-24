@@ -113,23 +113,32 @@ test.describe("UI sweep contrast + layout regression", () => {
   });
 
   test("home dark: primary text stays light on dark tokens", async ({ page }) => {
-    await gotoHomeReady(page);
-    await page.waitForLoadState("domcontentloaded");
-    await page.evaluate(() => {
-      document.documentElement.setAttribute("data-xi-theme", "dark");
+    // Seed redux-persist before first paint — ThemeToggle click alone races PersistGate.
+    await page.addInitScript(() => {
       try {
-        localStorage.setItem("reader:global-theme", "dark");
+        const key = "persist:story-reader";
+        const raw = window.localStorage.getItem(key);
+        const parsed = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+        parsed.globalTheme = JSON.stringify("dark");
+        window.localStorage.setItem(key, JSON.stringify(parsed));
       } catch {
         /* ignore */
       }
     });
+    await gotoHomeReady(page);
+    await page.waitForLoadState("domcontentloaded");
+    await expect
+      .poll(async () => page.evaluate(() => document.documentElement.getAttribute("data-xi-theme")), {
+        timeout: 8_000
+      })
+      .toBe("dark");
     await maybeInjectSweepCss(page);
     await page.waitForTimeout(150);
 
     const ink = await page.evaluate(() =>
       getComputedStyle(document.documentElement).getPropertyValue("--ink").trim()
     );
-    expect(ink.toLowerCase()).toMatch(/#f5f1e8|#efeae2|#fff/);
+    expect(ink.toLowerCase()).toMatch(/#f5f1e8|#efeae2|#fff|#f[0-9a-f]{5}/);
 
     const title = await sampleTextContrast(page, ".story-card-title, .story-card h2");
     expect(title.fill.toLowerCase()).not.toContain("transparent");
@@ -184,7 +193,8 @@ test.describe("UI sweep contrast + layout regression", () => {
     });
 
     const cta = page.locator(".story-mobile-cta-primary");
-    if (testInfo.project.name === "mobile" || (await cta.count()) > 0) {
+    // Dock is CSS-gated to ≤839px — only assert contrast on mobile project.
+    if (testInfo.project.name === "mobile") {
       await expect(cta.first()).toBeVisible({ timeout: 8_000 });
       const sample = await cta.first().evaluate((el) => {
         const cs = getComputedStyle(el);

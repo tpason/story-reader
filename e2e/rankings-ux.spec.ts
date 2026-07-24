@@ -42,11 +42,31 @@ test.describe("rankings UX", () => {
     }
   });
 
-  test("period chips update URL on Phong vân tab", async ({ page }) => {
+  test("period chips update URL on Phong vân tab", async ({ page }, testInfo) => {
     await gotoRankingsReady(page, "tab=trending&period=week");
-    await page.locator(".rankings-period-tabs").getByRole("link", { name: /^Nhật$/i }).click();
+    const isMobile = testInfo.project.name === "mobile";
+
+    async function openPeriodTabs() {
+      if (!isMobile) return;
+      const summary = page.locator(".rankings-subfilters > summary");
+      await expect(summary).toBeVisible({ timeout: 12_000 });
+      // Soft-nav remounts <details> closed — re-open after each period change.
+      if (!(await page.locator(".rankings-period-tabs").isVisible().catch(() => false))) {
+        await summary.click();
+      }
+    }
+
+    await openPeriodTabs();
+    const periodTabs = page.locator(".rankings-period-tabs");
+    await expect(periodTabs).toBeVisible({ timeout: 12_000 });
+
+    const day = periodTabs.getByRole("link", { name: /Nhật/i }).first();
+    await day.click({ force: true });
     await expect(page).toHaveURL(/period=day/);
-    await page.locator(".rankings-period-tabs").getByRole("link", { name: /^Nguyệt$/i }).click();
+
+    await openPeriodTabs();
+    const month = page.locator(".rankings-period-tabs").getByRole("link", { name: /Nguyệt/i }).first();
+    await month.click({ force: true });
     await expect(page).toHaveURL(/period=month/);
   });
 
@@ -58,7 +78,10 @@ test.describe("rankings UX", () => {
     const href = await storyLink.getAttribute("href");
     expect(href).toMatch(/^\/stories\//);
     await storyLink.click();
-    await expect(page.locator(".story-detail-hero, .story-detail-shell")).toBeVisible({ timeout: 15_000 });
+    // Wait past route-loading shell (loading + live both match story-detail-shell).
+    await expect(page.locator(".story-detail-shell:not(.xi-route-loading) .story-detail-hero").first()).toBeVisible({
+      timeout: 18_000
+    });
   });
 
   test("mobile rankings tabs scroll without page overflow", async ({ page }, testInfo) => {

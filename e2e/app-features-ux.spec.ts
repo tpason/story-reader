@@ -13,10 +13,12 @@ type RouteCase = {
   path: string;
   heading: RegExp | string;
   shell?: string;
+  /** Homepage no longer ships an h1 outside search — allow h2. */
+  headingLevel?: 1 | 2;
 };
 
 const APP_ROUTES: RouteCase[] = [
-  { path: "/", heading: /Tu tiên từng chương/i, shell: ".page-wrap" },
+  { path: "/", heading: /Danh sách truyện|Linh quyển tìm thấy|Mới tinh luyện|Đang theo dõi|Hành trình đang đọc/i, shell: ".page-wrap", headingLevel: 2 },
   { path: "/discover", heading: /Truyện mới tinh luyện|Truyện vừa cập nhật/i, shell: ".page-wrap" },
   { path: "/categories", heading: /Chọn môn phái truyện/i, shell: ".page-wrap" },
   { path: "/rankings?tab=betterbox", heading: /Thiên Bảng/i, shell: ".rankings-page" },
@@ -39,7 +41,8 @@ test.describe("app features UX audit", () => {
       if (route.shell) {
         await expect(page.locator(route.shell).first()).toBeVisible({ timeout: 18_000 });
       }
-      await expect(page.getByRole("heading", { level: 1 }).first()).toContainText(route.heading);
+      const level = route.headingLevel ?? 1;
+      await expect(page.getByRole("heading", { level }).first()).toContainText(route.heading);
       await assertNoHorizontalOverflow(page, route.path);
     });
   }
@@ -68,6 +71,8 @@ test.describe("app features UX audit", () => {
   });
 
   test("login auth panel is readable above decorative background", async ({ page }) => {
+    // Avoid catching mid-entrance opacity animation on desktop.
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/login", { waitUntil: "domcontentloaded" });
     const panel = page.locator(".auth-panel");
     await expect(panel).toBeVisible();
@@ -77,11 +82,11 @@ test.describe("app features UX audit", () => {
     expect(box).toBeTruthy();
     expect(box!.height).toBeGreaterThan(220);
 
-    const opacity = await panel.evaluate((el) => {
-      const style = window.getComputedStyle(el);
-      return Number.parseFloat(style.opacity || "1");
-    });
-    expect(opacity).toBeGreaterThan(0.85);
+    await expect
+      .poll(async () => {
+        return panel.evaluate((el) => Number.parseFloat(getComputedStyle(el).opacity || "1"));
+      }, { timeout: 4_000 })
+      .toBeGreaterThan(0.85);
   });
 
   test("account section nav anchors exist", async ({ page }) => {

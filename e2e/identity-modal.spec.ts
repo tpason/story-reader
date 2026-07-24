@@ -34,9 +34,14 @@ test.describe("identity modal", () => {
     await loadReaderFixture(page);
     await dismissReaderChrome(page);
 
-    await page.locator(".identity-chip-button").first().click();
+    const trigger = page.getByRole("button", { name: /Chưa nhập môn/i }).first();
+    await expect(trigger).toBeVisible({ timeout: 12_000 });
+    await expect(async () => {
+      await trigger.click({ force: true });
+      await expect(page.getByRole("dialog", { name: "Thông tin đạo hữu" })).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 15_000 });
     const panel = page.locator(".identity-modal-panel");
-    await expect(panel).toBeVisible();
+    await expect(panel).toBeVisible({ timeout: 5_000 });
 
     const viewport = page.viewportSize()!;
     const box = await panel.boundingBox();
@@ -54,8 +59,13 @@ test.describe("identity modal", () => {
     test.skip(testInfo.project.name === "desktop", "Mobile bottom sheet check");
     await loadReaderFixture(page);
     await openMobileReaderSheet(page);
+    // Dock gear opens Settings tab — identity chip lives on Đọc.
+    const readTab = page.getByRole("tab", { name: "Đọc" });
+    if (await readTab.isVisible().catch(() => false)) {
+      await readTab.click();
+    }
     const identityButton = page.locator(".reader-sheet-account-row .identity-chip-button");
-    await identityButton.scrollIntoViewIfNeeded();
+    await expect(identityButton).toBeVisible({ timeout: 8_000 });
     await identityButton.click({ force: true });
     const panel = page.locator(".identity-modal-panel");
     await expect(panel).toBeVisible();

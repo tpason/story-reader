@@ -84,7 +84,7 @@ test.describe("reader UX audit", () => {
     const dock = page.getByRole("navigation", { name: "Mobile reader quick actions" });
     await expect(dock).toBeVisible();
 
-    await page.getByRole("button", { name: "Mở công cụ đọc" }).click({ force: true });
+    await page.getByRole("button", { name: /Mở cài đặt và công cụ đọc|Mở công cụ đọc/i }).click({ force: true });
     const sheet = page.locator("#reader-mobile-sheet, .reader-mobile-sheet-panel").first();
     if (!(await sheet.isVisible({ timeout: 12_000 }).catch(() => false))) {
       findings.push({ area: "mobile-sheet", severity: "warn", detail: "Settings sheet did not open" });

@@ -36,11 +36,9 @@ export function UserIdentity({ compact = false, panel = false, className = "" }:
   const identityHydrated = useAppSelector((state) => state.identity.hydrated);
   const [loading, setLoading] = useState(!identityHydrated);
   const [modalOpen, setModalOpen] = useState(false);
-  const [portalReady, setPortalReady] = useState(false);
-
-  useEffect(() => {
-    setPortalReady(true);
-  }, []);
+  // Client has document on first paint — avoid useEffect gap where clicks set
+  // modalOpen but createPortal is still gated off.
+  const [portalReady] = useState(() => typeof document !== "undefined");
 
   const cultivation = useMemo(
     () => getCultivationState(history, Boolean(user), streak.currentStreak, Boolean(user?.isAdmin)),

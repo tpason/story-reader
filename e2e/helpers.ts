@@ -110,11 +110,17 @@ export async function primeAppTestStorage(page: Page) {
 }
 
 export async function openIdentityModalFromTopbar(page: Page) {
-  const trigger = page.locator(".topbar .identity-chip-button").first();
+  const trigger = page.locator(".topbar .identity-chip-button, .topbar-modern .identity-chip-button").first();
   await expect(trigger).toBeVisible({ timeout: 12_000 });
-  await trigger.click();
+  // Wait out identity hydrate copy so the chip is interactive.
+  await expect(trigger).toContainText(/Chưa nhập môn|Đạo hữu|Tán tu/i, { timeout: 10_000 });
+  // Client hydration can lag SSR markup — retry open until dialog mounts.
+  await expect(async () => {
+    await trigger.click({ force: true });
+    await expect(page.getByRole("dialog", { name: "Thông tin đạo hữu" })).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
   const panel = page.locator(".identity-modal-panel");
-  await expect(panel).toBeVisible({ timeout: 8_000 });
+  await expect(panel).toBeVisible({ timeout: 5_000 });
   return panel;
 }
 
@@ -154,7 +160,7 @@ export async function seedFollows(
 export async function gotoHomeReady(page: Page) {
   await primeAppTestStorage(page);
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await expect(page.locator(".page-wrap")).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator(".page-wrap").first()).toBeVisible({ timeout: 15_000 });
 }
 
 export async function gotoRankingsReady(page: Page, query = "tab=betterbox") {
@@ -231,25 +237,29 @@ export async function loadReaderFixture(page: Page, chapterNumber = 1): Promise<
 
 export async function dismissReaderChrome(page: Page) {
   const overlayClose = page.getByRole("button", { name: "Close chapter navigation" });
-  if (await overlayClose.isVisible()) {
+  if (await overlayClose.isVisible().catch(() => false)) {
     await overlayClose.click({ force: true });
     await page.waitForTimeout(200);
   }
 
-  const closeSidebar = page.getByRole("button", { name: "Đóng mục lục" });
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    if (!(await closeSidebar.isVisible())) return;
-    await closeSidebar.click({ force: true });
-    await page.waitForTimeout(300);
+  // Desktop TOC uses opacity:0 when closed — still in a11y tree. Prefer aria-expanded toggle.
+  const tocToggle = page.getByRole("button", { name: /Đóng mục lục|Mở mục lục/i }).first();
+  if ((await tocToggle.count()) > 0 && (await tocToggle.getAttribute("aria-expanded")) === "true") {
+    await tocToggle.click({ force: true });
+    await page.waitForTimeout(250);
   }
 
-  if (await closeSidebar.isVisible()) {
-    throw new Error("Chapter sidebar still open — blocks topbar interactions");
+  const closeSidebar = page.locator(".chapter-sidebar-close");
+  if (await closeSidebar.isVisible().catch(() => false)) {
+    await closeSidebar.click({ force: true });
+    await page.waitForTimeout(200);
   }
 }
 
 export async function openMobileReaderSheet(page: Page) {
-  await page.getByRole("button", { name: "Mở công cụ đọc" }).click({ force: true });
+  await page
+    .getByRole("button", { name: /Mở cài đặt và công cụ đọc|Mở công cụ đọc/i })
+    .click({ force: true });
   const sheet = page.locator("#reader-mobile-sheet, .reader-mobile-sheet-panel");
   await expect(sheet.first()).toBeVisible({ timeout: 12_000 });
   return sheet.first();
@@ -257,8 +267,13 @@ export async function openMobileReaderSheet(page: Page) {
 
 export async function openFormatControls(page: Page) {
   await dismissReaderChrome(page);
-  await page.getByRole("button", { name: "Cài đặt chữ và bố cục" }).click();
-  await expect(page.locator("#format-controls")).toHaveClass(/format-controls-open/);
+  // Desktop: format panel opens from overflow → "Chữ, theme & bố cục"
+  // Note: Aa quick-settings title also contains "tuỳ chọn đọc" — use exact aria-label.
+  const overflow = page.getByRole("button", { name: "Tuỳ chọn đọc", exact: true });
+  await expect(overflow).toBeVisible({ timeout: 8_000 });
+  await overflow.click();
+  await page.getByRole("button", { name: /Chữ, theme|Cài đặt chữ/i }).click();
+  await expect(page.locator("#format-controls")).toHaveClass(/format-controls-open/, { timeout: 12_000 });
   await page.locator(".reader-layout-mode, #format-controls").first().scrollIntoViewIfNeeded();
 }
 
@@ -354,7 +369,15 @@ export async function expectNotificationLive(page: Page, live = true) {
 const OFFLINE_DB_NAME = "linh-quyen-offline";
 const OFFLINE_DB_VERSION = 1;
 
+async function ensureSameOriginForIdb(page: Page) {
+  // IndexedDB is denied on about:blank / opaque origins.
+  if (!/^https?:/i.test(page.url())) {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+  }
+}
+
 export async function clearOfflineChapterCache(page: Page) {
+  await ensureSameOriginForIdb(page);
   await page.evaluate(
     async ({ dbName }) => {
       await new Promise<void>((resolve, reject) => {
@@ -373,6 +396,7 @@ export async function seedOfflineChapterCache(
   story: { id: string; title: string; totalChapters?: number },
   chapterNumbers: number[]
 ) {
+  await ensureSameOriginForIdb(page);
   await page.evaluate(
     async ({ dbName, dbVersion, storyId, storyTitle, totalChapters, chapterNumbers: numbers }) => {
       const openDb = () =>

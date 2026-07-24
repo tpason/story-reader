@@ -29,7 +29,7 @@ export function FollowingClient() {
   const history = useAppSelector((state) => state.history.items);
   const hydrated = useAppSelector((state) => state.follows.hydrated);
   const { isFresh } = useFreshStoryRealtime();
-  const [tab, setTab] = useState<ShelfTab>("reading");
+  const [tab, setTab] = useState<ShelfTab>("following");
 
   const historyByStory = useMemo(() => new Map(history.map((item) => [item.storyId, item])), [history]);
   const totalUnread = follows.reduce((total, item) => {

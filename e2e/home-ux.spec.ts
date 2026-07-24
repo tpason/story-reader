@@ -22,11 +22,29 @@ test.describe("home UX", () => {
     await expect(resumeBar).toContainText("Chương 2");
   });
 
-  test("topbar includes Thiên bảng and Tủ truyện", async ({ page }) => {
+  test("topbar includes Thiên bảng and Tủ truyện", async ({ page }, testInfo) => {
     await gotoHomeReady(page);
+    if (testInfo.project.name === "mobile") {
+      await expect(async () => {
+        const menuBtn = page.getByRole("button", { name: /Mở menu điều hướng|Đóng menu/i });
+        if ((await menuBtn.getAttribute("aria-expanded")) !== "true") {
+          await page.getByRole("button", { name: "Mở menu điều hướng" }).click({ force: true });
+        }
+        const drawer = page.locator("#site-header-drawer");
+        await expect(drawer).toBeVisible({ timeout: 2_000 });
+        await expect(drawer.getByRole("link", { name: "Tủ truyện" })).toBeVisible({ timeout: 1_500 });
+        await expect(drawer.getByRole("link", { name: "Thiên bảng" })).toBeVisible({ timeout: 1_500 });
+      }).toPass({ timeout: 12_000 });
+      return;
+    }
+
     const nav = page.getByRole("navigation", { name: "Reader navigation" });
-    await expect(nav.getByRole("link", { name: "Thiên bảng" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Tủ truyện" })).toBeVisible();
+    // Thiên bảng lives under secondary “Thêm” menu on desktop.
+    await expect(async () => {
+      await nav.getByRole("button", { name: "Thêm" }).click();
+      await expect(nav.getByRole("menuitem", { name: "Thiên bảng" })).toBeVisible({ timeout: 1_500 });
+    }).toPass({ timeout: 10_000 });
   });
 
   test("trending period chips update homepage URL", async ({ page }) => {
