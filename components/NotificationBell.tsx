@@ -11,7 +11,7 @@ import {
   useFloating,
   useInteractions
 } from "@floating-ui/react";
-import { Bell, BellRing, Check, Feather, LoaderCircle, ScrollText, Sparkles, Wifi } from "lucide-react";
+import { Bell, BellRing, Check, CheckCheck, Feather, LoaderCircle, ScrollText, Sparkles, Wifi } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import dynamic from "next/dynamic";
@@ -26,10 +26,13 @@ import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
 import type { ReadingHistoryItem } from "@/lib/reading-history";
 import { useReaderRealtimeFx } from "@/lib/useReaderRealtimeFx";
 import { useNotificationCaughtUp } from "@/lib/useNotificationCaughtUp";
-import { adjustNotificationItems, markNotificationCaughtUp } from "@/lib/notification-caught-up";
+import { adjustNotificationItems, markAllNotificationsCaughtUp, markNotificationCaughtUp } from "@/lib/notification-caught-up";
+import { normalizeGlobalTheme } from "@/lib/store";
 import { useAppSelector } from "@/lib/store-hooks";
 import { NOTIFY_COPY } from "@/lib/xianxia-notify-copy";
 import { storyHref } from "@/lib/urls";
+
+const DARK_READER_THEMES = new Set(["dark", "ink-night", "oled"]);
 
 const ThreeNotificationOrb = dynamic(
   () => import("@/components/ThreeNotificationOrb").then((mod) => mod.ThreeNotificationOrb),
@@ -121,6 +124,10 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   const history = useAppSelector((state) => state.history.items);
   const follows = useAppSelector((state) => state.follows.items);
   const userId = useAppSelector((state) => state.identity.user?.id ?? null);
+  const uiTheme = normalizeGlobalTheme(useAppSelector((state) => state.globalTheme));
+  const readerTheme = useAppSelector((state) => state.readerStyle.config.theme);
+  const panelTheme =
+    uiTheme === "dark" || DARK_READER_THEMES.has(readerTheme) ? "dark" : "light";
   const [payload, setPayload] = useState<NotificationPayload | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -141,6 +148,13 @@ export function NotificationBell({ className = "" }: { className?: string }) {
     };
   }, [payload, caughtUpMap]);
   const unreadChapters = displayPayload?.unreadChapters ?? 0;
+  const hasUnread = (displayPayload?.items.length ?? 0) > 0;
+
+  function markAllCaughtUp() {
+    const items = displayPayload?.items ?? [];
+    if (!items.length) return;
+    markAllNotificationsCaughtUp(items.map((item) => ({ storyId: item.storyId, totalChapters: item.totalChapters })));
+  }
   const storyIds = useMemo(() => follows.map((item) => item.storyId), [follows]);
   const followIds = useMemo(() => new Set(follows.map((item) => item.storyId)), [follows]);
   const readingIds = useMemo(
@@ -272,6 +286,7 @@ export function NotificationBell({ className = "" }: { className?: string }) {
           <FloatingPortal>
             <section
               className="notification-panel notification-panel-portal"
+              data-xi-theme={panelTheme}
               aria-label={NOTIFY_COPY.panelTitle}
               ref={(node) => {
                 refs.setFloating(node);
@@ -288,10 +303,24 @@ export function NotificationBell({ className = "" }: { className?: string }) {
                   </p>
                   <h2>{NOTIFY_COPY.panelTitle}</h2>
                 </div>
-                <span className={`notification-live ${live ? "notification-live-on" : ""}`}>
-                  {loading ? <LoaderCircle size={13} className="spin" /> : <Wifi size={13} />}
-                  {live ? NOTIFY_COPY.live : NOTIFY_COPY.polling}
-                </span>
+                <div className="notification-panel-actions">
+                  {hasUnread ? (
+                    <button
+                      type="button"
+                      className="notification-mark-all-btn"
+                      title={NOTIFY_COPY.markAllCaughtUpHint}
+                      aria-label={NOTIFY_COPY.markAllCaughtUp}
+                      onClick={markAllCaughtUp}
+                    >
+                      <CheckCheck size={14} aria-hidden="true" />
+                      <span>{NOTIFY_COPY.markAllCaughtUp}</span>
+                    </button>
+                  ) : null}
+                  <span className={`notification-live ${live ? "notification-live-on" : ""}`}>
+                    {loading ? <LoaderCircle size={13} className="spin" /> : <Wifi size={13} />}
+                    {live ? NOTIFY_COPY.live : NOTIFY_COPY.polling}
+                  </span>
+                </div>
               </div>
 
               {displayPayload?.items.length ? (

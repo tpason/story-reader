@@ -8,6 +8,7 @@ import {
   PURGE,
   REGISTER,
   REHYDRATE,
+  createTransform,
   persistReducer,
   persistStore
 } from "redux-persist";
@@ -17,6 +18,7 @@ import { mergeFollowedStories, storyToFollowItem, type FollowedStoryItem } from 
 import { mergeHistory, type ReadingHistoryItem } from "@/lib/reading-history";
 import type { StoredReaderUser } from "@/lib/identity";
 import {
+  applyReaderContentWidthMigration,
   sanitizeReaderStyleConfig,
   type ReaderFontFamily,
   type ReaderLayoutMode,
@@ -385,12 +387,27 @@ function createNoopStorage() {
 const persistStorage =
   typeof window !== "undefined" ? createWebStorage("local") : createNoopStorage();
 
+/** Widen narrow contentWidth as state is read FROM localStorage (beats PersistGate race). */
+const readerStyleWidthTransform = createTransform(
+  (inboundState: ReaderStyleState) => inboundState,
+  (outboundState: ReaderStyleState) => {
+    if (!outboundState?.config) return outboundState;
+    return {
+      ...outboundState,
+      config: applyReaderContentWidthMigration(outboundState.config),
+      hydrated: true
+    };
+  },
+  { whitelist: ["readerStyle"] }
+);
+
 const persistedReducer = persistReducer(
   {
     key: "story-reader",
     version: 1,
     storage: persistStorage,
-    whitelist: ["identity", "history", "readerStyle", "follows", "bookmarks", "readingStreak", "globalTheme"]
+    whitelist: ["identity", "history", "readerStyle", "follows", "bookmarks", "readingStreak", "globalTheme"],
+    transforms: [readerStyleWidthTransform]
   },
   rootReducer
 );

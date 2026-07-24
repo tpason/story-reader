@@ -10,6 +10,12 @@ npm run dev
 
 The app reads metadata from Postgres using `STORY_DATABASE_URL`.
 
+Local covers (npm on `:3000`): ComfyUI files live in parent `story_data/covers/`. Docker mounts that path; local Next only serves `public/covers/`. Sync missing files without replacing the directory:
+
+```bash
+bash scripts/link-local-covers.sh
+```
+
 ## Daily development (no Docker rebuild)
 
 Edit UI on the host with hot reload + WebSocket. Docker `story-reader` on `:3000` can stay running for the rest of the stack.

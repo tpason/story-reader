@@ -6741,7 +6741,6 @@ button.chapter-sidebar-heatmap-cell:focus-visible {
 .sidebar-link small,
 .format-controls .font-size-value,
 .reader-quick-settings-title,
-.reader-overflow-item,
 .audio-panel p,
 .audio-panel span,
 .reader-stats-pill,
@@ -10172,4 +10171,396 @@ html[data-xi-theme="dark"] .reader-shell .story-rating-star:not(.story-rating-st
     display: none !important;
     animation: none !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   UI polish 2026-07-24 — overflow contrast + shortcut gaps
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.reader-overflow-panel {
+  background: var(--reader-panel-solid, var(--reader-bg)) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: var(--reader-ink);
+}
+
+.reader-overflow-item {
+  color: var(--reader-ink) !important;
+  opacity: 1 !important;
+}
+
+.reader-shell[data-theme="dark"] .reader-overflow-item,
+.reader-shell[data-theme="oled"] .reader-overflow-item,
+.reader-shell[data-theme="ink-night"] .reader-overflow-item {
+  color: var(--reader-ink) !important;
+}
+
+.reader-overflow-item:hover {
+  background: color-mix(in srgb, var(--reader-ink) 10%, transparent);
+}
+
+.reader-overflow-item-active {
+  color: var(--xi-gold, #c8962e) !important;
+}
+
+.reader-overflow-group-label {
+  color: color-mix(in srgb, var(--reader-ink) 62%, var(--reader-muted) 38%) !important;
+}
+
+.reader-shortcut-row {
+  gap: 8px;
+}
+
+.reader-shortcut-row kbd {
+  margin-right: 2px;
+}
+
+.reader-shortcut-row span {
+  margin-left: 4px;
+}
+
+@media (min-width: 840px) {
+  .reader-ambience-layer .reader-xi-mist,
+  .reader-ambience-layer .reader-xi-mist-a,
+  .reader-ambience-layer .reader-xi-mist-b {
+    animation: none !important;
+    filter: blur(26px) !important;
+  }
+}
+
+/* Paragraph tools wrapper — stable key target; keep absolute gutter layout */
+.reader-paragraph > .paragraph-tools {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  vertical-align: top;
+}
+
+@media (max-width: 839px) {
+  .reader-paragraph > .paragraph-tools {
+    position: absolute;
+    left: 0;
+    top: 0.1em;
+    margin: 0;
+  }
+
+  .reader-paragraph > .paragraph-tools .paragraph-bookmark-button,
+  .reader-paragraph > .paragraph-tools .paragraph-note-button {
+    position: static;
+    left: auto;
+    top: auto;
+    margin: 0;
+    transform: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Mobile chapter kicker — ellipsis, CSS marquee only when overflowing
+   (transform + --reader-kicker-shift; pause when tab hidden / saver / PRM)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.reader-topbar-modern .reader-chapter-kicker {
+  overflow: hidden !important;
+  text-overflow: clip !important;
+}
+
+.reader-topbar-modern .reader-chapter-kicker-text {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+@media (max-width: 839px) {
+  .reader-topbar-modern .reader-chapter-kicker,
+  .reader-shell--compact .reader-topbar-modern .reader-chapter-kicker {
+    max-width: min(62vw, 300px);
+  }
+
+  .reader-topbar-modern .reader-chapter-kicker[data-marquee="1"] .reader-chapter-kicker-text {
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    padding-right: 1.25em;
+    animation: reader-kicker-marquee 11s linear infinite;
+    will-change: transform;
+  }
+}
+
+@keyframes reader-kicker-marquee {
+  0%,
+  14% {
+    transform: translateX(0);
+  }
+  86%,
+  100% {
+    transform: translateX(var(--reader-kicker-shift, 0px));
+  }
+}
+
+html[data-xi-page-hidden="1"] .reader-topbar-modern .reader-chapter-kicker[data-marquee="1"] .reader-chapter-kicker-text,
+html[data-xi-perf="saver"] .reader-topbar-modern .reader-chapter-kicker[data-marquee="1"] .reader-chapter-kicker-text {
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-topbar-modern .reader-chapter-kicker[data-marquee="1"] .reader-chapter-kicker-text {
+    animation: none !important;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transform: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Overflow menu ("Tùy chọn đọc") — kill global metallic button skin
+   globals.css button:not(...) paints light gold glass; dark reader-ink
+   then sinks. Menu rows must be flat + high-contrast.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.reader-shell .reader-overflow-panel {
+  background: var(--reader-panel-solid, #10100f) !important;
+  color: var(--reader-ink) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.reader-shell .reader-overflow-panel .reader-overflow-item {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  width: 100% !important;
+  min-height: 40px;
+  padding: 8px 10px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  animation: none !important;
+  isolation: auto !important;
+  overflow: visible !important;
+  color: var(--reader-ink) !important;
+  -webkit-text-fill-color: var(--reader-ink) !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+.reader-shell .reader-overflow-panel .reader-overflow-item::before,
+.reader-shell .reader-overflow-panel .reader-overflow-item::after {
+  content: none !important;
+  display: none !important;
+  animation: none !important;
+  opacity: 0 !important;
+  background: none !important;
+}
+
+.reader-shell .reader-overflow-panel .reader-overflow-item:hover,
+.reader-shell .reader-overflow-panel .reader-overflow-item:focus-visible,
+.reader-shell .reader-overflow-panel .reader-overflow-item:active {
+  transform: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+  background: color-mix(in srgb, var(--reader-ink) 10%, transparent) !important;
+  background-image: none !important;
+  color: var(--reader-ink) !important;
+  -webkit-text-fill-color: var(--reader-ink) !important;
+}
+
+.reader-shell .reader-overflow-panel .reader-overflow-item-active,
+.reader-shell .reader-overflow-panel .reader-overflow-item-active:hover,
+.reader-shell .reader-overflow-panel .reader-overflow-item-active:focus-visible {
+  color: var(--xi-gold-light, #f0d06a) !important;
+  -webkit-text-fill-color: var(--xi-gold-light, #f0d06a) !important;
+  background: color-mix(in srgb, var(--xi-gold, #c8962e) 14%, transparent) !important;
+  background-image: none !important;
+}
+
+.reader-shell[data-theme="dark"] .reader-overflow-panel .reader-overflow-item,
+.reader-shell[data-theme="oled"] .reader-overflow-panel .reader-overflow-item,
+.reader-shell[data-theme="ink-night"] .reader-overflow-panel .reader-overflow-item {
+  color: #f4efe6 !important;
+  -webkit-text-fill-color: #f4efe6 !important;
+}
+
+.reader-shell[data-theme="dark"] .reader-overflow-panel .reader-overflow-item:hover,
+.reader-shell[data-theme="oled"] .reader-overflow-panel .reader-overflow-item:hover,
+.reader-shell[data-theme="ink-night"] .reader-overflow-panel .reader-overflow-item:hover,
+.reader-shell[data-theme="dark"] .reader-overflow-panel .reader-overflow-item:focus-visible,
+.reader-shell[data-theme="oled"] .reader-overflow-panel .reader-overflow-item:focus-visible,
+.reader-shell[data-theme="ink-night"] .reader-overflow-panel .reader-overflow-item:focus-visible {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #f7f2ea !important;
+  -webkit-text-fill-color: #f7f2ea !important;
+}
+
+.reader-shell[data-theme="dark"] .reader-overflow-panel .reader-overflow-item-active,
+.reader-shell[data-theme="oled"] .reader-overflow-panel .reader-overflow-item-active,
+.reader-shell[data-theme="ink-night"] .reader-overflow-panel .reader-overflow-item-active {
+  color: #f0d06a !important;
+  -webkit-text-fill-color: #f0d06a !important;
+  background: rgba(200, 150, 46, 0.16) !important;
+}
+
+.reader-shell .reader-overflow-panel .reader-overflow-item > svg,
+.reader-shell .reader-overflow-panel .reader-overflow-item > img {
+  flex-shrink: 0 !important;
+  width: 15px !important;
+  height: 15px !important;
+  min-width: 15px;
+  min-height: 15px;
+  margin: 0 !important;
+}
+
+.reader-shell .reader-overflow-panel .reader-overflow-group-label {
+  color: color-mix(in srgb, var(--reader-ink) 58%, var(--reader-muted) 42%) !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+/* Compact tiến độ đọc — replaces bulky heatmap grid in mục lục */
+.chapter-sidebar-progress-compact {
+  margin: 0 0 10px;
+  padding: 0 2px 8px;
+}
+
+.chapter-sidebar-progress-compact .chapter-sidebar-heatmap-label {
+  margin-bottom: 6px;
+}
+
+.chapter-sidebar-progress-bar {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--reader-ink) 12%, transparent);
+}
+
+.chapter-sidebar-progress-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--xi-jade, #1a6b5a) 80%, #26a882 20%),
+    color-mix(in srgb, var(--xi-gold, #c8962e) 70%, #f0d06a 30%)
+  );
+  transition: width 220ms ease;
+}
+
+.chapter-sidebar-heatmap-grid {
+  display: none !important;
+}
+
+/* .reader-article width SoT: --reader-content-width on .reader-shell (from Redux contentWidth).
+   No hard max below that var. Desktop keeps full var; mobile uses 100% of padded main. */
+.reader-shell--desktop .reader-article {
+  width: min(var(--reader-content-width, 1100px), 100%) !important;
+  max-width: min(var(--reader-content-width, 1100px), 100%);
+  margin-inline: auto;
+}
+
+.reader-shell--compact .reader-article {
+  width: 100% !important;
+  max-width: 100%;
+}
+
+/* Mobile mục lục: was clipped because .reader-layout { z-index:2 } sits under
+   .reader-topbar { z-index:60 }, so topbar painted over the drawer even when
+   top offset was raised. Full-viewport overlay + promote stacking when open. */
+@media (max-width: 839px) {
+  .reader-shell {
+    --reader-mobile-chrome-h: 96px;
+    padding-top: var(--reader-mobile-chrome-h);
+  }
+
+  .reader-shell[data-mobile-toc="open"] .reader-layout {
+    z-index: 80;
+  }
+
+  .drawer-backdrop {
+    inset: 0 !important;
+    z-index: 80 !important;
+  }
+
+  .chapter-sidebar {
+    top: 0 !important;
+    bottom: 0 !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    padding-top: calc(14px + env(safe-area-inset-top, 0px)) !important;
+    z-index: 81 !important;
+  }
+
+  .chapter-sidebar-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0 0 10px;
+  }
+
+  .chapter-sidebar-title-row .chapter-sidebar-title {
+    margin: 0;
+    border-bottom: 0;
+  }
+
+  .chapter-sidebar-close {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* Center ◆ sigil on the heading divider (was bottom:-9px + translateX only). */
+.reader-heading::before {
+  bottom: -1px;
+  left: 50%;
+  transform: translate(-50%, 50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0 6px;
+  height: 1em;
+  /* Glyph metrics sit high in the em box — nudge down to optical center on the rule. */
+  padding-top: 0.08em;
+  box-sizing: content-box;
+}
+
+/* First-paragraph drop-cap: sunk initial with text wrapping beside it. */
+.reader-content .reader-paragraph[data-paragraph-index="0"] .reader-paragraph-text {
+  display: block;
+}
+
+.reader-content .reader-paragraph[data-paragraph-index="0"] .reader-paragraph-text::first-letter {
+  float: left !important;
+  font-size: 2.88em !important;
+  line-height: 0.86 !important;
+  margin: 0.06em 0.12em 0 0 !important;
+  padding: 0 !important;
+  font-family: var(--font-literata), ui-serif, Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  color: var(--xi-gold);
+  text-shadow:
+    0 2px 8px rgba(200, 150, 46, 0.36),
+    0 0 28px rgba(200, 150, 46, 0.14);
+}
+
+.reader-shell[data-theme="dark"] .reader-content .reader-paragraph[data-paragraph-index="0"] .reader-paragraph-text::first-letter,
+.reader-shell[data-theme="oled"] .reader-content .reader-paragraph[data-paragraph-index="0"] .reader-paragraph-text::first-letter,
+.reader-shell[data-theme="ink-night"] .reader-content .reader-paragraph[data-paragraph-index="0"] .reader-paragraph-text::first-letter {
+  color: var(--xi-gold-light, #f0d06a);
+  text-shadow:
+    0 2px 14px rgba(226, 188, 114, 0.48),
+    0 0 32px rgba(200, 150, 46, 0.22);
 }

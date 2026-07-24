@@ -26,8 +26,8 @@ export function AccountAutoPrefsNote() {
   return (
     <div className="account-auto-prefs-note" role="status">
       <p className="eyebrow">
-        <Sparkles size={12} aria-hidden="true" />
-        Linh quang & hiệu năng
+        <Sparkles size={14} aria-hidden="true" />
+        <span>Linh quang & hiệu năng</span>
       </p>
       <p>
         Tự chỉnh theo máy — linh quang {fxLabel(fxMode)}
@@ -35,12 +35,12 @@ export function AccountAutoPrefsNote() {
       </p>
       <ul className="account-auto-prefs-list">
         <li>
-          <Sparkles size={14} aria-hidden="true" />
-          Mobile / tiết kiệm dữ liệu / pin yếu → linh quang nhẹ hoặc tắt
+          <Sparkles size={16} aria-hidden="true" />
+          <span>Mobile / tiết kiệm dữ liệu / pin yếu → linh quang nhẹ hoặc tắt</span>
         </li>
         <li>
-          <Gauge size={14} aria-hidden="true" />
-          WebGL chỉ bật khi máy đủ mạnh (chế độ mặc định: tự động)
+          <Gauge size={16} aria-hidden="true" />
+          <span>WebGL chỉ bật khi máy đủ mạnh (chế độ mặc định: tự động)</span>
         </li>
       </ul>
     </div>

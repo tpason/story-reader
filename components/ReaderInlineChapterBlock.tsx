@@ -74,15 +74,15 @@ export const ReaderInlineChapterBlock = memo(function ReaderInlineChapterBlock({
         const hasNote = chapterBookmarks.some((item) => item.paragraphIndex === index && item.note);
         return (
           <p
+            key={`para-${chapterId}-${index}`}
             className={paragraphClassName(index, bookmarked, hasNote)}
             data-paragraph-index={index}
             data-chapter-number={chapterNumber}
             data-chapter-id={chapterId}
             data-chapter-title={title}
-            key={`${chapterNumber}-${index}-${paragraph.slice(0, 12)}`}
           >
             {onToggleBookmark ? (
-              <>
+              <span className="paragraph-tools">
                 <button
                   className="paragraph-bookmark-button"
                   type="button"
@@ -103,7 +103,7 @@ export const ReaderInlineChapterBlock = memo(function ReaderInlineChapterBlock({
                     <StickyNote size={13} />
                   </button>
                 ) : null}
-              </>
+              </span>
             ) : null}
             <span className="reader-paragraph-text">{renderParagraphText(index, paragraph)}</span>
           </p>

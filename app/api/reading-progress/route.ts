@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { countReadableWords } from "@/lib/reading-estimate";
+import {
+  decodeProgressCursor,
+  encodeProgressCursor,
+  parseReadingProgressLimit
+} from "@/lib/reading-progress-cursor";
 
 export const dynamic = "force-dynamic";
 
@@ -72,31 +77,64 @@ async function getNextChapterWordCounts(rows: ProgressRow[]) {
   return byStory;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ items: [] });
+    return NextResponse.json({ items: [], nextCursor: null, total: 0 });
   }
 
-  const rows = await query<ProgressRow>(
-    `
-      SELECT
-        rp.story_id, COALESCE(NULLIF(s.display_title, ''), s.title) AS story_title, s.cover_image_url, s.total_chapters,
-        rp.chapter_id, rp.chapter_number, rp.chapter_title, rp.scroll_position, rp.paragraph_index,
-        rp.progress_percent::text AS progress_percent,
-        rp.max_read_chapter_number, rp.last_read_at
-      FROM reader_reading_progress rp
-      JOIN stories s ON s.id = rp.story_id
-      WHERE rp.user_id = $1
-      ORDER BY rp.last_read_at DESC
-      LIMIT 100
-    `,
-    [user.id]
-  );
-  const nextChapterWordCounts = await getNextChapterWordCounts(rows);
+  const url = new URL(request.url);
+  // Default 100 keeps existing sync callers; history page passes smaller pages.
+  const limit = parseReadingProgressLimit(url.searchParams.get("limit"));
+  const cursor = decodeProgressCursor(url.searchParams.get("cursor"));
+
+  const values: unknown[] = [user.id];
+  let cursorSql = "";
+  if (cursor) {
+    values.push(cursor.t, cursor.id);
+    cursorSql = `AND (rp.last_read_at, rp.story_id) < ($${values.length - 1}::timestamptz, $${values.length}::uuid)`;
+  }
+  values.push(limit + 1);
+  const limitRef = `$${values.length}`;
+
+  const [rows, countRows] = await Promise.all([
+    query<ProgressRow>(
+      `
+        SELECT
+          rp.story_id, COALESCE(NULLIF(s.display_title, ''), s.title) AS story_title, s.cover_image_url, s.total_chapters,
+          rp.chapter_id, rp.chapter_number, rp.chapter_title, rp.scroll_position, rp.paragraph_index,
+          rp.progress_percent::text AS progress_percent,
+          rp.max_read_chapter_number, rp.last_read_at
+        FROM reader_reading_progress rp
+        JOIN stories s ON s.id = rp.story_id
+        WHERE rp.user_id = $1
+          ${cursorSql}
+        ORDER BY rp.last_read_at DESC, rp.story_id DESC
+        LIMIT ${limitRef}
+      `,
+      values
+    ),
+    cursor
+      ? Promise.resolve([{ count: "0" }])
+      : query<{ count: string }>(
+          `SELECT COUNT(*)::text AS count FROM reader_reading_progress WHERE user_id = $1`,
+          [user.id]
+        )
+  ]);
+
+  const pageRows = rows.slice(0, limit);
+  const nextCursor =
+    rows.length > limit
+      ? encodeProgressCursor({
+          storyId: pageRows[pageRows.length - 1]!.story_id,
+          lastReadAt: pageRows[pageRows.length - 1]!.last_read_at
+        })
+      : null;
+  const nextChapterWordCounts = await getNextChapterWordCounts(pageRows);
+  const total = cursor ? undefined : Number(countRows[0]?.count ?? 0);
 
   return NextResponse.json({
-    items: rows.map((row) => ({
+    items: pageRows.map((row) => ({
       storyId: row.story_id,
       storyTitle: row.story_title,
       coverImageUrl: row.cover_image_url,
@@ -110,7 +148,9 @@ export async function GET() {
       maxReadChapterNumber: row.max_read_chapter_number,
       lastReadAt: row.last_read_at.toISOString(),
       nextChapterWordCounts: nextChapterWordCounts.get(row.story_id) ?? []
-    }))
+    })),
+    nextCursor,
+    ...(total === undefined ? {} : { total })
   });
 }
 

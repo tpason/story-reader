@@ -62,10 +62,38 @@ export async function fetchCurrentUser() {
   return data.user ?? null;
 }
 
+export type ReadingProgressPage = {
+  items: ReadingHistoryItem[];
+  nextCursor: string | null;
+  total?: number;
+};
+
+export async function fetchReadingProgressPage(options?: {
+  cursor?: string | null;
+  limit?: number;
+  signal?: AbortSignal;
+}): Promise<ReadingProgressPage> {
+  const params = new URLSearchParams();
+  if (options?.cursor) params.set("cursor", options.cursor);
+  if (options?.limit != null) params.set("limit", String(options.limit));
+  const qs = params.size > 0 ? `?${params.toString()}` : "";
+  const response = await fetch(`/api/reading-progress${qs}`, { signal: options?.signal });
+  const data = (await response.json().catch(() => ({}))) as {
+    items?: ReadingHistoryItem[];
+    nextCursor?: string | null;
+    total?: number;
+  };
+  return {
+    items: data.items ?? [],
+    nextCursor: data.nextCursor ?? null,
+    total: typeof data.total === "number" ? data.total : undefined
+  };
+}
+
+/** First page (default limit 100) — used by sync / cultivation callers. */
 export async function fetchReadingProgress(signal?: AbortSignal) {
-  const response = await fetch("/api/reading-progress", { signal });
-  const data = (await response.json().catch(() => ({}))) as { items?: ReadingHistoryItem[] };
-  return data.items ?? [];
+  const page = await fetchReadingProgressPage({ limit: 100, signal });
+  return page.items;
 }
 
 export type ReadingSessionPayload = {

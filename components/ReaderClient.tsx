@@ -169,7 +169,6 @@ import {
   ReaderChapterFooter,
   ReaderGlossaryDrawer,
   ReaderInChapterSearchPanel,
-  ReaderStatsPill,
   renderParagraphSearchText
 } from "@/components/ReaderChapterExtras";
 import {
@@ -188,12 +187,10 @@ import { useReaderPanels } from "@/hooks/useReaderPanels";
 import { useInChapterSearch } from "@/hooks/useInChapterSearch";
 import { useParagraphBookmarksAndNotes } from "@/hooks/useParagraphBookmarksAndNotes";
 import { useReaderChapterList } from "@/hooks/useReaderChapterList";
-import { useReadingSessionMinutes } from "@/hooks/useReadingSessionMinutes";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
 import { useWebGLRuntimeWatchdog } from "@/hooks/useWebGLRuntimeWatchdog";
 import { useCompactViewport } from "@/hooks/useCompactViewport";
 
-const CultivationPanel = dynamic(() => import("@/components/CultivationPanel").then((mod) => mod.CultivationPanel));
 const ChapterComments = dynamic(() => import("@/components/ChapterComments").then((mod) => mod.ChapterComments));
 const ChapterAudioPlayer = dynamic(() => import("@/components/ChapterAudioPlayer").then((mod) => mod.ChapterAudioPlayer));
 const SkillEffectLayer = dynamic(() => import("@/components/SkillEffectLayer").then((mod) => mod.SkillEffectLayer), { ssr: false });
@@ -242,23 +239,24 @@ async function readCachedChapterPayload(storyId: string, chapterNumber: number) 
 const READER_COMFORT_PRESETS = {
   focus: {
     label: "Focus",
-    config: { theme: "parchment", fontSize: 20, fontFamily: "literata", lineHeight: 1.9, paragraphSpacing: 1.28, contentWidth: 760 }
+    config: { theme: "parchment", fontSize: 20, fontFamily: "literata", lineHeight: 1.9, paragraphSpacing: 1.28, contentWidth: 880 }
   },
   night: {
     label: "Đêm",
-    config: { theme: "dark", fontSize: 20, fontFamily: "noto-serif", lineHeight: 1.88, paragraphSpacing: 1.22, contentWidth: 740 }
+    config: { theme: "dark", fontSize: 20, fontFamily: "noto-serif", lineHeight: 1.88, paragraphSpacing: 1.22, contentWidth: 860 }
   },
   ban_dem: {
     label: "Ban đêm",
-    config: { theme: "oled", fontSize: 19, fontFamily: "noto-serif", lineHeight: 1.9, paragraphSpacing: 1.2, contentWidth: 720 }
+    config: { theme: "oled", fontSize: 19, fontFamily: "noto-serif", lineHeight: 1.9, paragraphSpacing: 1.2, contentWidth: 840 }
   },
   mobile: {
+    // No contentWidth — mobile bootstrap must not permanently shrink desktop .reader-article.
     label: "Mobile nhẹ",
-    config: { theme: "parchment", fontSize: 18, fontFamily: "sans", lineHeight: 1.78, paragraphSpacing: 1.08, contentWidth: 680 }
+    config: { theme: "parchment", fontSize: 18, fontFamily: "sans", lineHeight: 1.78, paragraphSpacing: 1.08 }
   },
   wide: {
     label: "Desktop rộng",
-    config: { theme: "light", fontSize: 19, fontFamily: "sora", lineHeight: 1.84, paragraphSpacing: 1.18, contentWidth: 860 }
+    config: { theme: "light", fontSize: 19, fontFamily: "sora", lineHeight: 1.84, paragraphSpacing: 1.18, contentWidth: 1200 }
   }
 } as const;
 
@@ -383,6 +381,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const [readAlongEnabled, setReadAlongEnabled] = useState(true);
   const [glossaryTapCharacter, setGlossaryTapCharacter] = useState<GlossaryCharacter | null>(null);
   const [continuousChapterEnabled, setContinuousChapterEnabled] = useState(() => readReaderContinuousChapter());
+  const [kickerMarquee, setKickerMarquee] = useState(false);
+  const kickerRef = useRef<HTMLSpanElement>(null);
   const continuousChapterTriggeredRef = useRef(false);
   const continuousChapterEnabledRef = useRef(continuousChapterEnabled);
   const continuousAppendHandleRef = useRef<{ kind: "idle" | "timeout"; id: number } | null>(null);
@@ -438,7 +438,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     outsidePressEvent: "mousedown",
     ancestorScroll: false
   });
-  const { getFloatingProps: getFormatFloatingProps, getReferenceProps: getFormatReferenceProps } = useInteractions([formatDismiss]);
+  // Reference props intentionally unused on the tools button — sharing
+  // getReferenceProps there fought FloatingTooltip + overflow toggle (felt like reload).
+  const { getFloatingProps: getFormatFloatingProps } = useInteractions([formatDismiss]);
   const activePayload = cachedPayload ?? payload;
   const activePayloadRef = useRef(activePayload);
   activePayloadRef.current = activePayload;
@@ -478,7 +480,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     paragraphIndex: number;
   } | null>(null);
   const bilingualScrollHighlightRef = useRef(bilingualScrollHighlight);
-  const sessionMinutes = useReadingSessionMinutes(activePayload.chapter.id);
   const chapterSidebarRef = useRef<HTMLElement | null>(null);
   const desktopSidebarButtonRef = useRef<HTMLButtonElement | null>(null);
   const previousChapterSentinelRef = useRef<HTMLDivElement | null>(null);
@@ -511,6 +512,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const pageMeasureContainerRef = useRef<HTMLDivElement | null>(null);
   const formatTriggerRef = useRef<HTMLButtonElement | null>(null);
   const formatPanelRef = useRef<HTMLDivElement | null>(null);
+  const [overflowAdvancedOpen, setOverflowAdvancedOpen] = useState(false);
   const mobileSheetPanelRef = useRef<HTMLDivElement | null>(null);
   const mobileSheetScrollRef = useRef<HTMLDivElement | null>(null);
   const lastLocalPersistRef = useRef(0);
@@ -1294,7 +1296,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, [mobileMenuOpen, setMobileMenuOpen]);
 
   useEffect(() => {
-    if (!readerOverflowOpen) return;
+    if (!readerOverflowOpen) {
+      setOverflowAdvancedOpen(false);
+      return;
+    }
     function handleOutside(event: MouseEvent) {
       if (readerOverflowRef.current && !readerOverflowRef.current.contains(event.target as Node)) {
         setReaderOverflowOpen(false);
@@ -2308,6 +2313,29 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     readerShellRef.current?.style.setProperty("--reader-dock-progress", String(mobileProgressRef.current));
   }, [mobileProgress]);
 
+  // Mobile topbar grows with kicker + Offline badge; drawer was pinned at 56px and clipped "Mục lục".
+  useLayoutEffect(() => {
+    const shell = readerShellRef.current;
+    const topbar = shell?.querySelector<HTMLElement>(".reader-topbar");
+    if (!shell || !topbar) return;
+
+    const syncChromeHeight = () => {
+      const height = Math.ceil(topbar.getBoundingClientRect().height);
+      if (height > 0) {
+        shell.style.setProperty("--reader-mobile-chrome-h", `${height}px`);
+      }
+    };
+
+    syncChromeHeight();
+    const observer = new ResizeObserver(syncChromeHeight);
+    observer.observe(topbar);
+    window.addEventListener("orientationchange", syncChromeHeight);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("orientationchange", syncChromeHeight);
+    };
+  }, [readingFromOfflineCache, compactReader]);
+
   // After React re-renders the portal, restore imperative FAB visibility (className is static in JSX).
   useLayoutEffect(() => {
     const scrollTopButton = scrollTopButtonRef.current;
@@ -2996,7 +3024,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     const chapterBookmarks = paragraphBookmarksForChapter(chapter.number);
     const hasNote = Boolean(chapterBookmarks.find((item) => item.paragraphIndex === index)?.note);
     return (
-      <>
+      <span className="paragraph-tools">
         <button
           className="paragraph-bookmark-button"
           type="button"
@@ -3025,7 +3053,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             <StickyNote size={13} />
           </button>
         ) : null}
-      </>
+      </span>
     );
   }
 
@@ -3668,6 +3696,35 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const pageTitle = displayChapterTitle;
   const minutesLeft = Math.max(0, Math.ceil(totalReadingMinutes * (1 - progressRef.current / 100)));
 
+  // Mobile kicker: CSS marquee only when text overflows (measure + CSS var; no rAF).
+  useLayoutEffect(() => {
+    const node = kickerRef.current;
+    if (!node || !compactReader || prefersReducedMotion()) {
+      setKickerMarquee(false);
+      node?.style.removeProperty("--reader-kicker-shift");
+      return;
+    }
+    const measure = () => {
+      const text = node.querySelector<HTMLElement>(".reader-chapter-kicker-text");
+      if (!text) {
+        setKickerMarquee(false);
+        return;
+      }
+      const prevMax = text.style.maxWidth;
+      text.style.maxWidth = "none";
+      const shift = node.clientWidth - text.scrollWidth;
+      const overflow = shift < -1;
+      text.style.maxWidth = prevMax;
+      setKickerMarquee(overflow);
+      if (overflow) node.style.setProperty("--reader-kicker-shift", `${shift}px`);
+      else node.style.removeProperty("--reader-kicker-shift");
+    };
+    measure();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    ro?.observe(node);
+    return () => ro?.disconnect();
+  }, [compactReader, pageTitle]);
+
   // Bake mobile comfort before paint (like focus seed) — idle-late apply flashed style.
   useLayoutEffect(() => {
     if (!compactReader) return;
@@ -3740,10 +3797,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       const hasNote = currentChapterParagraphBookmarks.some((item) => item.paragraphIndex === index && item.note);
       return (
         <p
+          key={`para-${activePayload.chapter.id}-${index}`}
           className={paragraphClassName(index, bookmarked, hasNote)}
           data-paragraph-index={index}
           {...primaryChapterParagraphAttrs}
-          key={`${index}-${paragraph.slice(0, 12)}`}
           onDoubleClick={(event) => {
             const target = event.target instanceof Element ? event.target : null;
             if (target?.closest("button")) return;
@@ -3811,6 +3868,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       className={`reader-shell ${compactReader ? "reader-shell--compact" : "reader-shell--desktop"} ${focusModeEnabled ? "reader-shell-focus-mode" : ""} ${isPageLayout ? "reader-shell-layout-page" : ""} ${spreadPageMode ? "reader-shell-layout-page-spread" : ""} ${notesSidebarOpen && !compactReader ? "reader-shell-notes-open" : ""} ${commentsSplitOpen && !compactReader ? "reader-shell-comments-split" : ""} ${shellFreshPulse ? "reader-shell-fresh-pulse" : ""}`}
       data-theme={theme}
       data-font={fontFamily}
+      data-mobile-toc={mobileMenuOpen ? "open" : undefined}
       style={readerShellStyle}
     >
       {showAdminExtras && !focusModeEnabled && skillEffectsEnabled ? (
@@ -4073,7 +4131,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
               event.stopPropagation();
               startAdminEdit("storyTitle", activePayload.story.title);
             }}>{activePayload.story.title}</span>
-            <span className="reader-chapter-kicker">{pageTitle}</span>
+            <span
+              ref={kickerRef}
+              className="reader-chapter-kicker"
+              data-marquee={kickerMarquee ? "1" : undefined}
+              title={pageTitle}
+            >
+              <span className="reader-chapter-kicker-text">{pageTitle}</span>
+            </span>
             {readingFromOfflineCache ? (
               <span className="reader-offline-badge" title="Đang đọc bản đã tải offline">
                 <WifiOff size={11} aria-hidden="true" />
@@ -4092,44 +4157,37 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             {!compactReader ? (
               <>
                 <ReaderQuickSettings className="reader-aa-desktop" />
-                <FloatingTooltip label="Tuỳ chọn đọc">
-                  <button
-                    className={`icon-button reader-tools-trigger ${readerOverflowOpen || currentBookmark || focusModeEnabled || audioPanelOpen || offlineReady || commentsSplitOpen || notesSidebarOpen || chapterSearchOpen || mobileFormatOpen ? "icon-button-active" : ""}`}
-                    type="button"
-                    title="Tuỳ chọn đọc"
-                    aria-expanded={readerOverflowOpen}
-                    aria-controls="reader-overflow-panel"
-                    ref={(node) => {
-                      formatTriggerRef.current = node;
-                      formatFloatingRefs.setReference(node);
-                    }}
-                    {...getFormatReferenceProps({
-                      onClick: () => {
-                        setReaderOverflowOpen((v) => !v);
-                        if (mobileFormatOpen) setMobileFormatOpen(false);
-                      }
-                    })}
-                  >
-                    <Settings2 size={16} />
-                  </button>
-                </FloatingTooltip>
+                <button
+                  className={`icon-button reader-tools-trigger ${readerOverflowOpen || currentBookmark || focusModeEnabled || audioPanelOpen || offlineReady || commentsSplitOpen || notesSidebarOpen || chapterSearchOpen || mobileFormatOpen ? "icon-button-active" : ""}`}
+                  type="button"
+                  title="Tuỳ chọn đọc"
+                  aria-label="Tuỳ chọn đọc"
+                  aria-expanded={readerOverflowOpen}
+                  aria-controls="reader-overflow-panel"
+                  ref={formatTriggerRef}
+                  onClick={() => {
+                    setReaderOverflowOpen((v) => !v);
+                    if (mobileFormatOpen) setMobileFormatOpen(false);
+                  }}
+                >
+                  <Settings2 size={16} />
+                </button>
               </>
             ) : null}
             {!compactReader && readerOverflowOpen ? (
               <div className="reader-overflow-panel" id="reader-overflow-panel">
-                <p className="reader-overflow-group-label">Tài khoản</p>
                 <div className="reader-overflow-account">
                   <FollowButton story={activePayload.story} compact />
-                  <CultivationPanel compact className="reader-cultivation" />
-                  <ReaderStatsPill sessionMinutes={sessionMinutes} chapterProgress={mobileProgress} chapterMinutesLeft={minutesLeft} />
                 </div>
 
-                <p className="reader-overflow-group-label">Chữ & giao diện</p>
+                <p className="reader-overflow-group-label">Đọc</p>
                 <button
                   className={`reader-overflow-item ${mobileFormatOpen ? "reader-overflow-item-active" : ""}`}
                   type="button"
                   onClick={() => {
                     setReaderOverflowOpen(false);
+                    const anchor = formatTriggerRef.current;
+                    if (anchor) formatFloatingRefs.setReference(anchor);
                     // Defer past this click so useDismiss does not close the panel instantly
                     window.setTimeout(() => setMobileFormatOpen(true), 0);
                   }}
@@ -4137,34 +4195,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   <Type size={15} />
                   Chữ, theme & bố cục
                 </button>
-                <button
-                  className={`reader-overflow-item ${isPageLayout ? "reader-overflow-item-active" : ""}`}
-                  type="button"
-                  onClick={() => { toggleLayoutMode(); setReaderOverflowOpen(false); }}
-                >
-                  <BookOpen size={15} />
-                  {isPageLayout ? "Chế độ cuộn" : "Chế độ trang"}
-                </button>
-                {isPageLayout && !compactReader ? (
-                  <button
-                    className={`reader-overflow-item ${pageColumns === 2 ? "reader-overflow-item-active" : ""}`}
-                    type="button"
-                    onClick={() => { togglePageColumns(); setReaderOverflowOpen(false); }}
-                  >
-                    <BookOpen size={15} />
-                    {pageColumns === 2 ? "Một cột trang" : "Hai cột trang"}
-                  </button>
-                ) : null}
-                <button
-                  className="reader-overflow-item"
-                  type="button"
-                  onClick={resetReaderSettings}
-                >
-                  <RotateCcw size={15} />
-                  Về mặc định
-                </button>
-
-                <p className="reader-overflow-group-label">Đọc</p>
                 <button
                   className={`reader-overflow-item ${currentBookmark ? "reader-overflow-item-active" : ""}`}
                   type="button"
@@ -4189,14 +4219,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   <Search size={15} />
                   Tìm trong chương
                 </button>
-                <button
-                  className={`reader-overflow-item ${notesSidebarOpen ? "reader-overflow-item-active" : ""}`}
-                  type="button"
-                  onClick={() => { setNotesSidebarOpen((value) => !value); setReaderOverflowOpen(false); }}
-                >
-                  <StickyNote size={15} />
-                  {notesSidebarOpen ? "Đóng ghi chú đoạn" : "Ghi chú đoạn"}
-                </button>
                 {glossaryCharacters.length > 0 ? (
                   <button
                     className={`reader-overflow-item ${glossaryDrawerOpen ? "reader-overflow-item-active" : ""}`}
@@ -4220,16 +4242,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                     {bilingualPrefs.enabled ? "Song ngữ (bật)" : "Song ngữ Anh – Việt"}
                   </button>
                 ) : null}
-                {READER_CHAPTER_AUDIO_UI_ENABLED ? (
-                  <button
-                    className={`reader-overflow-item ${audioPanelOpen ? "reader-overflow-item-active" : ""}`}
-                    type="button"
-                    onClick={() => { scrollToAudioPanel(); setReaderOverflowOpen(false); }}
-                  >
-                    <Headphones size={15} />
-                    {activePayload.chapter.audioUrl ? "Nghe audio chương" : "Tạo audio chương"}
-                  </button>
-                ) : null}
                 <button
                   className={`reader-overflow-item reader-offline-button ${offlineReady ? "reader-overflow-item-active" : ""}`}
                   type="button"
@@ -4239,18 +4251,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   {offlineLoading ? <LoaderCircle size={15} className="spin" /> : <WifiOff size={15} />}
                   {offlineReady ? `Đã tải ${cachedChapters.length} chương offline` : "Tải offline"}
                 </button>
-                {showAdminExtras && !isPageLayout ? (
-                  <button
-                    className={`reader-overflow-item ${autoScrollEnabled ? "reader-overflow-item-active" : ""}`}
-                    type="button"
-                    onClick={() => { toggleAutoScroll(); setReaderOverflowOpen(false); }}
-                  >
-                    {autoScrollEnabled ? <Pause size={15} /> : <Play size={15} />}
-                    {autoScrollEnabled ? "Dừng tự cuộn" : "Tự cuộn"}
-                  </button>
-                ) : null}
-
-                <p className="reader-overflow-group-label">Xã hội</p>
                 <button
                   className={`reader-overflow-item ${commentsSplitOpen ? "reader-overflow-item-active" : ""}`}
                   type="button"
@@ -4259,75 +4259,119 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   <MessageCircle size={15} />
                   {commentsSplitOpen ? "Luận đạo dưới chương" : "Luận đạo cạnh nội dung"}
                 </button>
-                <button
-                  className="reader-overflow-item"
-                  type="button"
-                  onClick={() => { scrollToComments(); setReaderOverflowOpen(false); }}
-                >
-                  <MessageCircle size={15} />
-                  Tới luận đạo
-                </button>
 
-                <p className="reader-overflow-group-label">Tiện ích</p>
+                <div className="reader-overflow-sep" />
                 <button
-                  className={`reader-overflow-item ${tapEdgeEnabled ? "reader-overflow-item-active" : ""}`}
+                  className={`reader-overflow-item ${overflowAdvancedOpen ? "reader-overflow-item-active" : ""}`}
                   type="button"
-                  onClick={() => { toggleTapEdgeNavigation(); setReaderOverflowOpen(false); }}
+                  aria-expanded={overflowAdvancedOpen}
+                  onClick={() => setOverflowAdvancedOpen((value) => !value)}
                 >
-                  <ChevronLeft size={15} />
-                  {tapEdgeEnabled ? "Tắt chạm cạnh" : "Bật chạm cạnh đổi chương"}
+                  <Settings2 size={15} />
+                  {overflowAdvancedOpen ? "Ẩn nâng cao" : "Nâng cao…"}
                 </button>
-                <button
-                  className={`reader-overflow-item ${continuousChapterEnabled ? "reader-overflow-item-active" : ""}`}
-                  type="button"
-                  onClick={() => { toggleContinuousChapter(); setReaderOverflowOpen(false); }}
-                >
-                  <ChevronRight size={15} />
-                  {continuousChapterEnabled ? "Tắt cuộn liên tục" : "Cuộn liên tục nối chương"}
-                </button>
-                <button
-                  className={`reader-overflow-item ${readerDimEnabled ? "reader-overflow-item-active" : ""}`}
-                  type="button"
-                  onClick={() => { setReaderDimEnabled((value) => !value); setReaderOverflowOpen(false); }}
-                >
-                  {readerDimEnabled ? <Eye size={15} /> : <EyeOff size={15} />}
-                  {readerDimEnabled ? "Tắt lọc sáng" : "Lọc sáng"}
-                </button>
-                <button
-                  className={`reader-overflow-item ${wakeLockActive ? "reader-overflow-item-active" : ""}`}
-                  type="button"
-                  title={wakeLockSupported ? "Giữ màn hình sáng khi đọc" : "Trình duyệt có thể chưa hỗ trợ"}
-                  onClick={() => {
-                    toggleWakeLock();
-                    setReaderOverflowOpen(false);
-                  }}
-                >
-                  {wakeLockActive ? <Eye size={15} /> : <EyeOff size={15} />}
-                  {wakeLockActive ? "Đang giữ sáng" : "Giữ màn hình sáng"}
-                </button>
-                {showAdminExtras ? (
-                  <button
-                    className={`reader-overflow-item ${skillEffectsEnabled ? "reader-overflow-item-active" : ""}`}
-                    type="button"
-                    onClick={() => { toggleReaderSkillEffects(); setReaderOverflowOpen(false); }}
-                  >
-                    <Highlighter size={15} />
-                    {skillEffectsEnabled ? "Tắt hiệu ứng tu luyện" : "Bật hiệu ứng tu luyện"}
-                  </button>
-                ) : null}
-
-                {showAdminExtras ? (
+                {overflowAdvancedOpen ? (
                   <>
-                    <div className="reader-overflow-sep" />
-                    <div className="reader-overflow-shortcuts">
-                      <p className="reader-overflow-shortcuts-title">Phím tắt</p>
-                      <div className="reader-shortcut-row"><kbd>←</kbd><kbd>→</kbd><span>{isPageLayout ? "Trang / chương" : "Chương trước / sau"}</span></div>
-                      <div className="reader-shortcut-row"><kbd>B</kbd><span>Đánh dấu chương</span></div>
-                      <div className="reader-shortcut-row"><kbd>F</kbd><span>Focus mode</span></div>
-                      <div className="reader-shortcut-row"><kbd>G</kbd><span>Nhân vật & thuật ngữ</span></div>
-                      <div className="reader-shortcut-row"><kbd>Ctrl/⌘</kbd><kbd>F</kbd><span>Tìm trong chương</span></div>
-                      <div className="reader-shortcut-row"><kbd>T</kbd><span>Mục lục</span></div>
-                    </div>
+                    <button
+                      className={`reader-overflow-item ${isPageLayout ? "reader-overflow-item-active" : ""}`}
+                      type="button"
+                      onClick={() => { toggleLayoutMode(); setReaderOverflowOpen(false); }}
+                    >
+                      <BookOpen size={15} />
+                      {isPageLayout ? "Chế độ cuộn" : "Chế độ trang"}
+                    </button>
+                    {isPageLayout ? (
+                      <button
+                        className={`reader-overflow-item ${pageColumns === 2 ? "reader-overflow-item-active" : ""}`}
+                        type="button"
+                        onClick={() => { togglePageColumns(); setReaderOverflowOpen(false); }}
+                      >
+                        <BookOpen size={15} />
+                        {pageColumns === 2 ? "Một cột trang" : "Hai cột trang"}
+                      </button>
+                    ) : null}
+                    <button
+                      className={`reader-overflow-item ${notesSidebarOpen ? "reader-overflow-item-active" : ""}`}
+                      type="button"
+                      onClick={() => { setNotesSidebarOpen((value) => !value); setReaderOverflowOpen(false); }}
+                    >
+                      <StickyNote size={15} />
+                      {notesSidebarOpen ? "Đóng ghi chú đoạn" : "Ghi chú đoạn"}
+                    </button>
+                    {READER_CHAPTER_AUDIO_UI_ENABLED ? (
+                      <button
+                        className={`reader-overflow-item ${audioPanelOpen ? "reader-overflow-item-active" : ""}`}
+                        type="button"
+                        onClick={() => { scrollToAudioPanel(); setReaderOverflowOpen(false); }}
+                      >
+                        <Headphones size={15} />
+                        {activePayload.chapter.audioUrl ? "Nghe audio chương" : "Tạo audio chương"}
+                      </button>
+                    ) : null}
+                    <button
+                      className={`reader-overflow-item ${tapEdgeEnabled ? "reader-overflow-item-active" : ""}`}
+                      type="button"
+                      onClick={() => { toggleTapEdgeNavigation(); setReaderOverflowOpen(false); }}
+                    >
+                      <ChevronLeft size={15} />
+                      {tapEdgeEnabled ? "Tắt chạm cạnh" : "Bật chạm cạnh đổi chương"}
+                    </button>
+                    <button
+                      className={`reader-overflow-item ${continuousChapterEnabled ? "reader-overflow-item-active" : ""}`}
+                      type="button"
+                      onClick={() => { toggleContinuousChapter(); setReaderOverflowOpen(false); }}
+                    >
+                      <ChevronRight size={15} />
+                      {continuousChapterEnabled ? "Tắt cuộn liên tục" : "Cuộn liên tục nối chương"}
+                    </button>
+                    <button
+                      className={`reader-overflow-item ${readerDimEnabled ? "reader-overflow-item-active" : ""}`}
+                      type="button"
+                      onClick={() => { setReaderDimEnabled((value) => !value); setReaderOverflowOpen(false); }}
+                    >
+                      {readerDimEnabled ? <Eye size={15} /> : <EyeOff size={15} />}
+                      {readerDimEnabled ? "Tắt lọc sáng" : "Lọc sáng"}
+                    </button>
+                    <button
+                      className={`reader-overflow-item ${wakeLockActive ? "reader-overflow-item-active" : ""}`}
+                      type="button"
+                      title={wakeLockSupported ? "Giữ màn hình sáng khi đọc" : "Trình duyệt có thể chưa hỗ trợ"}
+                      onClick={() => {
+                        toggleWakeLock();
+                        setReaderOverflowOpen(false);
+                      }}
+                    >
+                      {wakeLockActive ? <Eye size={15} /> : <EyeOff size={15} />}
+                      {wakeLockActive ? "Đang giữ sáng" : "Giữ màn hình sáng"}
+                    </button>
+                    {showAdminExtras && !isPageLayout ? (
+                      <button
+                        className={`reader-overflow-item ${autoScrollEnabled ? "reader-overflow-item-active" : ""}`}
+                        type="button"
+                        onClick={() => { toggleAutoScroll(); setReaderOverflowOpen(false); }}
+                      >
+                        {autoScrollEnabled ? <Pause size={15} /> : <Play size={15} />}
+                        {autoScrollEnabled ? "Dừng tự cuộn" : "Tự cuộn"}
+                      </button>
+                    ) : null}
+                    {showAdminExtras ? (
+                      <button
+                        className={`reader-overflow-item ${skillEffectsEnabled ? "reader-overflow-item-active" : ""}`}
+                        type="button"
+                        onClick={() => { toggleReaderSkillEffects(); setReaderOverflowOpen(false); }}
+                      >
+                        <Highlighter size={15} />
+                        {skillEffectsEnabled ? "Tắt hiệu ứng tu luyện" : "Bật hiệu ứng tu luyện"}
+                      </button>
+                    ) : null}
+                    <button
+                      className="reader-overflow-item"
+                      type="button"
+                      onClick={resetReaderSettings}
+                    >
+                      <RotateCcw size={15} />
+                      Về mặc định
+                    </button>
                   </>
                 ) : null}
               </div>
@@ -4446,6 +4490,18 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         {compactReader ? (
           <div className="reader-controls reader-controls-mobile" aria-label="Mobile reader controls">
             <NotificationBell className="reader-notification" />
+            <button
+              className="icon-button"
+              type="button"
+              title="Chữ & giao diện"
+              aria-label="Mở cài đặt chữ và giao diện"
+              onClick={() => {
+                setMobileSheetTab("settings");
+                setMobileSheetOpen(true);
+              }}
+            >
+              <Type size={17} />
+            </button>
             {supportsBilingual ? (
               <button
                 className={`icon-button ${bilingualPrefs.enabled ? "icon-button-active" : ""}`}
@@ -5108,7 +5164,19 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           aria-label="Chapter navigation"
           ref={chapterSidebarRef}
         >
-          <p className="chapter-sidebar-title">Mục lục</p>
+          <div className="chapter-sidebar-title-row">
+            <p className="chapter-sidebar-title">Mục lục</p>
+            {compactReader ? (
+              <button
+                className="icon-button chapter-sidebar-close"
+                type="button"
+                aria-label="Đóng mục lục"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <X size={17} />
+              </button>
+            ) : null}
+          </div>
           <ChapterSidebarHeatmap
             totalChapters={activePayload.story.totalChapters}
             maxReadChapter={maxReadChapter}
@@ -5449,10 +5517,10 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   const hasNote = currentChapterParagraphBookmarks.some((item) => item.paragraphIndex === index && item.note);
                   return (
                     <p
+                      key={`para-${activePayload.chapter.id}-${index}`}
                       className={paragraphClassName(index, bookmarked, hasNote)}
                       data-paragraph-index={index}
                       {...primaryChapterParagraphAttrs}
-                      key={`${index}-${paragraph.slice(0, 12)}`}
                       onDoubleClick={(event) => {
                         const target = event.target instanceof Element ? event.target : null;
                         if (target?.closest("button")) return;

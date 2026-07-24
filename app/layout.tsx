@@ -106,7 +106,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           }}
         />
       </head>
-      <body>
+      {/* Extensions (e.g. ColorZilla) inject body attrs like cz-shortcut-listen before hydrate. */}
+      <body suppressHydrationWarning>
         <StoreProvider>
           <GlobalThemeProvider />
           <AppBootSplash />

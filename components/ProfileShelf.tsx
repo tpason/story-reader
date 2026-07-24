@@ -32,25 +32,33 @@ export function ProfileShelf() {
       </div>
 
       <div className="profile-stat-grid">
-        <span>
-          <BookOpenCheck size={16} />
-          <strong>{cultivation.completedChapterCount}</strong>
-          chương đã đọc
+        <span className="profile-stat">
+          <BookOpenCheck size={18} aria-hidden="true" />
+          <span className="profile-stat-copy">
+            <strong>{cultivation.completedChapterCount}</strong>
+            <span className="profile-stat-label">chương đã đọc</span>
+          </span>
         </span>
-        <span>
-          <BellRing size={16} />
-          <strong>{follows.length}</strong>
-          truyện theo dõi
+        <span className="profile-stat">
+          <BellRing size={18} aria-hidden="true" />
+          <span className="profile-stat-copy">
+            <strong>{follows.length}</strong>
+            <span className="profile-stat-label">truyện theo dõi</span>
+          </span>
         </span>
-        <span>
-          <Award size={16} />
-          <strong>{Math.max(1, streakBase)}</strong>
-          ngày khí vận
+        <span className="profile-stat">
+          <Award size={18} aria-hidden="true" />
+          <span className="profile-stat-copy">
+            <strong>{Math.max(1, streakBase)}</strong>
+            <span className="profile-stat-label">ngày khí vận</span>
+          </span>
         </span>
-        <span>
-          <Sparkles size={16} />
-          <strong>{unlockedSkills.length}</strong>
-          đạo pháp mở khóa
+        <span className="profile-stat">
+          <Sparkles size={18} aria-hidden="true" />
+          <span className="profile-stat-copy">
+            <strong>{unlockedSkills.length}</strong>
+            <span className="profile-stat-label">đạo pháp mở khóa</span>
+          </span>
         </span>
       </div>
 

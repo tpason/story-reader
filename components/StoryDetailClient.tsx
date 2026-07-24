@@ -347,27 +347,15 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
                       Ước tính ~{formatReadingDuration(estimatedStoryMinutes)} đọc hết
                     </p>
                   ) : null}
-                  {maxReadChapter > 0 && totalChapters > 0 ? (() => {
-                    const progressPct = Math.min(100, Math.max(0, Math.round((maxReadChapter / totalChapters) * 100)));
-                    const activeChapter = history?.chapterNumber ?? continueChapter ?? 0;
-                    return (
-                      <div className="story-detail-hero-progress" aria-label="Tiến độ đọc">
-                        <ChapterSidebarHeatmap
-                          totalChapters={totalChapters}
-                          maxReadChapter={maxReadChapter}
-                          activeChapterNumber={activeChapter}
-                          onJump={(chapterNumber) => {
-                            writeResumeNavigationTarget(currentStory.id, chapterNumber, {});
-                            router.push(storyHref(currentStory, chapterNumber));
-                          }}
-                        />
-                        <span className="story-detail-hero-progress-label">
-                          <BookOpenCheck size={13} />
-                          {Math.min(maxReadChapter, totalChapters)}/{totalChapters} chương ({progressPct}%)
-                        </span>
-                      </div>
-                    );
-                  })() : null}
+                  {maxReadChapter > 0 && totalChapters > 0 ? (
+                    <div className="story-detail-hero-progress" aria-label="Tiến độ đọc">
+                      <ChapterSidebarHeatmap
+                        totalChapters={totalChapters}
+                        maxReadChapter={maxReadChapter}
+                        activeChapterNumber={history?.chapterNumber ?? continueChapter ?? 0}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               </details>
             </div>

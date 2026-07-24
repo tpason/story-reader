@@ -19,6 +19,8 @@ export const NOTIFY_COPY = {
   viewAll: "Mở Tàng linh tin",
   markCaughtUp: "Đón linh tin",
   markCaughtUpHint: "Ghi nhận đã biết chương mới. Ẩn tới khi có chương tiếp theo",
+  markAllCaughtUp: "Đón hết linh tin",
+  markAllCaughtUpHint: "Ghi nhận đã biết mọi chương mới trong danh sách",
   engageTitle: "Kết linh tin",
   engageBody: "Theo dõi và bật linh tin để biết ngay khi có chương mới, kể cả khi đóng quyển.",
   engageCta: "Theo dõi & bật linh tin",

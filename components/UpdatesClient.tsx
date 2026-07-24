@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, BookOpenCheck, Check, Feather, ScrollText, Sparkles } from "lucide-react";
+import { Bell, BookOpenCheck, Check, CheckCheck, Feather, ScrollText, Sparkles } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, type MouseEvent, type ReactNode } from "react";
@@ -9,7 +9,13 @@ import { StoryCover } from "@/components/StoryCover";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
-import { computeNotificationUnread, effectiveMaxReadForNotify, isNotificationStoryVisible, markNotificationCaughtUp } from "@/lib/notification-caught-up";
+import {
+  computeNotificationUnread,
+  effectiveMaxReadForNotify,
+  isNotificationStoryVisible,
+  markAllNotificationsCaughtUp,
+  markNotificationCaughtUp
+} from "@/lib/notification-caught-up";
 import { useNotificationCaughtUp } from "@/lib/useNotificationCaughtUp";
 import { fetchReadingProgress } from "@/lib/api-client";
 import { historyToFollowItem } from "@/lib/follows";
@@ -152,6 +158,13 @@ export function UpdatesClient() {
   const readingUpdates = updates.filter((entry) => hasReading(entry.item.storyId));
   const followUpdates = updates.filter((entry) => followIdSet.has(entry.item.storyId) && !hasReading(entry.item.storyId));
 
+  function markAllCaughtUp() {
+    if (!updates.length) return;
+    markAllNotificationsCaughtUp(
+      updates.map((entry) => ({ storyId: entry.item.storyId, totalChapters: entry.item.totalChapters }))
+    );
+  }
+
   return (
     <main className="app-shell">
       <MotionFX variant="library" />
@@ -165,6 +178,18 @@ export function UpdatesClient() {
               <strong>{updates.length}</strong>
               <span>truyện có linh tin</span>
             </div>
+            {updates.length > 0 ? (
+              <button
+                type="button"
+                className="chip notification-mark-all-btn"
+                title={NOTIFY_COPY.markAllCaughtUpHint}
+                aria-label={NOTIFY_COPY.markAllCaughtUp}
+                onClick={markAllCaughtUp}
+              >
+                <CheckCheck size={14} aria-hidden="true" />
+                <span>{NOTIFY_COPY.markAllCaughtUp}</span>
+              </button>
+            ) : null}
             <Link className="chip chip-inverted" href="/following">
               Tủ truyện đầy đủ
             </Link>

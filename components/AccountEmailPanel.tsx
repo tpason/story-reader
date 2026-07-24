@@ -113,7 +113,11 @@ export function AccountEmailPanel() {
         await persistor.flush();
       }
       if (userRef.current?.id !== requestUserId) return;
-      setMessage(data.mailWarning ?? "Đã gửi email xác thực. Kiểm tra hộp thư.");
+      if (data.mailWarning) {
+        setError(data.mailWarning);
+      } else {
+        setMessage("Đã gửi email xác thực. Kiểm tra hộp thư.");
+      }
       await load();
     } finally {
       if (userRef.current?.id === requestUserId) setSaving(false);
@@ -133,7 +137,11 @@ export function AccountEmailPanel() {
         setError(data.error ?? "Không gửi lại được email.");
         return;
       }
-      setMessage(data.mailWarning ?? "Đã gửi lại email xác thực.");
+      if (data.mailWarning) {
+        setError(data.mailWarning);
+      } else {
+        setMessage("Đã gửi lại email xác thực.");
+      }
     } finally {
       if (userRef.current?.id === requestUserId) setResending(false);
     }

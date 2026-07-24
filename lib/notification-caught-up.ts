@@ -30,6 +30,26 @@ export function markNotificationCaughtUp(storyId: string, throughChapter: number
   window.dispatchEvent(new Event(NOTIFY_CAUGHT_UP_EVENT));
 }
 
+export function mergeCaughtUpMarks(
+  map: NotificationCaughtUpMap,
+  items: Array<{ storyId: string; totalChapters: number }>
+): NotificationCaughtUpMap {
+  const next: NotificationCaughtUpMap = { ...map };
+  for (const item of items) {
+    if (!item.storyId) continue;
+    next[item.storyId] = Math.max(next[item.storyId] ?? 0, Math.floor(item.totalChapters));
+  }
+  return next;
+}
+
+/** Mark every listed story as caught up through its current total chapters. */
+export function markAllNotificationsCaughtUp(items: Array<{ storyId: string; totalChapters: number }>) {
+  if (typeof window === "undefined" || items.length === 0) return;
+  const map = mergeCaughtUpMarks(readNotificationCaughtUp(), items);
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+  window.dispatchEvent(new Event(NOTIFY_CAUGHT_UP_EVENT));
+}
+
 export function effectiveMaxReadForNotify(
   storyId: string,
   maxReadChapterNumber: number,

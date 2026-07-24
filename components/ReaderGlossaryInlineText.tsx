@@ -2,7 +2,7 @@
 
 import type { GlossaryCharacter, GlossaryIndex } from "@/lib/reader-glossary";
 import { buildGlossaryTextSpans } from "@/lib/reader-glossary-inline";
-import { memo, type MouseEvent } from "react";
+import { memo, Fragment, type MouseEvent } from "react";
 
 type ReaderGlossaryInlineTextProps = {
   text: string;
@@ -27,7 +27,8 @@ export const ReaderGlossaryInlineText = memo(function ReaderGlossaryInlineText({
     <>
       {spans.map((span, index) =>
         span.kind === "text" ? (
-          <span key={`t-${index}`}>{span.value}</span>
+          // Bare text nodes so ::first-letter drop-cap/initial can target the real first char.
+          <Fragment key={`t-${index}`}>{span.value}</Fragment>
         ) : (
           <button
             key={`g-${index}-${span.value}`}

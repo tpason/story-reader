@@ -3,7 +3,8 @@ import { describe, it } from "node:test";
 import {
   adjustNotificationItems,
   computeNotificationUnread,
-  effectiveMaxReadForNotify
+  effectiveMaxReadForNotify,
+  mergeCaughtUpMarks
 } from "../lib/notification-caught-up.ts";
 
 const STORY_A = "00000000-0000-4000-8000-000000000001";
@@ -32,5 +33,17 @@ describe("notification caught up", () => {
     const unread = computeNotificationUnread(STORY_B, 101, 50, caughtUp);
     assert.equal(unread, 1);
     assert.equal(effectiveMaxReadForNotify(STORY_B, 50, caughtUp), 100);
+  });
+
+  it("merges mark-all watermarks without lowering existing marks", () => {
+    const merged = mergeCaughtUpMarks(
+      { [STORY_A]: 120 },
+      [
+        { storyId: STORY_A, totalChapters: 100 },
+        { storyId: STORY_B, totalChapters: 40 }
+      ]
+    );
+    assert.equal(merged[STORY_A], 120);
+    assert.equal(merged[STORY_B], 40);
   });
 });

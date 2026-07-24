@@ -37,7 +37,15 @@ export const READER_LINE_HEIGHT_MAX = 2.15;
 export const READER_PARAGRAPH_SPACING_MIN = 0.9;
 export const READER_PARAGRAPH_SPACING_MAX = 1.8;
 export const READER_CONTENT_WIDTH_MIN = 620;
-export const READER_CONTENT_WIDTH_MAX = 860;
+export const READER_CONTENT_WIDTH_MAX = 1200;
+/**
+ * One-shot bump for browsers stuck on narrow persisted widths
+ * (old defaults 720–960, or mobile preset 680 that leaked to desktop).
+ */
+// v6: re-run for users stuck after v5 stamp + PersistGate/remote overwrite race
+const CONTENT_WIDTH_BUMP_KEY = "reader:content-width-bump-v6";
+/** Widen anything below this once; `.reader-article` uses --reader-content-width. */
+const CONTENT_WIDTH_MIGRATE_BELOW = 1000;
 
 export const DEFAULT_READER_STYLE_CONFIG: ReaderStyleConfig = {
   theme: "parchment",
@@ -45,7 +53,7 @@ export const DEFAULT_READER_STYLE_CONFIG: ReaderStyleConfig = {
   fontFamily: "literata",
   lineHeight: 1.82,
   paragraphSpacing: 1.24,
-  contentWidth: 720,
+  contentWidth: 1100,
   layoutMode: "scroll",
   tapEdgeEnabled: true,
   skillEffectsEnabled: false
@@ -98,6 +106,49 @@ export function sanitizeReaderStyleConfig(input: unknown): ReaderStyleConfig {
   };
 }
 
+/** Migrate narrow persisted widths → current default once. */
+export function applyReaderContentWidthMigration(config: ReaderStyleConfig): ReaderStyleConfig {
+  const sanitized = sanitizeReaderStyleConfig(config);
+  if (typeof window === "undefined") return sanitized;
+  try {
+    if (window.localStorage.getItem(CONTENT_WIDTH_BUMP_KEY) === "1") return sanitized;
+  } catch {
+    return sanitized;
+  }
+  // Stamp only when we bump — so a wide local read cannot skip migrating redux-persist.
+  if (sanitized.contentWidth >= CONTENT_WIDTH_MIGRATE_BELOW) return sanitized;
+  try {
+    window.localStorage.setItem(CONTENT_WIDTH_BUMP_KEY, "1");
+  } catch {
+    // Still return migrated width even if flag write fails.
+  }
+  return { ...sanitized, contentWidth: DEFAULTS.contentWidth };
+}
+
+/**
+ * When merging server prefs, never shrink a locally widened column
+ * (stale Thiên Thư prefs often still hold 680–820).
+ */
+export function mergeRemoteReaderStyle(
+  remote: ReaderStyleConfig,
+  local: ReaderStyleConfig
+): ReaderStyleConfig {
+  const r = sanitizeReaderStyleConfig(remote);
+  const l = sanitizeReaderStyleConfig(local);
+  if (l.contentWidth >= CONTENT_WIDTH_MIGRATE_BELOW && r.contentWidth < l.contentWidth) {
+    return { ...r, contentWidth: l.contentWidth };
+  }
+  return applyReaderContentWidthMigration(r);
+}
+
+function readLegacyNumber(key: string): number | undefined {
+  if (typeof window === "undefined") return undefined;
+  const raw = window.localStorage.getItem(key);
+  if (raw == null || raw === "") return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 export function readReaderStyleConfig(): ReaderStyleConfig {
   if (typeof window === "undefined") return DEFAULTS;
 
@@ -105,6 +156,8 @@ export function readReaderStyleConfig(): ReaderStyleConfig {
   if (raw) {
     try {
       const parsed = JSON.parse(raw) as Partial<ReaderStyleConfig>;
+      // Migration runs in StoreHydrator against the config actually applied
+      // (redux-persist or this legacy blob) — do not stamp the bump flag here.
       return sanitizeReaderStyleConfig({
         ...parsed,
         tapEdgeEnabled: typeof parsed.tapEdgeEnabled === "boolean" ? parsed.tapEdgeEnabled : readLegacyTapEdgeEnabled(),
@@ -116,19 +169,19 @@ export function readReaderStyleConfig(): ReaderStyleConfig {
   }
 
   const legacyTheme = window.localStorage.getItem("reader-theme");
-  const legacyFontSize = Number(window.localStorage.getItem("reader-font-size"));
+  const legacyFontSize = readLegacyNumber("reader-font-size");
   const legacyFontFamily = window.localStorage.getItem("reader-font-family");
-  const legacyLineHeight = Number(window.localStorage.getItem("reader-line-height"));
-  const legacyParagraphSpacing = Number(window.localStorage.getItem("reader-paragraph-spacing"));
-  const legacyContentWidth = Number(window.localStorage.getItem("reader-content-width"));
+  const legacyLineHeight = readLegacyNumber("reader-line-height");
+  const legacyParagraphSpacing = readLegacyNumber("reader-paragraph-spacing");
+  const legacyContentWidth = readLegacyNumber("reader-content-width");
 
   return sanitizeReaderStyleConfig({
     theme: legacyTheme ?? undefined,
-    fontSize: Number.isFinite(legacyFontSize) ? legacyFontSize : undefined,
+    fontSize: legacyFontSize,
     fontFamily: legacyFontFamily ?? undefined,
-    lineHeight: Number.isFinite(legacyLineHeight) ? legacyLineHeight : undefined,
-    paragraphSpacing: Number.isFinite(legacyParagraphSpacing) ? legacyParagraphSpacing : undefined,
-    contentWidth: Number.isFinite(legacyContentWidth) ? legacyContentWidth : undefined,
+    lineHeight: legacyLineHeight,
+    paragraphSpacing: legacyParagraphSpacing,
+    contentWidth: legacyContentWidth,
     tapEdgeEnabled: readLegacyTapEdgeEnabled(),
     skillEffectsEnabled: readLegacySkillEffectsEnabled()
   });

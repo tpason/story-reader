@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, BellOff, Feather, LoaderCircle, Sparkles } from "lucide-react";
+import { Bell, BellOff, LoaderCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { diagnosePush, type PushDiagnostic } from "@/lib/push-diagnostic";
 import {
@@ -74,34 +74,26 @@ export function PushNotificationToggle() {
     );
   }
 
-  // Feature not configured on server — hide from readers; admins still see ops diagnostics.
-  if (diagnostic && !diagnostic.featureAvailable && !subscribed && !diagnostic.isAdmin) {
+  // Server / PWA not ready — hide the whole card. Ops hints (VAPID, .env) never belong on Động phủ.
+  if (diagnostic && !diagnostic.featureAvailable && !subscribed) {
     return null;
   }
 
-  if (!isPushApiSupported() && diagnostic && !diagnostic.isAdmin && !subscribed) {
+  if (!isPushApiSupported() && !subscribed) {
     return null;
   }
 
-  const visibleBlockers =
-    diagnostic?.blockers.filter((blocker) => {
-      if (blocker.audience === "ops") return Boolean(diagnostic.isAdmin);
-      return true;
-    }) ?? [];
-
+  // Only blockers the reader can act on (login, browser permission). Never ops/config.
+  const visibleBlockers = diagnostic?.blockers.filter((blocker) => blocker.audience === "user") ?? [];
   const canShowToggle = Boolean(diagnostic?.canEnable || subscribed);
   const showDiagnostics = visibleBlockers.length > 0 && !subscribed;
 
   return (
-    <div className="push-settings-card" role="region" aria-label={NOTIFY_COPY.eyebrow}>
+    <div className="push-settings-card" role="region" aria-label={NOTIFY_COPY.pushTitle}>
       <div className="push-settings-copy">
-        <p className="eyebrow">
-          <Sparkles size={12} aria-hidden="true" />
-          {NOTIFY_COPY.eyebrow}
-        </p>
         <h2>
-          <Feather size={18} aria-hidden="true" />
-          {NOTIFY_COPY.pushTitle}
+          <Bell size={18} aria-hidden="true" />
+          <span>{NOTIFY_COPY.pushTitle}</span>
         </h2>
         <p>
           Nhận linh tin khi truyện đạo hữu <strong>đang tu hoặc theo dõi</strong> có chương mới, kể cả khi không mở Linh
@@ -125,15 +117,17 @@ export function PushNotificationToggle() {
           onClick={subscribed ? disable : enable}
           disabled={loading}
         >
-          {loading ? <LoaderCircle size={14} className="spin" /> : subscribed ? <BellOff size={14} /> : <Bell size={14} />}
-          {loading ? "Đang xử lý…" : subscribed ? "Đang bật. Nhấn để tắt" : NOTIFY_COPY.pushCta}
+          {loading ? (
+            <LoaderCircle size={16} className="spin" aria-hidden="true" />
+          ) : subscribed ? (
+            <BellOff size={16} aria-hidden="true" />
+          ) : (
+            <Bell size={16} aria-hidden="true" />
+          )}
+          <span>{loading ? "Đang xử lý…" : subscribed ? "Đang bật. Nhấn để tắt" : NOTIFY_COPY.pushCta}</span>
         </button>
       ) : showDiagnostics ? (
-        <p className="push-diagnostic-foot">
-          {diagnostic?.isAdmin
-            ? "Sửa cấu hình máy chủ rồi tải lại trang để bật linh tin."
-            : "Hoàn tất các mục trên rồi tải lại trang để bật linh tin."}
-        </p>
+        <p className="push-diagnostic-foot">Hoàn tất các mục trên rồi tải lại trang để bật linh tin.</p>
       ) : null}
     </div>
   );

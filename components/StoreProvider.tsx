@@ -7,7 +7,12 @@ import { fetchBookmarks, fetchCurrentUser, fetchFollowedStories, fetchRemoteRead
 import { readLocalBookmarks } from "@/lib/bookmarks";
 import { readLocalFollows } from "@/lib/follows";
 import { readCurrentUser } from "@/lib/identity";
-import { readReaderStyleConfig } from "@/lib/reader-preferences";
+import {
+  applyReaderContentWidthMigration,
+  mergeRemoteReaderStyle,
+  readReaderStyleConfig,
+  writeReaderStyleConfig
+} from "@/lib/reader-preferences";
 import { writeReaderPerformanceMode } from "@/lib/reader-performance-mode";
 import { writeReaderFocusModeDefault } from "@/lib/reader-onboarding";
 import { readLocalHistory } from "@/lib/reading-history";
@@ -27,6 +32,19 @@ import {
   setReaderStyle,
   store
 } from "@/lib/store";
+
+function migrateAndPersistReaderWidth() {
+  const state = store.getState();
+  const migrated = applyReaderContentWidthMigration(state.readerStyle.config);
+  if (migrated.contentWidth !== state.readerStyle.config.contentWidth) {
+    store.dispatch(setReaderStyle(migrated));
+  } else if (!state.readerStyle.hydrated) {
+    store.dispatch(markReaderStyleHydrated());
+  }
+  // Flush even when transform already widened in-memory — storage may still hold 680–820.
+  writeReaderStyleConfig(store.getState().readerStyle.config);
+  void persistor.flush();
+}
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   return (
@@ -95,7 +113,8 @@ function StoreHydrator({ children }: { children: React.ReactNode }) {
         .then((preferences) => {
           if (!preferences) return;
           const apply = () => {
-            store.dispatch(setReaderStyle(preferences.readerStyle));
+            const local = store.getState().readerStyle.config;
+            store.dispatch(setReaderStyle(mergeRemoteReaderStyle(preferences.readerStyle, local)));
             writeReaderPerformanceMode(preferences.performanceMode);
             writeReaderFocusModeDefault(preferences.focusModeDefault);
             window.dispatchEvent(new Event("reader:performance-mode"));
@@ -129,14 +148,34 @@ function StoreHydrator({ children }: { children: React.ReactNode }) {
     if (state.history.items.length === 0 && legacyHistory.length > 0) store.dispatch(setHistory(legacyHistory));
     else if (!state.history.hydrated) store.dispatch(markHistoryHydrated());
 
-    if (!state.readerStyle.hydrated) store.dispatch(setReaderStyle(legacyReaderStyle));
-    else store.dispatch(markReaderStyleHydrated());
+    // Seed from legacy blob only when persist has not hydrated yet.
+    if (!state.readerStyle.hydrated) {
+      store.dispatch(setReaderStyle(applyReaderContentWidthMigration(legacyReaderStyle)));
+    } else {
+      store.dispatch(markReaderStyleHydrated());
+    }
 
     if (state.follows.items.length === 0 && legacyFollows.length > 0) store.dispatch(setFollows(legacyFollows));
     else if (!state.follows.hydrated) store.dispatch(markFollowsHydrated());
 
     if (state.bookmarks.items.length === 0 && legacyBookmarks.length > 0) store.dispatch(setBookmarks(legacyBookmarks));
     else if (!state.bookmarks.hydrated) store.dispatch(markBookmarksHydrated());
+
+    // PersistGate mounts children before bootstrap — migrate AFTER rehydrate wins.
+    const runWidthMigration = () => {
+      migrateAndPersistReaderWidth();
+    };
+    let persistUnsub: (() => void) | undefined;
+    if (persistor.getState().bootstrapped) {
+      runWidthMigration();
+    } else {
+      persistUnsub = persistor.subscribe(() => {
+        if (!persistor.getState().bootstrapped) return;
+        runWidthMigration();
+        persistUnsub?.();
+        persistUnsub = undefined;
+      });
+    }
 
     fetchCurrentUser()
       .then((remoteUser) => {
@@ -173,17 +212,22 @@ function StoreHydrator({ children }: { children: React.ReactNode }) {
           if (nextReaderStyle !== previousReaderStyle) {
             payload.readerStyle = nextState.readerStyle.config;
             previousReaderStyle = nextReaderStyle;
+            writeReaderStyleConfig(nextState.readerStyle.config);
           }
 
           if (Object.keys(payload).length > 0) {
             saveReaderPreferencesOnServer(payload);
           }
+        } else if (nextReaderStyle !== previousReaderStyle) {
+          writeReaderStyleConfig(nextState.readerStyle.config);
+          previousReaderStyle = nextReaderStyle;
         }
       }, 220);
     });
 
     return () => {
       if (savePreferencesTimer) window.clearTimeout(savePreferencesTimer);
+      persistUnsub?.();
       unsubscribe();
     };
   }, []);
