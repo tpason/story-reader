@@ -1,6 +1,7 @@
 "use client";
 
 import { BookOpenCheck, ChevronRight } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
@@ -52,7 +53,7 @@ export function ReadingResumeBar({ storyId, showRecentRail = false }: ReadingRes
       ? ` · đoạn ${latest.paragraphIndex + 1}`
       : "";
 
-  function warmChapterNav(storyIdToWarm: string, chapterNumber: number, targetHref: string) {
+  function warmChapterNav(storyIdToWarm: string, chapterNumber: number, targetHref: Route) {
     warmReaderClientChunk();
     router.prefetch(targetHref);
     void prefetchReaderChapterQuery(queryClient, storyIdToWarm, chapterNumber);

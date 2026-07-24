@@ -41,7 +41,7 @@ export function armStoryCoverViewTransition(eventTarget: EventTarget | null) {
   const root = eventTarget instanceof Element ? eventTarget : null;
   if (!root) return;
   const cover =
-    (root.matches("[data-story-cover]") ? root : null) ??
+    (root.matches("[data-story-cover]") && root instanceof HTMLElement ? root : null) ??
     root.querySelector<HTMLElement>("[data-story-cover]");
   if (!cover) return;
   clearArmedStoryCoverViewTransitions();
