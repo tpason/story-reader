@@ -1158,6 +1158,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setCachedPayload(null);
   }, [payload.chapter.id, payload.chapter.chapterNumber]);
 
+  // Single chapter-reset pass — avoid double setState storm from two overlapping effects.
   useEffect(() => {
     setMobileMenuOpen(false);
     setMobileFormatOpen(false);
@@ -1170,6 +1171,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setShowCompletionOverlay(false);
     setParagraphNoteEditor(null);
     completionShownRef.current = false;
+    setJumpBackTarget(null);
     if (continuousAppendHandleRef.current) {
       const pending = continuousAppendHandleRef.current;
       continuousAppendHandleRef.current = null;
@@ -1180,43 +1182,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       }
     }
     continuousChapterTriggeredRef.current = false;
-    setJumpBackTarget(null);
+
     // promoteHeadInlineToPrimary sets skipInlineClearRef so appended chapters survive the handoff.
-    const keepInline = skipInlineClearRef.current;
-    if (!keepInline) {
-      setInlineChapters([]);
-    }
-    visibleChapterRef.current = {
-      chapterId: activePayload.chapter.id,
-      chapterNumber: activePayload.chapter.chapterNumber,
-      chapterTitle: activePayload.chapter.title,
-      paragraphIndex: keepInline ? visibleChapterRef.current.paragraphIndex : 0
-    };
-    syncedReaderUrlChapterRef.current = activePayload.chapter.chapterNumber;
-    setCommentsChapterId(activePayload.chapter.id);
-  }, [
-    activePayload.chapter.chapterNumber,
-    activePayload.chapter.id,
-    activePayload.chapter.title,
-    payload.chapters,
-    payload.previousChapterCursor,
-    payload.chapterCursor,
-    setChapterSearchOpen,
-    setChapterSearchQuery,
-    setGlossaryDrawerOpen,
-    setMobileFormatOpen,
-    setMobileMenuOpen,
-    setMobileSheetOpen,
-    setParagraphNoteEditor,
-    setReaderOverflowOpen,
-    stopAutoScroll
-  ]);
-
-  useEffect(() => {
-    inlineChaptersRef.current = inlineChapters;
-  }, [inlineChapters]);
-
-  useEffect(() => {
     if (skipInlineClearRef.current) {
       skipInlineClearRef.current = false;
       visibleChapterRef.current = {
@@ -1231,7 +1198,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     }
 
     setInlineChapters([]);
-    continuousChapterTriggeredRef.current = false;
     visibleChapterRef.current = {
       chapterId: activePayload.chapter.id,
       chapterNumber: activePayload.chapter.chapterNumber,
@@ -1242,7 +1208,24 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setCommentsChapterId(activePayload.chapter.id);
     lastPersistedHistoryRef.current = null;
     lastMobileVisibleChapterSyncRef.current = 0;
-  }, [activePayload.chapter.id, activePayload.chapter.chapterNumber, activePayload.chapter.title]);
+  }, [
+    activePayload.chapter.chapterNumber,
+    activePayload.chapter.id,
+    activePayload.chapter.title,
+    setChapterSearchOpen,
+    setChapterSearchQuery,
+    setGlossaryDrawerOpen,
+    setMobileFormatOpen,
+    setMobileMenuOpen,
+    setMobileSheetOpen,
+    setParagraphNoteEditor,
+    setReaderOverflowOpen,
+    stopAutoScroll
+  ]);
+
+  useEffect(() => {
+    inlineChaptersRef.current = inlineChapters;
+  }, [inlineChapters]);
 
   useEffect(() => {
     if (!commentsSplitOpen || compactReader) return;
@@ -2239,9 +2222,14 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       document.removeEventListener("visibilitychange", onVisibilityHidden);
     };
   }, [
-    activePayload.chapter,
-    activePayload.nextChapter,
-    activePayload.story,
+    // Prefer primitive ids — avoid recreating scroll listener when chapter object identity churns.
+    activePayload.chapter.chapterNumber,
+    activePayload.chapter.id,
+    activePayload.nextChapter?.chapterNumber,
+    activePayload.story.coverImageUrl,
+    activePayload.story.id,
+    activePayload.story.title,
+    activePayload.story.totalChapters,
     audioPanelOpen,
     dispatch,
     isPageLayout,
@@ -2373,27 +2361,53 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       paragraphIndex: 0
     };
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const best = pickBestVisibleParagraphEntry(entries);
-        if (!best) return;
+    const compact = compactViewportRef.current;
+    const thresholds = compact ? [0, 0.5, 1] : [0, 0.2, 0.45, 0.7, 1];
+    let observer: IntersectionObserver | null = null;
+    let idleId: number | null = null;
+    let timeoutId: number | null = null;
+    let cancelled = false;
 
-        const next = readVisibleChapterFromParagraph(best.target as HTMLElement, fallback);
-        if (!next) return;
+    const attach = () => {
+      if (cancelled) return;
+      const root = document.querySelector(".reader-article");
+      if (!root) return;
+      observer = new IntersectionObserver(
+        (entries) => {
+          const best = pickBestVisibleParagraphEntry(entries);
+          if (!best) return;
 
-        applyVisibleChapterRef.current(next);
-      },
-      { rootMargin: "-33% 0px -63% 0px", threshold: [0, 0.2, 0.45, 0.7, 1] }
-    );
+          const next = readVisibleChapterFromParagraph(best.target as HTMLElement, fallback);
+          if (!next) return;
 
-    article.querySelectorAll<HTMLElement>("[data-paragraph-index][data-chapter-number]").forEach((node) => observer.observe(node));
+          applyVisibleChapterRef.current(next);
+        },
+        { rootMargin: "-33% 0px -63% 0px", threshold: thresholds }
+      );
+      root.querySelectorAll<HTMLElement>("[data-paragraph-index][data-chapter-number]").forEach((node) => observer?.observe(node));
+    };
 
-    return () => observer.disconnect();
+    // Compact: defer IO until idle so chapter paint/commit settles first.
+    if (compact) {
+      if (typeof window.requestIdleCallback === "function") {
+        idleId = window.requestIdleCallback(attach, { timeout: 900 });
+      } else {
+        timeoutId = window.setTimeout(attach, 120);
+      }
+    } else {
+      attach();
+    }
+
+    return () => {
+      cancelled = true;
+      if (idleId !== null && "cancelIdleCallback" in window) window.cancelIdleCallback(idleId);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      observer?.disconnect();
+    };
   }, [
     activePayload.chapter.chapterNumber,
     activePayload.chapter.id,
     activePayload.chapter.title,
-    activePayload.story,
     inlineChapters.length,
     paragraphs.length
   ]);
@@ -3222,6 +3236,19 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     scrollPageTo(0);
   }
 
+  /** Sync-only warm payload — React Query or already-hydrated offline memory. Never await IDB/import on tap. */
+  function getWarmChapterPayload(storyId: string, chapterNumber: number): ReaderPayload | null {
+    const fromQuery =
+      queryClient.getQueryData<ReaderPayload>(readerQueryKeys.chapter(storyId, chapterNumber, bilingualQueryOptions)) ??
+      queryClient.getQueryData<ReaderPayload>(readerQueryKeys.chapter(storyId, chapterNumber));
+    if (fromQuery) return fromQuery;
+    const fromOffline = cachedChapters.find((record) => record.chapterNumber === chapterNumber)?.payload ?? null;
+    if (fromOffline) {
+      queryClient.setQueryData(readerQueryKeys.chapter(storyId, chapterNumber, bilingualQueryOptions), fromOffline);
+    }
+    return fromOffline;
+  }
+
   async function openNextChapterFast() {
     const current = activePayloadRef.current;
     const nextChapter = resolveTailNextChapter(inlineChaptersRef.current, current.nextChapter);
@@ -3237,12 +3264,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     markChapterListNavigation(nextChapter.chapterNumber);
     showSwipeNotice("Chương sau");
 
-    // Sync warm hit — avoid awaiting fetch inside the tap gesture (mobile Safari is flaky).
-    const warm =
-      queryClient.getQueryData<ReaderPayload>(
-        readerQueryKeys.chapter(current.story.id, nextChapter.chapterNumber, bilingualQueryOptions)
-      ) ??
-      queryClient.getQueryData<ReaderPayload>(readerQueryKeys.chapter(current.story.id, nextChapter.chapterNumber));
+    const warm = getWarmChapterPayload(current.story.id, nextChapter.chapterNumber);
     if (warm) {
       applySoftChapterNav(warm);
       return;
@@ -3435,11 +3457,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       return;
     }
 
-    const warm =
-      queryClient.getQueryData<ReaderPayload>(
-        readerQueryKeys.chapter(current.story.id, targetChapter.chapterNumber, bilingualQueryOptions)
-      ) ??
-      queryClient.getQueryData<ReaderPayload>(readerQueryKeys.chapter(current.story.id, targetChapter.chapterNumber));
+    const warm = getWarmChapterPayload(current.story.id, targetChapter.chapterNumber);
     if (warm) {
       applySoftChapterNav(warm);
       return;

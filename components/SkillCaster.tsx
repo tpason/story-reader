@@ -13,7 +13,7 @@ import {
   Wind,
   Zap
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchReadingProgress } from "@/lib/api-client";
 import { getCultivationLevelFromXp, effectiveCultivationLevel, XP_PER_CHAPTER } from "@/lib/cultivation";
 import type { StoredReaderUser } from "@/lib/identity";
@@ -102,10 +102,15 @@ export function SkillCaster({
   onCast?: (event: unknown) => void;
 }) {
   const [level, setLevel] = useState(1);
+  const [levelHydrated, setLevelHydrated] = useState(false);
   const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
   const [castingSkillId, setCastingSkillId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const hasActiveCooldown = Object.values(cooldowns).some((value) => value > 0);
+  const loadedKeyRef = useRef<string | null>(null);
+  const inFlightKeyRef = useRef<string | null>(null);
+  const chapterIdRef = useRef(chapterId);
+  chapterIdRef.current = chapterId;
 
   useEffect(() => {
     if (!hasActiveCooldown) return;
@@ -120,35 +125,68 @@ export function SkillCaster({
     return () => window.clearInterval(timer);
   }, [hasActiveCooldown]);
 
-  useEffect(() => {
-    if (!user) {
-      setLevel(1);
-      setCooldowns({});
-      return;
-    }
+  const loadNetworkState = useCallback(() => {
+    if (!user) return;
+    const key = `${user.id}:${chapterId}`;
+    if (loadedKeyRef.current === key || inFlightKeyRef.current === key) return;
+    inFlightKeyRef.current = key;
+    const requestedChapterId = chapterId;
 
     const progressRequest = fetchReadingProgress()
       .then((items) => {
+        if (chapterIdRef.current !== requestedChapterId) return;
         const totalChapters = items.reduce((sum, item) => sum + Math.max(0, Number(item.maxReadChapterNumber) || 0), 0);
         setLevel(getCultivationLevelFromXp(totalChapters * XP_PER_CHAPTER));
+        setLevelHydrated(true);
       })
-      .catch(() => setLevel(1));
+      .catch(() => {
+        if (chapterIdRef.current === requestedChapterId) {
+          setLevel(1);
+          setLevelHydrated(true);
+        }
+      });
 
     const cooldownRequest = fetch(`/api/skills/casts?chapterId=${encodeURIComponent(chapterId)}`)
       .then((response) => response.json() as Promise<{ cooldowns?: Record<string, number> }>)
-      .then((data) => setCooldowns(data.cooldowns ?? {}))
+      .then((data) => {
+        if (chapterIdRef.current !== requestedChapterId) return;
+        setCooldowns(data.cooldowns ?? {});
+      })
       .catch(() => undefined);
 
-    void progressRequest;
-    void cooldownRequest;
+    void Promise.all([progressRequest, cooldownRequest]).finally(() => {
+      if (inFlightKeyRef.current === key) inFlightKeyRef.current = null;
+      if (chapterIdRef.current === requestedChapterId) loadedKeyRef.current = key;
+    });
   }, [chapterId, user]);
+
+  // Fetch immediately on mount — do NOT kick off setState from pointerdown (kills the
+  // subsequent click on mobile when the button remounts/disables mid-gesture).
+  useEffect(() => {
+    if (!user) {
+      setLevel(1);
+      setLevelHydrated(false);
+      setCooldowns({});
+      loadedKeyRef.current = null;
+      inFlightKeyRef.current = null;
+      return;
+    }
+
+    loadedKeyRef.current = null;
+    inFlightKeyRef.current = null;
+    setLevelHydrated(false);
+    loadNetworkState();
+  }, [chapterId, loadNetworkState, user]);
 
   const isAdmin = Boolean(user?.isAdmin);
   const visibleSkills = useMemo(() => visibleSkillsForAdmin(isAdmin), [isAdmin]);
   const displayLevel = effectiveCultivationLevel(level, isAdmin);
 
   async function cast(skill: ReaderSkill) {
-    if (!user || (!isAdmin && level < skill.minLevel) || cooldowns[skill.id] > 0 || castingSkillId) return;
+    // Until level hydrates, let the server enforce minLevel (avoids false client lock at Lv.1).
+    if (!user || (!isAdmin && levelHydrated && level < skill.minLevel) || cooldowns[skill.id] > 0 || castingSkillId) {
+      return;
+    }
 
     setCastingSkillId(skill.id);
     setError(null);
@@ -196,7 +234,8 @@ export function SkillCaster({
       <div className="skill-row">
         {visibleSkills.map((skill) => {
           const cooldown = cooldowns[skill.id] ?? 0;
-          const locked = !user || (!isAdmin && level < skill.minLevel);
+          // Don't mark locked at default Lv.1 before progress hydrates — server still enforces.
+          const locked = !user || (!isAdmin && levelHydrated && level < skill.minLevel);
           const disabled = locked || cooldown > 0 || Boolean(castingSkillId);
           const element = SKILL_ELEMENT_LABEL[skill.id];
           return (

@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 const SECTIONS = [
   { id: "account-identity", label: "Định danh" },
   { id: "account-linh-tin", label: "Linh tin" },
-  { id: "account-performance", label: "Hiệu năng" },
   { id: "account-offline", label: "Ngoại tuyến" },
   { id: "account-shelf", label: "Kệ sách" },
   { id: "account-stats", label: "Thống kê" },

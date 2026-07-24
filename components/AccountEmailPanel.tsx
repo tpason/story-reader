@@ -1,7 +1,7 @@
 "use client";
 
 import { LoaderCircle, MailCheck, Send } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 import { storeCurrentUser } from "@/lib/identity";
 import { persistor, setCurrentUser } from "@/lib/store";
@@ -15,106 +15,159 @@ type EmailPrefs = {
 export function AccountEmailPanel() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.identity.user);
+  const userId = user?.id ?? null;
   const [email, setEmail] = useState(user?.email ?? "");
   const [prefs, setPrefs] = useState<EmailPrefs | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(user));
   const [saving, setSaving] = useState(false);
   const [resending, setResending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const userRef = useRef(user);
+  userRef.current = user;
 
   const load = useCallback(async () => {
+    const current = userRef.current;
+    if (!current) return;
+    const requestUserId = current.id;
+
     setLoading(true);
-    const response = await fetch("/api/account/email-preferences");
-    const data = (await response.json().catch(() => ({}))) as {
-      email?: string | null;
-      emailVerified?: boolean;
-      preferences?: EmailPrefs;
-      error?: string;
-    };
-    if (response.ok) {
-      setEmail(data.email ?? "");
+    try {
+      const response = await fetch("/api/account/email-preferences");
+      const data = (await response.json().catch(() => ({}))) as {
+        email?: string | null;
+        emailVerified?: boolean;
+        preferences?: EmailPrefs;
+        error?: string;
+      };
+      // Drop stale responses after logout / account switch mid-flight.
+      if (userRef.current?.id !== requestUserId) return;
+      if (!response.ok) return;
+
+      const nextEmail = data.email ?? "";
+      setEmail(nextEmail);
       setPrefs(data.preferences ?? null);
-      if (user && typeof data.emailVerified === "boolean") {
-        const next = { ...user, email: data.email ?? user.email, emailVerified: data.emailVerified };
-        dispatch(setCurrentUser(next));
-        storeCurrentUser(next);
+
+      const latest = userRef.current;
+      if (!latest || latest.id !== requestUserId) return;
+
+      if (typeof data.emailVerified === "boolean") {
+        const emailChanged = (data.email ?? null) !== (latest.email ?? null);
+        const verifiedChanged = data.emailVerified !== Boolean(latest.emailVerified);
+        if (emailChanged || verifiedChanged) {
+          const next = {
+            ...latest,
+            email: data.email ?? latest.email,
+            emailVerified: data.emailVerified
+          };
+          dispatch(setCurrentUser(next));
+          storeCurrentUser(next);
+        }
       }
+    } finally {
+      if (userRef.current?.id === requestUserId) setLoading(false);
     }
-    setLoading(false);
-  }, [dispatch, user]);
+  }, [dispatch]);
 
   useEffect(() => {
-    if (user) void load();
-    else setLoading(false);
-  }, [load, user]);
+    setSaving(false);
+    setResending(false);
+    setMessage(null);
+    setError(null);
+    setPrefs(null);
+    setEmail(userRef.current?.email ?? "");
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    void load();
+  }, [load, userId]);
 
   if (!user) return null;
 
   async function attachEmail() {
+    const requestUserId = userRef.current?.id;
+    if (!requestUserId) return;
     setSaving(true);
     setError(null);
     setMessage(null);
-    const response = await fetch("/api/account/email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email })
-    });
-    const data = (await response.json().catch(() => ({}))) as {
-      user?: typeof user;
-      mailWarning?: string;
-      error?: string;
-    };
-    setSaving(false);
-    if (!response.ok) {
-      setError(data.error ?? "Không cập nhật được email.");
-      return;
+    try {
+      const response = await fetch("/api/account/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        user?: NonNullable<typeof user>;
+        mailWarning?: string;
+        error?: string;
+      };
+      if (userRef.current?.id !== requestUserId) return;
+      if (!response.ok) {
+        setError(data.error ?? "Không cập nhật được email.");
+        return;
+      }
+      if (data.user && data.user.id === requestUserId) {
+        dispatch(setCurrentUser(data.user));
+        storeCurrentUser(data.user);
+        await persistor.flush();
+      }
+      if (userRef.current?.id !== requestUserId) return;
+      setMessage(data.mailWarning ?? "Đã gửi email xác thực. Kiểm tra hộp thư.");
+      await load();
+    } finally {
+      if (userRef.current?.id === requestUserId) setSaving(false);
     }
-    if (data.user) {
-      dispatch(setCurrentUser(data.user));
-      storeCurrentUser(data.user);
-      await persistor.flush();
-    }
-    setMessage(data.mailWarning ?? "Đã gửi email xác thực. Kiểm tra hộp thư.");
-    await load();
   }
 
   async function resendVerification() {
+    const requestUserId = userRef.current?.id;
+    if (!requestUserId) return;
     setResending(true);
     setError(null);
-    const response = await fetch("/api/auth/resend-verification", { method: "POST" });
-    const data = (await response.json().catch(() => ({}))) as { error?: string; mailWarning?: string };
-    setResending(false);
-    if (!response.ok) {
-      setError(data.error ?? "Không gửi lại được email.");
-      return;
+    try {
+      const response = await fetch("/api/auth/resend-verification", { method: "POST" });
+      const data = (await response.json().catch(() => ({}))) as { error?: string; mailWarning?: string };
+      if (userRef.current?.id !== requestUserId) return;
+      if (!response.ok) {
+        setError(data.error ?? "Không gửi lại được email.");
+        return;
+      }
+      setMessage(data.mailWarning ?? "Đã gửi lại email xác thực.");
+    } finally {
+      if (userRef.current?.id === requestUserId) setResending(false);
     }
-    setMessage(data.mailWarning ?? "Đã gửi lại email xác thực.");
   }
 
   async function savePrefs(patch: Partial<EmailPrefs>) {
-    if (!user?.emailVerified) {
+    const requestUserId = userRef.current?.id;
+    if (!requestUserId) return;
+    if (!userRef.current?.emailVerified) {
       setError("Cần xác thực email trước khi bật bản tin.");
       return;
     }
     setSaving(true);
     setError(null);
-    const response = await fetch("/api/account/email-preferences", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        weeklyDigest: patch.weeklyDigest,
-        newStoriesDigest: patch.newStoriesDigest
-      })
-    });
-    const data = (await response.json().catch(() => ({}))) as { preferences?: EmailPrefs; error?: string };
-    setSaving(false);
-    if (!response.ok) {
-      setError(data.error ?? "Không lưu được tùy chọn.");
-      return;
+    try {
+      const response = await fetch("/api/account/email-preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          weeklyDigest: patch.weeklyDigest,
+          newStoriesDigest: patch.newStoriesDigest
+        })
+      });
+      const data = (await response.json().catch(() => ({}))) as { preferences?: EmailPrefs; error?: string };
+      if (userRef.current?.id !== requestUserId) return;
+      if (!response.ok) {
+        setError(data.error ?? "Không lưu được tùy chọn.");
+        return;
+      }
+      setPrefs(data.preferences ?? null);
+      setMessage("Đã lưu tùy chọn email.");
+    } finally {
+      if (userRef.current?.id === requestUserId) setSaving(false);
     }
-    setPrefs(data.preferences ?? null);
-    setMessage("Đã lưu tùy chọn email.");
   }
 
   return (

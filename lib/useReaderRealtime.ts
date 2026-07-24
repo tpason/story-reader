@@ -119,7 +119,14 @@ export function useReaderRealtime({
     connect();
 
     const onVisibilityChange = () => {
-      if (document.hidden || disposed) return;
+      if (disposed) return;
+      if (document.hidden) {
+        // Thermal: close socket while backgrounded; clear pending reconnect so we don't wake the radio.
+        clearReconnectTimer();
+        closeSocket();
+        setLive(false);
+        return;
+      }
       if (socket?.readyState === WebSocket.OPEN) {
         subscribe();
         return;

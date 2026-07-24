@@ -574,11 +574,14 @@ export function ChapterComments({ chapterId }: { chapterId: string }) {
       className="comments-collapsible"
       style={{ display: "none", height: 0, opacity: 0, overflow: "hidden" }}
     >
+      {/* Mount caster/form only when open — avoids progress/cooldown fetch every chapter while collapsed. */}
       {user ? (
-        <>
-          <SkillCaster chapterId={chapterId} user={user} onCast={playSkill} />
-          <CommentForm chapterId={chapterId} onCreated={addComment} />
-        </>
+        isOpen ? (
+          <>
+            <SkillCaster chapterId={chapterId} user={user} onCast={playSkill} />
+            <CommentForm chapterId={chapterId} onCreated={addComment} />
+          </>
+        ) : null
       ) : (
         <div className="comment-login-note">
           <MessageCircle size={17} />

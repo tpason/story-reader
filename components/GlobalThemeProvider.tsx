@@ -56,5 +56,15 @@ export function GlobalThemeProvider() {
     return () => mq.removeEventListener("change", syncCompactAttr);
   }, []);
 
+  // Pause decorative CSS while tab is hidden (does not change visible-tab look).
+  useEffect(() => {
+    function syncPageHidden() {
+      document.documentElement.setAttribute("data-xi-page-hidden", document.hidden ? "1" : "0");
+    }
+    syncPageHidden();
+    document.addEventListener("visibilitychange", syncPageHidden);
+    return () => document.removeEventListener("visibilitychange", syncPageHidden);
+  }, []);
+
   return null;
 }

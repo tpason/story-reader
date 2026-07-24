@@ -10160,3 +10160,16 @@ html[data-xi-theme="dark"] .reader-shell .story-rating-star:not(.story-rating-st
   transform: translateY(12px);
   transition: opacity 0.22s ease, transform 0.22s ease;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE THERMAL — ChapterTransition no-op ≤839 (2026-07-24)
+   JS also skips; CSS backs up if class is toggled elsewhere.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 839px) {
+  .chapter-transition,
+  .chapter-transition--active {
+    display: none !important;
+    animation: none !important;
+  }
+}

@@ -51,9 +51,10 @@ function isMobileSkillDevice() {
 
 function isMobileSkillPollingEnabled() {
   try {
-    return window.localStorage.getItem("reader:mobile-skill-poll") !== "off";
+    // Opt-in only — matches CLAUDE.md; local casts + realtime still work without poll.
+    return window.localStorage.getItem("reader:mobile-skill-poll") === "on";
   } catch {
-    return true;
+    return false;
   }
 }
 
@@ -78,10 +79,13 @@ export function SkillEffectLayer({ storyId, chapterId }: { storyId: string; chap
     cleanupTimersRef.current.add(timer);
   }
 
+  const playRef = useRef(play);
+  playRef.current = play;
+
   useEffect(() => {
     function onLocalCast(event: Event) {
       const custom = event as CustomEvent<SkillCastEvent>;
-      if (custom.detail) play(custom.detail);
+      if (custom.detail) playRef.current(custom.detail);
     }
 
     window.addEventListener("reader-skill-cast", onLocalCast);

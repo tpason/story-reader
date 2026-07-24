@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import nextDynamic from "next/dynamic";
+import { AccountAutoPrefsNote } from "@/components/AccountAutoPrefsNote";
 import { AccountEmailPanel } from "@/components/AccountEmailPanel";
 import { MotionFX } from "@/components/MotionFX";
 import { SiteHeader } from "@/components/SiteHeader";
 import { AccountSectionNav } from "@/components/AccountSectionNav";
 import { UserIdentity } from "@/components/UserIdentity";
-import { PerformanceModePreference } from "@/components/PerformanceModePreference";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
-import { RealtimeFxPreference } from "@/components/RealtimeFxPreference";
 
 const ProfileShelf = nextDynamic(() => import("@/components/ProfileShelf").then((mod) => mod.ProfileShelf), {
   loading: () => <div className="account-skel-card" aria-hidden="true" />,
@@ -42,8 +41,8 @@ export default function AccountPage() {
         <section className="account-panel">
           <div className="auth-heading account-heading">
             <p className="eyebrow">Động phủ</p>
-            <h1>Định danh đạo hữu, khắc tu vi vào Thiên Thư</h1>
-            <p>Tán tu vẫn đọc được trên trình duyệt. Sau khi nhập môn, lịch sử đọc và tiến độ tu luyện sẽ được khắc vào Thiên Thư.</p>
+            <h1>Định danh đạo hữu</h1>
+            <p>Nhập môn để khắc lịch sử đọc vào Thiên Thư. Linh quang và hiệu năng tự chỉnh theo máy.</p>
           </div>
           <div id="account-identity">
             <UserIdentity panel />
@@ -52,14 +51,11 @@ export default function AccountPage() {
           <section id="account-linh-tin" className="account-linh-tin-block" aria-label="Linh tin">
             <div className="account-linh-tin-heading">
               <p className="eyebrow">Linh tin</p>
-              <h2>Thông báo & linh quang</h2>
-              <p>Chương mới ngoài tab và hiệu ứng shimmer khi Thiên Thư cập nhật.</p>
+              <h2>Thông báo chương mới</h2>
+              <p>Bật linh tin khi truyện đang theo dõi có chương mới — kể cả ngoài tab.</p>
             </div>
             <PushNotificationToggle />
-            <RealtimeFxPreference />
-          </section>
-          <section id="account-performance" className="account-performance-block" aria-label="Hiệu năng">
-            <PerformanceModePreference />
+            <AccountAutoPrefsNote />
           </section>
           <div id="account-offline">
             <AccountOfflineCachePanel />

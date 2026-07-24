@@ -79,7 +79,27 @@ const identitySlice = createSlice({
   initialState: initialIdentityState,
   reducers: {
     setCurrentUser(state, action: PayloadAction<StoredReaderUser | null>) {
-      state.user = action.payload;
+      const next = action.payload;
+      const prev = state.user;
+      // Skip identical payloads so fetch→dispatch loops do not thrash subscribers.
+      if (
+        prev === next ||
+        (prev &&
+          next &&
+          prev.id === next.id &&
+          prev.username === next.username &&
+          (prev.email ?? null) === (next.email ?? null) &&
+          Boolean(prev.emailVerified) === Boolean(next.emailVerified) &&
+          Boolean(prev.isAdmin) === Boolean(next.isAdmin))
+      ) {
+        state.hydrated = true;
+        return;
+      }
+      if (!prev && !next) {
+        state.hydrated = true;
+        return;
+      }
+      state.user = next;
       state.hydrated = true;
     },
     markIdentityHydrated(state) {

@@ -31,5 +31,5 @@ export function writeReaderPerformanceMode(mode: ReaderPerformanceMode) {
 export function readerPerformanceModeLabel(mode: ReaderPerformanceMode) {
   if (mode === "battery_saver") return "Tiết kiệm pin";
   if (mode === "full_effects") return "Hiệu ứng đầy đủ";
-  return "Cân bằng";
+  return "Tự động";
 }

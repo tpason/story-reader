@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { prefersReducedMotion } from "@/lib/browser";
 
 type ChapterTransitionProps = {
   trigger: number;
   direction?: "next" | "prev";
 };
+
+const COMPACT_QUERY = "(max-width: 839px)";
 
 export function ChapterTransition({ trigger, direction = "next" }: ChapterTransitionProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -14,6 +17,9 @@ export function ChapterTransition({ trigger, direction = "next" }: ChapterTransi
   useEffect(() => {
     if (trigger === prevTrigger.current) return;
     prevTrigger.current = trigger;
+
+    // Compact / reduced-motion: skip force-reflow overlay (thermal + a11y).
+    if (prefersReducedMotion() || window.matchMedia(COMPACT_QUERY).matches) return;
 
     const el = overlayRef.current;
     if (!el) return;

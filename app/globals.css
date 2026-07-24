@@ -27846,3 +27846,121 @@ html[data-xi-theme="dark"] .library-header.library-header--brand-signal .brand-s
     display: none !important;
   }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE THERMAL v5 — 2026-07-24
+   Kill cascade-resurrected continuous CSS + sticky blur on ≤839.
+   Append-only so later rules do not revive earlier battery kills.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 839px) {
+  .motion-fx-css .motion-line {
+    animation: none !important;
+    display: none !important;
+  }
+
+  .topbar::after {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+
+  .cultivation-sigil,
+  .cultivation-progress span,
+  .cultivation-avatar-glow,
+  .cultivation-avatar-ring,
+  .cultivation-avatar[data-aura-tier] .cultivation-avatar-glow,
+  .cultivation-avatar[data-aura-tier] .cultivation-avatar-ring {
+    animation: none !important;
+  }
+
+  .library-sticky-chips,
+  .library-sticky-toolbar,
+  .topbar,
+  .site-header,
+  .site-header .topbar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .library-sticky-chips,
+  .library-sticky-toolbar {
+    background: color-mix(in srgb, var(--canvas) 96%, #fff8e6 4%) !important;
+  }
+
+  .app-aura-layer,
+  .app-aura-css,
+  .app-aura-css-mist,
+  .app-aura-css-light,
+  .app-aura-css-qi {
+    display: none !important;
+    filter: none !important;
+    animation: none !important;
+  }
+}
+
+/* Tab hidden — pause leftover decorative motion without changing visible look */
+html[data-xi-page-hidden="1"] .motion-fx-css .motion-line,
+html[data-xi-page-hidden="1"] .topbar::after,
+html[data-xi-page-hidden="1"] .cultivation-sigil,
+html[data-xi-page-hidden="1"] .cultivation-progress span,
+html[data-xi-page-hidden="1"] .cultivation-avatar-glow,
+html[data-xi-page-hidden="1"] .cultivation-avatar-ring,
+html[data-xi-page-hidden="1"] .xi-hero-cloud-bg,
+html[data-xi-page-hidden="1"] .app-aura-css-mist,
+html[data-xi-page-hidden="1"] .app-aura-css-light,
+html[data-xi-page-hidden="1"] .app-aura-css-qi,
+html[data-xi-page-hidden="1"] .xianxia-css-backdrop .xi-css-mist,
+html[data-xi-page-hidden="1"] .xianxia-css-backdrop .xi-css-cloud {
+  animation: none !important;
+}
+
+/* Account auto prefs status (linh quang / hiệu năng — no toggles) */
+.account-auto-prefs-note {
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  margin-top: 0.85rem;
+  padding: 0.9rem 1rem;
+}
+
+.account-auto-prefs-note > p:not(.eyebrow) {
+  color: var(--slate);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0.35rem 0 0.65rem;
+}
+
+.account-auto-prefs-list {
+  display: grid;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.account-auto-prefs-list li {
+  align-items: flex-start;
+  color: var(--steel);
+  display: flex;
+  font-size: 0.86rem;
+  gap: 0.45rem;
+  line-height: 1.45;
+}
+
+.account-auto-prefs-list li svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  opacity: 0.85;
+}
+
+[data-xi-theme="dark"] .account-auto-prefs-note {
+  background: rgba(18, 16, 28, 0.45);
+  border-color: rgba(200, 150, 46, 0.22);
+}
+
+[data-xi-theme="dark"] .account-auto-prefs-note > p:not(.eyebrow) {
+  color: rgba(235, 228, 210, 0.82);
+}
+
+[data-xi-theme="dark"] .account-auto-prefs-list li {
+  color: rgba(210, 200, 180, 0.72);
+}

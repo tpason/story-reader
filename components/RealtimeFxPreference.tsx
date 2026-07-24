@@ -1,13 +1,17 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
+import {
+  readerRealtimeFxPreferenceLabel,
+  type ReaderRealtimeFxPreference
+} from "@/lib/reader-realtime-fx";
 import { useReaderRealtimeFx } from "@/lib/useReaderRealtimeFx";
-import type { ReaderRealtimeFxMode } from "@/lib/reader-realtime-fx";
 
-const FX_OPTIONS: { mode: ReaderRealtimeFxMode; label: string; hint: string }[] = [
-  { mode: "full", label: "Đầy đủ", hint: "Shimmer, toast và linh quang đầy đủ." },
-  { mode: "subtle", label: "Nhẹ", hint: "Chỉ viền nhẹ, ít chuyển động hơn." },
-  { mode: "off", label: "Tắt", hint: "Không shimmer; toast chỉ chữ." }
+const FX_OPTIONS: { mode: ReaderRealtimeFxPreference; hint: string }[] = [
+  { mode: "auto", hint: "Theo máy: mobile/pin yếu → nhẹ; reduced-motion → tắt." },
+  { mode: "full", hint: "Shimmer, toast và linh quang đầy đủ." },
+  { mode: "subtle", hint: "Chỉ viền nhẹ, ít chuyển động hơn." },
+  { mode: "off", hint: "Không shimmer; toast chỉ chữ." }
 ];
 
 type RealtimeFxPreferenceProps = {
@@ -15,7 +19,7 @@ type RealtimeFxPreferenceProps = {
 };
 
 export function RealtimeFxPreference({ compact = false }: RealtimeFxPreferenceProps) {
-  const { mode, setFxMode } = useReaderRealtimeFx();
+  const { preference, mode, setFxMode } = useReaderRealtimeFx();
 
   return (
     <div className={`realtime-fx-settings ${compact ? "realtime-fx-settings-compact" : ""}`.trim()} role="group" aria-label="Hiệu ứng linh tin">
@@ -24,9 +28,14 @@ export function RealtimeFxPreference({ compact = false }: RealtimeFxPreferencePr
           <Sparkles size={12} aria-hidden="true" />
           Linh quang
         </p>
-        <h2>Hiệu ứng realtime</h2>
+        {!compact ? <h2>Hiệu ứng realtime</h2> : null}
         {!compact ? (
-          <p>Điều chỉnh shimmer và toast khi có chương mới. Không ảnh hưởng thông linh WebSocket.</p>
+          <p>
+            Mặc định tự động theo máy
+            {preference === "auto"
+              ? ` (đang dùng: ${readerRealtimeFxPreferenceLabel(mode)}).`
+              : ` — đang ghi đè: ${readerRealtimeFxPreferenceLabel(preference)}.`}
+          </p>
         ) : null}
       </div>
       <div className="segmented realtime-fx-segmented" role="radiogroup" aria-label="Chế độ hiệu ứng linh tin">
@@ -35,12 +44,12 @@ export function RealtimeFxPreference({ compact = false }: RealtimeFxPreferencePr
             key={option.mode}
             type="button"
             role="radio"
-            aria-checked={mode === option.mode}
-            className={mode === option.mode ? "chip-active" : ""}
+            aria-checked={preference === option.mode}
+            className={preference === option.mode ? "chip-active" : ""}
             title={option.hint}
             onClick={() => setFxMode(option.mode)}
           >
-            {option.label}
+            {readerRealtimeFxPreferenceLabel(option.mode)}
           </button>
         ))}
       </div>
