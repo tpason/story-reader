@@ -5,6 +5,22 @@ export type ReaderChapterQueryOptions = ReaderFetchOptions;
 
 export const READER_CHAPTER_STALE_MS = 1000 * 60 * 8;
 
+/** Global in-flight chapter prefetch keys — max 2 to avoid scroll/radio thrash. */
+const MAX_CHAPTER_PREFETCH_IN_FLIGHT = 2;
+const chapterPrefetchInFlight = new Set<string>();
+
+function chapterPrefetchKey(storyId: string, chapterNumber: number, options?: ReaderChapterQueryOptions) {
+  return `${storyId}:${chapterNumber}:${options?.primaryLayer ?? "polished"}:${options?.secondaryLayer ?? ""}:${options?.displayMode ?? "single"}`;
+}
+
+function shouldSkipPrefetchNetwork(): boolean {
+  if (typeof navigator === "undefined") return false;
+  if (!navigator.onLine) return true;
+  const connection = (navigator as Navigator & { connection?: { effectiveType?: string; saveData?: boolean } })
+    .connection;
+  return Boolean(connection?.saveData || connection?.effectiveType === "2g" || connection?.effectiveType === "slow-2g");
+}
+
 function chapterQueryString(options?: ReaderChapterQueryOptions) {
   if (!options) return "";
   const params = new URLSearchParams();
@@ -29,25 +45,40 @@ export async function fetchReaderChapter(storyId: string, chapterNumber: number,
   return (await response.json()) as ReaderPayload;
 }
 
-/** Warm RQ chapter JSON (hover / story-detail CTA). Guards save-data / offline. */
+/**
+ * Warm RQ chapter JSON (hover / CTA / scroll-edge). Read-only GET only —
+ * never writes progress, bookmarks, sessions, or audio jobs.
+ * Same query key as the live reader when `options` match bilingual prefs.
+ */
 export function prefetchReaderChapterQuery(
   queryClient: QueryClient,
   storyId: string,
   chapterNumber: number,
   options?: ReaderChapterQueryOptions
 ) {
-  if (typeof navigator !== "undefined" && !navigator.onLine) return;
-  const connection = typeof navigator !== "undefined"
-    ? (navigator as Navigator & { connection?: { effectiveType?: string; saveData?: boolean } }).connection
-    : undefined;
-  if (connection?.saveData || connection?.effectiveType === "2g" || connection?.effectiveType === "slow-2g") {
+  if (shouldSkipPrefetchNetwork()) return;
+
+  const queryKey = readerQueryKeys.chapter(storyId, chapterNumber, options);
+  const state = queryClient.getQueryState(queryKey);
+  if (state?.data && state.isInvalidated === false && Date.now() - (state.dataUpdatedAt || 0) < READER_CHAPTER_STALE_MS) {
     return;
   }
-  return queryClient.prefetchQuery({
-    queryKey: readerQueryKeys.chapter(storyId, chapterNumber, options),
-    queryFn: () => fetchReaderChapter(storyId, chapterNumber, options),
-    staleTime: READER_CHAPTER_STALE_MS
-  });
+  if (state?.fetchStatus === "fetching") return;
+
+  const flightKey = chapterPrefetchKey(storyId, chapterNumber, options);
+  if (chapterPrefetchInFlight.has(flightKey)) return;
+  if (chapterPrefetchInFlight.size >= MAX_CHAPTER_PREFETCH_IN_FLIGHT) return;
+
+  chapterPrefetchInFlight.add(flightKey);
+  return queryClient
+    .prefetchQuery({
+      queryKey,
+      queryFn: () => fetchReaderChapter(storyId, chapterNumber, options),
+      staleTime: READER_CHAPTER_STALE_MS
+    })
+    .finally(() => {
+      chapterPrefetchInFlight.delete(flightKey);
+    });
 }
 
 export async function fetchStorySummary(storyId: string) {
@@ -57,7 +88,7 @@ export async function fetchStorySummary(storyId: string) {
 }
 
 export function prefetchStorySummaryQuery(queryClient: QueryClient, storyId: string) {
-  if (typeof navigator !== "undefined" && !navigator.onLine) return;
+  if (shouldSkipPrefetchNetwork()) return;
   return queryClient.prefetchQuery({
     queryKey: readerQueryKeys.story(storyId),
     queryFn: () => fetchStorySummary(storyId),

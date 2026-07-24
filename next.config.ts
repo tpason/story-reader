@@ -5,7 +5,15 @@ const nextConfig: NextConfig = {
   // Playwright / LAN dev hits 127.0.0.1 or 192.168.x.x while Next binds 0.0.0.0.
   allowedDevOrigins: ["127.0.0.1", "localhost", "192.168.1.9"],
   experimental: {
-    cpus: 1
+    cpus: 1,
+    // Soft-nav warmth: back library↔story↔reader without full RSC refetch every time.
+    // Auth pages stay force-dynamic; follow/bookmark correctness stays in Redux/RQ.
+    staleTimes: {
+      dynamic: 30,
+      static: 180
+    },
+    // Enables View Transitions for App Router navigations (cover list→hero).
+    viewTransition: true
   },
   async headers() {
     return [

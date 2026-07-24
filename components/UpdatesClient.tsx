@@ -118,6 +118,8 @@ export function UpdatesClient() {
   const dispatch = useAppDispatch();
   const follows = useAppSelector((state) => state.follows.items);
   const history = useAppSelector((state) => state.history.items);
+  const followsHydrated = useAppSelector((state) => state.follows.hydrated);
+  const historyHydrated = useAppSelector((state) => state.history.hydrated);
   const { isFresh } = useFreshStoryRealtime({ refreshProgress: true });
   const historyByStory = useMemo(() => new Map(history.map((item) => [item.storyId, item])), [history]);
   const followIdSet = useMemo(() => new Set(follows.map((item) => item.storyId)), [follows]);
@@ -157,6 +159,7 @@ export function UpdatesClient() {
   const hasReading = (storyId: string) => (historyByStory.get(storyId)?.maxReadChapterNumber ?? 0) > 0;
   const readingUpdates = updates.filter((entry) => hasReading(entry.item.storyId));
   const followUpdates = updates.filter((entry) => followIdSet.has(entry.item.storyId) && !hasReading(entry.item.storyId));
+  const showHydrateSlot = (!followsHydrated || !historyHydrated) && updates.length === 0 && follows.length === 0 && history.length === 0;
 
   function markAllCaughtUp() {
     if (!updates.length) return;
@@ -196,7 +199,22 @@ export function UpdatesClient() {
           </div>
         </XiPageHeroStrip>
 
-        {updates.length === 0 ? (
+        {showHydrateSlot ? (
+          <div className="updates-list" aria-busy="true" aria-label="Đang mở linh tin">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="update-card xi-skel-card" aria-hidden="true">
+                <div className="update-card-main" style={{ display: "flex", gap: 14 }}>
+                  <div className="xi-skel xi-skel-cover" />
+                  <div style={{ flex: 1 }}>
+                    <div className="xi-skel" style={{ height: 18, width: "70%", marginBottom: 10 }} />
+                    <div className="xi-skel" style={{ height: 12, width: "45%", marginBottom: 8 }} />
+                    <div className="xi-skel" style={{ height: 12, width: "55%" }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : updates.length === 0 ? (
           <XianxiaEmptyState title={NOTIFY_COPY.empty} hint={NOTIFY_COPY.emptyHint} className="updates-empty" />
         ) : (
           <>

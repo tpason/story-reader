@@ -67,24 +67,22 @@ export function MotionFX({ variant }: MotionFXProps) {
         }
 
         if (variant === "reader") {
+          // Transform-only — opacity:[0,1] blanked SSR chapter text (same as library).
           animations.push(
             animate(".reader-heading, .audio-panel, .chapter-nav", {
               y: [20, 0],
-              opacity: [0, 1],
               duration: 780,
               delay: stagger(100),
               ease: "outExpo"
             }),
             animate(".reader-content p:nth-child(-n+12)", {
               y: [12, 0],
-              opacity: [0, 1],
               duration: 660,
               delay: stagger(28),
               ease: "outExpo"
             }),
             animate(".chapter-sidebar .sidebar-link", {
               x: [-10, 0],
-              opacity: [0, 1],
               duration: 540,
               delay: stagger(20),
               ease: "outExpo"

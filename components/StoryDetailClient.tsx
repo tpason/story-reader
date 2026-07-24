@@ -37,6 +37,7 @@ import { writeResumeNavigationTarget } from "@/lib/reader-resume";
 import { estimateReadingMinutes, formatReadingDuration } from "@/lib/reading-estimate";
 import { displayStoryAuthor, resolveStoryStatusBadge } from "@/lib/story-status";
 import { prefetchReaderChapterQuery } from "@/lib/reader-query";
+import { warmReaderClientChunk } from "@/lib/warm-reader-client";
 
 const ThreeStoryStage = dynamic(() => import("@/components/ThreeStoryStage").then((mod) => mod.ThreeStoryStage), {
   ssr: false
@@ -132,7 +133,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
 
   // Prefetch ReaderClient chunk so chapter nav does not wait on the dynamic import.
   useEffect(() => {
-    void import("@/components/ReaderClient");
+    warmReaderClientChunk();
   }, []);
 
   // Warm continue/start chapter route + chapter JSON while the user is on story detail.
@@ -213,7 +214,7 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
           ) : null}
 
           <div className="story-detail-hero-cluster">
-            <StoryCover src={currentStory.coverImageUrl} title={currentStory.title} />
+            <StoryCover src={currentStory.coverImageUrl} title={currentStory.title} priority viewTransitionHero />
             <div className="story-detail-copy">
               <p className="eyebrow">
                 {currentStory.primaryCategorySlug ? (

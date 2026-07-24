@@ -14,7 +14,9 @@ import { storyHref } from "@/lib/urls";
 import { storyDisplayDescription, storyCategoryLabel } from "@/lib/story-description";
 import { formatRelativeActivity, formatStoryUpdatedLabel } from "@/lib/content-timestamps";
 import { resolveStoryStatusBadge } from "@/lib/story-status";
-import { prefetchStorySummaryQuery } from "@/lib/reader-query";
+import { prefetchReaderChapterQuery, prefetchStorySummaryQuery } from "@/lib/reader-query";
+import { warmReaderClientChunk } from "@/lib/warm-reader-client";
+import { armStoryCoverViewTransition } from "@/lib/story-cover-view-transition";
 import { useAppSelector } from "@/lib/store-hooks";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
 import { useStoryLibraryAdminEdit, type AdminStoryListEditField, type AdminStoryListEditState } from "@/hooks/useStoryLibraryAdminEdit";
@@ -109,6 +111,10 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
   function warmStoryNav() {
     router.prefetch(href);
     void prefetchStorySummaryQuery(queryClient, story.id);
+    if (storyHistory) {
+      warmReaderClientChunk();
+      void prefetchReaderChapterQuery(queryClient, story.id, storyHistory.chapterNumber);
+    }
   }
 
   return (
@@ -117,6 +123,7 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
       href={href}
       onMouseEnter={warmStoryNav}
       onFocus={warmStoryNav}
+      onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
       {...tiltHandlers}
     >
       <StoryCover src={story.coverImageUrl} title={story.title} priority={priority} />
@@ -252,6 +259,7 @@ export function StoryLibrary({
 }: StoryLibraryProps) {
   const libraryMode: StoryLibraryMode = mode ?? (searchActive ? "search" : "default");
   const hideHomeExtras = libraryMode !== "default";
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { items, setItems, nextCursor, loading, error, sentinelRef } = useStoryLibraryFeed(initialPage, query);
   const currentUser = useAppSelector((state) => state.identity.user);
@@ -331,17 +339,27 @@ export function StoryLibrary({
             <Link href="/reading-history">Tàng thư</Link>
           </div>
           <div className="continue-row">
-            {recentItems.map((item) => (
-              <Link
-                className={`continue-card ${isFresh(item.storyId) ? "continue-card-fresh" : ""}`.trim()}
-                href={storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber)}
-                key={item.storyId}
-              >
-                <BookOpenCheck size={16} />
-                <span>{item.storyTitle}</span>
-                <small>Chương {item.chapterNumber}</small>
-              </Link>
-            ))}
+            {recentItems.map((item) => {
+              const continueHref = storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber);
+              const warmContinue = () => {
+                warmReaderClientChunk();
+                router.prefetch(continueHref);
+                void prefetchReaderChapterQuery(queryClient, item.storyId, item.chapterNumber);
+              };
+              return (
+                <Link
+                  className={`continue-card ${isFresh(item.storyId) ? "continue-card-fresh" : ""}`.trim()}
+                  href={continueHref}
+                  key={item.storyId}
+                  onMouseEnter={warmContinue}
+                  onFocus={warmContinue}
+                >
+                  <BookOpenCheck size={16} />
+                  <span>{item.storyTitle}</span>
+                  <small>Chương {item.chapterNumber}</small>
+                </Link>
+              );
+            })}
           </div>
         </section>
       ) : null}

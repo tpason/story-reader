@@ -2,12 +2,19 @@
 
 import { BellRing, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { StoryCover } from "@/components/StoryCover";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
+import { prefetchReaderChapterQuery, prefetchStorySummaryQuery } from "@/lib/reader-query";
+import { armStoryCoverViewTransition } from "@/lib/story-cover-view-transition";
+import { warmReaderClientChunk } from "@/lib/warm-reader-client";
 import { storyHref } from "@/lib/urls";
 import { useAppSelector } from "@/lib/store-hooks";
 
 export function FollowedStoriesPanel() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const follows = useAppSelector((state) => state.follows.items);
   const history = useAppSelector((state) => state.history.items);
   const hydrated = useAppSelector((state) => state.follows.hydrated);
@@ -50,12 +57,27 @@ export function FollowedStoriesPanel() {
           const progress = historyByStory.get(item.storyId);
           const unread = Math.max(0, item.totalChapters - (progress?.maxReadChapterNumber ?? 0));
           const targetChapter = progress?.chapterNumber ?? undefined;
+          const href = targetChapter
+            ? storyHref({ id: item.storyId, title: item.storyTitle }, targetChapter)
+            : storyHref({ id: item.storyId, title: item.storyTitle });
+
+          const warmNav = () => {
+            router.prefetch(href);
+            void prefetchStorySummaryQuery(queryClient, item.storyId);
+            if (targetChapter) {
+              warmReaderClientChunk();
+              void prefetchReaderChapterQuery(queryClient, item.storyId, targetChapter);
+            }
+          };
 
           return (
             <Link
               className={`followed-card ${isFresh(item.storyId) ? "followed-card-fresh" : ""}`.trim()}
-              href={targetChapter ? storyHref({ id: item.storyId, title: item.storyTitle }, targetChapter) : storyHref({ id: item.storyId, title: item.storyTitle })}
+              href={href}
               key={item.storyId}
+              onMouseEnter={warmNav}
+              onFocus={warmNav}
+              onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
             >
               <StoryCover src={item.coverImageUrl} title={item.storyTitle} />
               <div>

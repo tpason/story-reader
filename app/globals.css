@@ -28710,3 +28710,56 @@ html[data-xi-perf="saver"] .update-card-fresh,
 html[data-xi-perf="saver"] .auth-panel {
   animation: none !important;
 }
+/* ═══════════════════════════════════════════════════════════════════════
+   Zero-loading — cover View Transition + saver neon leftovers (2026-07-24)
+   Kill switch: html[data-xi-vt="off"]
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Destination hero only (list covers arm via JS on click — never static on all cards). */
+html:not([data-xi-perf="saver"]):not([data-xi-vt="off"]):not([data-xi-compact="1"]) .story-cover-vt-hero {
+  view-transition-name: xi-story-cover;
+}
+
+@media (max-width: 839px) {
+  .story-cover-vt-hero {
+    view-transition-name: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-cover-vt-hero {
+    view-transition-name: none !important;
+  }
+}
+
+html[data-xi-vt="off"] .story-cover-vt-hero,
+html[data-xi-vt="off"] [data-story-cover][data-vt-armed="1"] {
+  view-transition-name: none !important;
+}
+
+html[data-xi-vt="off"]::view-transition-group(*),
+html[data-xi-perf="saver"]::view-transition-group(*) {
+  animation: none !important;
+}
+
+::view-transition-old(xi-story-cover),
+::view-transition-new(xi-story-cover) {
+  animation-duration: 280ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  height: 100%;
+  object-fit: cover;
+  overflow: clip;
+}
+
+/* Saver: freeze leftover neon / continuous chrome that still spins on catalog */
+html[data-xi-perf="saver"] .continue-card,
+html[data-xi-perf="saver"] .continue-card-fresh,
+html[data-xi-perf="saver"] .discovery-cover-card-fresh,
+html[data-xi-perf="saver"] .discover-cover-card-fresh,
+html[data-xi-perf="saver"] .followed-card-fresh,
+html[data-xi-perf="saver"] .story-card-fresh,
+html[data-xi-perf="saver"] .home-recent-chip-fresh,
+html[data-xi-perf="saver"] .update-card-fresh,
+html[data-xi-perf="saver"] .auth-panel {
+  animation: none !important;
+}

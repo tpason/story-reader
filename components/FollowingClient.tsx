@@ -27,6 +27,7 @@ const SHELF_TABS: { id: ShelfTab; label: string }[] = [
 export function FollowingClient() {
   const follows = useAppSelector((state) => state.follows.items);
   const history = useAppSelector((state) => state.history.items);
+  const hydrated = useAppSelector((state) => state.follows.hydrated);
   const { isFresh } = useFreshStoryRealtime();
   const [tab, setTab] = useState<ShelfTab>("reading");
 
@@ -46,6 +47,8 @@ export function FollowingClient() {
       return true;
     });
   }, [follows, historyByStory, tab]);
+
+  const showHydrateSlot = !hydrated && follows.length === 0;
 
   return (
     <main className="app-shell">
@@ -73,7 +76,7 @@ export function FollowingClient() {
           ) : null}
         </XiPageHeroStrip>
 
-        {follows.length > 0 ? (
+        {!showHydrateSlot && follows.length > 0 ? (
           <div className="filters following-shelf-tabs" role="tablist" aria-label="Kệ truyện">
             {SHELF_TABS.map((option) => (
               <button
@@ -90,7 +93,20 @@ export function FollowingClient() {
           </div>
         ) : null}
 
-        {follows.length === 0 ? (
+        {showHydrateSlot ? (
+          <div className="following-grid" aria-busy="true" aria-label="Đang mở tủ truyện">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="followed-card followed-card-page xi-skel-card" aria-hidden="true">
+                <div className="xi-skel xi-skel-cover" />
+                <div>
+                  <div className="xi-skel" style={{ height: 12, width: "40%", marginBottom: 8 }} />
+                  <div className="xi-skel" style={{ height: 18, width: "75%", marginBottom: 6 }} />
+                  <div className="xi-skel" style={{ height: 12, width: "55%" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : follows.length === 0 ? (
           <XianxiaEmptyState
             title="Chưa có linh quyển trong tủ."
             hint="Theo dõi truyện từ trang chi tiết hoặc khám phá top thiên bảng để bắt đầu."

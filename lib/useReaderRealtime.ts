@@ -134,11 +134,29 @@ export function useReaderRealtime({
       retryMs = MIN_RECONNECT_MS;
       connect();
     };
+
+    // BFCache: pagehide freezes the page — tear down WS like hidden; pageshow.persisted rebinds.
+    const onPageHide = () => {
+      if (disposed) return;
+      clearReconnectTimer();
+      closeSocket();
+      setLive(false);
+    };
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (disposed || !event.persisted) return;
+      retryMs = MIN_RECONNECT_MS;
+      connect();
+    };
+
     document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", onPageHide);
+    window.addEventListener("pageshow", onPageShow);
 
     return () => {
       disposed = true;
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("pageshow", onPageShow);
       clearReconnectTimer();
       closeSocket();
       setLive(false);

@@ -2,8 +2,12 @@
 
 import { BookOpenCheck, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { writeResumeNavigationTarget } from "@/lib/reader-resume";
+import { prefetchReaderChapterQuery } from "@/lib/reader-query";
+import { warmReaderClientChunk } from "@/lib/warm-reader-client";
 import { storyHref } from "@/lib/urls";
 import { useAppSelector } from "@/lib/store-hooks";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
@@ -15,6 +19,8 @@ type ReadingResumeBarProps = {
 };
 
 export function ReadingResumeBar({ storyId, showRecentRail = false }: ReadingResumeBarProps) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const items = useAppSelector((state) => state.history.items);
   const hydrated = useAppSelector((state) => state.history.hydrated);
   const { isFresh } = useFreshStoryRealtime();
@@ -46,10 +52,18 @@ export function ReadingResumeBar({ storyId, showRecentRail = false }: ReadingRes
       ? ` · đoạn ${latest.paragraphIndex + 1}`
       : "";
 
+  function warmChapterNav(storyIdToWarm: string, chapterNumber: number, targetHref: string) {
+    warmReaderClientChunk();
+    router.prefetch(targetHref);
+    void prefetchReaderChapterQuery(queryClient, storyIdToWarm, chapterNumber);
+  }
+
   const primary = (
     <Link
       className="resume-mini-bar"
       href={href}
+      onMouseEnter={() => warmChapterNav(latest.storyId, latest.chapterNumber, href)}
+      onFocus={() => warmChapterNav(latest.storyId, latest.chapterNumber, href)}
       onClick={() =>
         writeResumeNavigationTarget(latest.storyId, latest.chapterNumber, {
           scrollPosition: latest.scrollPosition,
@@ -76,22 +90,27 @@ export function ReadingResumeBar({ storyId, showRecentRail = false }: ReadingRes
       {primary}
       {recentOthers.length > 0 ? (
         <div className="home-recent-rail" aria-label="Đọc gần đây">
-          {recentOthers.map((item) => (
-            <Link
-              key={item.storyId}
-              className={`home-recent-chip${isFresh(item.storyId) ? " home-recent-chip-fresh" : ""}`}
-              href={storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber)}
-              onClick={() =>
-                writeResumeNavigationTarget(item.storyId, item.chapterNumber, {
-                  scrollPosition: item.scrollPosition,
-                  paragraphIndex: item.paragraphIndex ?? null
-                })
-              }
-            >
-              <span className="home-recent-chip-title">{item.storyTitle}</span>
-              <small className="home-recent-chip-ch">{`Ch.\u00A0${item.chapterNumber}`}</small>
-            </Link>
-          ))}
+          {recentOthers.map((item) => {
+            const chipHref = storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber);
+            return (
+              <Link
+                key={item.storyId}
+                className={`home-recent-chip${isFresh(item.storyId) ? " home-recent-chip-fresh" : ""}`}
+                href={chipHref}
+                onMouseEnter={() => warmChapterNav(item.storyId, item.chapterNumber, chipHref)}
+                onFocus={() => warmChapterNav(item.storyId, item.chapterNumber, chipHref)}
+                onClick={() =>
+                  writeResumeNavigationTarget(item.storyId, item.chapterNumber, {
+                    scrollPosition: item.scrollPosition,
+                    paragraphIndex: item.paragraphIndex ?? null
+                  })
+                }
+              >
+                <span className="home-recent-chip-title">{item.storyTitle}</span>
+                <small className="home-recent-chip-ch">{`Ch.\u00A0${item.chapterNumber}`}</small>
+              </Link>
+            );
+          })}
           <Link className="home-recent-more" href="/reading-history">
             Tàng thư
           </Link>

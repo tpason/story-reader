@@ -2,11 +2,15 @@
 
 import type { Route } from "next";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Eye, ScrollText, Sparkles, Users } from "lucide-react";
 import type { StoryTrendingItem, TrendingPeriod } from "@/lib/types";
 import { StoryCover } from "@/components/StoryCover";
 import { RankCalligraphySeal } from "@/components/RankCalligraphySeal";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
+import { prefetchStorySummaryQuery } from "@/lib/reader-query";
+import { armStoryCoverViewTransition } from "@/lib/story-cover-view-transition";
 import { storyHref } from "@/lib/urls";
 import { formatSourceLabel } from "@/lib/source-labels";
 
@@ -134,19 +138,29 @@ function PodiumCard({
   story,
   rank,
   variant,
-  period
+  period,
+  onWarm,
+  onArmVt
 }: {
   story: StoryTrendingItem;
   rank: number;
   variant: NonNullable<RankingsListProps["variant"]>;
   period?: TrendingPeriod;
+  onWarm: (story: StoryTrendingItem) => void;
+  onArmVt: (target: EventTarget | null) => void;
 }) {
   const tier = rank <= 3 ? (["gold", "silver", "bronze"] as const)[rank - 1] : "jade";
   return (
     <article className={`rankings-podium-card rankings-podium-${tier}`}>
       <div className="rankings-podium-plinth" aria-hidden />
       <RankCalligraphySeal rank={rank} size="podium" />
-      <Link className="rankings-podium-link" href={storyHref(story)}>
+      <Link
+        className="rankings-podium-link"
+        href={storyHref(story)}
+        onMouseEnter={() => onWarm(story)}
+        onFocus={() => onWarm(story)}
+        onClick={(event) => onArmVt(event.currentTarget)}
+      >
         <StoryCover src={story.coverImageUrl} title={story.title} className="rankings-podium-cover" />
         <h3>{story.title}</h3>
         <p className="rankings-meta">
@@ -165,11 +179,15 @@ function PodiumCard({
 function RankingsPodium({
   items,
   variant,
-  period
+  period,
+  onWarm,
+  onArmVt
 }: {
   items: StoryTrendingItem[];
   variant: NonNullable<RankingsListProps["variant"]>;
   period?: TrendingPeriod;
+  onWarm: (story: StoryTrendingItem) => void;
+  onArmVt: (target: EventTarget | null) => void;
 }) {
   const [first, second, third] = items;
   if (!first) return null;
@@ -177,13 +195,34 @@ function RankingsPodium({
   return (
     <div className="rankings-podium" aria-label={PODIUM_ARIA[variant]}>
       {second ? (
-        <PodiumCard story={second} rank={rankForStory(second, variant)} variant={variant} period={period} />
+        <PodiumCard
+          story={second}
+          rank={rankForStory(second, variant)}
+          variant={variant}
+          period={period}
+          onWarm={onWarm}
+          onArmVt={onArmVt}
+        />
       ) : (
         <div className="rankings-podium-spacer" aria-hidden />
       )}
-      <PodiumCard story={first} rank={rankForStory(first, variant)} variant={variant} period={period} />
+      <PodiumCard
+        story={first}
+        rank={rankForStory(first, variant)}
+        variant={variant}
+        period={period}
+        onWarm={onWarm}
+        onArmVt={onArmVt}
+      />
       {third ? (
-        <PodiumCard story={third} rank={rankForStory(third, variant)} variant={variant} period={period} />
+        <PodiumCard
+          story={third}
+          rank={rankForStory(third, variant)}
+          variant={variant}
+          period={period}
+          onWarm={onWarm}
+          onArmVt={onArmVt}
+        />
       ) : (
         <div className="rankings-podium-spacer" aria-hidden />
       )}
@@ -192,6 +231,15 @@ function RankingsPodium({
 }
 
 export function RankingsList({ items, variant = "trending", period = "week", emptyTitle }: RankingsListProps) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  function warmStoryNav(story: StoryTrendingItem) {
+    const target = storyHref(story);
+    router.prefetch(target);
+    void prefetchStorySummaryQuery(queryClient, story.id);
+  }
+
   if (!items.length) {
     return (
       <XianxiaEmptyState
@@ -225,7 +273,13 @@ export function RankingsList({ items, variant = "trending", period = "week", emp
       </div>
 
       {podiumItems.length >= 2 ? (
-        <RankingsPodium items={podiumItems} variant={variant} period={period} />
+        <RankingsPodium
+          items={podiumItems}
+          variant={variant}
+          period={period}
+          onWarm={warmStoryNav}
+          onArmVt={armStoryCoverViewTransition}
+        />
       ) : null}
 
       <ol className="rankings-list">
@@ -234,7 +288,13 @@ export function RankingsList({ items, variant = "trending", period = "week", emp
           return (
             <li key={story.id} className={`rankings-item${rank <= 3 ? " rankings-item-top" : ""}`}>
               <RankCalligraphySeal rank={rank} />
-              <Link className="rankings-card" href={storyHref(story)}>
+              <Link
+                className="rankings-card"
+                href={storyHref(story)}
+                onMouseEnter={() => warmStoryNav(story)}
+                onFocus={() => warmStoryNav(story)}
+                onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
+              >
                 <StoryCover src={story.coverImageUrl} title={story.title} className="rankings-cover" />
                 <div className="rankings-body">
                   <h3>{story.title}</h3>

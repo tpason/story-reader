@@ -17,6 +17,7 @@ import {
   discoveryPolishedChapterLabel
 } from "@/lib/discovery-labels";
 import { prefetchStorySummaryQuery } from "@/lib/reader-query";
+import { armStoryCoverViewTransition } from "@/lib/story-cover-view-transition";
 import { storyDisplayDescription } from "@/lib/story-description";
 import { resolveStoryStatusBadge } from "@/lib/story-status";
 import type { StoryDiscoveryItem } from "@/lib/types";
@@ -91,8 +92,9 @@ function DiscoveryGroup({
               href={storyHref(story)}
               key={`${variant}-${story.id}`}
               role="listitem"
-              onMouseEnter={() => warmStoryNav(story)}
-              onFocus={() => warmStoryNav(story)}
+          onMouseEnter={() => warmStoryNav(story)}
+          onFocus={() => warmStoryNav(story)}
+          onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
             >
               <StoryCover src={story.coverImageUrl} title={story.title} />
               <div className="discovery-cover-card-meta">
@@ -114,6 +116,7 @@ function DiscoveryGroup({
               key={`${variant}-${story.id}`}
               onMouseEnter={() => warmStoryNav(story)}
               onFocus={() => warmStoryNav(story)}
+              onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
               {...tiltHandlers}
             >
               <StoryCover src={story.coverImageUrl} title={story.title} />

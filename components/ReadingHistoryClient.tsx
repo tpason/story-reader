@@ -144,6 +144,7 @@ export function ReadingHistoryClient() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.identity.user);
   const localItems = useAppSelector((state) => state.history.items);
+  const historyHydrated = useAppSelector((state) => state.history.hydrated);
   const bookmarks = useAppSelector((state) => state.bookmarks.items);
   const { isFresh } = useFreshStoryRealtime({ refreshProgress: true });
 
@@ -158,6 +159,7 @@ export function ReadingHistoryClient() {
   const loadingMoreRef = useRef(false);
 
   const loggedIn = Boolean(user);
+  const waitingHydrate = !loggedIn && !historyHydrated && localItems.length === 0;
   const displayItems = useMemo(() => {
     if (loggedIn) return feedItems;
     return localItems.slice(0, localVisible);
@@ -313,14 +315,14 @@ export function ReadingHistoryClient() {
           </section>
         ) : null}
 
-        {loading ? (
+        {loading || waitingHydrate ? (
           <div className="infinite-status">
             <LoaderCircle size={17} className="spin" />
             Đang tải lịch sử
           </div>
         ) : null}
 
-        {!loading && displayItems.length === 0 ? (
+        {!loading && !waitingHydrate && displayItems.length === 0 ? (
           <XianxiaEmptyState
             title="Tán tu chưa hấp thu chương nào trên trình duyệt này."
             hint="Mở một linh quyển và đọc vài chương. Hành trình sẽ hiện ở đây."

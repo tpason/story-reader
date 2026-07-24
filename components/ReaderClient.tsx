@@ -452,6 +452,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     () => (supportsBilingual ? bilingualFetchOptions(bilingualPrefs) : undefined),
     [supportsBilingual, bilingualPrefs]
   );
+  const bilingualQueryOptionsRef = useRef(bilingualQueryOptions);
+  bilingualQueryOptionsRef.current = bilingualQueryOptions;
   const bilingualActive = Boolean(
     supportsBilingual &&
       bilingualPrefs.enabled &&
@@ -989,20 +991,22 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }, [activePayload, queryClient]);
 
   useEffect(() => {
-    if (compactViewportRef.current) return;
     if (shouldReduceReaderBackgroundWork()) return;
     if (!navigator.onLine) return;
     const connection = (navigator as Navigator & { connection?: { effectiveType?: string; saveData?: boolean } }).connection;
     if (connection?.saveData || connection?.effectiveType === "2g" || connection?.effectiveType === "slow-2g") return;
 
-    const chaptersToPrefetch = [activePayload.nextChapter?.chapterNumber, activePayload.previousChapter?.chapterNumber].filter(
-      (chapterNumber): chapterNumber is number => typeof chapterNumber === "number"
-    );
+    // Desktop: warm N±1 on idle. Compact: next-only (soft-nav needs warm hit).
+    const chaptersToPrefetch = (
+      compactViewportRef.current
+        ? [activePayload.nextChapter?.chapterNumber]
+        : [activePayload.nextChapter?.chapterNumber, activePayload.previousChapter?.chapterNumber]
+    ).filter((chapterNumber): chapterNumber is number => typeof chapterNumber === "number");
     if (chaptersToPrefetch.length === 0) return;
 
     const prefetch = () => {
       chaptersToPrefetch.forEach((chapterNumber) => {
-        void prefetchReaderChapterQuery(queryClient, activePayload.story.id, chapterNumber);
+        void prefetchReaderChapterQuery(queryClient, activePayload.story.id, chapterNumber, bilingualQueryOptions);
       });
     };
 
@@ -1013,7 +1017,13 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
     const timer = globalThis.setTimeout(prefetch, 900);
     return () => globalThis.clearTimeout(timer);
-  }, [activePayload.nextChapter?.chapterNumber, activePayload.previousChapter?.chapterNumber, activePayload.story.id, queryClient]);
+  }, [
+    activePayload.nextChapter?.chapterNumber,
+    activePayload.previousChapter?.chapterNumber,
+    activePayload.story.id,
+    bilingualQueryOptions,
+    queryClient
+  ]);
 
   useEffect(() => {
     if (restoredScrollKeyRef.current === storageKey) return;
@@ -2113,6 +2123,25 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           }
         }
 
+        // Scroll-edge: warm next chapter JSON near end (manga-style). Read-only RQ only.
+        const nextChapterEdge = activePayload.nextChapter;
+        if (current >= 75 && nextChapterEdge) {
+          void prefetchReaderChapterQuery(
+            queryClient,
+            activePayload.story.id,
+            nextChapterEdge.chapterNumber,
+            bilingualQueryOptionsRef.current
+          );
+        }
+        if (current <= 22 && activePayload.previousChapter) {
+          void prefetchReaderChapterQuery(
+            queryClient,
+            activePayload.story.id,
+            activePayload.previousChapter.chapterNumber,
+            bilingualQueryOptionsRef.current
+          );
+        }
+
         const nextChapterToWarm = activePayload.nextChapter;
         if (
           current >= 78 &&
@@ -2232,6 +2261,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     activePayload.chapter.chapterNumber,
     activePayload.chapter.id,
     activePayload.nextChapter?.chapterNumber,
+    activePayload.previousChapter?.chapterNumber,
     activePayload.story.coverImageUrl,
     activePayload.story.id,
     activePayload.story.title,
