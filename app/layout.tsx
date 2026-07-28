@@ -10,6 +10,7 @@ import { ReaderRealtimeProvider } from "@/components/ReaderRealtimeProvider";
 import { ReaderRealtimeFxBootstrap } from "@/components/ReaderRealtimeFxBootstrap";
 import { RealtimeShimmerLegend } from "@/components/RealtimeShimmerLegend";
 import { RealtimeToastHost } from "@/components/RealtimeToastHost";
+import { SiteAnnouncementMarquee } from "@/components/SiteAnnouncementMarquee";
 import { QueryProvider } from "@/components/QueryProvider";
 import { StoreProvider } from "@/components/StoreProvider";
 import { XianxiaWorldBackgroundClient } from "@/components/XianxiaWorldBackgroundClient";
@@ -116,6 +117,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <ReaderRealtimeFxBootstrap />
               <RealtimeToastHost />
               <RealtimeShimmerLegend />
+              <SiteAnnouncementMarquee />
               <Suspense fallback={null}>
                 <XianxiaWorldBackgroundClient />
               </Suspense>
