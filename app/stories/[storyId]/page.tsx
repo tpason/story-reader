@@ -8,10 +8,11 @@ import {
   SameAuthorStoriesSection,
   StoryRecommendationsSection,
 } from "@/components/story/StoryRecommendationSections";
+import { getCurrentUser } from "@/lib/auth";
 import { buildStoryMetadata } from "@/lib/metadata";
 import { buildStoryBookJsonLd } from "@/lib/json-ld";
 import { JsonLdScript } from "@/components/JsonLdScript";
-import { getCachedStory, getCachedStoryChapterList } from "@/lib/stories";
+import { getCachedStory, getCachedStoryChapterList, getStory, listChapters } from "@/lib/stories";
 import { isStoryUuid, storyKeyToId } from "@/lib/urls";
 
 export const revalidate = 120;
@@ -26,7 +27,8 @@ export async function generateMetadata({
   if (!isStoryUuid(storyId)) return {};
 
   try {
-    const story = await getCachedStory(storyId);
+    const user = await getCurrentUser();
+    const story = await getStory(storyId, { viewerUserId: user?.id });
     return buildStoryMetadata(story);
   } catch {
     return {};
@@ -38,9 +40,12 @@ export default async function StoryLanding({ params }: { params: Promise<{ story
   const storyId = storyKeyToId(storyKey);
   if (!isStoryUuid(storyId)) notFound();
 
+  const user = await getCurrentUser();
   const [story, chapters] = await Promise.all([
-    getCachedStory(storyId),
-    getCachedStoryChapterList(storyId, 80),
+    user ? getStory(storyId, { viewerUserId: user.id }) : getCachedStory(storyId),
+    user
+      ? listChapters(storyId, { pageSize: 80, viewerUserId: user.id })
+      : getCachedStoryChapterList(storyId, 80),
   ]);
 
   return (

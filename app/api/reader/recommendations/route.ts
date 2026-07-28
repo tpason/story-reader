@@ -53,7 +53,7 @@ export async function GET() {
         LEFT JOIN user_categories uc ON uc.category_id = sc.category_id
         LEFT JOIN categories pc ON pc.id = s.primary_category_id
         WHERE NOT EXISTS (SELECT 1 FROM read_stories rs WHERE rs.story_id = s.id)
-          AND s.is_active = TRUE
+          AND s.is_active = TRUE AND s.publish_status = 'published'
           AND s.total_chapters > 0
         GROUP BY s.id, pc.name
       )

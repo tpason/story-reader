@@ -55,6 +55,8 @@ export async function GET() {
         LIMIT 1
       ) cat ON TRUE
       WHERE f.user_id = $1
+        AND s.is_active = TRUE
+        AND s.publish_status = 'published'
       ORDER BY f.followed_at DESC
       LIMIT 200
     `,

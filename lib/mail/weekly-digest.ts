@@ -81,7 +81,7 @@ async function loadChapterDigest(userId: string) {
       FROM interested_stories ist
       JOIN stories s ON s.id = ist.story_id
       LEFT JOIN reader_reading_progress rp ON rp.user_id = $1 AND rp.story_id = s.id
-      WHERE s.is_active = TRUE
+      WHERE s.is_active = TRUE AND s.publish_status = 'published'
         AND s.total_chapters > COALESCE(rp.max_read_chapter_number, 0)
         AND s.updated_at >= now() - interval '7 days'
       ORDER BY s.updated_at DESC
@@ -100,6 +100,7 @@ async function loadNewStories() {
         author
       FROM stories
       WHERE is_active = TRUE
+        AND publish_status = 'published'
         AND created_at >= now() - interval '7 days'
       ORDER BY created_at DESC
       LIMIT 8

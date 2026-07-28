@@ -159,7 +159,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ storyId: s
   const { storyId } = await params;
 
   const rows = await query<StoryMetaRow>(
-    `SELECT metadata FROM stories WHERE id = $1 AND is_active = TRUE LIMIT 1`,
+    `SELECT metadata FROM stories WHERE id = $1 AND is_active = TRUE AND publish_status = 'published' LIMIT 1`,
     [storyId]
   );
 

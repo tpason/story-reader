@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
         FROM interested_stories ist
         JOIN stories s ON s.id = ist.story_id
         LEFT JOIN reader_reading_progress rp ON rp.user_id = $1 AND rp.story_id = s.id
-        WHERE s.is_active = TRUE
+        WHERE s.is_active = TRUE AND s.publish_status = 'published'
           AND s.total_chapters > COALESCE(rp.max_read_chapter_number, 0)
         ORDER BY s.updated_at DESC, s.total_chapters DESC
         LIMIT 80
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
         s.updated_at
       FROM local_progress lp
       JOIN stories s ON s.id = lp.story_id
-      WHERE s.is_active = TRUE
+      WHERE s.is_active = TRUE AND s.publish_status = 'published'
         AND s.total_chapters > lp.max_read_chapter_number
       ORDER BY s.updated_at DESC, s.total_chapters DESC
       LIMIT 80
