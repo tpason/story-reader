@@ -272,6 +272,9 @@ export function StoryDetailClient({ story, chapters, totalChapters, recommendati
                 >
                   {statusBadge.label}
                 </span>
+                {currentStory.sourceCode === "self_publish" ? (
+                  <span className="chip story-detail-tag-chip story-detail-tag-chip--self-publish">Tự đăng</span>
+                ) : null}
               </nav>
 
               <div className="story-detail-cta-cluster">

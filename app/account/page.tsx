@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import nextDynamic from "next/dynamic";
 import { AccountAutoPrefsNote } from "@/components/AccountAutoPrefsNote";
@@ -43,6 +44,11 @@ export default function AccountPage() {
             <p className="eyebrow">Động phủ</p>
             <h1>Định danh đạo hữu</h1>
             <p>Nhập môn để khắc lịch sử đọc vào Thiên Thư. Linh quang và hiệu năng tự chỉnh theo máy.</p>
+            <p className="account-author-cta">
+              <Link className="auth-submit author-studio-btn" href="/author">
+                Linh các viết — tự đăng truyện
+              </Link>
+            </p>
           </div>
           <div id="account-identity">
             <UserIdentity panel />

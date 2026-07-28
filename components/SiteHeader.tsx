@@ -46,6 +46,11 @@ const PRIMARY_NAV: NavItem[] = [
 /** Bury behind “Thêm” on desktop; still listed in the mobile drawer. */
 const SECONDARY_NAV: NavItem[] = [
   {
+    href: "/author" as Route,
+    label: "Viết truyện",
+    match: (pathname) => pathname.startsWith("/author")
+  },
+  {
     href: "/rankings?tab=betterbox",
     label: "Thiên bảng",
     match: (pathname) => pathname.startsWith("/rankings")
