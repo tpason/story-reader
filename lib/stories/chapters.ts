@@ -418,9 +418,9 @@ const getCachedDefaultReaderPayload = unstable_cache(
 export async function getReaderPayload(
   storyId: string,
   chapterNumber: number,
-  options: ReaderFetchOptions = {}
+  options: ReaderFetchOptions & { viewerUserId?: string | null } = {}
 ): Promise<ReaderPayload> {
-  if (isDefaultReaderOptions(options)) {
+  if (isDefaultReaderOptions(options) && !options.viewerUserId) {
     return getCachedDefaultReaderPayload(storyId, chapterNumber);
   }
   return loadReaderPayload(storyId, chapterNumber, options);
