@@ -201,7 +201,7 @@ psql "$STORY_DATABASE_URL" -f story_db/migrations/033_reader_email_hardening.sql
 - [ ] Migrations 031–033 đã apply
 - [ ] Test: signup → nhận mail verify → click link → Động phủ hiện “đã xác thực”
 - [ ] Test: forgot password (sau verify)
-- [ ] (Tuỳ chọn) `READER_SIGNUP_DISABLED=1` nếu chỉ admin tạo user
+- [ ] Public signup: `READER_SIGNUP_DISABLED=0` trên VPS `.env.public` (set `1` chỉ khi muốn đóng đăng ký)
 
 ---
 
