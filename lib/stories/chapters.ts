@@ -28,7 +28,7 @@ import {
   textPath,
   type ChapterRow
 } from "./_internal";
-import { getCachedStory } from "./catalog";
+import { getCachedStory, getStory } from "./catalog";
 
 function isDefaultReaderOptions(options: ReaderFetchOptions = {}) {
   const mode = options.displayMode ?? "single";
@@ -213,10 +213,30 @@ export async function searchChapters(storyId: string, search: string, options: {
 async function loadReaderPayload(
   storyId: string,
   chapterNumber: number,
-  options: ReaderFetchOptions = {}
+  options: ReaderFetchOptions & { viewerUserId?: string | null } = {}
 ): Promise<ReaderPayload> {
+  const viewerUserId = options.viewerUserId?.trim() || null;
+  let asOwner = false;
+  if (viewerUserId) {
+    const ownerRows = await query<{ ok: number }>(
+      `
+        SELECT 1 AS ok
+        FROM stories
+        WHERE id = $1
+          AND owner_user_id = $2::uuid
+          AND publish_status <> 'hidden'
+        LIMIT 1
+      `,
+      [storyId, viewerUserId]
+    );
+    asOwner = Boolean(ownerRows[0]);
+  }
+  const visibilitySql = asOwner
+    ? "TRUE"
+    : `${CHAPTER_PUBLIC_VISIBLE_SQL} AND ${CHAPTER_PARENT_STORY_PUBLIC_SQL}`;
+
   const [story, currentRows] = await Promise.all([
-    getCachedStory(storyId),
+    asOwner ? getStory(storyId, { viewerUserId }) : getCachedStory(storyId),
     query<ChapterRow>(
       `
         SELECT
@@ -237,8 +257,7 @@ async function loadReaderPayload(
           ${CHAPTER_DISPLAY_AT_SQL}
         FROM chapters c
         WHERE c.story_id = $1
-          AND ${CHAPTER_PUBLIC_VISIBLE_SQL}
-          AND ${CHAPTER_PARENT_STORY_PUBLIC_SQL}
+          AND ${visibilitySql}
           AND c.chapter_number = $2
         LIMIT 1
       `,
@@ -272,8 +291,7 @@ async function loadReaderPayload(
           ${CHAPTER_DISPLAY_AT_SQL}
         FROM chapters c
         WHERE c.story_id = $1
-          AND ${CHAPTER_PUBLIC_VISIBLE_SQL}
-          AND ${CHAPTER_PARENT_STORY_PUBLIC_SQL}
+          AND ${visibilitySql}
           AND c.chapter_number < $2
         ORDER BY c.chapter_number DESC
         LIMIT 1
@@ -287,18 +305,27 @@ async function loadReaderPayload(
           ${CHAPTER_DISPLAY_AT_SQL}
         FROM chapters c
         WHERE c.story_id = $1
-          AND ${CHAPTER_PUBLIC_VISIBLE_SQL}
-          AND ${CHAPTER_PARENT_STORY_PUBLIC_SQL}
+          AND ${visibilitySql}
           AND c.chapter_number > $2
         ORDER BY c.chapter_number ASC
         LIMIT 1
       `,
       [storyId, chapterNumber]
     ),
-    listChaptersCursor(storyId, {
-      chapterNumber,
-      limit: READER_CHAPTER_PAGE_SIZE
-    })
+    asOwner
+      ? listChapters(storyId, {
+          pageSize: READER_CHAPTER_PAGE_SIZE,
+          viewerUserId
+        }).then((page) => ({
+          items: page.items,
+          nextCursor: null,
+          previousCursor: null,
+          pageSize: page.pageSize
+        }))
+      : listChaptersCursor(storyId, {
+          chapterNumber,
+          limit: READER_CHAPTER_PAGE_SIZE
+        })
   ]);
 
   const row = currentRows[0];
