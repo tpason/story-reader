@@ -70,6 +70,13 @@ jobs:
           ssh -o BatchMode=yes "$HOST" \
             "set -euo pipefail
              cd $(printf %q "$PATH_REMOTE")
+             chmod +x docker/scripts/*.sh 2>/dev/null || true
+             # Schema must exist before new reader code hits Postgres (author studio, announcements, …).
+             if [ -x docker/scripts/apply_public_migrations.sh ]; then
+               DEPLOY_DIR=$(printf %q "$PATH_REMOTE") bash docker/scripts/apply_public_migrations.sh
+             else
+               echo '[deploy] apply_public_migrations.sh missing — sync root stack first if schema changed' >&2
+             fi
              SITE=\$(grep -E '^NEXT_PUBLIC_SITE_URL=' .env.public | head -1 | cut -d= -f2-)
              WS=\$(grep -E '^NEXT_PUBLIC_READER_WS_URL=' .env.public | head -1 | cut -d= -f2- || true)
              export DOCKER_BUILDKIT=0

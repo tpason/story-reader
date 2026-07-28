@@ -217,6 +217,9 @@ export async function createAuthorStory(input: {
   );
 
   const row = rows[0]!;
+  if (publishStatus === "published") {
+    revalidateAuthorPublicCaches(row.id);
+  }
   return {
     id: row.id,
     title: row.title,

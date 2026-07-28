@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { getReaderPayload } from "@/lib/stories";
 import type { ContentLayer } from "@/lib/reader-content-layers";
 import type { BilingualDisplayMode } from "@/lib/reader-bilingual-prefs";
@@ -36,19 +37,29 @@ export async function GET(
   }
 
   try {
-    const data = await getReaderPayload(storyId, parsedChapter, options);
+    const user = await getCurrentUser();
+    const data = await getReaderPayload(storyId, parsedChapter, {
+      ...options,
+      viewerUserId: user?.id
+    });
     const isDefault =
       !options.primaryLayer &&
       !options.secondaryLayer &&
       (!options.displayMode || options.displayMode === "single");
+    const isUgc = data.story.sourceCode === "self_publish";
     return NextResponse.json(data, {
       headers: {
-        "Cache-Control": isDefault
-          ? "public, s-maxage=120, stale-while-revalidate=600"
-          : "private, no-store"
+        "Cache-Control":
+          isUgc || user || !isDefault
+            ? "private, no-store"
+            : "public, s-maxage=120, stale-while-revalidate=600"
       }
     });
   } catch (error) {
+    const digest = error && typeof error === "object" && "digest" in error ? String((error as { digest?: unknown }).digest) : "";
+    if (digest.startsWith("NEXT_HTTP_ERROR_FALLBACK") || digest === "NEXT_NOT_FOUND") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
     return NextResponse.json(
       { error: "Failed to load chapter", detail: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
