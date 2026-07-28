@@ -62,6 +62,13 @@ export async function listChapters(storyId: string, options: { page?: number; pa
   };
 }
 
+/** Story landing first page (slim flags only) — TTL matches story page revalidate. */
+export const getCachedStoryChapterList = unstable_cache(
+  (storyId: string, pageSize: number) => listChapters(storyId, { pageSize }),
+  ["story-chapter-list"],
+  { revalidate: 120 }
+);
+
 export async function listChaptersCursor(
   storyId: string,
   options: { cursor?: string | null; limit?: number; chapterNumber?: number; direction?: "next" | "previous" } = {}

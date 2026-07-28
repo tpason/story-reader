@@ -5,7 +5,7 @@ import { MessageCircleHeart } from "lucide-react";
 import { CommentRulesNote } from "@/components/CommentRulesNote";
 import { SiteHeader } from "@/components/SiteHeader";
 import { formatRelativeActivity } from "@/lib/discovery-format";
-import { listRecentComments, snippetCommentText } from "@/lib/recent-comments";
+import { getCachedRecentComments, snippetCommentText } from "@/lib/recent-comments";
 import { SITE_NAME } from "@/lib/brand";
 import { storyHref } from "@/lib/urls";
 
@@ -18,9 +18,9 @@ export const metadata: Metadata = {
 };
 
 export default async function DaoLuanPage() {
-  let items: Awaited<ReturnType<typeof listRecentComments>> = [];
+  let items: Awaited<ReturnType<typeof getCachedRecentComments>> = [];
   try {
-    items = await listRecentComments(40);
+    items = await getCachedRecentComments(40);
   } catch {
     items = [];
   }
@@ -48,7 +48,6 @@ export default async function DaoLuanPage() {
                 <Link
                   className="recent-comment-card dao-luan-card"
                   href={storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber)}
-                  prefetch={false}
                 >
                   <div className="recent-comment-kicker">
                     <span>{item.authorUsername || "Đạo hữu"}</span>

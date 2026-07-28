@@ -1,4 +1,4 @@
-const CACHE_VERSION = "linh-quyen-v4";
+const CACHE_VERSION = "linh-quyen-v5";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -46,6 +46,13 @@ function isDefaultChapterPayload(url) {
   return primaryDefault && secondaryDefault && modeDefault && [...params.keys()].every((key) =>
     key === "primary" || key === "secondary" || key === "mode"
   );
+}
+
+/** Public catalog list only — never search/author (those stay network). */
+function isPublicStoriesCatalog(url) {
+  if (url.pathname !== "/api/stories") return false;
+  if (url.searchParams.has("q") || url.searchParams.has("author")) return false;
+  return true;
 }
 
 function isStaticAsset(request, url) {
@@ -132,6 +139,11 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (isDefaultChapterPayload(url)) {
+    event.respondWith(staleWhileRevalidate(request, API_CACHE));
+    return;
+  }
+
+  if (isPublicStoriesCatalog(url)) {
     event.respondWith(staleWhileRevalidate(request, API_CACHE));
     return;
   }

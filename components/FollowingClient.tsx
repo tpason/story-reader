@@ -2,15 +2,20 @@
 
 import type { Route } from "next";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BellRing, BookOpen, Sparkles, Trophy } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/SiteHeader";
 import { StoryCover } from "@/components/StoryCover";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import { formatRelativeActivity } from "@/lib/content-timestamps";
+import { prefetchReaderChapterQuery, prefetchStorySummaryQuery } from "@/lib/reader-query";
+import { armStoryCoverViewTransition } from "@/lib/story-cover-view-transition";
+import { warmReaderClientChunk } from "@/lib/warm-reader-client";
 import { storyHref } from "@/lib/urls";
 import { useAppSelector } from "@/lib/store-hooks";
 
@@ -25,6 +30,8 @@ const SHELF_TABS: { id: ShelfTab; label: string }[] = [
 ];
 
 export function FollowingClient() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const follows = useAppSelector((state) => state.follows.items);
   const history = useAppSelector((state) => state.history.items);
   const hydrated = useAppSelector((state) => state.follows.hydrated);
@@ -135,16 +142,27 @@ export function FollowingClient() {
               const unread = Math.max(0, item.totalChapters - (progress?.maxReadChapterNumber ?? 0));
               const targetChapter = progress?.chapterNumber ?? undefined;
               const activityLabel = formatRelativeActivity(item.updatedAt);
+              const href = targetChapter
+                ? storyHref({ id: item.storyId, title: item.storyTitle }, targetChapter)
+                : storyHref({ id: item.storyId, title: item.storyTitle });
+
+              const warmNav = () => {
+                router.prefetch(href);
+                void prefetchStorySummaryQuery(queryClient, item.storyId);
+                if (targetChapter) {
+                  warmReaderClientChunk();
+                  void prefetchReaderChapterQuery(queryClient, item.storyId, targetChapter);
+                }
+              };
 
               return (
                 <Link
                   key={item.storyId}
                   className={`followed-card followed-card-page ${isFresh(item.storyId) ? "followed-card-fresh" : ""}`.trim()}
-                  href={
-                    targetChapter
-                      ? storyHref({ id: item.storyId, title: item.storyTitle }, targetChapter)
-                      : storyHref({ id: item.storyId, title: item.storyTitle })
-                  }
+                  href={href}
+                  onMouseEnter={warmNav}
+                  onFocus={warmNav}
+                  onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
                 >
                   <StoryCover src={item.coverImageUrl} title={item.storyTitle} />
                   <div>

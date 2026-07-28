@@ -95,7 +95,6 @@ export function MotionFX({ variant }: MotionFXProps) {
             animate(".error-panel", {
               scale: [0.96, 1],
               y: [22, 0],
-              opacity: [0, 1],
               duration: 740,
               ease: "outExpo"
             })

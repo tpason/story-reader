@@ -10,10 +10,10 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import {
   getCachedBetterBoxRankings,
+  getCachedSourceRankBoards,
+  getCachedSourceRankedStories,
   getCachedTopReaders,
   getCachedTrendingStories,
-  listSourceRankBoards,
-  listSourceRankedStories,
   type SourceRankBoard
 } from "@/lib/stories";
 import { formatRankBoardLabel } from "@/lib/source-labels";
@@ -85,7 +85,7 @@ export default async function RankingsPage({ searchParams }: RankingsProps) {
     tab === "betterbox" || tab === "trending"
       ? getCachedBetterBoxRankings(tab === "betterbox" ? 50 : 12)
       : Promise.resolve([]),
-    tab === "source" ? listSourceRankBoards(16) : Promise.resolve([] as SourceRankBoard[]),
+    tab === "source" ? getCachedSourceRankBoards(16) : Promise.resolve([] as SourceRankBoard[]),
     tab === "readers" ? getCachedTopReaders(readerScope, period, 40) : Promise.resolve([]),
   ]);
 
@@ -94,11 +94,7 @@ export default async function RankingsPage({ searchParams }: RankingsProps) {
     boards[0];
   const sourceStories =
     tab === "source" && activeBoard
-      ? await listSourceRankedStories({
-          sourceCode: activeBoard.sourceCode,
-          rankName: activeBoard.rankName,
-          limit: 40
-        })
+      ? await getCachedSourceRankedStories(activeBoard.sourceCode, activeBoard.rankName, 40)
       : [];
 
   const title =

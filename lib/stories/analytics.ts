@@ -415,3 +415,16 @@ export const getCachedBetterBoxRankings = unstable_cache(
   ["betterbox-rankings-v2"],
   { revalidate: 600 }
 );
+
+export const getCachedSourceRankBoards = unstable_cache(
+  (limit: number) => listSourceRankBoards(limit),
+  ["source-rank-boards"],
+  { revalidate: 300 }
+);
+
+export const getCachedSourceRankedStories = unstable_cache(
+  (sourceCode: string, rankName: string, limit: number) =>
+    listSourceRankedStories({ sourceCode, rankName, limit }),
+  ["source-ranked-stories"],
+  { revalidate: 300 }
+);

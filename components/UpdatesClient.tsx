@@ -3,7 +3,9 @@
 import { Bell, BookOpenCheck, Check, CheckCheck, Feather, ScrollText, Sparkles } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, type MouseEvent, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/SiteHeader";
 import { StoryCover } from "@/components/StoryCover";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
@@ -21,6 +23,9 @@ import { fetchReadingProgress } from "@/lib/api-client";
 import { historyToFollowItem } from "@/lib/follows";
 import { mergeHistoryItems } from "@/lib/store";
 import { type ReadingHistoryItem } from "@/lib/reading-history";
+import { prefetchReaderChapterQuery, prefetchStorySummaryQuery } from "@/lib/reader-query";
+import { armStoryCoverViewTransition } from "@/lib/story-cover-view-transition";
+import { warmReaderClientChunk } from "@/lib/warm-reader-client";
 import { NOTIFY_COPY } from "@/lib/xianxia-notify-copy";
 import { storyHref } from "@/lib/urls";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
@@ -35,7 +40,12 @@ type UpdateEntry = {
 };
 
 function UpdateCard({ entry, fresh }: { entry: UpdateEntry; fresh: boolean }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const { item, progress, unread, nextChapter } = entry;
+  const href = nextChapter
+    ? storyHref({ id: item.storyId, title: item.storyTitle }, nextChapter)
+    : storyHref({ id: item.storyId, title: item.storyTitle });
 
   function dismissCaughtUp(event: MouseEvent) {
     event.preventDefault();
@@ -43,15 +53,23 @@ function UpdateCard({ entry, fresh }: { entry: UpdateEntry; fresh: boolean }) {
     markNotificationCaughtUp(item.storyId, item.totalChapters);
   }
 
+  const warmNav = () => {
+    router.prefetch(href);
+    void prefetchStorySummaryQuery(queryClient, item.storyId);
+    if (nextChapter) {
+      warmReaderClientChunk();
+      void prefetchReaderChapterQuery(queryClient, item.storyId, nextChapter);
+    }
+  };
+
   return (
     <article className={`update-card ${fresh ? "update-card-fresh" : ""}`.trim()}>
       <Link
         className="update-card-main"
-        href={
-          nextChapter
-            ? storyHref({ id: item.storyId, title: item.storyTitle }, nextChapter)
-            : storyHref({ id: item.storyId, title: item.storyTitle })
-        }
+        href={href}
+        onMouseEnter={warmNav}
+        onFocus={warmNav}
+        onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
       >
         <StoryCover src={item.coverImageUrl} title={item.storyTitle} />
         <div className="update-card-body">

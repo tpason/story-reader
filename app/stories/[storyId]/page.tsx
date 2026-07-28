@@ -11,7 +11,7 @@ import {
 import { buildStoryMetadata } from "@/lib/metadata";
 import { buildStoryBookJsonLd } from "@/lib/json-ld";
 import { JsonLdScript } from "@/components/JsonLdScript";
-import { getCachedStory, listChapters } from "@/lib/stories";
+import { getCachedStory, getCachedStoryChapterList } from "@/lib/stories";
 import { isStoryUuid, storyKeyToId } from "@/lib/urls";
 
 export const revalidate = 120;
@@ -40,7 +40,7 @@ export default async function StoryLanding({ params }: { params: Promise<{ story
 
   const [story, chapters] = await Promise.all([
     getCachedStory(storyId),
-    listChapters(storyId, { pageSize: 80 }),
+    getCachedStoryChapterList(storyId, 80),
   ]);
 
   return (

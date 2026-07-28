@@ -3,10 +3,15 @@
 import { BookMarked, BookOpen, ChevronRight, Clock, Flame, LoaderCircle, ScrollText, Trophy } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/SiteHeader";
 import { StoryCover } from "@/components/StoryCover";
 import { fetchBookmarks, fetchReadingProgressPage } from "@/lib/api-client";
+import { prefetchReaderChapterQuery, prefetchStorySummaryQuery } from "@/lib/reader-query";
+import { armStoryCoverViewTransition } from "@/lib/story-cover-view-transition";
+import { warmReaderClientChunk } from "@/lib/warm-reader-client";
 import { storyHref } from "@/lib/urls";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
@@ -92,15 +97,28 @@ function HistoryStoryCard({
   item: ReadingHistoryItem;
   fresh: boolean;
 }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const progressPercent =
     item.totalChapters > 0 ? Math.min(100, Math.round((item.maxReadChapterNumber / item.totalChapters) * 100)) : 0;
   const newChapters =
     item.totalChapters > item.maxReadChapterNumber ? item.totalChapters - item.maxReadChapterNumber : 0;
+  const href = storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber);
+
+  const warmNav = () => {
+    router.prefetch(href);
+    void prefetchStorySummaryQuery(queryClient, item.storyId);
+    warmReaderClientChunk();
+    void prefetchReaderChapterQuery(queryClient, item.storyId, item.chapterNumber);
+  };
 
   return (
     <Link
       className={`story-card ${fresh ? "story-card-fresh" : ""}`.trim()}
-      href={storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber)}
+      href={href}
+      onMouseEnter={warmNav}
+      onFocus={warmNav}
+      onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
     >
       <StoryCover src={item.coverImageUrl} title={item.storyTitle} />
       <div className="story-card-body">
@@ -142,6 +160,8 @@ function HistoryStoryCard({
 
 export function ReadingHistoryClient() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const user = useAppSelector((state) => state.identity.user);
   const localItems = useAppSelector((state) => state.history.items);
   const historyHydrated = useAppSelector((state) => state.history.hydrated);
@@ -292,11 +312,21 @@ export function ReadingHistoryClient() {
               <span className="discovery-badge">{bookmarks.length} dấu</span>
             </div>
             <div className="bookmark-row">
-              {bookmarks.slice(0, 12).map((item) => (
+              {bookmarks.slice(0, 12).map((item) => {
+                const href = storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber);
+                const warmNav = () => {
+                  router.prefetch(href);
+                  void prefetchStorySummaryQuery(queryClient, item.storyId);
+                  warmReaderClientChunk();
+                  void prefetchReaderChapterQuery(queryClient, item.storyId, item.chapterNumber);
+                };
+                return (
                 <Link
                   className="bookmark-card"
-                  href={storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber)}
+                  href={href}
                   key={`${item.storyId}-${item.chapterNumber}`}
+                  onMouseEnter={warmNav}
+                  onFocus={warmNav}
                   onClick={() => {
                     window.sessionStorage.setItem(
                       `reader:bookmark-scroll:${item.storyId}:${item.chapterNumber}`,
@@ -310,7 +340,8 @@ export function ReadingHistoryClient() {
                     Chương {item.chapterNumber} · {Math.round(item.progressPercent)}%
                   </small>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           </section>
         ) : null}

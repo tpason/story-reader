@@ -14,7 +14,10 @@ import {
   DISCOVERY_UPDATED_SECTION,
   DISCOVERY_UPDATED_TAB
 } from "@/lib/discovery-labels";
-import { listRecentlyPolishedStoriesPage, listRecentlyUpdatedStoriesPage } from "@/lib/stories";
+import {
+  getCachedRecentlyPolishedStoriesPage,
+  getCachedRecentlyUpdatedStoriesPage
+} from "@/lib/stories";
 
 const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX));
 
@@ -45,6 +48,10 @@ function discoverHref(kind: "polished" | "updated", page: number, today: boolean
   return `/discover?${params.toString()}` as Route;
 }
 
+function completedCacheKey(completed: boolean | undefined) {
+  return completed === true ? "true" : completed === false ? "false" : "any";
+}
+
 export default async function DiscoverPage({ searchParams }: DiscoverProps) {
   const params = await searchParams;
   const kind = params.kind === "updated" ? "updated" : "polished";
@@ -53,10 +60,11 @@ export default async function DiscoverPage({ searchParams }: DiscoverProps) {
     params.completed === "true" ? true : params.completed === "false" ? false : undefined;
   const currentPage = Math.max(1, Number(params.page ?? 1));
   const pageSize = 18;
+  const completedKey = completedCacheKey(completed);
   const page =
     kind === "polished"
-      ? await listRecentlyPolishedStoriesPage({ page: currentPage, pageSize, today, completed })
-      : await listRecentlyUpdatedStoriesPage({ page: currentPage, pageSize, today, completed });
+      ? await getCachedRecentlyPolishedStoriesPage(currentPage, pageSize, today, completedKey)
+      : await getCachedRecentlyUpdatedStoriesPage(currentPage, pageSize, today, completedKey);
   const Icon = kind === "polished" ? WandSparkles : Clock3;
   const sectionLabel = kind === "polished" ? DISCOVERY_POLISHED_TAB : DISCOVERY_UPDATED_TAB;
 

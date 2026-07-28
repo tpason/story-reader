@@ -181,4 +181,55 @@ test.describe("zero-loading feel", () => {
       }, { timeout: 15_000 })
       .toBeGreaterThan(0);
   });
+
+  test("secondary public routes settle with shell content (no blank main)", async ({ page }) => {
+    await primeAppTestStorage(page);
+
+    const routes: Array<{ path: string; expect: string }> = [
+      { path: "/discover", expect: ".discover-shell, .discover-header, .page-wrap" },
+      { path: "/rankings?tab=betterbox", expect: ".page-wrap, .rankings-list, .xi-page-hero" },
+      { path: "/categories", expect: ".category-index-grid, .categories-index-header, .page-wrap" },
+      { path: "/dao-luan", expect: ".dao-luan-page, .dao-luan-list, .dao-luan-empty" },
+      { path: "/updates", expect: ".updates-header, .updates-list, .updates-empty, .page-wrap" },
+      { path: "/reading-history", expect: ".page-wrap, .story-grid, .xianxia-empty" },
+      { path: "/forgot-password", expect: "main.auth-shell" }
+    ];
+
+    for (const route of routes) {
+      await page.goto(route.path, { waitUntil: "domcontentloaded" });
+      await expect(page.locator("main.app-shell, main.auth-shell").first()).toBeVisible({
+        timeout: 20_000
+      });
+      await expect(page.locator(route.expect).first()).toBeVisible({ timeout: 20_000 });
+      // Never stuck forever on route loading skeleton alone.
+      await expect
+        .poll(async () => page.locator("main.xi-route-loading").count(), { timeout: 20_000 })
+        .toBe(0);
+    }
+  });
+
+  test("soft-nav header destinations keep app-shell visible", async ({ page }) => {
+    await primeAppTestStorage(page);
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("main.app-shell").first()).toBeVisible({ timeout: 20_000 });
+
+    const hops = ["/discover", "/rankings?tab=betterbox", "/categories", "/dao-luan", "/"] as const;
+    for (const hop of hops) {
+      await page.goto(hop, { waitUntil: "domcontentloaded" });
+      await expect(page.locator("main.app-shell").first()).toBeVisible({ timeout: 20_000 });
+      await expect(page.locator(".page-wrap, .topbar").first()).toBeVisible({ timeout: 15_000 });
+    }
+  });
+
+  test("story detail chapter list paints without blank hero", async ({ page }) => {
+    await primeAppTestStorage(page);
+    const story = await pickReadableStory(page, 1);
+    await page.goto(storyDetailPath(story), { waitUntil: "domcontentloaded" });
+    await expect(page.locator(".story-cover-vt-hero, [data-story-cover]").first()).toBeVisible({
+      timeout: 20_000
+    });
+    await expect(page.getByRole("link", { name: /đọc|bắt đầu|tiếp/i }).first()).toBeVisible({
+      timeout: 15_000
+    });
+  });
 });

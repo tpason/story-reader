@@ -41,7 +41,6 @@ export function AuthForm({ mode }: AuthFormProps) {
     const panelAnimation = panel
       ? animate(panel, {
           y: [22, 0],
-          opacity: [0, 1],
           duration: 720,
           ease: "outExpo"
         })
@@ -49,7 +48,6 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     const heroAnimation = hero
       ? animate(hero, {
-          opacity: [0, 1],
           x: [-16, 0],
           duration: 900,
           ease: "outExpo"

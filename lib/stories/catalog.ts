@@ -469,3 +469,32 @@ export const getCachedCategories = unstable_cache(
   ["categories"],
   { revalidate: 600 }
 );
+
+export const getCachedCategoryBySlug = unstable_cache(
+  (slug: string) => getCategoryBySlug(slug),
+  ["category-by-slug"],
+  { revalidate: 300 }
+);
+
+/** Category feed first page — sort must be part of the cache key. */
+export const getCachedCategoryStories = unstable_cache(
+  (slug: string, sortKey: string, limit: number) =>
+    listStoriesCursor({
+      limit,
+      category: slug,
+      sort:
+        sortKey === "chapters" || sortKey === "hot" || sortKey === "title" || sortKey === "updated"
+          ? sortKey
+          : "updated",
+      minChapters: 1
+    }),
+  ["category-stories"],
+  { revalidate: 300 }
+);
+
+/** Same-author rail on story detail (limit 9, exclude applied by caller). */
+export const getCachedSameAuthorStories = unstable_cache(
+  (author: string, limit: number) => listStoriesCursor({ author, limit, minChapters: 1 }),
+  ["same-author-stories"],
+  { revalidate: 300 }
+);

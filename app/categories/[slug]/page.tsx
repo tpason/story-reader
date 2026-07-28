@@ -9,7 +9,7 @@ import { StoryLibrary } from "@/components/StoryLibrary";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { buildCategoryMetadata } from "@/lib/metadata";
-import { getCategoryBySlug, listStoriesCursor } from "@/lib/stories";
+import { getCachedCategoryBySlug, getCachedCategoryStories } from "@/lib/stories";
 
 const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX));
 
@@ -23,7 +23,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const category = await getCategoryBySlug(slug);
+  const category = await getCachedCategoryBySlug(slug);
   if (!category) return {};
   return buildCategoryMetadata(category.name, category.storyCount, category.slug);
 }
@@ -40,10 +40,11 @@ export default async function CategoryPage({
 
   const validSort: CategorySort | undefined =
     sort === "chapters" || sort === "hot" || sort === "title" || sort === "updated" ? sort : undefined;
+  const sortKey = validSort ?? "updated";
 
   const [category, stories] = await Promise.all([
-    getCategoryBySlug(slug),
-    listStoriesCursor({ limit: 24, category: slug, sort: validSort, minChapters: 1 }),
+    getCachedCategoryBySlug(slug),
+    getCachedCategoryStories(slug, sortKey, 24),
   ]);
 
   if (!category) notFound();
