@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import nextDynamic from "next/dynamic";
 import { AccountAutoPrefsNote } from "@/components/AccountAutoPrefsNote";
 import { AccountEmailPanel } from "@/components/AccountEmailPanel";
-import { MotionFX } from "@/components/MotionFX";
 import { SiteHeader } from "@/components/SiteHeader";
 import { AccountSectionNav } from "@/components/AccountSectionNav";
 import { UserIdentity } from "@/components/UserIdentity";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 
+const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX));
 const ProfileShelf = nextDynamic(() => import("@/components/ProfileShelf").then((mod) => mod.ProfileShelf), {
   loading: () => <div className="account-skel-card" aria-hidden="true" />,
 });

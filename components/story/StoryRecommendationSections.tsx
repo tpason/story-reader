@@ -3,7 +3,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { CoverRailSlide } from "@/components/CoverRailSlide";
 import { StoryCover } from "@/components/StoryCover";
-import { getCachedRecommendedStories, listStoriesCursor } from "@/lib/stories";
+import { getCachedRecommendedStories, getCachedSameAuthorStories } from "@/lib/stories";
 import type { StorySummary } from "@/lib/types";
 import { storyHref } from "@/lib/urls";
 
@@ -83,7 +83,7 @@ export async function SameAuthorStoriesSection({
   author: string;
   excludeStoryId: string;
 }) {
-  const page = await listStoriesCursor({ author, limit: 9, minChapters: 1 });
+  const page = await getCachedSameAuthorStories(author, 9);
   const others = page.items.filter((s) => s.id !== excludeStoryId).slice(0, 8);
   if (others.length === 0) return null;
 

@@ -3,7 +3,7 @@
 import { ChevronDown, Menu, X } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { SiteHeaderSearch } from "@/components/SiteHeaderSearch";
@@ -71,12 +71,14 @@ function NavLinks({
   items,
   pathname,
   className,
-  onNavigate
+  onNavigate,
+  onWarm
 }: {
   items: NavItem[];
   pathname: string;
   className?: string;
   onNavigate?: () => void;
+  onWarm?: (href: Route) => void;
 }) {
   return (
     <>
@@ -88,6 +90,8 @@ function NavLinks({
             href={item.href}
             className={`topbar-modern-link${active ? " topbar-modern-link-active" : ""}${className ? ` ${className}` : ""}`}
             aria-current={active ? "page" : undefined}
+            onMouseEnter={() => onWarm?.(item.href)}
+            onFocus={() => onWarm?.(item.href)}
             onClick={onNavigate}
           >
             {item.label}
@@ -100,10 +104,12 @@ function NavLinks({
 
 function SecondaryNavMenu({
   pathname,
-  onNavigate
+  onNavigate,
+  onWarm
 }: {
   pathname: string;
   onNavigate?: () => void;
+  onWarm?: (href: Route) => void;
 }) {
   const [open, setOpen] = useState(false);
   const menuId = useId();
@@ -156,6 +162,8 @@ function SecondaryNavMenu({
                 role="menuitem"
                 className={`topbar-modern-more-link${active ? " topbar-modern-more-link-active" : ""}`}
                 aria-current={active ? "page" : undefined}
+                onMouseEnter={() => onWarm?.(item.href)}
+                onFocus={() => onWarm?.(item.href)}
                 onClick={() => {
                   setOpen(false);
                   onNavigate?.();
@@ -173,8 +181,13 @@ function SecondaryNavMenu({
 
 export function SiteHeader({ className, showSearch = true }: SiteHeaderProps) {
   const pathname = usePathname() ?? "/";
+  const router = useRouter();
   const onStoryPage = pathname.startsWith("/stories/");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const warmRoute = (href: Route) => {
+    router.prefetch(href);
+  };
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -226,8 +239,8 @@ export function SiteHeader({ className, showSearch = true }: SiteHeaderProps) {
 
         <nav className="topbar-nav topbar-modern-nav" aria-label="Reader navigation">
           <div className="topbar-modern-nav-track">
-            <NavLinks items={PRIMARY_NAV} pathname={pathname} />
-            <SecondaryNavMenu pathname={pathname} />
+            <NavLinks items={PRIMARY_NAV} pathname={pathname} onWarm={warmRoute} />
+            <SecondaryNavMenu pathname={pathname} onWarm={warmRoute} />
           </div>
         </nav>
 
@@ -259,6 +272,7 @@ export function SiteHeader({ className, showSearch = true }: SiteHeaderProps) {
                 pathname={pathname}
                 className="site-header-drawer-link"
                 onNavigate={() => setMobileMenuOpen(false)}
+                onWarm={warmRoute}
               />
               <p className="site-header-drawer-group-label">Thêm</p>
               <NavLinks
@@ -266,6 +280,7 @@ export function SiteHeader({ className, showSearch = true }: SiteHeaderProps) {
                 pathname={pathname}
                 className="site-header-drawer-link"
                 onNavigate={() => setMobileMenuOpen(false)}
+                onWarm={warmRoute}
               />
             </div>
           </nav>

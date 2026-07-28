@@ -259,3 +259,28 @@ export const getCachedUpdatedStories = unstable_cache(
   ["updated-stories"],
   { revalidate: 300 }
 );
+
+/** Discover page lists — key includes filters so today/completed/page stay distinct. */
+export const getCachedRecentlyPolishedStoriesPage = unstable_cache(
+  (page: number, pageSize: number, today: boolean, completedKey: string) =>
+    listRecentlyPolishedStoriesPage({
+      page,
+      pageSize,
+      today,
+      completed: completedKey === "true" ? true : completedKey === "false" ? false : undefined
+    }),
+  ["discover-polished-page"],
+  { revalidate: 120 }
+);
+
+export const getCachedRecentlyUpdatedStoriesPage = unstable_cache(
+  (page: number, pageSize: number, today: boolean, completedKey: string) =>
+    listRecentlyUpdatedStoriesPage({
+      page,
+      pageSize,
+      today,
+      completed: completedKey === "true" ? true : completedKey === "false" ? false : undefined
+    }),
+  ["discover-updated-page"],
+  { revalidate: 120 }
+);
