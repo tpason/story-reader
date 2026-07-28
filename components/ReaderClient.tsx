@@ -151,6 +151,7 @@ import { readReaderPageColumns, writeReaderPageColumns, type ReaderPageColumns }
 import type { StoryContentSearchHit } from "@/lib/reader-story-search";
 import {
   clearReaderChapterForceTop,
+  consumeReaderForceTop,
   dismissResumeHint,
   markReaderChapterStart,
   resolveReaderRestoreTarget,
@@ -859,7 +860,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const canVirtualizeChapterListRef = useRef(canVirtualizeChapterList);
   canVirtualizeChapterListRef.current = canVirtualizeChapterList;
   const storageKey = `reader:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
-  const forceTopKey = `reader:force-top:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
   const paragraphPositionKey = `${READER_PARAGRAPH_POSITION_PREFIX}:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
 
   const goToPage = useCallback(
@@ -1028,7 +1028,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   useEffect(() => {
     if (restoredScrollKeyRef.current === storageKey) return;
 
-    const forceTop = window.sessionStorage.getItem(forceTopKey) === "true";
+    // Sticky across effect re-runs after the one-shot session flag is consumed
+    // (historyHydrated / Strict Mode). clearReaderChapterForceTop still allows resume.
+    const forceTop = consumeReaderForceTop(activePayload.story.id, activePayload.chapter.chapterNumber);
     const bookmarkScrollKey = `reader:bookmark-scroll:${activePayload.story.id}:${activePayload.chapter.chapterNumber}`;
     const bookmarkScrollRaw = window.sessionStorage.getItem(bookmarkScrollKey);
     const bookmarkScroll = bookmarkScrollRaw != null ? Number(bookmarkScrollRaw) : null;
@@ -1058,10 +1060,6 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     setShowResumeBanner(false);
     setResumeHint(null);
 
-    if (forceTop) {
-      window.sessionStorage.removeItem(forceTopKey);
-    }
-
     const cancelFns: Array<() => void> = [];
     if (bookmarkScroll != null && Number.isFinite(bookmarkScroll) && bookmarkScroll > 0) {
       window.sessionStorage.removeItem(bookmarkScrollKey);
@@ -1085,7 +1083,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     if (restoreTarget.kind === "force-top") {
       scrollPageTo(0);
       return () => {
-        if (restoredScrollKeyRef.current === storageKey) restoredScrollKeyRef.current = null;
+        // Do not clear restoredScrollKeyRef — otherwise historyHydrated/dep churn
+        // re-enters restore after force-top was consumed and jumps to localStorage.
         if (previousScrollRestoration != null) {
           try {
             window.history.scrollRestoration = previousScrollRestoration;
@@ -1162,7 +1161,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     };
     // isPageLayout / scrollToParagraph omitted — restore runs once per chapter/storage key
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePayload.chapter.chapterNumber, activePayload.story.id, forceTopKey, historyHydrated, paragraphPositionKey, storageKey]);
+  }, [activePayload.chapter.chapterNumber, activePayload.story.id, historyHydrated, paragraphPositionKey, storageKey]);
 
   // Drop soft-nav cache only when the RSC/server chapter actually changes (router navigation).
   // Soft nav (Đọc tiếp / swipe / promote) sets cachedPayload then updates activePayload — clearing

@@ -5,6 +5,7 @@ import { buildGlossaryIndex, lookupGlossarySelection } from "../lib/reader-gloss
 import { buildQuoteShareText } from "../lib/reader-share.ts";
 import {
   clearReaderChapterForceTop,
+  consumeReaderForceTop,
   markReaderChapterStart,
   readerForceTopKey,
   resolveReaderRestoreTarget,
@@ -111,6 +112,7 @@ describe("reader resume", () => {
       assert.equal(session.get(readerForceTopKey("story-a", 12)), "true");
       clearReaderChapterForceTop("story-a", 12);
       assert.equal(session.get(readerForceTopKey("story-a", 12)), undefined);
+      assert.equal(consumeReaderForceTop("story-a", 12), false);
       assert.deepEqual(
         resolveReaderRestoreTarget({
           forceTop: false,
@@ -119,6 +121,45 @@ describe("reader resume", () => {
         }),
         { kind: "paragraph", paragraphIndex: 18 }
       );
+    } finally {
+      delete (globalThis as { window?: Window & typeof globalThis }).window;
+    }
+  });
+
+  it("keeps force-top sticky after session flag is consumed (effect re-run)", () => {
+    const session = new Map<string, string>();
+    (globalThis as { window?: Window & typeof globalThis }).window = {
+      sessionStorage: {
+        getItem: (key: string) => session.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+          session.set(key, value);
+        },
+        removeItem: (key: string) => {
+          session.delete(key);
+        },
+        clear: () => session.clear(),
+        key: () => null,
+        length: 0
+      }
+    } as Window & typeof globalThis;
+
+    try {
+      markReaderChapterStart("story-a", 12);
+      assert.equal(consumeReaderForceTop("story-a", 12), true);
+      assert.equal(session.get(readerForceTopKey("story-a", 12)), undefined);
+      // Simulate historyHydrated / Strict Mode re-entry after one-shot flag was removed.
+      assert.equal(consumeReaderForceTop("story-a", 12), true);
+      assert.deepEqual(
+        resolveReaderRestoreTarget({
+          forceTop: true,
+          localParagraph: 18,
+          localScroll: 2400
+        }),
+        { kind: "force-top" }
+      );
+
+      clearReaderChapterForceTop("story-a", 12);
+      assert.equal(consumeReaderForceTop("story-a", 12), false);
     } finally {
       delete (globalThis as { window?: Window & typeof globalThis }).window;
     }

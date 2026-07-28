@@ -35,16 +35,44 @@ export function readerForceTopKey(storyId: string, chapterNumber: number) {
   return `reader:force-top:${storyId}:${chapterNumber}`;
 }
 
+/**
+ * Survives React Strict Mode remount + restore-effect dep churn after the
+ * one-shot sessionStorage flag is consumed. Cleared by clear/mark so previous
+ * / swipe-back resume and a fresh TOC start still work.
+ */
+const forceTopConsumedKeys = new Set<string>();
+
 /** TOC / intentional "start this chapter" — restore lands at top. */
 export function markReaderChapterStart(storyId: string, chapterNumber: number) {
   if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(readerForceTopKey(storyId, chapterNumber), "true");
+  const key = readerForceTopKey(storyId, chapterNumber);
+  forceTopConsumedKeys.delete(key);
+  window.sessionStorage.setItem(key, "true");
 }
 
 /** Swipe/prev back — clear force-top so saved paragraph/scroll can restore. */
 export function clearReaderChapterForceTop(storyId: string, chapterNumber: number) {
   if (typeof window === "undefined") return;
-  window.sessionStorage.removeItem(readerForceTopKey(storyId, chapterNumber));
+  const key = readerForceTopKey(storyId, chapterNumber);
+  forceTopConsumedKeys.delete(key);
+  window.sessionStorage.removeItem(key);
+}
+
+/**
+ * One-shot force-top for this chapter navigation.
+ * Returns true if restore must land at top (including re-entry after the
+ * session flag was already consumed on an earlier effect run).
+ */
+export function consumeReaderForceTop(storyId: string, chapterNumber: number) {
+  if (typeof window === "undefined") return false;
+  const key = readerForceTopKey(storyId, chapterNumber);
+  if (forceTopConsumedKeys.has(key)) return true;
+  if (window.sessionStorage.getItem(key) === "true") {
+    window.sessionStorage.removeItem(key);
+    forceTopConsumedKeys.add(key);
+    return true;
+  }
+  return false;
 }
 
 /** Restore reading position when jumping from library / resume bar. */
