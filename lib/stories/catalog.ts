@@ -29,7 +29,7 @@ export async function listStories(options: {
   sort?: "updated" | "chapters" | "hot" | "title" | "trending" | "reader_rank";
 } = {}): Promise<Paginated<StorySummary>> {
   const { page, pageSize, offset } = pageParams(options.page, options.pageSize);
-  const where = ["s.is_active = TRUE", STORY_HAS_DB_CHAPTERS_SQL];
+  const where = ["s.is_active = TRUE AND s.publish_status = 'published'", STORY_HAS_DB_CHAPTERS_SQL];
   const values: unknown[] = [];
   let searchParamRef: number | null = null;
 
@@ -180,7 +180,7 @@ export async function listStoriesCursor(options: {
 } = {}): Promise<CursorPage<StorySummary>> {
   const limit = limitParams(options.limit, DEFAULT_PAGE_SIZE);
   const offset = decodeCursor(options.cursor);
-  const where = ["s.is_active = TRUE", STORY_HAS_DB_CHAPTERS_SQL];
+  const where = ["s.is_active = TRUE AND s.publish_status = 'published'", STORY_HAS_DB_CHAPTERS_SQL];
   const values: unknown[] = [];
   let searchParamRef: number | null = null;
 
@@ -329,7 +329,7 @@ export async function listCategories(limit = 16): Promise<CategorySummary[]> {
       FROM categories cat
       LEFT JOIN story_categories sc ON sc.category_id = cat.id
       LEFT JOIN stories s ON s.id = sc.story_id
-        AND s.is_active = TRUE
+        AND s.is_active = TRUE AND s.publish_status = 'published'
         AND ${STORY_HAS_DB_CHAPTERS_SQL}
       WHERE cat.is_excluded = FALSE
       GROUP BY cat.id
@@ -355,7 +355,7 @@ export async function getCategoryBySlug(slug: string): Promise<CategorySummary |
       FROM categories cat
       LEFT JOIN story_categories sc ON sc.category_id = cat.id
       LEFT JOIN stories s ON s.id = sc.story_id
-        AND s.is_active = TRUE
+        AND s.is_active = TRUE AND s.publish_status = 'published'
         AND ${STORY_HAS_DB_CHAPTERS_SQL}
       WHERE cat.is_excluded = FALSE
         AND (cat.slug = $1 OR cat.normalized_name = $1)
@@ -368,7 +368,11 @@ export async function getCategoryBySlug(slug: string): Promise<CategorySummary |
   return { id: rows[0].id, slug: rows[0].slug, name: rows[0].name, storyCount: Number(rows[0].story_count) };
 }
 
-export async function getStory(storyId: string): Promise<StorySummary> {
+export async function getStory(
+  storyId: string,
+  options: { viewerUserId?: string | null } = {}
+): Promise<StorySummary> {
+  const viewerUserId = options.viewerUserId?.trim() || null;
   const rows = await query<StoryRow>(
     `
       SELECT
@@ -381,10 +385,18 @@ export async function getStory(storyId: string): Promise<StorySummary> {
       FROM stories s
       JOIN sources src ON src.id = s.source_id
       LEFT JOIN categories cat ON cat.id = s.primary_category_id
-      WHERE s.id = $1 AND s.is_active = TRUE
+      WHERE s.id = $1
+        AND (
+          (s.is_active = TRUE AND s.publish_status = 'published')
+          OR (
+            $2::uuid IS NOT NULL
+            AND s.owner_user_id = $2::uuid
+            AND s.publish_status <> 'hidden'
+          )
+        )
       LIMIT 1
     `,
-    [storyId]
+    [storyId, viewerUserId]
   );
 
   if (!rows[0]) {
@@ -419,7 +431,7 @@ export async function listRecommendedStories(storyId: string, limit = 6): Promis
       CROSS JOIN current_story cs
       JOIN sources src ON src.id = s.source_id
       LEFT JOIN categories cat ON cat.id = s.primary_category_id
-      WHERE s.is_active = TRUE
+      WHERE s.is_active = TRUE AND s.publish_status = 'published'
         AND s.id <> $1
         AND ${STORY_HAS_DB_CHAPTERS_SQL}
         AND (
@@ -449,19 +461,19 @@ export async function listRecommendedStories(storyId: string, limit = 6): Promis
 export const getCachedDefaultHomeStories = unstable_cache(
   () => listStoriesCursor({ limit: 24, minChapters: 1 }),
   ["home-stories-default"],
-  { revalidate: 60 }
+  { revalidate: 60, tags: ["author-public-catalog"] }
 );
 
 export const getCachedStory = unstable_cache(
   (storyId: string) => getStory(storyId),
   ["story"],
-  { revalidate: 120 }
+  { revalidate: 120, tags: ["author-public-catalog"] }
 );
 
 export const getCachedRecommendedStories = unstable_cache(
   (storyId: string, limit: number) => listRecommendedStories(storyId, limit),
   ["recommended-stories"],
-  { revalidate: 300 }
+  { revalidate: 300, tags: ["author-public-catalog"] }
 );
 
 export const getCachedCategories = unstable_cache(

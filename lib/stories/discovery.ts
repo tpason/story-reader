@@ -39,7 +39,7 @@ export async function listRecentlyPolishedStories(limit = 8): Promise<StoryDisco
       JOIN sources src ON src.id = s.source_id
       LEFT JOIN categories cat ON cat.id = s.primary_category_id
       LEFT JOIN counts cnt ON cnt.story_id = s.id
-      WHERE s.is_active = TRUE
+      WHERE s.is_active = TRUE AND s.publish_status = 'published'
       ORDER BY r.latest_activity_at DESC, s.updated_at DESC
       LIMIT $1
     `,
@@ -82,7 +82,7 @@ export async function listRecentlyUpdatedStories(limit = 8): Promise<StoryDiscov
       JOIN sources src ON src.id = s.source_id
       LEFT JOIN categories cat ON cat.id = s.primary_category_id
       LEFT JOIN counts cnt ON cnt.story_id = s.id
-      WHERE s.is_active = TRUE
+      WHERE s.is_active = TRUE AND s.publish_status = 'published'
       ORDER BY GREATEST(r.latest_activity_at, s.updated_at) DESC, r.latest_chapter_number DESC
       LIMIT $1
     `,
@@ -113,7 +113,7 @@ export async function listRecentlyPolishedStoriesPage(options: { page?: number; 
       SELECT COUNT(*)::text AS count
       FROM recent r
       JOIN stories s ON s.id = r.story_id
-      WHERE s.is_active = TRUE
+      WHERE s.is_active = TRUE AND s.publish_status = 'published'
         ${todaySql}
         ${completedSql}
     `
@@ -149,7 +149,7 @@ export async function listRecentlyPolishedStoriesPage(options: { page?: number; 
       JOIN sources src ON src.id = s.source_id
       LEFT JOIN categories cat ON cat.id = s.primary_category_id
       LEFT JOIN counts cnt ON cnt.story_id = s.id
-      WHERE s.is_active = TRUE
+      WHERE s.is_active = TRUE AND s.publish_status = 'published'
         ${todaySql}
         ${completedSql}
       ORDER BY r.latest_activity_at DESC, s.updated_at DESC
@@ -191,7 +191,7 @@ export async function listRecentlyUpdatedStoriesPage(options: { page?: number; p
       SELECT COUNT(*)::text AS count
       FROM recent r
       JOIN stories s ON s.id = r.story_id
-      WHERE s.is_active = TRUE
+      WHERE s.is_active = TRUE AND s.publish_status = 'published'
         ${todaySql}
         ${completedSql}
     `
@@ -229,7 +229,7 @@ export async function listRecentlyUpdatedStoriesPage(options: { page?: number; p
       JOIN sources src ON src.id = s.source_id
       LEFT JOIN categories cat ON cat.id = s.primary_category_id
       LEFT JOIN counts cnt ON cnt.story_id = s.id
-      WHERE s.is_active = TRUE
+      WHERE s.is_active = TRUE AND s.publish_status = 'published'
         ${todaySql}
         ${completedSql}
       ORDER BY GREATEST(r.latest_activity_at, s.updated_at) DESC, r.latest_chapter_number DESC

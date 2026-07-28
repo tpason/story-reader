@@ -13,6 +13,8 @@ import type { BilingualParagraphPair } from "@/lib/reader-bilingual-pairs";
 import type { ChapterDetail, ChapterSummary, CursorPage, Paginated, ReaderFetchOptions, ReaderPayload } from "@/lib/types";
 import {
   CHAPTER_LIST_SELECT_SQL,
+  CHAPTER_PARENT_STORY_PUBLIC_SQL,
+  CHAPTER_PUBLIC_VISIBLE_SQL,
   READER_CHAPTER_PAGE_SIZE,
   chapterPageCursor,
   decodeCursor,
@@ -33,11 +35,40 @@ function isDefaultReaderOptions(options: ReaderFetchOptions = {}) {
   return !options.primaryLayer && !options.secondaryLayer && mode === "single";
 }
 
-export async function listChapters(storyId: string, options: { page?: number; pageSize?: number } = {}): Promise<Paginated<ChapterSummary>> {
+export async function listChapters(
+  storyId: string,
+  options: { page?: number; pageSize?: number; viewerUserId?: string | null } = {}
+): Promise<Paginated<ChapterSummary>> {
   const { page, pageSize, offset } = pageParams(options.page, options.pageSize);
+  const viewerUserId = options.viewerUserId?.trim() || null;
+  let asOwner = false;
+  if (viewerUserId) {
+    const ownerRows = await query<{ ok: number }>(
+      `
+        SELECT 1 AS ok
+        FROM stories
+        WHERE id = $1
+          AND owner_user_id = $2::uuid
+          AND publish_status <> 'hidden'
+        LIMIT 1
+      `,
+      [storyId, viewerUserId]
+    );
+    asOwner = Boolean(ownerRows[0]);
+  }
+  const visibilitySql = asOwner
+    ? "TRUE"
+    : `${CHAPTER_PUBLIC_VISIBLE_SQL} AND ${CHAPTER_PARENT_STORY_PUBLIC_SQL}`;
+
   // Run count and data queries in parallel — avoids N+1 while keeping correct total on out-of-range pages.
   const [countRows, rows] = await Promise.all([
-    query<{ count: string }>("SELECT COUNT(*)::text AS count FROM chapters WHERE story_id = $1", [storyId]),
+    query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
+       FROM chapters c
+       WHERE c.story_id = $1
+         AND ${visibilitySql}`,
+      [storyId]
+    ),
     query<ChapterRow>(
       `
         SELECT
@@ -45,6 +76,7 @@ export async function listChapters(storyId: string, options: { page?: number; pa
           ${CHAPTER_DISPLAY_AT_SQL}
         FROM chapters c
         WHERE c.story_id = $1
+          AND ${visibilitySql}
         ORDER BY c.chapter_number ASC
         LIMIT $2 OFFSET $3
       `,
@@ -66,7 +98,7 @@ export async function listChapters(storyId: string, options: { page?: number; pa
 export const getCachedStoryChapterList = unstable_cache(
   (storyId: string, pageSize: number) => listChapters(storyId, { pageSize }),
   ["story-chapter-list"],
-  { revalidate: 120 }
+  { revalidate: 120, tags: ["author-public-catalog"] }
 );
 
 export async function listChaptersCursor(
@@ -87,6 +119,8 @@ export async function listChaptersCursor(
           ${CHAPTER_DISPLAY_AT_SQL}
         FROM chapters c
         WHERE c.story_id = $1
+          AND ${CHAPTER_PUBLIC_VISIBLE_SQL}
+          AND ${CHAPTER_PARENT_STORY_PUBLIC_SQL}
           AND c.chapter_number < $2
         ORDER BY c.chapter_number DESC
         LIMIT $3
@@ -112,6 +146,8 @@ export async function listChaptersCursor(
         ${CHAPTER_DISPLAY_AT_SQL}
       FROM chapters c
       WHERE c.story_id = $1
+          AND ${CHAPTER_PUBLIC_VISIBLE_SQL}
+          AND ${CHAPTER_PARENT_STORY_PUBLIC_SQL}
         AND c.chapter_number > $2
       ORDER BY c.chapter_number ASC
       LIMIT $3
@@ -158,6 +194,8 @@ export async function searchChapters(storyId: string, search: string, options: {
         ${CHAPTER_DISPLAY_AT_SQL}
       FROM chapters c
       WHERE c.story_id = $1
+          AND ${CHAPTER_PUBLIC_VISIBLE_SQL}
+          AND ${CHAPTER_PARENT_STORY_PUBLIC_SQL}
         AND (${conditions.join(" OR ")})
       ORDER BY c.chapter_number ASC
       LIMIT $2
@@ -199,6 +237,8 @@ async function loadReaderPayload(
           ${CHAPTER_DISPLAY_AT_SQL}
         FROM chapters c
         WHERE c.story_id = $1
+          AND ${CHAPTER_PUBLIC_VISIBLE_SQL}
+          AND ${CHAPTER_PARENT_STORY_PUBLIC_SQL}
           AND c.chapter_number = $2
         LIMIT 1
       `,
@@ -231,7 +271,10 @@ async function loadReaderPayload(
           (c.is_audio_generated = TRUE AND c.audio_path IS NOT NULL) AS has_audio,
           ${CHAPTER_DISPLAY_AT_SQL}
         FROM chapters c
-        WHERE c.story_id = $1 AND c.chapter_number < $2
+        WHERE c.story_id = $1
+          AND ${CHAPTER_PUBLIC_VISIBLE_SQL}
+          AND ${CHAPTER_PARENT_STORY_PUBLIC_SQL}
+          AND c.chapter_number < $2
         ORDER BY c.chapter_number DESC
         LIMIT 1
       `,
@@ -243,7 +286,10 @@ async function loadReaderPayload(
           ${CHAPTER_LIST_SELECT_SQL},
           ${CHAPTER_DISPLAY_AT_SQL}
         FROM chapters c
-        WHERE c.story_id = $1 AND c.chapter_number > $2
+        WHERE c.story_id = $1
+          AND ${CHAPTER_PUBLIC_VISIBLE_SQL}
+          AND ${CHAPTER_PARENT_STORY_PUBLIC_SQL}
+          AND c.chapter_number > $2
         ORDER BY c.chapter_number ASC
         LIMIT 1
       `,
@@ -339,7 +385,7 @@ async function loadReaderPayload(
 const getCachedDefaultReaderPayload = unstable_cache(
   async (storyId: string, chapterNumber: number) => loadReaderPayload(storyId, chapterNumber, {}),
   ["reader-payload-default", `fmt-v${READER_CONTENT_FORMAT_VERSION}`],
-  { revalidate: 300 }
+  { revalidate: 300, tags: ["author-public-catalog"] }
 );
 
 export async function getReaderPayload(
@@ -355,7 +401,13 @@ export async function getReaderPayload(
 
 export async function getFirstChapterNumber(storyId: string): Promise<number | null> {
   const rows = await query<{ chapter_number: number }>(
-    "SELECT chapter_number FROM chapters WHERE story_id = $1 ORDER BY chapter_number ASC LIMIT 1",
+    `SELECT c.chapter_number
+     FROM chapters c
+     WHERE c.story_id = $1
+       AND ${CHAPTER_PUBLIC_VISIBLE_SQL}
+       AND ${CHAPTER_PARENT_STORY_PUBLIC_SQL}
+     ORDER BY c.chapter_number ASC
+     LIMIT 1`,
     [storyId]
   );
   return rows[0]?.chapter_number ?? null;
@@ -400,6 +452,8 @@ export async function searchStoryChapterContent(
         COALESCE(c.polished_text_content, c.translated_text_content, c.raw_text_content) AS content
       FROM chapters c
       WHERE c.story_id = $1
+          AND ${CHAPTER_PUBLIC_VISIBLE_SQL}
+          AND ${CHAPTER_PARENT_STORY_PUBLIC_SQL}
         AND COALESCE(c.polished_text_content, c.translated_text_content, c.raw_text_content, '') ILIKE '%' || $2 || '%'
       ORDER BY c.chapter_number ASC
       LIMIT 24
@@ -437,7 +491,13 @@ export async function searchStoryChapterContent(
 export const getCachedChapterHead = unstable_cache(
   async (storyId: string, chapterNumber: number) => {
     const rows = await query<{ chapter_number: number; title: string }>(
-      `SELECT chapter_number, title FROM chapters WHERE story_id = $1 AND chapter_number = $2 LIMIT 1`,
+      `SELECT c.chapter_number, c.title
+       FROM chapters c
+       WHERE c.story_id = $1
+         AND c.chapter_number = $2
+         AND ${CHAPTER_PUBLIC_VISIBLE_SQL}
+         AND ${CHAPTER_PARENT_STORY_PUBLIC_SQL}
+       LIMIT 1`,
       [storyId, chapterNumber],
     );
     if (!rows[0]) return null;

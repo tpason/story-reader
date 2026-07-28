@@ -13,9 +13,24 @@ export const MAX_PAGE_SIZE = 80;
 export const READER_CHAPTER_PAGE_SIZE = 80;
 export const PROJECT_ROOT_CANDIDATES = Array.from(new Set([process.cwd(), resolve(process.cwd(), "..")]));
 
-/** Hide catalog-only stories: require at least one row in `chapters` (not `stories.total_chapters`). */
+/** Public catalog: at least one published chapter (not `stories.total_chapters`; hides draft-only UGC). */
 export const STORY_HAS_DB_CHAPTERS_SQL =
-  "EXISTS (SELECT 1 FROM chapters c_has WHERE c_has.story_id = s.id)";
+  "EXISTS (SELECT 1 FROM chapters c_has WHERE c_has.story_id = s.id AND c_has.publish_status = 'published')";
+
+/** Public catalog: active + published (hides draft/hidden UGC). Crawl rows default published. */
+export const STORY_PUBLIC_VISIBLE_SQL =
+  "s.is_active = TRUE AND s.publish_status = 'published'";
+
+/** Public chapter lists/reader. */
+export const CHAPTER_PUBLIC_VISIBLE_SQL = "c.publish_status = 'published'";
+
+/** Parent story must be public — prevents draft/hidden story chapter leakage via direct APIs. */
+export const CHAPTER_PARENT_STORY_PUBLIC_SQL = `EXISTS (
+  SELECT 1 FROM stories s_pub
+  WHERE s_pub.id = c.story_id
+    AND s_pub.is_active = TRUE
+    AND s_pub.publish_status = 'published'
+)`;
 
 export type StoryRow = {
   id: string;
