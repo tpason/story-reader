@@ -1,11 +1,13 @@
 "use client";
 
 import { FloatingPortal } from "@floating-ui/react";
+import { usePathname } from "next/navigation";
 import { useCallback, useState } from "react";
 import { RealtimeChapterToast, type RealtimeToastPayload } from "@/components/RealtimeChapterToast";
 import type { FollowedStoryItem } from "@/lib/follows";
 import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
 import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
+import { shouldSuppressRealtimeToast } from "@/lib/reader-realtime-toast";
 import type { ReadingHistoryItem } from "@/lib/reading-history";
 import { useAppSelector } from "@/lib/store-hooks";
 
@@ -22,6 +24,7 @@ function resolveStoryTitle(
 }
 
 export function RealtimeToastHost() {
+  const pathname = usePathname();
   const follows = useAppSelector((state) => state.follows.items);
   const history = useAppSelector((state) => state.history.items);
   const [toast, setToast] = useState<RealtimeToastPayload | null>(null);
@@ -29,7 +32,10 @@ export function RealtimeToastHost() {
   useReaderRealtimeListener(
     useCallback(
       (event: ReaderRealtimeEvent) => {
-        if (event.type !== "chapter_update" && event.type !== "story_update" && event.type !== "notification_update") {
+        if (event.type !== "chapter_update" && event.type !== "story_update") {
+          return;
+        }
+        if (shouldSuppressRealtimeToast(event, pathname)) {
           return;
         }
         setToast({
@@ -38,7 +44,7 @@ export function RealtimeToastHost() {
           storyTitle: resolveStoryTitle(event, follows, history)
         });
       },
-      [follows, history]
+      [follows, history, pathname]
     )
   );
 
