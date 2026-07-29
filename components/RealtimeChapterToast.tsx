@@ -85,8 +85,18 @@ export function RealtimeChapterToast({ toast, onDismiss }: RealtimeChapterToastP
           </Link>
         ) : null}
       </div>
-      <button type="button" className="realtime-chapter-toast-close" aria-label="Đóng thông báo" onClick={onDismiss}>
-        <X size={14} />
+      <button
+        type="button"
+        className="realtime-chapter-toast-close"
+        aria-label="Đóng thông báo"
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onDismiss();
+        }}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <X size={14} aria-hidden="true" />
       </button>
     </aside>
   );

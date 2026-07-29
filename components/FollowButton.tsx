@@ -1,7 +1,6 @@
 "use client";
 
 import { BellPlus, BellRing } from "lucide-react";
-import { animate } from "animejs";
 import { useEffect, useRef } from "react";
 import { followStoryOnServer, unfollowStoryOnServer } from "@/lib/api-client";
 import { storyToFollowItem } from "@/lib/follows";
@@ -45,11 +44,14 @@ export function FollowButton({ story, compact = false, className = "" }: FollowB
             .catch(() => undefined);
         }
         if (buttonRef.current && !prefersReducedMotion()) {
-          animate(buttonRef.current, {
-            scale: [1, 1.08, 1],
-            rotate: followed ? [0, -4, 0] : [0, 5, 0],
-            duration: 360,
-            ease: "outBack"
+          const node = buttonRef.current;
+          void import("animejs").then(({ animate }) => {
+            animate(node, {
+              scale: [1, 1.08, 1],
+              rotate: followed ? [0, -4, 0] : [0, 5, 0],
+              duration: 360,
+              ease: "outBack"
+            });
           });
         }
       }}

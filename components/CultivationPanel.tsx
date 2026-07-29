@@ -1,6 +1,5 @@
 "use client";
 
-import { animate } from "animejs";
 import { Flame, Sparkles, Zap } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -12,6 +11,8 @@ import type { ReadingHistoryItem } from "@/lib/reading-history";
 import { mergeHistoryItems, setCurrentUser } from "@/lib/store";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 import { useDecorativeWebglEnabled } from "@/lib/decorative-webgl";
+
+type AnimeAnimate = (typeof import("animejs"))["animate"];
 
 const ThreeCultivationAura = dynamic(() => import("@/components/ThreeCultivationAura").then((mod) => mod.ThreeCultivationAura), {
   ssr: false
@@ -32,6 +33,7 @@ export function CultivationPanel({ items, compact = false, className = "" }: Cul
   const isLoggedIn = Boolean(user);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const sigilRef = useRef<HTMLDivElement | null>(null);
+  const animateRef = useRef<AnimeAnimate | null>(null);
   const prevLevelRef = useRef<number | null>(null);
   const breakthroughTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showBreakthrough, setShowBreakthrough] = useState(false);
@@ -58,17 +60,26 @@ export function CultivationPanel({ items, compact = false, className = "" }: Cul
     ? formatReadingDuration(state.estimatedMinutesToNextLevel)
     : "";
 
-  // Entrance animation
+  // Entrance animation — load animejs on demand (keep Three.js aura path unchanged).
   useEffect(() => {
     const panel = panelRef.current;
     if (!panel || prefersReducedMotion()) return;
-    const animation = animate(panel, {
-      opacity: [0, 1],
-      y: [10, 0],
-      duration: 520,
-      ease: "outExpo"
+    let cancelled = false;
+    let animation: { revert: () => void } | null = null;
+    void import("animejs").then(({ animate }) => {
+      if (cancelled) return;
+      animateRef.current = animate;
+      animation = animate(panel, {
+        opacity: [0, 1],
+        y: [10, 0],
+        duration: 520,
+        ease: "outExpo"
+      });
     });
-    return () => { animation.revert(); };
+    return () => {
+      cancelled = true;
+      animation?.revert();
+    };
   }, []);
 
   // Sigil pulse on level change + breakthrough detection
@@ -86,27 +97,36 @@ export function CultivationPanel({ items, compact = false, className = "" }: Cul
 
     if (!sigil || prefersReducedMotion()) return;
 
-    if (levelIncreased) {
-      // Dramatic breakthrough spin
-      animate(sigil, {
-        scale: [1, 1.35, 0.9, 1.12, 1],
-        rotate: [0, 360],
-        duration: 1200,
-        ease: "outElastic(1, .6)"
-      });
+    const run = (animate: AnimeAnimate) => {
+      if (levelIncreased) {
+        animate(sigil, {
+          scale: [1, 1.35, 0.9, 1.12, 1],
+          rotate: [0, 360],
+          duration: 1200,
+          ease: "outElastic(1, .6)"
+        });
 
-      // Show breakthrough overlay
-      setShowBreakthrough(true);
-      if (breakthroughTimerRef.current) clearTimeout(breakthroughTimerRef.current);
-      breakthroughTimerRef.current = setTimeout(() => setShowBreakthrough(false), 2800);
-    } else {
-      animate(sigil, {
-        scale: [0.94, 1.04, 1],
-        rotate: [-2, 2, 0],
-        duration: 720,
-        ease: "outElastic(1, .8)"
-      });
+        setShowBreakthrough(true);
+        if (breakthroughTimerRef.current) clearTimeout(breakthroughTimerRef.current);
+        breakthroughTimerRef.current = setTimeout(() => setShowBreakthrough(false), 2800);
+      } else {
+        animate(sigil, {
+          scale: [0.94, 1.04, 1],
+          rotate: [-2, 2, 0],
+          duration: 720,
+          ease: "outElastic(1, .8)"
+        });
+      }
+    };
+
+    if (animateRef.current) {
+      run(animateRef.current);
+      return;
     }
+    void import("animejs").then(({ animate }) => {
+      animateRef.current = animate;
+      run(animate);
+    });
   }, [state.level]);
 
   useEffect(() => {

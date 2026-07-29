@@ -2,9 +2,11 @@
 
 import { Feather, ScrollText, Sparkles, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { followStoryOnServer } from "@/lib/api-client";
 import {
+  READER_ENGAGE_AUTO_DISMISS_MS,
   dismissReaderEngagement,
   isReaderEngagementDismissed
 } from "@/lib/reader-engagement";
@@ -24,25 +26,43 @@ import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
 type ReaderEngagementPromptProps = {
   story: StorySummary;
   chapterNumber: number;
+  theme?: string;
   suppressed?: boolean;
 };
 
 type PromptMode = "login" | "engage" | "push" | null;
 
-export function ReaderEngagementPrompt({ story, chapterNumber, suppressed = false }: ReaderEngagementPromptProps) {
+export function ReaderEngagementPrompt({
+  story,
+  chapterNumber,
+  theme = "light",
+  suppressed = false
+}: ReaderEngagementPromptProps) {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.identity.user);
   const followed = useAppSelector((state) => state.follows.items.some((item) => item.storyId === story.id));
   const { engageReady } = useReaderEngageGate(chapterNumber);
   const [mode, setMode] = useState<PromptMode>(null);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  // Session latch so in-flight resolveMode cannot revive the banner after close.
+  const dismissedRef = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    dismissedRef.current = false;
+  }, [story.id]);
 
   useEffect(() => {
     if (suppressed || !engageReady) {
       setMode(null);
       return;
     }
-    if (isReaderEngagementDismissed(story.id)) {
+    if (dismissedRef.current || isReaderEngagementDismissed(story.id)) {
+      dismissedRef.current = true;
       setMode(null);
       return;
     }
@@ -65,7 +85,10 @@ export function ReaderEngagementPrompt({ story, chapterNumber, suppressed = fals
           needsPush = false;
         }
       }
-      if (cancelled) return;
+      if (cancelled || dismissedRef.current || isReaderEngagementDismissed(story.id)) {
+        if (dismissedRef.current || isReaderEngagementDismissed(story.id)) setMode(null);
+        return;
+      }
       if (needsFollow || needsPush) {
         setMode(needsPush && !needsFollow ? "push" : "engage");
         return;
@@ -79,14 +102,28 @@ export function ReaderEngagementPrompt({ story, chapterNumber, suppressed = fals
     };
   }, [engageReady, followed, story.id, suppressed, user]);
 
-  if (!mode || suppressed) return null;
-
-  function dismiss() {
-    dismissReaderEngagement(story.id);
+  function dismiss(event?: { preventDefault(): void; stopPropagation(): void }) {
+    event?.preventDefault();
+    event?.stopPropagation();
+    dismissedRef.current = true;
+    try {
+      dismissReaderEngagement(story.id);
+    } catch {
+      // private-mode / quota — still hide for this session via dismissedRef
+    }
     setMode(null);
   }
 
-  async function followAndEnablePush() {
+  // Auto-close: banner was sticky forever; toast-style TTL + persist dismiss so it stays gone.
+  useEffect(() => {
+    if (!mode || suppressed || loading) return;
+    const timer = window.setTimeout(() => dismiss(), READER_ENGAGE_AUTO_DISMISS_MS);
+    return () => window.clearTimeout(timer);
+  }, [mode, suppressed, loading, story.id]);
+
+  async function followAndEnablePush(event: { preventDefault(): void; stopPropagation(): void }) {
+    event.preventDefault();
+    event.stopPropagation();
     setLoading(true);
     try {
       if (!followed) {
@@ -95,21 +132,29 @@ export function ReaderEngagementPrompt({ story, chapterNumber, suppressed = fals
         if (remote.length > 0) dispatch(mergeFollows(remote));
       }
       await enablePushNotifications();
+      dismissedRef.current = true;
       setMode(null);
     } finally {
       setLoading(false);
     }
   }
 
-  async function enablePushOnly() {
+  async function enablePushOnly(event: { preventDefault(): void; stopPropagation(): void }) {
+    event.preventDefault();
+    event.stopPropagation();
     setLoading(true);
     try {
       const ok = await enablePushNotifications();
-      if (ok) setMode(null);
+      if (ok) {
+        dismissedRef.current = true;
+        setMode(null);
+      }
     } finally {
       setLoading(false);
     }
   }
+
+  if (!mounted || !mode || suppressed) return null;
 
   const icon =
     mode === "login" ? (
@@ -120,8 +165,15 @@ export function ReaderEngagementPrompt({ story, chapterNumber, suppressed = fals
       <Sparkles size={16} aria-hidden="true" />
     );
 
-  return (
-    <aside className="reader-engagement-prompt" role="dialog" aria-label="Gợi ý linh tin">
+  // Portal to body: escapes .reader-shell z-index:2 trap and chrome-hidden pointer-events:none.
+  return createPortal(
+    <aside
+      className="reader-engagement-prompt reader-engagement-prompt-portal"
+      data-theme={theme}
+      role="dialog"
+      aria-label="Gợi ý linh tin"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
       <div className="reader-engagement-prompt-glow" aria-hidden="true" />
       {icon}
       <div className="reader-engagement-prompt-copy">
@@ -129,7 +181,12 @@ export function ReaderEngagementPrompt({ story, chapterNumber, suppressed = fals
           <>
             <strong>{NOTIFY_COPY.engageLoginTitle}</strong>
             <span>{NOTIFY_COPY.engageLoginBody}</span>
-            <Link className="reader-engagement-push-btn" href="/login">
+            <Link
+              className="reader-engagement-push-btn"
+              href="/login"
+              onClick={(event) => event.stopPropagation()}
+              onPointerDown={(event) => event.stopPropagation()}
+            >
               {NOTIFY_COPY.engageLoginCta}
             </Link>
           </>
@@ -137,7 +194,13 @@ export function ReaderEngagementPrompt({ story, chapterNumber, suppressed = fals
           <>
             <strong>{NOTIFY_COPY.pushTitle}</strong>
             <span>{NOTIFY_COPY.pushBody}</span>
-            <button type="button" className="reader-engagement-push-btn" onClick={enablePushOnly} disabled={loading}>
+            <button
+              type="button"
+              className="reader-engagement-push-btn"
+              onClick={enablePushOnly}
+              onPointerDown={(event) => event.stopPropagation()}
+              disabled={loading}
+            >
               {loading ? "Đang bật…" : NOTIFY_COPY.pushCta}
             </button>
           </>
@@ -145,15 +208,28 @@ export function ReaderEngagementPrompt({ story, chapterNumber, suppressed = fals
           <>
             <strong>{NOTIFY_COPY.engageTitle}</strong>
             <span>{NOTIFY_COPY.engageBody}</span>
-            <button type="button" className="reader-engagement-push-btn" onClick={followAndEnablePush} disabled={loading}>
+            <button
+              type="button"
+              className="reader-engagement-push-btn"
+              onClick={followAndEnablePush}
+              onPointerDown={(event) => event.stopPropagation()}
+              disabled={loading}
+            >
               {loading ? "Đang kết linh tin…" : NOTIFY_COPY.engageCta}
             </button>
           </>
         )}
       </div>
-      <button type="button" className="reader-engagement-prompt-close" aria-label="Đóng" onClick={dismiss}>
-        <X size={14} />
+      <button
+        type="button"
+        className="reader-engagement-prompt-close"
+        aria-label="Đóng"
+        onClick={dismiss}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <X size={14} aria-hidden="true" />
       </button>
-    </aside>
+    </aside>,
+    document.body
   );
 }

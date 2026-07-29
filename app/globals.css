@@ -28972,3 +28972,136 @@ html[data-xi-page-hidden="1"] .site-announcement-text + .site-announcement-text 
 .account-author-cta {
   margin-top: 1rem;
 }
+
+/* Google Sign-In — auth portal only (append-only; keep xianxia chrome) */
+.auth-google-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  width: 100%;
+  min-height: 46px;
+  margin: 0.35rem 0 0.15rem;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--hairline-strong, #c9c2b4) 80%, transparent);
+  background: color-mix(in srgb, var(--canvas, #fff) 88%, transparent);
+  color: var(--ink, #1c1915);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+.auth-google-button:hover {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 55%, transparent);
+  background: color-mix(in srgb, var(--canvas, #fff) 96%, var(--xi-gold-light, #f0d06a) 8%);
+  transform: translateY(-1px);
+}
+.auth-google-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: #fff;
+  color: #4285f4;
+  font-size: 0.85rem;
+  font-weight: 800;
+  border: 1px solid color-mix(in srgb, #4285f4 35%, transparent);
+}
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.85rem 0 0.35rem;
+  color: var(--steel, #6e6a62);
+  font-size: 0.82rem;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: color-mix(in srgb, var(--hairline, #e6e1d6) 90%, transparent);
+}
+.auth-google-link-hint {
+  margin-bottom: 0.75rem;
+}
+[data-xi-theme="dark"] .auth-google-button {
+  background: color-mix(in srgb, #1a2420 88%, transparent);
+  color: #f3efe4;
+  border-color: color-mix(in srgb, #8a9a8e 45%, transparent);
+}
+[data-xi-theme="dark"] .auth-google-button:hover {
+  border-color: color-mix(in srgb, var(--xi-gold, #c8962e) 50%, transparent);
+}
+[data-xi-theme="dark"] .auth-google-mark {
+  background: #111;
+}
+
+/* ── Engagement / push hint close — mobile tap target (2026-07-29) ── */
+.reader-engagement-prompt-close,
+.story-detail-push-hint-close,
+.realtime-chapter-toast-close {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
+.reader-engagement-prompt:not([hidden]) {
+  pointer-events: auto;
+}
+
+/* ── Kết linh tin portal (body) — above reader-shell + FAB portal (2026-07-29) ── */
+.reader-engagement-prompt-portal {
+  z-index: 1380;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+}
+
+.reader-engagement-prompt-portal .reader-engagement-push-btn,
+.reader-engagement-prompt-portal .reader-engagement-prompt-close {
+  pointer-events: auto !important;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  z-index: 2;
+}
+
+.reader-engagement-prompt-portal[data-theme="dark"],
+.reader-engagement-prompt-portal[data-theme="oled"],
+.reader-engagement-prompt-portal[data-theme="ink-night"] {
+  background: color-mix(in srgb, #16140f 94%, rgba(38, 168, 130, 0.12) 6%);
+  border-color: color-mix(in srgb, #26a882 32%, #3a342c 68%);
+  color: #f0ebe2;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.reader-engagement-prompt-portal[data-theme="dark"] .reader-engagement-prompt-copy,
+.reader-engagement-prompt-portal[data-theme="oled"] .reader-engagement-prompt-copy,
+.reader-engagement-prompt-portal[data-theme="ink-night"] .reader-engagement-prompt-copy,
+.reader-engagement-prompt-portal[data-theme="dark"] .reader-engagement-prompt-copy span,
+.reader-engagement-prompt-portal[data-theme="oled"] .reader-engagement-prompt-copy span,
+.reader-engagement-prompt-portal[data-theme="ink-night"] .reader-engagement-prompt-copy span {
+  color: #c8c0b4;
+}
+
+.reader-engagement-prompt-portal[data-theme="dark"] .reader-engagement-prompt-copy strong,
+.reader-engagement-prompt-portal[data-theme="oled"] .reader-engagement-prompt-copy strong,
+.reader-engagement-prompt-portal[data-theme="ink-night"] .reader-engagement-prompt-copy strong {
+  color: #f5f0e6;
+}
+
+.reader-engagement-prompt-portal[data-theme="dark"] .reader-engagement-prompt-close,
+.reader-engagement-prompt-portal[data-theme="oled"] .reader-engagement-prompt-close,
+.reader-engagement-prompt-portal[data-theme="ink-night"] .reader-engagement-prompt-close {
+  background: #2a2621;
+  color: #f2ebe0;
+}

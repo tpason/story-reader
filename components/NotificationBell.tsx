@@ -1,6 +1,5 @@
 "use client";
 
-import { animate } from "animejs";
 import {
   FloatingPortal,
   autoUpdate,
@@ -231,12 +230,15 @@ export function NotificationBell({ className = "" }: { className?: string }) {
 
   useEffect(() => {
     if (!open || prefersReducedMotion() || !panelRef.current) return;
-    animate(panelRef.current, {
-      y: [-8, 0],
-      opacity: [0, 1],
-      scale: [0.97, 1],
-      duration: 420,
-      ease: "outExpo"
+    const panel = panelRef.current;
+    void import("animejs").then(({ animate }) => {
+      animate(panel, {
+        y: [-8, 0],
+        opacity: [0, 1],
+        scale: [0.97, 1],
+        duration: 420,
+        ease: "outExpo"
+      });
     });
   }, [open]);
 

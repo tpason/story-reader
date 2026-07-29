@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { AccountSectionNav } from "@/components/AccountSectionNav";
 import { UserIdentity } from "@/components/UserIdentity";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
+import { isGoogleAuthConfigured } from "@/lib/auth-google";
 
 const MotionFX = nextDynamic(() => import("@/components/MotionFX").then((mod) => mod.MotionFX));
 const ProfileShelf = nextDynamic(() => import("@/components/ProfileShelf").then((mod) => mod.ProfileShelf), {
@@ -49,6 +50,13 @@ export default function AccountPage() {
                 Linh các viết — tự đăng truyện
               </Link>
             </p>
+            {isGoogleAuthConfigured() ? (
+              <p className="account-author-cta">
+                <a className="chip account-google-link" href="/api/auth/google?intent=link&returnTo=%2Faccount">
+                  Liên kết ấn Google
+                </a>
+              </p>
+            ) : null}
           </div>
           <div id="account-identity">
             <UserIdentity panel />

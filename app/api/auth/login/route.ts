@@ -39,7 +39,18 @@ export async function POST(request: Request) {
       user = await findUserByUsername(identifier);
     }
 
-    if (!user || !(await verifyPassword(password, user.password_hash))) {
+    if (!user?.password_hash) {
+      return NextResponse.json(
+        {
+          error: user
+            ? "Tài khoản này vào bằng Google. Hãy chọn «Vào bằng Google»."
+            : "Tên tài khoản / email hoặc mật khẩu không đúng."
+        },
+        { status: 401 }
+      );
+    }
+
+    if (!(await verifyPassword(password, user.password_hash))) {
       return NextResponse.json(
         { error: "Tên tài khoản / email hoặc mật khẩu không đúng." },
         { status: 401 }

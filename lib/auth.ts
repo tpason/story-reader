@@ -1,12 +1,20 @@
 import { promisify } from "node:util";
 import { cookies } from "next/headers";
 import type { PoolClient } from "pg";
+import { cache } from "react";
 import { query, withTransaction } from "@/lib/db";
 import { consumeEmailToken } from "@/lib/mail/tokens";
 
 const SESSION_COOKIE = "story_reader_session";
 const SESSION_DAYS = 30;
 const PASSWORD_KEY_LENGTH = 64;
+
+/** Absolute session lifetime from create time (sliding renew cannot exceed this). */
+export const SESSION_ABSOLUTE_DAYS = 90;
+/** Renew cookie/DB expiry when fewer than this many days remain. */
+export const SESSION_RENEW_WITHIN_DAYS = 7;
+/** Throttle sliding renew writes. */
+export const SESSION_TOUCH_THROTTLE_MS = 24 * 60 * 60 * 1000;
 
 export type ReaderUser = {
   id: string;
@@ -21,7 +29,7 @@ type UserRow = {
   username: string;
   email: string | null;
   email_verified_at: Date | null;
-  password_hash: string;
+  password_hash: string | null;
   role: "reader" | "admin";
 };
 
@@ -60,7 +68,8 @@ export async function hashPassword(password: string) {
   return `scrypt$${salt}$${derivedKey.toString("hex")}`;
 }
 
-export async function verifyPassword(password: string, passwordHash: string) {
+export async function verifyPassword(password: string, passwordHash: string | null | undefined) {
+  if (!passwordHash) return false;
   const { scrypt: scryptCallback, timingSafeEqual } = await cryptoModule();
   const scrypt = promisify(scryptCallback);
   const [algorithm, salt, storedKey] = passwordHash.split("$");
@@ -134,6 +143,16 @@ export async function createUser(username: string, email: string | null, passwor
   return mapUser(rows[0]);
 }
 
+function sessionCookieOptions(expiresAt: Date) {
+  return {
+    httpOnly: true as const,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "false",
+    path: "/",
+    expires: expiresAt
+  };
+}
+
 export async function createSession(userId: string) {
   const { randomBytes } = await cryptoModule();
   const token = randomBytes(32).toString("base64url");
@@ -149,13 +168,7 @@ export async function createSession(userId: string) {
   );
 
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "false",
-    path: "/",
-    expires: expiresAt
-  });
+  cookieStore.set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
 }
 
 export async function clearSession() {
@@ -174,7 +187,11 @@ export async function clearSession() {
   });
 }
 
-export async function getCurrentUser() {
+/**
+ * Pure session→user lookup. Request-deduped via React.cache.
+ * Do NOT mutate cookies/DB here — sliding renew lives in touchCurrentSessionIfNeeded().
+ */
+export const getCurrentUser = cache(async function getCurrentUser(): Promise<ReaderUser | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -186,12 +203,77 @@ export async function getCurrentUser() {
       JOIN reader_users u ON u.id = s.user_id
       WHERE s.token_hash = $1
         AND s.expires_at > now()
+        AND s.created_at > now() - ($2::int * interval '1 day')
       LIMIT 1
     `,
-    [await hashToken(token)]
+    [await hashToken(token), SESSION_ABSOLUTE_DAYS]
   );
 
   return rows[0] ? mapUser(rows[0]) : null;
+});
+
+type SessionTouchRow = {
+  expires_at: Date;
+  created_at: Date;
+  last_seen_at: Date | null;
+};
+
+/**
+ * Sliding renew — Route Handlers / Server Actions only (must set httpOnly cookie).
+ * Throttled last_seen; extends expires_at when within renew window, capped by created_at + 90d.
+ */
+export async function touchCurrentSessionIfNeeded(): Promise<void> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  if (!token) return;
+
+  const tokenHash = await hashToken(token);
+  const rows = await query<SessionTouchRow>(
+    `
+      SELECT expires_at, created_at, last_seen_at
+      FROM reader_sessions
+      WHERE token_hash = $1
+        AND expires_at > now()
+        AND created_at > now() - ($2::int * interval '1 day')
+      LIMIT 1
+    `,
+    [tokenHash, SESSION_ABSOLUTE_DAYS]
+  );
+
+  const row = rows[0];
+  if (!row) return;
+
+  const now = Date.now();
+  const expiresMs = new Date(row.expires_at).getTime();
+  const createdMs = new Date(row.created_at).getTime();
+  const lastSeenMs = row.last_seen_at ? new Date(row.last_seen_at).getTime() : 0;
+  const absoluteMaxMs = createdMs + SESSION_ABSOLUTE_DAYS * 24 * 60 * 60 * 1000;
+  const renewWithinMs = SESSION_RENEW_WITHIN_DAYS * 24 * 60 * 60 * 1000;
+  const needsRenew = expiresMs - now < renewWithinMs;
+  const needsStamp = now - lastSeenMs >= SESSION_TOUCH_THROTTLE_MS;
+
+  if (!needsRenew && !needsStamp) return;
+
+  const nextExpires = needsRenew
+    ? new Date(Math.min(now + SESSION_DAYS * 24 * 60 * 60 * 1000, absoluteMaxMs))
+    : new Date(row.expires_at);
+
+  // No useful renew past absolute cap — still stamp last_seen when throttled window passed.
+  if (needsRenew && nextExpires.getTime() <= expiresMs && !needsStamp) return;
+
+  await query(
+    `
+      UPDATE reader_sessions
+      SET expires_at = $2,
+          last_seen_at = now()
+      WHERE token_hash = $1
+    `,
+    [tokenHash, nextExpires]
+  );
+
+  if (needsRenew && nextExpires.getTime() > expiresMs) {
+    cookieStore.set(SESSION_COOKIE, token, sessionCookieOptions(nextExpires));
+  }
 }
 
 export async function findUserById(userId: string) {

@@ -3937,6 +3937,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       <ReaderEngagementPrompt
         story={activePayload.story}
         chapterNumber={activePayload.chapter.chapterNumber}
+        theme={theme}
         suppressed={Boolean(freshChapterHint) || focusModeEnabled}
       />
 

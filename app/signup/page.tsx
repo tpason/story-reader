@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AuthForm } from "@/components/AuthForm";
+import { isGoogleAuthConfigured } from "@/lib/auth-google";
 
 export const dynamic = "force-dynamic";
 
@@ -10,5 +11,5 @@ export const metadata: Metadata = {
 };
 
 export default function SignupPage() {
-  return <AuthForm mode="signup" />;
+  return <AuthForm mode="signup" googleEnabled={isGoogleAuthConfigured()} />;
 }

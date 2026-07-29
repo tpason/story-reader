@@ -19,6 +19,8 @@ type ReaderChapterFreshHintProps = {
   onDismiss: () => void;
 };
 
+const FRESH_HINT_AUTO_DISMISS_MS = 8_000;
+
 export function ReaderChapterFreshHint({ storyId, storyTitle, hint, onDismiss }: ReaderChapterFreshHintProps) {
   const cardRef = useRef<HTMLElement>(null);
 
@@ -31,6 +33,12 @@ export function ReaderChapterFreshHint({ storyId, storyTitle, hint, onDismiss }:
       ease: "outExpo"
     });
   }, [hint]);
+
+  useEffect(() => {
+    if (!hint) return;
+    const timer = window.setTimeout(onDismiss, FRESH_HINT_AUTO_DISMISS_MS);
+    return () => window.clearTimeout(timer);
+  }, [hint, onDismiss]);
 
   if (!hint) return null;
 

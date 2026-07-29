@@ -11081,3 +11081,32 @@ html[data-xi-perf="saver"] .reader-topbar-modern .reader-chapter-kicker[data-mar
   color: #1c1610 !important;
   -webkit-text-fill-color: #1c1610 !important;
 }
+
+/* ── Kết linh tin close: always tappable when chrome visible (2026-07-29) ── */
+.reader-shell:not(.reader-shell-chrome-hidden):not(.reader-shell-focus-mode) .reader-engagement-prompt {
+  pointer-events: auto !important;
+}
+
+.reader-shell .reader-engagement-prompt-close,
+.reader-shell button.reader-engagement-prompt-close {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  border-radius: 999px !important;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: auto !important;
+  z-index: 3;
+}
+
+/* ── Portaled Kết linh tin: ignore chrome-hidden kill (2026-07-29) ──
+   Prompt lives on document.body — .reader-shell chrome-hidden pointer-events:none
+   must not apply. Keep calm fade optional via opacity only if shell still wraps
+   a legacy in-tree copy; portal host always receives taps. */
+.reader-engagement-prompt-portal {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: none !important;
+  z-index: 1380 !important;
+}

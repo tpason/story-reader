@@ -1,11 +1,13 @@
 "use client";
 
 import { Sparkles, X } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useReaderRealtimeListener } from "@/lib/reader-realtime-bus";
 import type { ReaderRealtimeEvent } from "@/lib/reader-realtime-event";
 import { useReaderRealtimeFx } from "@/lib/useReaderRealtimeFx";
 import { NOTIFY_COPY, SHIMMER_LEGEND_SESSION_KEY } from "@/lib/xianxia-notify-copy";
+
+const SHIMMER_AUTO_DISMISS_MS = 8_000;
 
 export function RealtimeShimmerLegend() {
   const [visible, setVisible] = useState(false);
@@ -21,12 +23,22 @@ export function RealtimeShimmerLegend() {
     }, [mode])
   );
 
-  if (mode === "off" || !visible) return null;
-
   function dismiss() {
-    window.sessionStorage.setItem(SHIMMER_LEGEND_SESSION_KEY, "1");
+    try {
+      window.sessionStorage.setItem(SHIMMER_LEGEND_SESSION_KEY, "1");
+    } catch {
+      // ignore
+    }
     setVisible(false);
   }
+
+  useEffect(() => {
+    if (!visible || mode === "off") return;
+    const timer = window.setTimeout(dismiss, SHIMMER_AUTO_DISMISS_MS);
+    return () => window.clearTimeout(timer);
+  }, [visible, mode]);
+
+  if (mode === "off" || !visible) return null;
 
   return (
     <div className="realtime-shimmer-legend" role="status" aria-live="polite">

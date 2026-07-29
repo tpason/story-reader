@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       `SELECT email_verified_at FROM reader_users WHERE id = $1`,
       [row.id]
     );
-    if (!verified[0]?.email_verified_at || !row.email) {
+    if (!verified[0]?.email_verified_at || !row.email || !row.password_hash) {
       return NextResponse.json({ ok: true, message: GENERIC_MESSAGE });
     }
 

@@ -2,6 +2,8 @@ const ENGAGE_DISMISS_PREFIX = "reader-engage-dismiss:";
 const ENGAGE_DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const READER_ENGAGE_MIN_CHAPTER = 3;
+/** Soft promo — long enough to read CTA, then get out of the way. */
+export const READER_ENGAGE_AUTO_DISMISS_MS = 12_000;
 
 export function readerEngagementDismissKey(storyId: string) {
   return `${ENGAGE_DISMISS_PREFIX}${storyId}`;

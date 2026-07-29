@@ -1,6 +1,5 @@
 "use client";
 
-import { animate } from "animejs";
 import { BookOpenCheck, LoaderCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,6 +14,8 @@ import type { FormEvent } from "react";
 
 type AuthFormProps = {
   mode: "login" | "signup";
+  /** Server-gated: hide Google CTA when OAuth secrets are not configured. */
+  googleEnabled?: boolean;
 };
 
 const PORTAL_NAV = [
@@ -23,13 +24,43 @@ const PORTAL_NAV = [
   { href: "/reading-history", label: "Tàng thư" }
 ] as const;
 
-export function AuthForm({ mode }: AuthFormProps) {
+export function AuthForm({ mode, googleEnabled = false }: AuthFormProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const heroRef = useRef<HTMLElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLinkHint, setGoogleLinkHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("error");
+    const link = params.get("google_link");
+    const email = params.get("email");
+    const errorMap: Record<string, string> = {
+      google_config: "Google chưa được cấu hình trên Thiên Thư này.",
+      google_start: "Không mở được cổng Google. Thử lại sau.",
+      google_state: "Phiên Google hết hạn. Hãy thử lại.",
+      google_denied: "Bạn đã hủy đăng nhập Google.",
+      google_token: "Không xác thực được ấn Google.",
+      google_email: "Google không cung cấp email đã xác thực.",
+      google_link_auth: "Hãy đăng nhập mật khẩu trước khi liên kết Google.",
+      google_link_taken: "Ấn Google này đã gắn với động phủ khác.",
+      google_link_email_taken: "Email Google đang gắn với động phủ khác.",
+      google_already_linked: "Động phủ này đã liên kết một ấn Google khác.",
+      google_session: "Không tạo được phiên sau khi vào bằng Google.",
+      google_create: "Không tạo được động phủ từ Google."
+    };
+    if (err && errorMap[err]) setError(errorMap[err]);
+    if (link === "1") {
+      setGoogleLinkHint(
+        email
+          ? `Email ${email} đã có động phủ mật khẩu. Đăng nhập mật khẩu trước, rồi liên kết Google trong Động phủ.`
+          : "Email Google trùng động phủ hiện có. Đăng nhập mật khẩu rồi liên kết Google trong Động phủ."
+      );
+    }
+  }, []);
 
   useEffect(() => {
     if (prefersReducedMotion()) return;
@@ -37,26 +68,34 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     const panel = panelRef.current;
     const hero = heroRef.current;
+    let cancelled = false;
+    const animations: Array<{ revert: () => void }> = [];
 
-    const panelAnimation = panel
-      ? animate(panel, {
-          y: [22, 0],
-          duration: 720,
-          ease: "outExpo"
-        })
-      : null;
-
-    const heroAnimation = hero
-      ? animate(hero, {
-          x: [-16, 0],
-          duration: 900,
-          ease: "outExpo"
-        })
-      : null;
+    void import("animejs").then(({ animate }) => {
+      if (cancelled) return;
+      if (panel) {
+        animations.push(
+          animate(panel, {
+            y: [22, 0],
+            duration: 720,
+            ease: "outExpo"
+          })
+        );
+      }
+      if (hero) {
+        animations.push(
+          animate(hero, {
+            x: [-16, 0],
+            duration: 900,
+            ease: "outExpo"
+          })
+        );
+      }
+    });
 
     return () => {
-      panelAnimation?.revert();
-      heroAnimation?.revert();
+      cancelled = true;
+      animations.forEach((animation) => animation.revert());
     };
   }, []);
 
@@ -175,6 +214,22 @@ export function AuthForm({ mode }: AuthFormProps) {
                 : "Khi đăng nhập, tiến độ tu luyện sẽ được khắc vào Thiên Thư thay vì chỉ lưu ở trình duyệt."}
             </p>
           </div>
+
+          {googleLinkHint ? <p className="auth-error auth-google-link-hint">{googleLinkHint}</p> : null}
+
+          {googleEnabled ? (
+            <>
+              <a className="auth-google-button" href={`/api/auth/google?returnTo=${encodeURIComponent("/")}`}>
+                <span className="auth-google-mark" aria-hidden="true">
+                  G
+                </span>
+                Vào bằng Google
+              </a>
+              <p className="auth-divider" role="presentation">
+                <span>hoặc</span>
+              </p>
+            </>
+          ) : null}
 
           <form className="auth-form auth-portal-form" onSubmit={submit}>
             <label className="auth-portal-field">
