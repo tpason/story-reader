@@ -29105,3 +29105,74 @@ html[data-xi-page-hidden="1"] .site-announcement-text + .site-announcement-text 
   background: #2a2621;
   color: #f2ebe0;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Global scroll-top FAB — match chapter reader (jade ring + breath)
+   Homepage / non-reader pages only load globals.css; reader.css has
+   the same visual on chapter routes. Append-only cascade (2026-07-30).
+   ═══════════════════════════════════════════════════════════════════ */
+
+@keyframes xiGoldenBreath {
+  0%, 100% {
+    opacity: 0.58;
+    box-shadow: 0 14px 34px rgba(18, 16, 13, 0.16);
+  }
+  50% {
+    opacity: 0.82;
+    box-shadow:
+      0 0 0 4px var(--xi-gold-glow, rgba(200, 150, 46, 0.28)),
+      0 14px 34px rgba(18, 16, 13, 0.16);
+  }
+}
+
+.scroll-top-button {
+  position: fixed !important;
+  right: max(18px, env(safe-area-inset-right)) !important;
+  bottom: calc(env(safe-area-inset-bottom) + 22px) !important;
+  z-index: 86 !important;
+  display: grid !important;
+  width: 44px !important;
+  height: 44px !important;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--xi-jade, #1a6b5a) 24%, var(--reader-line, #e0e0e0) 76%) !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--reader-bg, var(--canvas, #fff)) 88%, var(--reader-ink, var(--ink, #1d1d1f)) 12%) !important;
+  color: color-mix(in srgb, var(--xi-jade, #1a6b5a) 76%, var(--reader-ink, var(--ink, #1d1d1f)) 24%) !important;
+  box-shadow: 0 14px 34px rgba(18, 16, 13, 0.16) !important;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  translate: 0 10px;
+}
+
+.scroll-top-button:hover,
+.scroll-top-button:focus-visible {
+  border-color: var(--xi-gold, #c8962e) !important;
+  color: var(--xi-gold, #c8962e) !important;
+  box-shadow:
+    0 0 0 4px var(--xi-gold-glow, rgba(200, 150, 46, 0.28)),
+    0 18px 42px rgba(18, 16, 13, 0.22) !important;
+  opacity: 1 !important;
+}
+
+.scroll-top-button-visible {
+  opacity: 0.86 !important;
+  pointer-events: auto !important;
+  translate: 0 0 !important;
+  animation: xiGoldenBreath 3s ease-in-out infinite;
+}
+
+@media (max-width: 839px) {
+  .scroll-top-button {
+    right: max(14px, env(safe-area-inset-right)) !important;
+    bottom: calc(env(safe-area-inset-bottom) + 92px) !important;
+    width: 42px !important;
+    height: 42px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-top-button-visible {
+    animation: none !important;
+  }
+}

@@ -21,8 +21,12 @@ RUN if [ "$PREBUILT" = "1" ]; then \
 
 FROM node:22-alpine AS runner
 WORKDIR /app
+ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+ARG NEXT_PUBLIC_READER_WS_URL=
 ENV NODE_ENV=production \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
+    NEXT_PUBLIC_READER_WS_URL=$NEXT_PUBLIC_READER_WS_URL
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=builder /app/.next ./.next

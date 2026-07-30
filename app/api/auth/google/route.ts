@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { beginGoogleOAuth, isGoogleAuthConfigured, sanitizeReturnTo } from "@/lib/auth-google";
+import { absoluteSiteUrl } from "@/lib/seo-text";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   if (!isGoogleAuthConfigured()) {
-    return NextResponse.redirect(new URL("/login?error=google_config", request.url));
+    return NextResponse.redirect(absoluteSiteUrl("/login?error=google_config"));
   }
 
   const url = new URL(request.url);
@@ -18,9 +19,9 @@ export async function GET(request: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message.includes("authenticated")) {
-      return NextResponse.redirect(new URL("/login?error=google_link_auth", request.url));
+      return NextResponse.redirect(absoluteSiteUrl("/login?error=google_link_auth"));
     }
     console.error("google oauth start failed:", error);
-    return NextResponse.redirect(new URL("/login?error=google_start", request.url));
+    return NextResponse.redirect(absoluteSiteUrl("/login?error=google_start"));
   }
 }
