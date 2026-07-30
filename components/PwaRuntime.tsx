@@ -25,6 +25,8 @@ const PUSH_BANNER_DISMISS_DAYS = 14;
 const INSTALL_BANNER_DELAY_MS = 9_000;
 const PUSH_BANNER_DELAY_MS = 22_000;
 const PUSH_AFTER_INSTALL_MS = 4_000;
+/** Soft auto-hide so banners don't stick forever if the user ignores them. */
+const BANNER_AUTO_HIDE_MS = 12_000;
 
 function isDismissedUntil(key: string) {
   const until = window.localStorage.getItem(key);
@@ -141,6 +143,21 @@ export function PwaRuntime() {
   useEffect(() => {
     if (visible) setPushVisible(false);
   }, [visible]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const timer = window.setTimeout(() => {
+      setVisible(false);
+      queuePushBanner(PUSH_AFTER_INSTALL_MS);
+    }, BANNER_AUTO_HIDE_MS);
+    return () => window.clearTimeout(timer);
+  }, [visible, queuePushBanner]);
+
+  useEffect(() => {
+    if (!pushVisible) return;
+    const timer = window.setTimeout(() => setPushVisible(false), BANNER_AUTO_HIDE_MS);
+    return () => window.clearTimeout(timer);
+  }, [pushVisible]);
 
   function dismissInstall() {
     setVisible(false);

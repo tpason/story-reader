@@ -93,27 +93,31 @@ export function UserIdentity({ compact = false, panel = false, className = "" }:
         <button className="identity-modal-backdrop" type="button" aria-label="Đóng thông tin đạo hữu" onClick={() => setModalOpen(false)} />
         <section className="identity-modal-panel">
           <div className="identity-modal-header">
-            <div>
+            <div className="identity-modal-heading">
               <p className="eyebrow">{user?.isAdmin ? "Quản trị tàng thư" : user ? "Đạo hữu" : "Tán tu"}</p>
-              <h2>{user ? user.username : "Chưa nhập môn"}</h2>
+              <div className="identity-title-row">
+                <h2>{user ? user.username : "Chưa nhập môn"}</h2>
+                {loading && !user ? null : <RoleBadge isAdmin={user?.isAdmin} signedIn={Boolean(user)} />}
+              </div>
             </div>
-            {loading && !user ? null : <RoleBadge isAdmin={user?.isAdmin} signedIn={Boolean(user)} />}
             <button className="icon-button" type="button" aria-label="Đóng" onClick={() => setModalOpen(false)}>
               <X size={17} />
             </button>
           </div>
 
           <div className="identity-modal-profile">
-            <CultivationAvatar
-              username={user?.username ?? "tan-tu"}
-              level={cultivation.level}
-              realmImageKey={cultivation.realmImageKey}
-              size="lg"
-              muted={!user}
-              isAdmin={Boolean(user?.isAdmin)}
-              title={avatarTitle}
-              className="identity-avatar-slot identity-avatar-slot-large"
-            />
+            <div className="identity-avatar-frame">
+              <CultivationAvatar
+                username={user?.username ?? "tan-tu"}
+                level={cultivation.level}
+                realmImageKey={cultivation.realmImageKey}
+                size="lg"
+                muted={!user}
+                isAdmin={Boolean(user?.isAdmin)}
+                title={avatarTitle}
+                className="identity-avatar-slot identity-avatar-slot-large"
+              />
+            </div>
             <p>
               {user
                 ? user.email || "Tài khoản này đang sync tàng thư, follow và tiến độ đọc qua database."
@@ -188,16 +192,18 @@ export function UserIdentity({ compact = false, panel = false, className = "" }:
 
   return (
     <section className={`identity-panel ${className}`} aria-label="Reader identity">
-      <CultivationAvatar
-        username={user?.username ?? "tan-tu"}
-        level={cultivation.level}
-        realmImageKey={cultivation.realmImageKey}
-        size="lg"
-        muted={!user}
-        isAdmin={Boolean(user?.isAdmin)}
-        title={avatarTitle}
-        className="identity-avatar-slot identity-avatar-slot-large"
-      />
+      <div className="identity-avatar-frame">
+        <CultivationAvatar
+          username={user?.username ?? "tan-tu"}
+          level={cultivation.level}
+          realmImageKey={cultivation.realmImageKey}
+          size="lg"
+          muted={!user}
+          isAdmin={Boolean(user?.isAdmin)}
+          title={avatarTitle}
+          className="identity-avatar-slot identity-avatar-slot-large"
+        />
+      </div>
       <div className="identity-panel-body">
         <p className="eyebrow">{user ? "Đạo hữu" : "Tán tu"}</p>
         <div className="identity-title-row">

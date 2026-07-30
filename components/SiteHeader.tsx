@@ -5,6 +5,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { SiteHeaderSearch } from "@/components/SiteHeaderSearch";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -189,6 +190,9 @@ export function SiteHeader({ className, showSearch = true }: SiteHeaderProps) {
   const router = useRouter();
   const onStoryPage = pathname.startsWith("/stories/");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Portal outside .topbar — backdrop-filter on the header traps position:fixed
+  // descendants, so in-tree backdrop only covered the bar and ignored page taps.
+  const [portalReady] = useState(() => typeof document !== "undefined");
 
   const warmRoute = (href: Route) => {
     router.prefetch(href);
@@ -212,6 +216,43 @@ export function SiteHeader({ className, showSearch = true }: SiteHeaderProps) {
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [mobileMenuOpen]);
+
+  const closeMenu = () => setMobileMenuOpen(false);
+
+  const mobileDrawer =
+    mobileMenuOpen && portalReady ? (
+      <>
+        <button
+          type="button"
+          className="site-header-drawer-backdrop"
+          aria-label="Đóng menu"
+          onClick={closeMenu}
+        />
+        <nav id="site-header-drawer" className="site-header-drawer" aria-label="Menu điều hướng">
+          <div className="site-header-drawer-header">
+            <p className="eyebrow">Linh Quyển Các</p>
+            <strong>Điều hướng</strong>
+          </div>
+          <div className="site-header-drawer-links">
+            <NavLinks
+              items={PRIMARY_NAV}
+              pathname={pathname}
+              className="site-header-drawer-link"
+              onNavigate={closeMenu}
+              onWarm={warmRoute}
+            />
+            <p className="site-header-drawer-group-label">Thêm</p>
+            <NavLinks
+              items={SECONDARY_NAV}
+              pathname={pathname}
+              className="site-header-drawer-link"
+              onNavigate={closeMenu}
+              onWarm={warmRoute}
+            />
+          </div>
+        </nav>
+      </>
+    ) : null;
 
   return (
     <header
@@ -258,39 +299,7 @@ export function SiteHeader({ className, showSearch = true }: SiteHeaderProps) {
         </div>
       </div>
 
-      {mobileMenuOpen ? (
-        <>
-          <button
-            type="button"
-            className="site-header-drawer-backdrop"
-            aria-label="Đóng menu"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          <nav id="site-header-drawer" className="site-header-drawer" aria-label="Menu điều hướng">
-            <div className="site-header-drawer-header">
-              <p className="eyebrow">Linh Quyển Các</p>
-              <strong>Điều hướng</strong>
-            </div>
-            <div className="site-header-drawer-links">
-              <NavLinks
-                items={PRIMARY_NAV}
-                pathname={pathname}
-                className="site-header-drawer-link"
-                onNavigate={() => setMobileMenuOpen(false)}
-                onWarm={warmRoute}
-              />
-              <p className="site-header-drawer-group-label">Thêm</p>
-              <NavLinks
-                items={SECONDARY_NAV}
-                pathname={pathname}
-                className="site-header-drawer-link"
-                onNavigate={() => setMobileMenuOpen(false)}
-                onWarm={warmRoute}
-              />
-            </div>
-          </nav>
-        </>
-      ) : null}
+      {mobileDrawer ? createPortal(mobileDrawer, document.body) : null}
     </header>
   );
 }

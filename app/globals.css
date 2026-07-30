@@ -7620,7 +7620,7 @@ body {
   text-wrap: pretty;
 }
 
-button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.scroll-top-button):not(.reader-continue-fab),
+button:not(.identity-modal-backdrop):not(.site-header-drawer-backdrop):not(.paragraph-bookmark-button):not(.scroll-top-button):not(.reader-continue-fab),
 .chip,
 .auth-submit,
 .reader-sheet-action,
@@ -7655,7 +7655,7 @@ button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.scroll
     opacity 170ms ease;
 }
 
-button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.scroll-top-button):not(.reader-continue-fab)::after,
+button:not(.identity-modal-backdrop):not(.site-header-drawer-backdrop):not(.paragraph-bookmark-button):not(.scroll-top-button):not(.reader-continue-fab)::after,
 .chip::after,
 .auth-submit::after,
 .reader-sheet-action::after,
@@ -7680,8 +7680,8 @@ button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.scroll
   opacity: 0;
 }
 
-button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.scroll-top-button):not(.reader-continue-fab):hover:not(:disabled):not([aria-disabled="true"]),
-button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.scroll-top-button):not(.reader-continue-fab):focus-visible:not(:disabled):not([aria-disabled="true"]),
+button:not(.identity-modal-backdrop):not(.site-header-drawer-backdrop):not(.paragraph-bookmark-button):not(.scroll-top-button):not(.reader-continue-fab):hover:not(:disabled):not([aria-disabled="true"]),
+button:not(.identity-modal-backdrop):not(.site-header-drawer-backdrop):not(.paragraph-bookmark-button):not(.scroll-top-button):not(.reader-continue-fab):focus-visible:not(:disabled):not([aria-disabled="true"]),
 .chip:hover,
 .chip:focus-visible,
 .reader-sheet-action:hover:not(:disabled),
@@ -7698,8 +7698,8 @@ button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.scroll
   transform: translateY(-2px);
 }
 
-button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.scroll-top-button):not(.reader-continue-fab):hover:not(:disabled):not([aria-disabled="true"])::after,
-button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.scroll-top-button):not(.reader-continue-fab):focus-visible:not(:disabled):not([aria-disabled="true"])::after,
+button:not(.identity-modal-backdrop):not(.site-header-drawer-backdrop):not(.paragraph-bookmark-button):not(.scroll-top-button):not(.reader-continue-fab):hover:not(:disabled):not([aria-disabled="true"])::after,
+button:not(.identity-modal-backdrop):not(.site-header-drawer-backdrop):not(.paragraph-bookmark-button):not(.scroll-top-button):not(.reader-continue-fab):focus-visible:not(:disabled):not([aria-disabled="true"])::after,
 .chip:hover::after,
 .chip:focus-visible::after,
 .reader-sheet-action:hover:not(:disabled)::after,
@@ -7707,7 +7707,7 @@ button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.scroll
   animation: xi-button-sheen 0.85s ease-out both;
 }
 
-button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.scroll-top-button):not(.reader-continue-fab):active:not(:disabled):not([aria-disabled="true"]),
+button:not(.identity-modal-backdrop):not(.site-header-drawer-backdrop):not(.paragraph-bookmark-button):not(.scroll-top-button):not(.reader-continue-fab):active:not(:disabled):not([aria-disabled="true"]),
 .chip:active,
 .reader-sheet-action:active:not(:disabled) {
   transform: translateY(0) scale(0.985);
@@ -7755,8 +7755,8 @@ button[aria-disabled="true"],
     animation: none !important;
   }
 
-  button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):hover,
-  button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):focus-visible,
+  button:not(.identity-modal-backdrop):not(.site-header-drawer-backdrop):not(.paragraph-bookmark-button):hover,
+  button:not(.identity-modal-backdrop):not(.site-header-drawer-backdrop):not(.paragraph-bookmark-button):focus-visible,
   .chip:hover,
   .chip:focus-visible,
   .reader-sheet-action:hover,
@@ -8301,7 +8301,7 @@ button[aria-disabled="true"],
   max-width: 760px;
 }
 
-button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.skill-button),
+button:not(.identity-modal-backdrop):not(.site-header-drawer-backdrop):not(.paragraph-bookmark-button):not(.skill-button),
 .chip,
 .reader-sheet-action,
 .comment-submit,
@@ -8314,7 +8314,7 @@ button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.skill-
   isolation: isolate;
 }
 
-button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.skill-button)::before,
+button:not(.identity-modal-backdrop):not(.site-header-drawer-backdrop):not(.paragraph-bookmark-button):not(.skill-button)::before,
 .chip::before,
 .reader-sheet-action::before,
 .comment-submit::before,
@@ -8341,8 +8341,8 @@ button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.skill-
   transition: opacity 180ms ease, transform 180ms ease;
 }
 
-button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.skill-button):hover:not(:disabled):not([aria-disabled="true"])::before,
-button:not(.identity-modal-backdrop):not(.paragraph-bookmark-button):not(.skill-button):focus-visible:not(:disabled):not([aria-disabled="true"])::before,
+button:not(.identity-modal-backdrop):not(.site-header-drawer-backdrop):not(.paragraph-bookmark-button):not(.skill-button):hover:not(:disabled):not([aria-disabled="true"])::before,
+button:not(.identity-modal-backdrop):not(.site-header-drawer-backdrop):not(.paragraph-bookmark-button):not(.skill-button):focus-visible:not(:disabled):not([aria-disabled="true"])::before,
 .chip:hover::before,
 .chip:focus-visible::before,
 .reader-sheet-action:hover:not(:disabled)::before,
@@ -29175,4 +29175,135 @@ html[data-xi-page-hidden="1"] .site-announcement-text + .site-announcement-text 
   .scroll-top-button-visible {
     animation: none !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Mobile identity + drawer + library height (2026-07-30)
+   - Avatar aura no longer overlaps email/username
+   - Admin badge sits next to the name (not space-between stranded)
+   - Library feed tall enough for ~5–6 story rows on phones
+   ═══════════════════════════════════════════════════════════════════ */
+
+.identity-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.identity-modal-heading {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.identity-modal-heading .identity-title-row {
+  margin-top: 2px;
+}
+
+.identity-modal-heading .identity-title-row h2 {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity-modal-header > .icon-button {
+  margin-left: 0;
+}
+
+.identity-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.identity-title-row .role-badge {
+  flex: 0 0 auto;
+}
+
+/* Room for transcendent/admin aura rings so they don't paint over text */
+.identity-avatar-frame {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  flex: 0 0 auto;
+  justify-self: center;
+}
+
+.identity-panel,
+.identity-modal-profile {
+  grid-template-columns: 84px minmax(0, 1fr) !important;
+  column-gap: 16px !important;
+  align-items: center;
+}
+
+.identity-panel-body,
+.identity-modal-profile > p {
+  min-width: 0;
+}
+
+@media (max-width: 839px) {
+  .identity-avatar-frame {
+    width: 76px;
+    height: 76px;
+  }
+
+  .identity-panel,
+  .identity-modal-profile {
+    grid-template-columns: 76px minmax(0, 1fr) !important;
+    column-gap: 14px !important;
+  }
+
+  .identity-panel .cultivation-avatar-lg,
+  .identity-modal-profile .cultivation-avatar-lg {
+    width: 56px;
+    height: 56px;
+  }
+
+  /* Catalog: show ~5–6 story rows instead of ~2 */
+  .library-sticky-panel {
+    max-height: none !important;
+  }
+
+  .library-sticky-panel .story-library-scroll {
+    min-height: min(62dvh, 30rem) !important;
+    max-height: min(74dvh, 38rem) !important;
+  }
+
+  .story-library-scroll {
+    --story-library-scroll-max: min(74dvh, 38rem);
+  }
+}
+
+/* Portaled drawer — full-viewport hit target outside .topbar containing block */
+.site-header-drawer-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9270 !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: rgba(12, 11, 10, 0.42) !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  transform: none !important;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.site-header-drawer-backdrop::before,
+.site-header-drawer-backdrop::after {
+  content: none !important;
+  display: none !important;
+}
+
+.site-header-drawer {
+  position: fixed !important;
+  z-index: 9280 !important;
 }
