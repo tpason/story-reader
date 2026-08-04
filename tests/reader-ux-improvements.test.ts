@@ -19,7 +19,9 @@ import {
 import {
   canAppendInlineChapter,
   MAX_READER_INLINE_APPEND,
+  resolvePreviousChapter,
   resolveTailNextChapter,
+  resolveVisibleChapterNumber,
   type ReaderInlineChapterBlock
 } from "../lib/reader-inline-chapters.ts";
 import {
@@ -160,6 +162,68 @@ describe("reader inline chapters", () => {
     assert.equal(canAppendInlineChapter(0), true);
     assert.equal(canAppendInlineChapter(MAX_READER_INLINE_APPEND - 1), true);
     assert.equal(canAppendInlineChapter(MAX_READER_INLINE_APPEND), false);
+  });
+
+  it("resolves previous chapter from inline visible chapter", () => {
+    const inline: ReaderInlineChapterBlock[] = [
+      {
+        chapterId: "c6",
+        chapterNumber: 6,
+        title: "Chương 6",
+        paragraphs: ["a"],
+        nextChapter: { id: "c7", chapterNumber: 7, title: "Ch 7" }
+      },
+      {
+        chapterId: "c7",
+        chapterNumber: 7,
+        title: "Chương 7",
+        paragraphs: ["b"],
+        nextChapter: null
+      }
+    ];
+    const primary = {
+      id: "c5",
+      storyId: "s1",
+      chapterNumber: 5,
+      title: "Chương 5",
+      isDownloaded: true,
+      isPolished: true,
+      isTranslated: true,
+      isAudioGenerated: false,
+      hasDbText: true,
+      textSource: "polished" as const,
+      hasAudio: false,
+      updatedAt: null
+    };
+    const previous = {
+      ...primary,
+      id: "c4",
+      chapterNumber: 4,
+      title: "Chương 4"
+    };
+
+    assert.equal(
+      resolvePreviousChapter(inline, primary, previous, 7)?.chapterNumber,
+      6
+    );
+    assert.equal(
+      resolvePreviousChapter(inline, primary, previous, 6)?.chapterNumber,
+      5
+    );
+    assert.equal(
+      resolvePreviousChapter(inline, primary, previous, 5)?.chapterNumber,
+      4
+    );
+    assert.equal(
+      resolveVisibleChapterNumber("c6", "c5", 5, inline),
+      6
+    );
+    assert.equal(
+      resolvePreviousChapter(inline, primary, previous, 8)?.chapterNumber,
+      5
+    );
+    assert.equal(resolvePreviousChapter([], primary, previous, 5)?.chapterNumber, 4);
+    assert.equal(resolvePreviousChapter([], primary, null, 1), null);
   });
 });
 

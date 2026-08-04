@@ -122,7 +122,9 @@ import {
 } from "@/lib/reader-continuous-chapter";
 import {
   canAppendInlineChapter,
+  resolvePreviousChapter,
   resolveTailNextChapter,
+  resolveVisibleChapterNumber,
   type ReaderInlineChapterBlock as InlineChapterBlock
 } from "@/lib/reader-inline-chapters";
 import {
@@ -390,6 +392,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const continuousAppendHandleRef = useRef<{ kind: "idle" | "timeout"; id: number } | null>(null);
   const isPageLayoutRef = useRef(false);
   const openNextChapterFastRef = useRef<() => void>(() => undefined);
+  const navigateBySwipeRef = useRef<(direction: "previous" | "next") => void>(() => undefined);
   const appendInlineNextChapterRef = useRef<() => void>(() => undefined);
   const promoteHeadInlineRef = useRef<() => Promise<boolean>>(async () => false);
   const inlineChaptersRef = useRef<InlineChapterBlock[]>([]);
@@ -791,6 +794,26 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   const tailNextChapter = useMemo(
     () => resolveTailNextChapter(inlineChapters, activePayload.nextChapter),
     [inlineChapters, activePayload.nextChapter]
+  );
+  const visibleChapterNumber = useMemo(
+    () =>
+      resolveVisibleChapterNumber(
+        commentsChapterId,
+        activePayload.chapter.id,
+        activePayload.chapter.chapterNumber,
+        inlineChapters
+      ),
+    [commentsChapterId, activePayload.chapter.id, activePayload.chapter.chapterNumber, inlineChapters]
+  );
+  const headPreviousChapter = useMemo(
+    () =>
+      resolvePreviousChapter(
+        inlineChapters,
+        activePayload.chapter,
+        activePayload.previousChapter,
+        visibleChapterNumber
+      ),
+    [inlineChapters, activePayload.chapter, activePayload.previousChapter, visibleChapterNumber]
   );
   const primaryChapterParagraphAttrs = useMemo(
     () => ({
@@ -1590,9 +1613,7 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         const next = tailNextChapter ?? activePayload.nextChapter;
         if (next) {
           event.preventDefault();
-          // Keep prior keyboard-next behavior (no force-top) — resume if chapter has progress.
-          flushVisibleReadingPositionRef.current();
-          router.push(storyHref(activePayload.story, next.chapterNumber));
+          navigateBySwipeRef.current("next");
         }
         return;
       }
@@ -1603,11 +1624,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           goToPage(pageIndex - (spreadPageMode ? 2 : 1));
           return;
         }
-        if (activePayload.previousChapter) {
+        if (headPreviousChapter) {
           event.preventDefault();
-          flushVisibleReadingPositionRef.current();
-          clearReaderChapterForceTop(activePayload.story.id, activePayload.previousChapter.chapterNumber);
-          router.push(storyHref(activePayload.story, activePayload.previousChapter.chapterNumber));
+          navigateBySwipeRef.current("previous");
         }
         return;
       }
@@ -1626,10 +1645,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           goToPage(pageIndex + (spreadPageMode ? 2 : 1));
           return;
         }
-        if (activePayload.nextChapter) {
+        if (tailNextChapter) {
           event.preventDefault();
-          flushVisibleReadingPositionRef.current();
-          router.push(storyHref(activePayload.story, activePayload.nextChapter.chapterNumber));
+          navigateBySwipeRef.current("next");
         }
       } else if (event.key === "ArrowLeft") {
         if (isPageLayout && pageIndex > 0) {
@@ -1637,11 +1655,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           goToPage(pageIndex - (spreadPageMode ? 2 : 1));
           return;
         }
-        if (activePayload.previousChapter) {
+        if (headPreviousChapter) {
           event.preventDefault();
-          flushVisibleReadingPositionRef.current();
-          clearReaderChapterForceTop(activePayload.story.id, activePayload.previousChapter.chapterNumber);
-          router.push(storyHref(activePayload.story, activePayload.previousChapter.chapterNumber));
+          navigateBySwipeRef.current("previous");
         }
       } else if (event.key === "b" || event.key === "B") {
         toggleBookmark();
@@ -1670,12 +1686,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
     return () => window.removeEventListener("keydown", onReaderKey);
   }, [
     activePayload.nextChapter,
-    activePayload.previousChapter,
     activePayload.story,
     bilingualActive,
     bilingualPrefs,
     goToPage,
     glossaryCharacters.length,
+    headPreviousChapter,
     isPageLayout,
     pageIndex,
     paragraphPages.length,
@@ -1834,19 +1850,22 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
   }
 
   const applyVisibleChapter = useCallback((next: ReaderVisibleChapter) => {
-    const unchanged =
-      visibleChapterRef.current.chapterId === next.chapterId &&
-      visibleChapterRef.current.paragraphIndex === next.paragraphIndex;
-    if (unchanged) return;
-
-    if (compactViewportRef.current) {
-      const now = Date.now();
-      if (now - lastMobileVisibleChapterSyncRef.current < MOBILE_VISIBLE_CHAPTER_THROTTLE_MS) return;
-      lastMobileVisibleChapterSyncRef.current = now;
+    const previous = visibleChapterRef.current;
+    if (
+      previous.chapterId === next.chapterId &&
+      previous.paragraphIndex === next.paragraphIndex
+    ) {
+      return;
     }
 
+    const chapterBoundaryCrossed = previous.chapterId !== next.chapterId;
     visibleChapterRef.current = next;
     activeParagraphIndexRef.current = next.paragraphIndex;
+
+    if (chapterBoundaryCrossed) {
+      // Always sync chapter identity for prev/next labels — throttle URL replace only.
+      setCommentsChapterId(next.chapterId);
+    }
 
     if (
       bilingualScrollHighlightRef.current &&
@@ -1857,13 +1876,27 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
       );
     }
 
-    if (next.chapterNumber !== syncedReaderUrlChapterRef.current) {
-      syncedReaderUrlChapterRef.current = next.chapterNumber;
-      const href = storyHref(activePayload.story, next.chapterNumber);
-      if (window.location.pathname !== new URL(href, window.location.origin).pathname) {
-        window.history.replaceState(null, "", href);
+    if (chapterBoundaryCrossed) {
+      let urlSyncThrottled = false;
+      if (compactViewportRef.current) {
+        const now = Date.now();
+        if (now - lastMobileVisibleChapterSyncRef.current < MOBILE_VISIBLE_CHAPTER_THROTTLE_MS) {
+          urlSyncThrottled = true;
+        } else {
+          lastMobileVisibleChapterSyncRef.current = now;
+        }
       }
-      setCommentsChapterId(next.chapterId);
+
+      if (
+        !urlSyncThrottled &&
+        next.chapterNumber !== syncedReaderUrlChapterRef.current
+      ) {
+        syncedReaderUrlChapterRef.current = next.chapterNumber;
+        const href = storyHref(activePayload.story, next.chapterNumber);
+        if (window.location.pathname !== new URL(href, window.location.origin).pathname) {
+          window.history.replaceState(null, "", href);
+        }
+      }
     }
 
     if (
@@ -3490,7 +3523,15 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
   async function navigateBySwipe(direction: "previous" | "next") {
     const current = activePayloadRef.current;
-    const targetChapter = direction === "previous" ? current.previousChapter : current.nextChapter;
+    const targetChapter =
+      direction === "previous"
+        ? resolvePreviousChapter(
+            inlineChaptersRef.current,
+            current.chapter,
+            current.previousChapter,
+            visibleChapterRef.current.chapterNumber
+          )
+        : resolveTailNextChapter(inlineChaptersRef.current, current.nextChapter);
     if (!targetChapter) {
       showSwipeNotice(direction === "previous" ? "Không có chương trước" : "Không có chương sau");
       return;
@@ -3535,6 +3576,9 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
 
     router.push(href);
   }
+  navigateBySwipeRef.current = (direction) => {
+    void navigateBySwipe(direction);
+  };
 
   function canStartReaderSwipe(target: EventTarget | null) {
     if (!(target instanceof HTMLElement)) return false;
@@ -4101,16 +4145,17 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
           <>
             <Link
               className="reader-mobile-dock-button"
-              aria-disabled={!activePayload.previousChapter}
-              href={activePayload.previousChapter ? storyHref(activePayload.story, activePayload.previousChapter.chapterNumber) : "#"}
+              aria-disabled={!headPreviousChapter}
+              href={headPreviousChapter ? storyHref(activePayload.story, headPreviousChapter.chapterNumber) : "#"}
               onClick={(event) => {
-                if (!activePayload.previousChapter) { event.preventDefault(); return; }
-                flushVisibleReadingPosition();
+                if (!headPreviousChapter) {
+                  event.preventDefault();
+                  return;
+                }
+                event.preventDefault();
                 setChapterTransitionDirection("prev");
                 setChapterTransitionTrigger((t) => t + 1);
-                // Resume mid-chapter — do not force-top (same as swipe previous).
-                clearReaderChapterForceTop(activePayload.story.id, activePayload.previousChapter.chapterNumber);
-                maybeOpenCachedChapter(event, activePayload.previousChapter.chapterNumber);
+                navigateBySwipeRef.current("previous");
               }}
             >
               <ChevronLeft size={18} />
@@ -4136,15 +4181,17 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             </button>
             <Link
               className="reader-mobile-dock-button"
-              aria-disabled={!activePayload.nextChapter}
-              href={activePayload.nextChapter ? storyHref(activePayload.story, activePayload.nextChapter.chapterNumber) : "#"}
+              aria-disabled={!tailNextChapter}
+              href={tailNextChapter ? storyHref(activePayload.story, tailNextChapter.chapterNumber) : "#"}
               onClick={(event) => {
-                if (!activePayload.nextChapter) { event.preventDefault(); return; }
-                flushVisibleReadingPosition();
+                if (!tailNextChapter) {
+                  event.preventDefault();
+                  return;
+                }
+                event.preventDefault();
                 setChapterTransitionDirection("next");
                 setChapterTransitionTrigger((t) => t + 1);
-                markChapterListNavigation(activePayload.nextChapter.chapterNumber);
-                maybeOpenCachedChapter(event, activePayload.nextChapter.chapterNumber);
+                navigateBySwipeRef.current("next");
               }}
             >
               <ChevronRight size={18} />
@@ -5459,8 +5506,8 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                   title={activePayload.chapter.title}
                   autoStartToken={audioAutoStartToken}
                   autoNextChapterUrl={
-                    activePayload.nextChapter
-                      ? storyHref(activePayload.story, activePayload.nextChapter.chapterNumber)
+                    tailNextChapter
+                      ? storyHref(activePayload.story, tailNextChapter.chapterNumber)
                       : null
                   }
                   onAutoNextChapter={() => void openNextChapterFast()}
@@ -5612,20 +5659,22 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
             <nav className="chapter-nav chapter-nav--bookstore" aria-label="Previous and next chapter">
               <Link
                 className="nav-card nav-card--prev"
-                aria-disabled={!activePayload.previousChapter}
-                href={activePayload.previousChapter ? storyHref(activePayload.story, activePayload.previousChapter.chapterNumber) : "#"}
+                aria-disabled={!headPreviousChapter}
+                href={headPreviousChapter ? storyHref(activePayload.story, headPreviousChapter.chapterNumber) : "#"}
                 onClick={(event) => {
-                  if (!activePayload.previousChapter) return;
-                  flushVisibleReadingPosition();
-                  clearReaderChapterForceTop(activePayload.story.id, activePayload.previousChapter.chapterNumber);
-                  maybeOpenCachedChapter(event, activePayload.previousChapter.chapterNumber);
+                  if (!headPreviousChapter) {
+                    event.preventDefault();
+                    return;
+                  }
+                  event.preventDefault();
+                  navigateBySwipeRef.current("previous");
                 }}
               >
                 <ChevronLeft size={18} />
                 <span>
                   <small>Chương trước</small>
-                  {activePayload.previousChapter
-                    ? formatChapterLabel(activePayload.previousChapter.chapterNumber, activePayload.previousChapter.title)
+                  {headPreviousChapter
+                    ? formatChapterLabel(headPreviousChapter.chapterNumber, headPreviousChapter.title)
                     : "Không có chương trước"}
                 </span>
               </Link>
@@ -5635,10 +5684,12 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
                 aria-disabled={!tailNextChapter}
                 href={tailNextChapter ? storyHref(activePayload.story, tailNextChapter.chapterNumber) : "#"}
                 onClick={(event) => {
-                  if (!tailNextChapter) return;
-                  // Preserve prior footer-next behavior: no force-top (resume if progress exists).
-                  flushVisibleReadingPosition();
-                  maybeOpenCachedChapter(event, tailNextChapter.chapterNumber);
+                  if (!tailNextChapter) {
+                    event.preventDefault();
+                    return;
+                  }
+                  event.preventDefault();
+                  navigateBySwipeRef.current("next");
                 }}
               >
                 <StoryCover
