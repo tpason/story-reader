@@ -16,7 +16,7 @@ import {
   DISCOVERY_UPDATED_KICKER,
   discoveryPolishedChapterLabel
 } from "@/lib/discovery-labels";
-import { prefetchStorySummaryQuery } from "@/lib/reader-query";
+import { warmReaderNavLinkProps } from "@/lib/warm-reader-nav";
 import { armStoryCoverViewTransition } from "@/lib/story-cover-view-transition";
 import { storyDisplayDescription } from "@/lib/story-description";
 import { resolveStoryStatusBadge } from "@/lib/story-status";
@@ -61,12 +61,6 @@ function DiscoveryGroup({
   const Icon = variant === "polished" ? WandSparkles : Clock3;
   const isCoverRail = layout === "coverRail";
 
-  function warmStoryNav(story: StoryDiscoveryItem) {
-    const target = storyHref(story);
-    router.prefetch(target);
-    void prefetchStorySummaryQuery(queryClient, story.id);
-  }
-
   return (
     <section
       className={`discovery-panel discovery-panel-${variant}${isCoverRail ? " discovery-panel--cover-rail" : ""}`}
@@ -86,17 +80,22 @@ function DiscoveryGroup({
 
       {isCoverRail ? (
         <CoverRailSlide label={title} className="discovery-cover-rail-slide">
-          {items.map((story) => (
+          {items.map((story) => {
+            const target = storyHref(story);
+            const warmProps = warmReaderNavLinkProps(router, queryClient, {
+              href: target,
+              storyId: story.id,
+              warmChunk: false,
+            });
+            return (
             <Link
               className={`discovery-cover-card ${isFresh(story.id) ? "discovery-cover-card-fresh" : ""}`.trim()}
-              href={storyHref(story)}
+              href={target}
               key={`${variant}-${story.id}`}
-              role="listitem"
-          onMouseEnter={() => warmStoryNav(story)}
-          onFocus={() => warmStoryNav(story)}
-          onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
+              {...warmProps}
+              onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
             >
-              <StoryCover src={story.coverImageUrl} title={story.title} />
+              <StoryCover src={story.coverImageUrl} title={story.title} variant="rail" />
               <div className="discovery-cover-card-meta">
                 <span className="discovery-cover-card-kicker">
                   {variant === "polished" ? DISCOVERY_POLISHED_KICKER : DISCOVERY_UPDATED_KICKER}
@@ -105,21 +104,28 @@ function DiscoveryGroup({
                 <small>{formatRelativeActivity(story.latestActivityAt)}</small>
               </div>
             </Link>
-          ))}
+            );
+          })}
         </CoverRailSlide>
       ) : (
         <div className="discovery-row">
-          {items.map((story) => (
+          {items.map((story) => {
+            const target = storyHref(story);
+            const warmProps = warmReaderNavLinkProps(router, queryClient, {
+              href: target,
+              storyId: story.id,
+              warmChunk: false,
+            });
+            return (
             <Link
               className={`discovery-card ${isFresh(story.id) ? "discovery-card-fresh" : ""}`.trim()}
-              href={storyHref(story)}
+              href={target}
               key={`${variant}-${story.id}`}
-              onMouseEnter={() => warmStoryNav(story)}
-              onFocus={() => warmStoryNav(story)}
+              {...warmProps}
               onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
               {...tiltHandlers}
             >
-              <StoryCover src={story.coverImageUrl} title={story.title} />
+              <StoryCover src={story.coverImageUrl} title={story.title} variant="thumb" />
               <div className="discovery-card-body">
                 <div className="discovery-kicker">
                   <span>{variant === "polished" ? DISCOVERY_POLISHED_KICKER : DISCOVERY_UPDATED_KICKER}</span>
@@ -138,7 +144,8 @@ function DiscoveryGroup({
                 </div>
               </div>
             </Link>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>

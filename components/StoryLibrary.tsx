@@ -14,8 +14,7 @@ import { storyHref } from "@/lib/urls";
 import { storyDisplayDescription, storyCategoryLabel } from "@/lib/story-description";
 import { formatRelativeActivity, formatStoryUpdatedLabel } from "@/lib/content-timestamps";
 import { resolveStoryStatusBadge } from "@/lib/story-status";
-import { prefetchReaderChapterQuery, prefetchStorySummaryQuery } from "@/lib/reader-query";
-import { warmReaderClientChunk } from "@/lib/warm-reader-client";
+import { warmReaderNavLinkProps } from "@/lib/warm-reader-nav";
 import { armStoryCoverViewTransition } from "@/lib/story-cover-view-transition";
 import { useAppSelector } from "@/lib/store-hooks";
 import { useReadingProgressSync } from "@/hooks/useReadingProgressSync";
@@ -107,26 +106,21 @@ const StoryCard = memo(function StoryCard({ story, storyHistory, isAdmin, adminE
     : 0;
   const updatedLabel = formatRelativeActivity(story.updatedAt) ?? formatStoryUpdatedLabel(story.updatedAt);
   const href = storyHistory ? storyHref(story, storyHistory.chapterNumber) : storyHref(story);
-
-  function warmStoryNav() {
-    router.prefetch(href);
-    void prefetchStorySummaryQuery(queryClient, story.id);
-    if (storyHistory) {
-      warmReaderClientChunk();
-      void prefetchReaderChapterQuery(queryClient, story.id, storyHistory.chapterNumber);
-    }
-  }
+  const warmProps = warmReaderNavLinkProps(router, queryClient, {
+    href,
+    storyId: story.id,
+    chapterNumber: storyHistory?.chapterNumber,
+  });
 
   return (
     <Link
       className={`story-card ${fresh ? "story-card-fresh" : ""}`.trim()}
       href={href}
-      onMouseEnter={warmStoryNav}
-      onFocus={warmStoryNav}
+      {...warmProps}
       onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
       {...tiltHandlers}
     >
-      <StoryCover src={story.coverImageUrl} title={story.title} priority={priority} />
+      <StoryCover src={story.coverImageUrl} title={story.title} priority={priority} variant="card" />
       <div className="story-card-body">
         <div className="story-card-heading">
           <div>
@@ -341,18 +335,18 @@ export function StoryLibrary({
           <div className="continue-row">
             {recentItems.map((item) => {
               const continueHref = storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber);
-              const warmContinue = () => {
-                warmReaderClientChunk();
-                router.prefetch(continueHref);
-                void prefetchReaderChapterQuery(queryClient, item.storyId, item.chapterNumber);
-              };
+              const warmProps = warmReaderNavLinkProps(router, queryClient, {
+                href: continueHref,
+                storyId: item.storyId,
+                chapterNumber: item.chapterNumber,
+                warmStorySummary: false,
+              });
               return (
                 <Link
                   className={`continue-card ${isFresh(item.storyId) ? "continue-card-fresh" : ""}`.trim()}
                   href={continueHref}
                   key={item.storyId}
-                  onMouseEnter={warmContinue}
-                  onFocus={warmContinue}
+                  {...warmProps}
                 >
                   <BookOpenCheck size={16} />
                   <span>{item.storyTitle}</span>
@@ -393,7 +387,7 @@ export function StoryLibrary({
                 adminEditForCard={adminEdit?.storyId === story.id ? adminEdit : null}
                 highlight={query.q || undefined}
                 fresh={isFresh(story.id)}
-                priority={index < 6}
+                priority={index < 2}
                 onStartEdit={startAdminEdit}
                 onSetAdminEdit={setAdminEdit}
               />

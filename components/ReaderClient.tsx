@@ -48,7 +48,14 @@ import { ReaderAmbienceLayer } from "@/components/ReaderAmbienceLayer";
 import { ReaderLogo } from "@/components/ReaderLogo";
 import { ReaderQuickSettings } from "@/components/ReaderQuickSettings";
 import { ReaderThemeSegmented } from "@/components/ReaderThemeSegmented";
-import { fetchReaderChapter, prefetchReaderChapterQuery, readerQueryKeys, READER_CHAPTER_STALE_MS } from "@/lib/reader-query";
+import {
+  cancelScheduledPrefetchReaderChapterQuery,
+  fetchReaderChapter,
+  prefetchReaderChapterQuery,
+  readerQueryKeys,
+  READER_CHAPTER_STALE_MS,
+  schedulePrefetchReaderChapterQuery,
+} from "@/lib/reader-query";
 import {
   bilingualFetchOptions,
   learnEnglishPreset,
@@ -3705,8 +3712,18 @@ export function ReaderClient({ payload }: { payload: ReaderPayload }) {
         href={storyHref(activePayload.story, chapter.chapterNumber)}
         key={chapter.id}
         style={virtualStyle}
+        prefetch={false}
         onMouseEnter={() => {
           if (isActive) return;
+          schedulePrefetchReaderChapterQuery(queryClient, activePayload.story.id, chapter.chapterNumber);
+        }}
+        onMouseLeave={() => {
+          if (isActive) return;
+          cancelScheduledPrefetchReaderChapterQuery(activePayload.story.id, chapter.chapterNumber);
+        }}
+        onPointerDown={() => {
+          if (isActive) return;
+          cancelScheduledPrefetchReaderChapterQuery(activePayload.story.id, chapter.chapterNumber);
           void prefetchReaderChapterQuery(queryClient, activePayload.story.id, chapter.chapterNumber);
         }}
         onClick={(event) => {

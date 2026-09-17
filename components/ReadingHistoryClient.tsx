@@ -9,9 +9,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/SiteHeader";
 import { StoryCover } from "@/components/StoryCover";
 import { fetchBookmarks, fetchReadingProgressPage } from "@/lib/api-client";
-import { prefetchReaderChapterQuery, prefetchStorySummaryQuery } from "@/lib/reader-query";
+import { warmReaderNavLinkProps } from "@/lib/warm-reader-nav";
 import { armStoryCoverViewTransition } from "@/lib/story-cover-view-transition";
-import { warmReaderClientChunk } from "@/lib/warm-reader-client";
 import { storyHref } from "@/lib/urls";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
@@ -104,23 +103,20 @@ function HistoryStoryCard({
   const newChapters =
     item.totalChapters > item.maxReadChapterNumber ? item.totalChapters - item.maxReadChapterNumber : 0;
   const href = storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber);
-
-  const warmNav = () => {
-    router.prefetch(href);
-    void prefetchStorySummaryQuery(queryClient, item.storyId);
-    warmReaderClientChunk();
-    void prefetchReaderChapterQuery(queryClient, item.storyId, item.chapterNumber);
-  };
+  const warmProps = warmReaderNavLinkProps(router, queryClient, {
+    href,
+    storyId: item.storyId,
+    chapterNumber: item.chapterNumber,
+  });
 
   return (
     <Link
       className={`story-card ${fresh ? "story-card-fresh" : ""}`.trim()}
       href={href}
-      onMouseEnter={warmNav}
-      onFocus={warmNav}
+      {...warmProps}
       onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
     >
-      <StoryCover src={item.coverImageUrl} title={item.storyTitle} />
+      <StoryCover src={item.coverImageUrl} title={item.storyTitle} variant="card" />
       <div className="story-card-body">
         <div className="story-card-heading">
           <div>
@@ -314,19 +310,17 @@ export function ReadingHistoryClient() {
             <div className="bookmark-row">
               {bookmarks.slice(0, 12).map((item) => {
                 const href = storyHref({ id: item.storyId, title: item.storyTitle }, item.chapterNumber);
-                const warmNav = () => {
-                  router.prefetch(href);
-                  void prefetchStorySummaryQuery(queryClient, item.storyId);
-                  warmReaderClientChunk();
-                  void prefetchReaderChapterQuery(queryClient, item.storyId, item.chapterNumber);
-                };
+                const warmProps = warmReaderNavLinkProps(router, queryClient, {
+                  href,
+                  storyId: item.storyId,
+                  chapterNumber: item.chapterNumber,
+                });
                 return (
                 <Link
                   className="bookmark-card"
                   href={href}
                   key={`${item.storyId}-${item.chapterNumber}`}
-                  onMouseEnter={warmNav}
-                  onFocus={warmNav}
+                  {...warmProps}
                   onClick={() => {
                     window.sessionStorage.setItem(
                       `reader:bookmark-scroll:${item.storyId}:${item.chapterNumber}`,

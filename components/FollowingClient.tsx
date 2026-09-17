@@ -13,9 +13,8 @@ import { XiPageHeroStrip } from "@/components/XiPageHeroStrip";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
 import { formatRelativeActivity } from "@/lib/content-timestamps";
-import { prefetchReaderChapterQuery, prefetchStorySummaryQuery } from "@/lib/reader-query";
+import { warmReaderNavLinkProps } from "@/lib/warm-reader-nav";
 import { armStoryCoverViewTransition } from "@/lib/story-cover-view-transition";
-import { warmReaderClientChunk } from "@/lib/warm-reader-client";
 import { storyHref } from "@/lib/urls";
 import { useAppSelector } from "@/lib/store-hooks";
 
@@ -146,25 +145,21 @@ export function FollowingClient() {
                 ? storyHref({ id: item.storyId, title: item.storyTitle }, targetChapter)
                 : storyHref({ id: item.storyId, title: item.storyTitle });
 
-              const warmNav = () => {
-                router.prefetch(href);
-                void prefetchStorySummaryQuery(queryClient, item.storyId);
-                if (targetChapter) {
-                  warmReaderClientChunk();
-                  void prefetchReaderChapterQuery(queryClient, item.storyId, targetChapter);
-                }
-              };
+              const warmProps = warmReaderNavLinkProps(router, queryClient, {
+                href,
+                storyId: item.storyId,
+                chapterNumber: targetChapter,
+              });
 
               return (
                 <Link
                   key={item.storyId}
                   className={`followed-card followed-card-page ${isFresh(item.storyId) ? "followed-card-fresh" : ""}`.trim()}
                   href={href}
-                  onMouseEnter={warmNav}
-                  onFocus={warmNav}
+                  {...warmProps}
                   onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
                 >
-                  <StoryCover src={item.coverImageUrl} title={item.storyTitle} />
+                  <StoryCover src={item.coverImageUrl} title={item.storyTitle} variant="card" />
                   <div>
                     <div className="followed-kicker">
                       <BellRing size={13} />
@@ -173,10 +168,13 @@ export function FollowingClient() {
                     <h3>{item.storyTitle}</h3>
                     <p>
                       {progress
-                        ? `Đọc tiếp chương ${progress.chapterNumber} · ${item.totalChapters} chương`
+                        ? `Chương ${progress.chapterNumber} · ${item.totalChapters} chương`
                         : `${item.totalChapters} chương · chưa bắt đầu`}
                       {activityLabel ? ` · ${activityLabel}` : ""}
                     </p>
+                    <span className="following-card-cta">
+                      {progress ? "Đọc tiếp" : "Bắt đầu đọc"}
+                    </span>
                   </div>
                 </Link>
               );

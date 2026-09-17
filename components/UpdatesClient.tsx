@@ -23,9 +23,8 @@ import { fetchReadingProgress } from "@/lib/api-client";
 import { historyToFollowItem } from "@/lib/follows";
 import { mergeHistoryItems } from "@/lib/store";
 import { type ReadingHistoryItem } from "@/lib/reading-history";
-import { prefetchReaderChapterQuery, prefetchStorySummaryQuery } from "@/lib/reader-query";
+import { warmReaderNavLinkProps } from "@/lib/warm-reader-nav";
 import { armStoryCoverViewTransition } from "@/lib/story-cover-view-transition";
-import { warmReaderClientChunk } from "@/lib/warm-reader-client";
 import { NOTIFY_COPY } from "@/lib/xianxia-notify-copy";
 import { storyHref } from "@/lib/urls";
 import { useAppDispatch, useAppSelector } from "@/lib/store-hooks";
@@ -53,25 +52,21 @@ function UpdateCard({ entry, fresh }: { entry: UpdateEntry; fresh: boolean }) {
     markNotificationCaughtUp(item.storyId, item.totalChapters);
   }
 
-  const warmNav = () => {
-    router.prefetch(href);
-    void prefetchStorySummaryQuery(queryClient, item.storyId);
-    if (nextChapter) {
-      warmReaderClientChunk();
-      void prefetchReaderChapterQuery(queryClient, item.storyId, nextChapter);
-    }
-  };
+  const warmProps = warmReaderNavLinkProps(router, queryClient, {
+    href,
+    storyId: item.storyId,
+    chapterNumber: nextChapter ?? undefined,
+  });
 
   return (
     <article className={`update-card ${fresh ? "update-card-fresh" : ""}`.trim()}>
       <Link
         className="update-card-main"
         href={href}
-        onMouseEnter={warmNav}
-        onFocus={warmNav}
+        {...warmProps}
         onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
       >
-        <StoryCover src={item.coverImageUrl} title={item.storyTitle} />
+        <StoryCover src={item.coverImageUrl} title={item.storyTitle} variant="card" />
         <div className="update-card-body">
           <div className="story-card-heading">
             <h2 className="story-card-title">{item.storyTitle}</h2>
@@ -191,7 +186,7 @@ export function UpdatesClient() {
       <MotionFX variant="library" />
       <SiteHeader />
 
-      <div className="page-wrap">
+      <div className="page-wrap updates-page">
         <XiPageHeroStrip className="updates-header" eyebrow={<><Sparkles size={13} aria-hidden="true" />{NOTIFY_COPY.eyebrow}</>} title={NOTIFY_COPY.pageTitle} subtitle={NOTIFY_COPY.pageSubtitle}>
           <div className="updates-hero-actions">
             <div className="updates-summary">

@@ -12,7 +12,7 @@ import {
   discoveryPolishedChapterLabel
 } from "@/lib/discovery-labels";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
-import { prefetchStorySummaryQuery } from "@/lib/reader-query";
+import { warmReaderNavLinkProps } from "@/lib/warm-reader-nav";
 import { armStoryCoverViewTransition } from "@/lib/story-cover-view-transition";
 import { resolveStoryStatusBadge } from "@/lib/story-status";
 import type { StoryDiscoveryItem } from "@/lib/types";
@@ -43,25 +43,25 @@ export function DiscoverListClient({ items, kind }: DiscoverListClientProps) {
 
   const kicker = kind === "polished" ? DISCOVERY_POLISHED_KICKER : DISCOVERY_UPDATED_KICKER;
 
-  function warmStoryNav(story: StoryDiscoveryItem) {
-    const target = storyHref(story);
-    router.prefetch(target);
-    void prefetchStorySummaryQuery(queryClient, story.id);
-  }
-
   return (
-    <div className="discover-cover-grid" role="list">
-      {items.map((story) => (
+    <div className="discover-cover-grid xi-discover-shelf" role="list">
+      {items.map((story) => {
+        const href = storyHref(story);
+        const warmProps = warmReaderNavLinkProps(router, queryClient, {
+          href,
+          storyId: story.id,
+          warmChunk: false,
+        });
+        return (
         <Link
           className={`discover-cover-card ${isFresh(story.id) ? "discover-cover-card-fresh" : ""}`.trim()}
-          href={storyHref(story)}
+          href={href}
           key={story.id}
           role="listitem"
-          onMouseEnter={() => warmStoryNav(story)}
-          onFocus={() => warmStoryNav(story)}
+          {...warmProps}
           onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
         >
-          <StoryCover src={story.coverImageUrl} title={story.title} />
+          <StoryCover src={story.coverImageUrl} title={story.title} variant="card" />
           <div className="discover-cover-card-meta">
             <div className="discover-cover-card-kicker-row">
               <span className="discover-cover-card-kicker">{kicker}</span>
@@ -78,7 +78,8 @@ export function DiscoverListClient({ items, kind }: DiscoverListClientProps) {
             </div>
           </div>
         </Link>
-      ))}
+        );
+      })}
     </div>
   );
 }

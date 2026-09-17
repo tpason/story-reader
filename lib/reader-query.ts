@@ -9,6 +9,10 @@ export const READER_CHAPTER_STALE_MS = 1000 * 60 * 8;
 const MAX_CHAPTER_PREFETCH_IN_FLIGHT = 2;
 const chapterPrefetchInFlight = new Set<string>();
 
+/** Hover/focus dwell before warming full chapter JSON (scroll-through should not fetch). */
+export const CHAPTER_HOVER_PREFETCH_DWELL_MS = 280;
+const scheduledChapterPrefetches = new Map<string, number>();
+
 function chapterPrefetchKey(storyId: string, chapterNumber: number, options?: ReaderChapterQueryOptions) {
   return `${storyId}:${chapterNumber}:${options?.primaryLayer ?? "polished"}:${options?.secondaryLayer ?? ""}:${options?.displayMode ?? "single"}`;
 }
@@ -46,7 +50,7 @@ export async function fetchReaderChapter(storyId: string, chapterNumber: number,
 }
 
 /**
- * Warm RQ chapter JSON (hover / CTA / scroll-edge). Read-only GET only —
+ * Warm RQ chapter JSON (CTA / scroll-edge / settled hover). Read-only GET only —
  * never writes progress, bookmarks, sessions, or audio jobs.
  * Same query key as the live reader when `options` match bilingual prefs.
  */
@@ -79,6 +83,44 @@ export function prefetchReaderChapterQuery(
     .finally(() => {
       chapterPrefetchInFlight.delete(flightKey);
     });
+}
+
+/**
+ * Schedule a chapter warm after dwell. Use for dense lists (story detail TOC)
+ * so scroll/mouse-pass does not enqueue dozens of full-chapter GETs.
+ */
+export function schedulePrefetchReaderChapterQuery(
+  queryClient: QueryClient,
+  storyId: string,
+  chapterNumber: number,
+  options?: ReaderChapterQueryOptions,
+  dwellMs: number = CHAPTER_HOVER_PREFETCH_DWELL_MS
+) {
+  if (typeof window === "undefined") return;
+  if (shouldSkipPrefetchNetwork()) return;
+
+  const key = chapterPrefetchKey(storyId, chapterNumber, options);
+  const existing = scheduledChapterPrefetches.get(key);
+  if (existing != null) window.clearTimeout(existing);
+
+  const timer = window.setTimeout(() => {
+    scheduledChapterPrefetches.delete(key);
+    void prefetchReaderChapterQuery(queryClient, storyId, chapterNumber, options);
+  }, Math.max(0, dwellMs));
+  scheduledChapterPrefetches.set(key, timer);
+}
+
+export function cancelScheduledPrefetchReaderChapterQuery(
+  storyId: string,
+  chapterNumber: number,
+  options?: ReaderChapterQueryOptions
+) {
+  if (typeof window === "undefined") return;
+  const key = chapterPrefetchKey(storyId, chapterNumber, options);
+  const timer = scheduledChapterPrefetches.get(key);
+  if (timer == null) return;
+  window.clearTimeout(timer);
+  scheduledChapterPrefetches.delete(key);
 }
 
 export async function fetchStorySummary(storyId: string) {

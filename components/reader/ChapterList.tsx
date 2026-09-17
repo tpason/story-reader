@@ -8,7 +8,11 @@ import { ChapterTimestamp } from "@/components/ChapterTimestamp";
 import { isTodayLocal } from "@/lib/date";
 import { formatChapterCardTitle } from "@/lib/chapter-title";
 import { READER_CHAPTER_AUDIO_UI_ENABLED } from "@/lib/reader-features";
-import { prefetchReaderChapterQuery } from "@/lib/reader-query";
+import {
+  cancelScheduledPrefetchReaderChapterQuery,
+  schedulePrefetchReaderChapterQuery,
+  prefetchReaderChapterQuery,
+} from "@/lib/reader-query";
 import type { ChapterSummary, StorySummary } from "@/lib/types";
 import { storyHref } from "@/lib/urls";
 
@@ -39,6 +43,18 @@ const ChapterCard = memo(function ChapterCard({
 
   function warmChapter() {
     if (isCurrent) return;
+    // Dwell before full-chapter JSON — scroll-through mouse path must not storm the API.
+    schedulePrefetchReaderChapterQuery(queryClient, currentStory.id, chapter.chapterNumber);
+  }
+
+  function cancelWarmChapter() {
+    if (isCurrent) return;
+    cancelScheduledPrefetchReaderChapterQuery(currentStory.id, chapter.chapterNumber);
+  }
+
+  function flushWarmChapter() {
+    if (isCurrent) return;
+    cancelScheduledPrefetchReaderChapterQuery(currentStory.id, chapter.chapterNumber);
     void prefetchReaderChapterQuery(queryClient, currentStory.id, chapter.chapterNumber);
   }
 
@@ -46,8 +62,12 @@ const ChapterCard = memo(function ChapterCard({
     <Link
       className={`story-chapter-card ${isRead ? "story-chapter-read" : ""} ${isCurrent ? "story-chapter-current" : ""} ${fresh ? "story-chapter-card-fresh" : ""}`.trim()}
       href={storyHref(currentStory, chapter.chapterNumber)}
+      prefetch={false}
       onMouseEnter={warmChapter}
+      onMouseLeave={cancelWarmChapter}
       onFocus={warmChapter}
+      onBlur={cancelWarmChapter}
+      onPointerDown={flushWarmChapter}
     >
       {isCurrent && <span className="story-chapter-current-bar" aria-hidden="true" />}
       <span className="story-chapter-title">

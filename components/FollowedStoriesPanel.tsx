@@ -4,11 +4,11 @@ import { BellRing, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { CoverRailSlide } from "@/components/CoverRailSlide";
 import { StoryCover } from "@/components/StoryCover";
 import { useFreshStoryRealtime } from "@/hooks/useFreshStoryRealtime";
-import { prefetchReaderChapterQuery, prefetchStorySummaryQuery } from "@/lib/reader-query";
+import { warmReaderNavLinkProps } from "@/lib/warm-reader-nav";
 import { armStoryCoverViewTransition } from "@/lib/story-cover-view-transition";
-import { warmReaderClientChunk } from "@/lib/warm-reader-client";
 import { storyHref } from "@/lib/urls";
 import { useAppSelector } from "@/lib/store-hooks";
 
@@ -52,7 +52,7 @@ export function FollowedStoriesPanel() {
         </Link>
       </div>
 
-      <div className="followed-row">
+      <CoverRailSlide label="Đang theo dõi" className="followed-cover-rail-slide">
         {visibleItems.map((item) => {
           const progress = historyByStory.get(item.storyId);
           const unread = Math.max(0, item.totalChapters - (progress?.maxReadChapterNumber ?? 0));
@@ -61,25 +61,21 @@ export function FollowedStoriesPanel() {
             ? storyHref({ id: item.storyId, title: item.storyTitle }, targetChapter)
             : storyHref({ id: item.storyId, title: item.storyTitle });
 
-          const warmNav = () => {
-            router.prefetch(href);
-            void prefetchStorySummaryQuery(queryClient, item.storyId);
-            if (targetChapter) {
-              warmReaderClientChunk();
-              void prefetchReaderChapterQuery(queryClient, item.storyId, targetChapter);
-            }
-          };
+          const warmProps = warmReaderNavLinkProps(router, queryClient, {
+            href,
+            storyId: item.storyId,
+            chapterNumber: targetChapter,
+          });
 
           return (
             <Link
               className={`followed-card ${isFresh(item.storyId) ? "followed-card-fresh" : ""}`.trim()}
               href={href}
               key={item.storyId}
-              onMouseEnter={warmNav}
-              onFocus={warmNav}
+              {...warmProps}
               onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
             >
-              <StoryCover src={item.coverImageUrl} title={item.storyTitle} />
+              <StoryCover src={item.coverImageUrl} title={item.storyTitle} variant="thumb" />
               <div>
                 <div className="followed-kicker">
                   <BellRing size={13} />
@@ -91,7 +87,7 @@ export function FollowedStoriesPanel() {
             </Link>
           );
         })}
-      </div>
+      </CoverRailSlide>
       {follows.length > 8 ? (
         <p className="followed-shelf-more">
           <Link className="chip" href="/following">

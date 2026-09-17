@@ -9,7 +9,7 @@ import type { StoryTrendingItem, TrendingPeriod } from "@/lib/types";
 import { StoryCover } from "@/components/StoryCover";
 import { RankCalligraphySeal } from "@/components/RankCalligraphySeal";
 import { XianxiaEmptyState } from "@/components/XianxiaEmptyState";
-import { prefetchStorySummaryQuery } from "@/lib/reader-query";
+import { warmReaderNavLinkProps } from "@/lib/warm-reader-nav";
 import { armStoryCoverViewTransition } from "@/lib/story-cover-view-transition";
 import { storyHref } from "@/lib/urls";
 import { formatSourceLabel } from "@/lib/source-labels";
@@ -139,16 +139,22 @@ function PodiumCard({
   rank,
   variant,
   period,
-  onWarm,
   onArmVt
 }: {
   story: StoryTrendingItem;
   rank: number;
   variant: NonNullable<RankingsListProps["variant"]>;
   period?: TrendingPeriod;
-  onWarm: (story: StoryTrendingItem) => void;
   onArmVt: (target: EventTarget | null) => void;
 }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const href = storyHref(story);
+  const warmProps = warmReaderNavLinkProps(router, queryClient, {
+    href,
+    storyId: story.id,
+    warmChunk: false,
+  });
   const tier = rank <= 3 ? (["gold", "silver", "bronze"] as const)[rank - 1] : "jade";
   return (
     <article className={`rankings-podium-card rankings-podium-${tier}`}>
@@ -156,12 +162,11 @@ function PodiumCard({
       <RankCalligraphySeal rank={rank} size="podium" />
       <Link
         className="rankings-podium-link"
-        href={storyHref(story)}
-        onMouseEnter={() => onWarm(story)}
-        onFocus={() => onWarm(story)}
+        href={href}
+        {...warmProps}
         onClick={(event) => onArmVt(event.currentTarget)}
       >
-        <StoryCover src={story.coverImageUrl} title={story.title} className="rankings-podium-cover" />
+        <StoryCover src={story.coverImageUrl} title={story.title} className="rankings-podium-cover" variant="featured" />
         <h3>{story.title}</h3>
         <p className="rankings-meta">
           {story.primaryCategoryName ?? story.author ?? story.sourceCode}
@@ -180,13 +185,11 @@ function RankingsPodium({
   items,
   variant,
   period,
-  onWarm,
   onArmVt
 }: {
   items: StoryTrendingItem[];
   variant: NonNullable<RankingsListProps["variant"]>;
   period?: TrendingPeriod;
-  onWarm: (story: StoryTrendingItem) => void;
   onArmVt: (target: EventTarget | null) => void;
 }) {
   const [first, second, third] = items;
@@ -200,7 +203,6 @@ function RankingsPodium({
           rank={rankForStory(second, variant)}
           variant={variant}
           period={period}
-          onWarm={onWarm}
           onArmVt={onArmVt}
         />
       ) : (
@@ -211,7 +213,6 @@ function RankingsPodium({
         rank={rankForStory(first, variant)}
         variant={variant}
         period={period}
-        onWarm={onWarm}
         onArmVt={onArmVt}
       />
       {third ? (
@@ -220,7 +221,6 @@ function RankingsPodium({
           rank={rankForStory(third, variant)}
           variant={variant}
           period={period}
-          onWarm={onWarm}
           onArmVt={onArmVt}
         />
       ) : (
@@ -233,12 +233,6 @@ function RankingsPodium({
 export function RankingsList({ items, variant = "trending", period = "week", emptyTitle }: RankingsListProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-
-  function warmStoryNav(story: StoryTrendingItem) {
-    const target = storyHref(story);
-    router.prefetch(target);
-    void prefetchStorySummaryQuery(queryClient, story.id);
-  }
 
   if (!items.length) {
     return (
@@ -277,7 +271,6 @@ export function RankingsList({ items, variant = "trending", period = "week", emp
           items={podiumItems}
           variant={variant}
           period={period}
-          onWarm={warmStoryNav}
           onArmVt={armStoryCoverViewTransition}
         />
       ) : null}
@@ -285,17 +278,22 @@ export function RankingsList({ items, variant = "trending", period = "week", emp
       <ol className="rankings-list">
         {(podiumItems.length < 2 ? items : restItems).map((story) => {
           const rank = rankForStory(story, variant);
+          const href = storyHref(story);
+          const warmProps = warmReaderNavLinkProps(router, queryClient, {
+            href,
+            storyId: story.id,
+            warmChunk: false,
+          });
           return (
             <li key={story.id} className={`rankings-item${rank <= 3 ? " rankings-item-top" : ""}`}>
               <RankCalligraphySeal rank={rank} />
               <Link
                 className="rankings-card"
-                href={storyHref(story)}
-                onMouseEnter={() => warmStoryNav(story)}
-                onFocus={() => warmStoryNav(story)}
+                href={href}
+                {...warmProps}
                 onClick={(event) => armStoryCoverViewTransition(event.currentTarget)}
               >
-                <StoryCover src={story.coverImageUrl} title={story.title} className="rankings-cover" />
+                <StoryCover src={story.coverImageUrl} title={story.title} className="rankings-cover" variant="thumb" />
                 <div className="rankings-body">
                   <h3>{story.title}</h3>
                   <p className="rankings-meta">
