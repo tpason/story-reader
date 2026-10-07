@@ -2,6 +2,7 @@
 
 import { useInfiniteQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, type Dispatch, type SetStateAction } from "react";
+import { nextLibraryFeedGate, rearmLibraryFeedFill, type LibraryFeedGate } from "@/lib/library-feed-gate";
 import type { CursorPage, StorySummary } from "@/lib/types";
 import { syncFollowedStories } from "@/lib/store";
 import { useAppDispatch } from "@/lib/store-hooks";
@@ -150,30 +151,61 @@ export function useStoryLibraryFeed(initialPage: CursorPage<StorySummary>, query
     };
   }, [dispatch, items]);
 
+  const loadMoreLockRef = useRef(false);
+  const gateRef = useRef<LibraryFeedGate>({ awaitingLeave: false, autoFillCount: 0 });
+  const fetchNextPage = infinite.fetchNextPage;
+  const isFetchingNextPage = infinite.isFetchingNextPage;
+  const filterKey = queryKey.join("\0");
+
+  useEffect(() => {
+    gateRef.current = { awaitingLeave: false, autoFillCount: 0 };
+  }, [filterKey]);
+
   const loadMore = useCallback(() => {
-    if (!nextCursor || infinite.isFetchingNextPage) return;
-    void infinite.fetchNextPage();
-  }, [infinite, nextCursor]);
+    if (!nextCursor || isFetchingNextPage || loadMoreLockRef.current) return false;
+    loadMoreLockRef.current = true;
+    void fetchNextPage().finally(() => {
+      loadMoreLockRef.current = false;
+    });
+    return true;
+  }, [fetchNextPage, isFetchingNextPage, nextCursor]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel || !nextCursor) return;
 
-    const root = sentinel.closest(".story-library-scroll");
+    const host = sentinel.closest(".story-library-scroll");
+    const hostEl = host instanceof HTMLElement ? host : null;
+    const hostOverflows = !!hostEl && hostEl.scrollHeight > hostEl.clientHeight + 24;
+    // After a page lands, allow another auto page only while the shelf is still short.
+    gateRef.current = rearmLibraryFeedFill(gateRef.current, hostOverflows);
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) loadMore();
+        const overflows = !!hostEl && hostEl.scrollHeight > hostEl.clientHeight + 24;
+        const decision = nextLibraryFeedGate(gateRef.current, {
+          isIntersecting: entry.isIntersecting,
+          hostOverflows: overflows,
+        });
+        if (!decision.fetch) {
+          gateRef.current = decision.gate;
+          return;
+        }
+        if (!loadMore()) return;
+        gateRef.current = decision.gate;
       },
       {
-        root: root instanceof Element ? root : null,
+        // Always the inner shelf. A viewport root treats a pinned sentinel as
+        // permanently visible and pages the whole catalog on first paint.
+        root: hostEl,
         rootMargin: "48px 0px",
-        threshold: 0.01
+        threshold: 0,
       }
     );
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [loadMore, nextCursor]);
+  }, [loadMore, nextCursor, items.length]);
 
   return {
     items,

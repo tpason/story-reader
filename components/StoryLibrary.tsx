@@ -400,7 +400,8 @@ export function StoryLibrary({
             </div>
           ) : null}
 
-          <div className="infinite-status" ref={sentinelRef}>
+          <div className="library-load-sentinel" ref={sentinelRef} aria-hidden="true" />
+          <div className="infinite-status">
             {error ? (
               error
             ) : nextCursor ? (

@@ -159,7 +159,9 @@ export function StoryDiscoveryRail({
   updatedStories,
   layout = "coverRail",
 }: StoryDiscoveryRailProps) {
-  const { isFresh } = useFreshStoryRealtime({ refreshRoute: true });
+  // Shimmer only. router.refresh() here re-ran the whole homepage RSC tree
+  // (discovery, trending, catalog) on every chapter_update.
+  const { isFresh } = useFreshStoryRealtime();
   const polished = polishedStories.slice(0, HOME_DISCOVERY_CARD_BUDGET);
   const updated = updatedStories.slice(0, HOME_DISCOVERY_CARD_BUDGET);
 

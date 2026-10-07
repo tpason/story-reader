@@ -262,16 +262,22 @@ export async function listStoriesCursor(options: {
   }
 
   const whereSql = where.join(" AND ");
-  const countRows = await query<{ count: string }>(
-    `
-      SELECT COUNT(DISTINCT s.id)::text AS count
-      FROM stories s
-      JOIN sources src ON src.id = s.source_id
-      LEFT JOIN categories cat ON cat.id = s.primary_category_id
-      WHERE ${whereSql}
-    `,
-    values
-  );
+  // Later pages only need the next cursor. COUNT(DISTINCT) on every scroll
+  // re-scans the catalog and made the homepage feed feel like a reload loop.
+  let total: number | undefined;
+  if (offset === 0) {
+    const countRows = await query<{ count: string }>(
+      `
+        SELECT COUNT(DISTINCT s.id)::text AS count
+        FROM stories s
+        JOIN sources src ON src.id = s.source_id
+        LEFT JOIN categories cat ON cat.id = s.primary_category_id
+        WHERE ${whereSql}
+      `,
+      values
+    );
+    total = Number(countRows[0]?.count ?? 0);
+  }
 
   values.push(limit + 1, offset);
   const rows = await query<StoryRow>(
@@ -313,12 +319,11 @@ export async function listStoriesCursor(options: {
 
   const pageRows = rows.slice(0, limit);
   const nextOffset = offset + pageRows.length;
-  const total = Number(countRows[0]?.count ?? 0);
   return {
     items: pageRows.map(mapStory),
     nextCursor: rows.length > limit ? encodeCursor(nextOffset) : null,
     pageSize: limit,
-    total
+    ...(total !== undefined ? { total } : {}),
   };
 }
 
@@ -459,8 +464,9 @@ export async function listRecommendedStories(storyId: string, limit = 6): Promis
 
 /** Default homepage catalog page 1 (no search/filters) — TTL matches `app/page.tsx` revalidate. */
 export const getCachedDefaultHomeStories = unstable_cache(
-  () => listStoriesCursor({ limit: 24, minChapters: 1 }),
-  ["home-stories-default"],
+  // 16: fewer first-paint covers on homepage; infinite scroll fills the rest.
+  () => listStoriesCursor({ limit: 16, minChapters: 1 }),
+  ["home-stories-default-v16"],
   { revalidate: 60, tags: ["author-public-catalog"] }
 );
 

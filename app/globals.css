@@ -29307,3 +29307,20 @@ html[data-xi-page-hidden="1"] .site-announcement-text + .site-announcement-text 
   position: fixed !important;
   z-index: 9280 !important;
 }
+
+/* Catalog load-more target stays in normal flow.
+   `position: sticky; bottom: 0` on `.infinite-status` pinned the sentinel
+   inside `.story-library-scroll`, so IntersectionObserver treated it as
+   visible on first paint and paged /api/stories through the whole catalog. */
+.story-library-scroll .infinite-status {
+  position: static;
+  bottom: auto;
+  min-height: 0;
+}
+
+.library-load-sentinel {
+  height: 1px;
+  width: 100%;
+  margin: 0;
+  pointer-events: none;
+}
