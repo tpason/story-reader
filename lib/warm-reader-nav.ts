@@ -1,6 +1,7 @@
 "use client";
 
 import type { QueryClient } from "@tanstack/react-query";
+import type { useRouter } from "next/navigation";
 import {
   cancelScheduledPrefetchReaderChapterQuery,
   CHAPTER_HOVER_PREFETCH_DWELL_MS,
@@ -20,7 +21,13 @@ export type WarmReaderNavTarget = {
   warmStorySummary?: boolean;
 };
 
-type RouterLike = { prefetch: (href: string) => void };
+type AppRouter = ReturnType<typeof useRouter>;
+// typedRoutes makes AppRouter.prefetch generic; a `(href: string) => void` slot rejects it.
+type RouterLike = Pick<AppRouter, "prefetch">;
+
+function prefetchHref(router: RouterLike, href: string) {
+  router.prefetch(href as Parameters<AppRouter["prefetch"]>[0]);
+}
 
 const scheduledNavs = new Map<string, number>();
 
@@ -29,7 +36,7 @@ function navKey(target: WarmReaderNavTarget) {
 }
 
 function runWarm(router: RouterLike, queryClient: QueryClient, target: WarmReaderNavTarget) {
-  router.prefetch(target.href);
+  prefetchHref(router, target.href);
   if (target.warmStorySummary !== false) {
     void prefetchStorySummaryQuery(queryClient, target.storyId);
   }
