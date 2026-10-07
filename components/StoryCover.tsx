@@ -18,14 +18,17 @@ export function StoryCover({
   priority,
   className,
   /** Destination hero on story detail — CSS assigns view-transition-name when VT allowed. */
-  viewTransitionHero
+  viewTransitionHero,
+  variant: _variant
 }: {
   src: string | null;
   title: string;
   priority?: boolean;
   className?: string;
   viewTransitionHero?: boolean;
+  variant?: "thumb" | "rail" | "card" | "featured";
 }) {
+  void _variant;
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const resolvedSrc = !src || failed ? FALLBACK_COVER : src;
